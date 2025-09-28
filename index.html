@@ -207,9 +207,9 @@
     <input type="date" id="taskDate" />
     <input type="time" id="taskTime" />
     <select id="taskPriority">
-      <option value="1">Priority 1</option>
-      <option value="2">Priority 2</option>
-      <option value="3">Priority 3</option>
+      <option value="1">!</option>
+      <option value="2">!!</option>
+      <option value="3">!!!</option>
     </select>
     <button onclick="addTask()">Add</button>
     <ul id="taskList"></ul>
@@ -365,6 +365,12 @@
       generateCalendar();
     }
 
+    // small helper to produce a full readable date (e.g. "Tuesday, January 14, 2025")
+    function formatFullDate(day, monthIndex, year) {
+      const d = new Date(year, monthIndex, day);
+      return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
     function showReminders(day) {
       selectedDay = day;
       // Update selected UI
@@ -374,12 +380,14 @@
           else cell.classList.remove('selected');
         }
       });
+
       const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
       const reminders = getReminders();
       const items = reminders[key] || [];
-
-      // Events that day
       const events = getEvents().filter(e => e.date === key);
+
+      // date header
+      const dateHeader = `<div style="font-weight:700;margin-bottom:8px;">${formatFullDate(day, selectedMonth, selectedYear)}</div>`;
 
       // Holiday info
       const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
@@ -427,7 +435,7 @@
         `;
       }
 
-      reminderBar.innerHTML = holidayHTML + remindersHTML + eventsHTML;
+      reminderBar.innerHTML = dateHeader + holidayHTML + remindersHTML + eventsHTML;
     }
 
     // --- CALENDAR GENERATION ---
@@ -708,3 +716,4 @@
   </script>
 </body>
 </html>
+``` 
