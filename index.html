@@ -355,17 +355,34 @@
     function pad2(num) { return num < 10 ? '0' + num : '' + num; }
 
     // --- STORAGE HELPERS ---
+    // small helper to safely parse localStorage values and recover from corrupted JSON
+    function safeParseStorage(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        return JSON.parse(raw);
+      } catch (err) {
+        console.warn('LocalStorage parse failed for', key, err);
+        // remove the corrupted entry so future loads are clean
+        try { localStorage.removeItem(key); } catch (e) {}
+        return fallback;
+      }
+    }
+
     function getReminders() {
       // stored as { "YYYY-MM-DD": [ {text, time}, ... ] }
-      return JSON.parse(localStorage.getItem('reminders') || '{}');
+      return safeParseStorage('reminders', {});
     }
     function setReminders(data) { localStorage.setItem('reminders', JSON.stringify(data)); }
 
-    function getTasks() { return JSON.parse(localStorage.getItem('tasks') || '[]'); }
+    function getTasks() { return safeParseStorage('tasks', []); }
     function setTasks(tasks) { localStorage.setItem('tasks', JSON.stringify(tasks)); }
 
-    function getEvents() { return JSON.parse(localStorage.getItem('events') || '[]'); }
+    function getEvents() { return safeParseStorage('events', []); }
     function setEvents(ev) { localStorage.setItem('events', JSON.stringify(ev)); }
+
+    // quick dev helper: run in the browser console to clear all app storage if needed:
+    // (() => { localStorage.removeItem('events'); localStorage.removeItem('tasks'); localStorage.removeItem('reminders'); console.info('cleared app storage'); })();
 
     // --- REMINDERS ---
     function addReminder() {
@@ -761,3 +778,4 @@
   </script>
 </body>
 </html>
+
