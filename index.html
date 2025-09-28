@@ -48,12 +48,14 @@
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 5px;
-      padding: 10px 10px 0 10px;
-      max-width: 540px;
-      margin: 0 auto 12px auto;
+      padding: 10px;
+      width: min(1200px, calc(100vw - 160px));
+      max-width: 100%;
+      margin: 0 auto 12px;
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+      box-sizing: border-box;
     }
     .calendar-dayname {
       font-weight: bold;
@@ -103,7 +105,7 @@
       top: 6px;
       font-size: 1.1rem;
     }
-    .tasks, .dashboard, .events {
+    .tasks, .dashboard, .events, .reminders {
       margin: 20px;
       text-align: left;
       max-width: 540px;
@@ -175,13 +177,16 @@
   </div>
   <section class="calendar" id="calendar"></section>
 
-  <!-- Reminders for Selected Day -->
-  <div id="reminderBar"></div>
-  <div style="margin-bottom:18px;">
-    <input type="text" id="reminderInput" placeholder="Add reminder to selected day..." />
-    <input type="time" id="reminderTime" style="width:18%; margin-left:6px;" />
-    <button onclick="addReminder()">Add Reminder</button>
-  </div>
+  <!-- Reminders (grouped with other sections) -->
+  <section class="reminders">
+    <h2>⏰ Reminders</h2>
+    <div id="reminderBar"></div>
+    <div style="margin-bottom:18px;">
+      <input type="text" id="reminderInput" placeholder="Add reminder to selected day..." />
+      <input type="time" id="reminderTime" style="width:18%; margin-left:6px;" />
+      <button onclick="addReminder()">Add Reminder</button>
+    </div>
+  </section>
 
   <!-- Events -->
   <section class="events">
@@ -476,26 +481,22 @@
         if (dayOfWeek === 0 || dayOfWeek === 6) cell.style.backgroundColor = theme.weekend;
         else cell.style.backgroundColor = theme.weekday;
 
-        // Holiday highlight
+        // Holiday highlight or event emoji (inline like holiday emoji)
         const h = getHoliday(keyMMDD, selectedYear);
+        const dayEvents = events.filter(e => e.date === keyYYYYMMDD);
+        const eventEmoji = dayEvents.length > 0 ? (dayEvents[0].emoji || '📌') : null;
+
         if (h) {
           cell.classList.add('holiday');
           cell.title = h.name;
-          // ensure holiday matches weekend theme color
           cell.style.backgroundColor = theme.weekend;
           cell.innerHTML = `${day} <span style="font-size:1.2em">${h.emoji}</span>`;
+        } else if (eventEmoji) {
+          // show the chosen event emoji inline next to the day number (falls back to pin if none chosen)
+          cell.title = dayEvents.map(e => `${e.time || ''} ${e.title}`).join('\n');
+          cell.innerHTML = `${day} <span style="font-size:1.2em">${eventEmoji}</span>`;
         } else {
           cell.textContent = day;
-        }
-
-        // event emoji preview (first event)
-        const dayEvents = events.filter(e => e.date === keyYYYYMMDD);
-        if (dayEvents.length > 0) {
-          const emojiSpan = document.createElement('span');
-          emojiSpan.className = 'event-emoji';
-          emojiSpan.title = dayEvents.map(e => `${e.time || ''} ${e.title}`).join('\n');
-          emojiSpan.textContent = dayEvents[0].emoji || '📌';
-          cell.appendChild(emojiSpan);
         }
 
         // Dot if reminders
@@ -716,4 +717,3 @@
   </script>
 </body>
 </html>
-``` 
