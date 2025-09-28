@@ -98,16 +98,60 @@
     const progressRing = document.getElementById('progressRing');
     const summaryStats = document.getElementById('summaryStats');
 
-    function generateCalendar() {
-      calendar.innerHTML = '';
-      for (let i = 1; i <= 30; i++) {
-        const day = document.createElement('div');
-        day.className = 'day';
-        day.textContent = i;
-        day.onclick = () => alert(`Add event for day ${i} (feature coming soon)`);
-        calendar.appendChild(day);
-      }
+ function generateCalendar() {
+  calendar.innerHTML = '';
+
+  const now = new Date();
+  const month = now.getMonth(); // 0 = Jan, 11 = Dec
+
+  // Define pastel themes per month
+  const themes = {
+    0: { weekday: '#cce5ff', weekend: '#e0ccff' }, // Jan
+    1: { weekday: '#ffd6e0', weekend: '#e6ccff' }, // Feb
+    2: { weekday: '#d6f5d6', weekend: '#cce0ff' }, // Mar
+    3: { weekday: '#fff0b3', weekend: '#ffd9b3' }, // Apr
+    4: { weekday: '#e6ffe6', weekend: '#ccf2ff' }, // May
+    5: { weekday: '#ffe6cc', weekend: '#ffcccc' }, // Jun
+    6: { weekday: '#fff5cc', weekend: '#ffd6cc' }, // Jul
+    7: { weekday: '#e6f7ff', weekend: '#d9e6f2' }, // Aug
+    8: { weekday: '#ffe6b3', weekend: '#ffccb3' }, // Sep
+    9: { weekday: '#ffd9b3', weekend: '#e6ccb3' }, // Oct
+    10: { weekday: '#e6f0ff', weekend: '#d6e6f5' }, // Nov
+    11: { weekday: '#ffcccc', weekend: '#ccffcc' }  // Dec
+  };
+
+  const theme = themes[month];
+
+  // Example holiday list (month is 0-based, day is 1-based)
+  const holidays = {
+    '11-25': true, // Dec 25 Christmas
+    '9-31': true   // Oct 31 Halloween
+  };
+
+  const daysInMonth = new Date(now.getFullYear(), month + 1, 0).getDate();
+
+  for (let i = 1; i <= daysInMonth; i++) {
+    const date = new Date(now.getFullYear(), month, i);
+    const dayOfWeek = date.getDay(); // 0 = Sun, 6 = Sat
+    const key = `${month}-${i}`;
+
+    const day = document.createElement('div');
+    day.className = 'day';
+    day.textContent = i;
+
+    // Apply colors
+    if (holidays[key]) {
+      day.style.backgroundColor = theme.weekend; // holiday = weekend color
+    } else if (dayOfWeek === 0 || dayOfWeek === 6) {
+      day.style.backgroundColor = theme.weekend; // weekend
+    } else {
+      day.style.backgroundColor = theme.weekday; // weekday
     }
+
+    calendar.appendChild(day);
+  }
+}
+
 
     function loadTasks() {
       const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
