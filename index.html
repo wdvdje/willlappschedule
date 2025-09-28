@@ -214,16 +214,27 @@
       { weekday: '#ffcccc', weekend: '#ccffcc' }  // Dec
     ];
 
-    // Example holidays: { 'MM-DD': 'Holiday Name' }
+    // Example holidays: { 'MM-DD': { name: 'Holiday Name', emoji: '🎉' } }
+    // Add basic US holidays and emojis
     const holidays = {
-      '01-01': 'New Year\'s Day',
-      '02-14': 'Valentine\'s Day',
-      '03-17': 'St. Patrick\'s Day',
-      '04-01': 'April Fool\'s Day',
-      '07-04': 'Independence Day',
-      '10-31': 'Halloween',
-      '12-25': 'Christmas Day'
-      // Add more as needed
+      '01-01': { name: "New Year's Day", emoji: '🎆' },
+      '01-15': { name: "Martin Luther King Jr. Day", emoji: '✊🏿' }, // 3rd Monday in Jan, but fixed date here for demo
+      '02-14': { name: "Valentine's Day", emoji: '❤️' },
+      '02-19': { name: "Presidents' Day", emoji: '🇺🇸' }, // 3rd Monday in Feb, fixed date
+      '03-17': { name: "St. Patrick's Day", emoji: '🍀' },
+      '04-01': { name: "April Fool's Day", emoji: '🤡' },
+      '05-05': { name: "Cinco de Mayo", emoji: '🪇' },
+      '05-27': { name: "Memorial Day", emoji: '🪖' }, // Last Monday in May, fixed date
+      '06-19': { name: "Juneteenth", emoji: '🖤' },
+      '07-04': { name: "Independence Day", emoji: '🎇' },
+      '09-02': { name: "Labor Day", emoji: '⚒️' }, // 1st Mon in Sep, fixed date
+      '10-14': { name: "Columbus Day", emoji: '🧭' }, // 2nd Mon in Oct, fixed date
+      '10-31': { name: "Halloween", emoji: '🎃' },
+      '11-11': { name: "Veterans Day", emoji: '🎖️' },
+      '11-28': { name: "Thanksgiving", emoji: '🦃' }, // 4th Thu in Nov, fixed date
+      '12-24': { name: "Christmas Eve", emoji: '🎄' },
+      '12-25': { name: "Christmas Day", emoji: '🎅' },
+      '12-31': { name: "New Year's Eve", emoji: '🎉' }
     };
 
     function pad2(num) {
@@ -271,8 +282,22 @@
       const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
       const reminders = getReminders();
       const items = reminders[key] || [];
+
+      // Holiday info
+      const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
+      let holidayHTML = '';
+      if (holidays[keyMMDD]) {
+        const h = holidays[keyMMDD];
+        holidayHTML = `
+          <div class="reminder-bar" style="background:#ffe5e3;border-left:4px solid #c0392b;color:#c0392b;">
+            <b>${h.emoji} ${h.name}</b>
+          </div>
+        `;
+      }
+
+      let remindersHTML = '';
       if (items.length > 0) {
-        reminderBar.innerHTML = `
+        remindersHTML = `
           <div class="reminder-bar">
             <b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b>
             <ul style="margin:0 0 0 14px;padding:0 0 0 0;">
@@ -280,9 +305,8 @@
             </ul>
           </div>
         `;
-      } else {
-        reminderBar.innerHTML = '';
       }
+      reminderBar.innerHTML = holidayHTML + remindersHTML;
     }
 
     function generateCalendar() {
@@ -326,23 +350,28 @@
 
         const cell = document.createElement('div');
         cell.className = 'day';
-        cell.textContent = day;
         cell.dataset.day = day;
 
         // Color for today
         if (isCurrentMonth && day === today.getDate()) cell.classList.add('today');
 
-        // Holiday highlight
+        // Holiday highlight and emoji
         if (holidays[keyMMDD]) {
+          const h = holidays[keyMMDD];
           cell.classList.add('holiday');
-          cell.title = holidays[keyMMDD];
-        } else if (dayOfWeek === 0 || dayOfWeek === 6) {
-          cell.style.backgroundColor = theme.weekend;
+          cell.title = h.name;
+          cell.style.backgroundColor = theme.weekend; // Make holidays match weekend color!
+          cell.innerHTML = `${day} <span style="font-size:1.2em">${h.emoji}</span>`;
         } else {
-          cell.style.backgroundColor = theme.weekday;
+          cell.textContent = day;
+          if (dayOfWeek === 0 || dayOfWeek === 6) {
+            cell.style.backgroundColor = theme.weekend;
+          } else {
+            cell.style.backgroundColor = theme.weekday;
+          }
         }
 
-        // Dot if reminders
+        // Dot if reminders (add after emoji if holiday)
         if (reminders[keyYYYYMMDD] && reminders[keyYYYYMMDD].length > 0) {
           const dot = document.createElement('span');
           dot.className = 'reminder-dot';
