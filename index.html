@@ -551,6 +551,78 @@
       reminderBar.innerHTML = remindersHTML;
     }
 
+    function generateCalendar() {
+      // clear and set header
+      calendar.innerHTML = '';
+      monthLabel.textContent = `${monthNames[selectedMonth]} ${selectedYear}`;
+
+      // weekday headers
+      for (let d = 0; d < 7; d++) {
+        const dayName = document.createElement('div');
+        dayName.className = 'calendar-dayname';
+        dayName.textContent = weekdayNames[d];
+        calendar.appendChild(dayName);
+      }
+
+      const firstDay = new Date(selectedYear, selectedMonth, 1);
+      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+      const startDay = firstDay.getDay();
+      const today = new Date();
+      const isCurrentMonth = today.getFullYear() === selectedYear && today.getMonth() === selectedMonth;
+      const reminders = getReminders();
+      const events = getEvents();
+
+      // leading blanks
+      for (let i = 0; i < startDay; i++) calendar.appendChild(document.createElement('div'));
+
+      const theme = themes[selectedMonth];
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(selectedYear, selectedMonth, day);
+        const dayOfWeek = date.getDay();
+        const keyMMDD = pad2(selectedMonth + 1) + '-' + pad2(day);
+        const keyYYYYMMDD = `${selectedYear}-${pad2(selectedMonth + 1)}-${pad2(day)}`;
+
+        const cell = document.createElement('div');
+        cell.className = 'day';
+        cell.dataset.day = day;
+
+        if (isCurrentMonth && day === today.getDate()) cell.classList.add('today');
+
+        // theme background
+        cell.style.backgroundColor = (dayOfWeek === 0 || dayOfWeek === 6) ? theme.weekend : theme.weekday;
+
+        // holiday or event emoji inline
+        const h = getHoliday(keyMMDD, selectedYear);
+        const dayEvents = events.filter(e => e.date === keyYYYYMMDD);
+        const eventEmoji = dayEvents.length > 0 ? (dayEvents[0].emoji || '📌') : null;
+
+        if (h) {
+          cell.classList.add('holiday');
+          cell.title = h.name;
+          cell.style.backgroundColor = theme.weekend;
+          cell.innerHTML = `${day} <span style="font-size:1.2em">${h.emoji}</span>`;
+        } else if (eventEmoji) {
+          cell.title = dayEvents.map(e => `${e.time || ''} ${e.title}`).join('\n');
+          cell.innerHTML = `${day} <span style="font-size:1.2em">${eventEmoji}</span>`;
+        } else {
+          cell.textContent = day;
+        }
+
+        // reminder dot
+        if (reminders[keyYYYYMMDD] && reminders[keyYYYYMMDD].length > 0) {
+          const dot = document.createElement('span');
+          dot.className = 'reminder-dot';
+          cell.appendChild(dot);
+        }
+
+        cell.onclick = () => showReminders(day);
+        if (selectedDay === day) cell.classList.add('selected');
+
+        calendar.appendChild(cell);
+      }
+    }
+
     /* --- small-screen layout tweak: keep panels inset from screen edges --- */
     (function enhanceResponsiveStyles() {
       // Add an adjusted media rule so panels are not flush to the viewport edge on mobile.
