@@ -67,18 +67,19 @@
     .day {
       background: white;
       border-radius: 6px;
-      padding: 10px 0 6px 0;
+      padding: 10px 6px 6px 6px;
       min-height: 58px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.09);
       cursor: pointer;
       position: relative;
       transition: box-shadow 0.2s;
+      overflow: hidden;
     }
     .day.today {
       outline: 2px solid #4a90e2;
     }
+    /* remove fixed holiday background to allow dynamic month theme colors */
     .day.holiday {
-      background: #ffe5e3 !important;
       color: #c0392b;
       font-weight: bold;
     }
@@ -96,14 +97,20 @@
       transform: translateX(-50%);
       display: inline-block;
     }
-    .tasks, .dashboard {
+    .day .event-emoji {
+      position: absolute;
+      right: 6px;
+      top: 6px;
+      font-size: 1.1rem;
+    }
+    .tasks, .dashboard, .events {
       margin: 20px;
       text-align: left;
       max-width: 540px;
       margin-left: auto;
       margin-right: auto;
     }
-    .tasks h2, .dashboard h2 {
+    .tasks h2, .dashboard h2, .events h2 {
       margin-bottom: 10px;
     }
     .progress {
@@ -114,7 +121,7 @@
       border-top-color: #4a90e2;
       transition: transform 0.3s ease;
     }
-    input[type="text"], select {
+    input[type="text"], select, input[type="date"], input[type="time"] {
       padding: 8px;
       width: 80%;
       margin-bottom: 10px;
@@ -141,6 +148,8 @@
       border-radius: 5px;
       font-size: 0.96rem;
     }
+    .item-controls { margin-left:8px; }
+    .small-btn { padding:4px 6px; font-size:0.9rem; margin-left:6px; background:#888; }
     @media (max-width: 600px) {
       .calendar, .tasks, .dashboard { max-width: 100vw; }
     }
@@ -160,8 +169,21 @@
   <div id="reminderBar"></div>
   <div style="margin-bottom:18px;">
     <input type="text" id="reminderInput" placeholder="Add reminder to selected day..." />
+    <input type="time" id="reminderTime" style="width:18%; margin-left:6px;" />
     <button onclick="addReminder()">Add Reminder</button>
   </div>
+
+  <!-- Events -->
+  <section class="events">
+    <h2>📅 Events</h2>
+    <input type="text" id="eventTitle" placeholder="Event title" />
+    <input type="date" id="eventDate" />
+    <input type="time" id="eventTime" />
+    <input type="text" id="eventLocation" placeholder="Location" />
+    <input type="text" id="eventEmoji" placeholder="Emoji (e.g. 🎉)" style="width:20%" />
+    <button onclick="addEvent()">Add Event</button>
+    <ul id="eventList"></ul>
+  </section>
 
   <!-- Tasks -->
   <section class="tasks">
@@ -171,6 +193,13 @@
       <option value="work">Work</option>
       <option value="personal">Personal</option>
       <option value="errands">Errands</option>
+    </select>
+    <input type="date" id="taskDate" />
+    <input type="time" id="taskTime" />
+    <select id="taskPriority">
+      <option value="1">Priority 1</option>
+      <option value="2">Priority 2</option>
+      <option value="3">Priority 3</option>
     </select>
     <button onclick="addTask()">Add</button>
     <ul id="taskList"></ul>
@@ -190,6 +219,7 @@
     const monthLabel = document.getElementById('monthLabel');
     const reminderBar = document.getElementById('reminderBar');
     const reminderInput = document.getElementById('reminderInput');
+    const reminderTime = document.getElementById('reminderTime');
 
     // Month names
     const monthNames = [
@@ -214,61 +244,74 @@
       { weekday: '#ffcccc', weekend: '#ccffcc' }  // Dec
     ];
 
-    // Example holidays: { 'MM-DD': { name: 'Holiday Name', emoji: '🎉' } }
-    // Add basic US holidays and emojis
+    // Example holidays
     const holidays = {
       '01-01': { name: "New Year's Day", emoji: '🎆' },
-      '01-15': { name: "Martin Luther King Jr. Day", emoji: '✊🏿' }, // 3rd Monday in Jan, but fixed date here for demo
       '02-14': { name: "Valentine's Day", emoji: '❤️' },
-      '02-19': { name: "Presidents' Day", emoji: '🇺🇸' }, // 3rd Monday in Feb, fixed date
       '03-17': { name: "St. Patrick's Day", emoji: '🍀' },
       '04-01': { name: "April Fool's Day", emoji: '🤡' },
-      '05-05': { name: "Cinco de Mayo", emoji: '🪇' },
-      '05-27': { name: "Memorial Day", emoji: '🪖' }, // Last Monday in May, fixed date
-      '06-19': { name: "Juneteenth", emoji: '🖤' },
       '07-04': { name: "Independence Day", emoji: '🎇' },
-      '09-02': { name: "Labor Day", emoji: '⚒️' }, // 1st Mon in Sep, fixed date
-      '10-14': { name: "Columbus Day", emoji: '🧭' }, // 2nd Mon in Oct, fixed date
       '10-31': { name: "Halloween", emoji: '🎃' },
-      '11-11': { name: "Veterans Day", emoji: '🎖️' },
-      '11-28': { name: "Thanksgiving", emoji: '🦃' }, // 4th Thu in Nov, fixed date
-      '12-24': { name: "Christmas Eve", emoji: '🎄' },
-      '12-25': { name: "Christmas Day", emoji: '🎅' },
-      '12-31': { name: "New Year's Eve", emoji: '🎉' }
+      '12-25': { name: "Christmas Day", emoji: '🎅' }
     };
 
-    function pad2(num) {
-      return num < 10 ? '0' + num : '' + num;
-    }
+    function pad2(num) { return num < 10 ? '0' + num : '' + num; }
 
-    function todayKey() {
-      const now = new Date();
-      return `${now.getFullYear()}-${pad2(now.getMonth()+1)}-${pad2(now.getDate())}`;
-    }
-
-    // Reminders stored as { [YYYY-MM-DD]: ["reminder text 1", ...] }
+    // --- STORAGE HELPERS ---
     function getReminders() {
+      // stored as { "YYYY-MM-DD": [ {text, time}, ... ] }
       return JSON.parse(localStorage.getItem('reminders') || '{}');
     }
-    function setReminders(data) {
-      localStorage.setItem('reminders', JSON.stringify(data));
-    }
+    function setReminders(data) { localStorage.setItem('reminders', JSON.stringify(data)); }
+
+    function getTasks() { return JSON.parse(localStorage.getItem('tasks') || '[]'); }
+    function setTasks(tasks) { localStorage.setItem('tasks', JSON.stringify(tasks)); }
+
+    function getEvents() { return JSON.parse(localStorage.getItem('events') || '[]'); }
+    function setEvents(ev) { localStorage.setItem('events', JSON.stringify(ev)); }
+
+    // --- REMINDERS ---
     function addReminder() {
-      if (!selectedDay) {
-        alert('Select a day in the calendar first!');
-        return;
-      }
+      if (!selectedDay) { alert('Select a day in the calendar first!'); return; }
       const txt = reminderInput.value.trim();
       if (!txt) return;
+      const time = reminderTime.value || '';
       const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(selectedDay)}`;
       const reminders = getReminders();
       if (!reminders[key]) reminders[key] = [];
-      reminders[key].push(txt);
+      reminders[key].push({ text: txt, time });
       setReminders(reminders);
       reminderInput.value = '';
+      reminderTime.value = '';
       showReminders(selectedDay);
-      generateCalendar(); // update dots
+      generateCalendar();
     }
+
+    function editReminder(day, index) {
+      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+      const reminders = getReminders();
+      const item = reminders[key][index];
+      const newText = prompt('Edit reminder text:', item.text);
+      if (newText === null) return;
+      const newTime = prompt('Edit time (HH:MM, leave blank for none):', item.time || '');
+      if (newTime === null) return;
+      reminders[key][index] = { text: newText.trim(), time: newTime.trim() };
+      setReminders(reminders);
+      showReminders(day);
+      generateCalendar();
+    }
+
+    function deleteReminder(day, index) {
+      if (!confirm('Delete this reminder?')) return;
+      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+      const reminders = getReminders();
+      reminders[key].splice(index,1);
+      if (reminders[key].length === 0) delete reminders[key];
+      setReminders(reminders);
+      showReminders(day);
+      generateCalendar();
+    }
+
     function showReminders(day) {
       selectedDay = day;
       // Update selected UI
@@ -278,10 +321,12 @@
           else cell.classList.remove('selected');
         }
       });
-      // Show reminders for this day
       const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
       const reminders = getReminders();
       const items = reminders[key] || [];
+
+      // Events that day
+      const events = getEvents().filter(e => e.date === key);
 
       // Holiday info
       const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
@@ -300,21 +345,43 @@
         remindersHTML = `
           <div class="reminder-bar">
             <b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b>
-            <ul style="margin:0 0 0 14px;padding:0 0 0 0;">
-              ${items.map(r => `<li>${r}</li>`).join('')}
+            <ul style="margin:6px 0 0 18px;padding:0;">
+              ${items.map((r, i) => `<li>${r.time ? '['+r.time+'] ' : ''}${escapeHTML(r.text)} 
+                <span class="item-controls">
+                  <button class="small-btn" onclick="editReminder(${day},${i})">Edit</button>
+                  <button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button>
+                </span>
+              </li>`).join('')}
             </ul>
           </div>
         `;
       }
-      reminderBar.innerHTML = holidayHTML + remindersHTML;
+
+      let eventsHTML = '';
+      if (events.length > 0) {
+        eventsHTML = `
+          <div class="reminder-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234;">
+            <b>Events:</b>
+            <ul style="margin:6px 0 0 18px;padding:0;">
+              ${events.map((ev, i) => `<li>${ev.time ? '['+ev.time+'] ' : ''}${ev.emoji ? ev.emoji+' ' : ''}<b>${escapeHTML(ev.title)}</b> — ${escapeHTML(ev.location || '')}
+                <span class="item-controls">
+                  <button class="small-btn" onclick="editEvent(${ev.id})">Edit</button>
+                  <button class="small-btn" onclick="deleteEvent(${ev.id})">Delete</button>
+                </span>
+              </li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      reminderBar.innerHTML = holidayHTML + remindersHTML + eventsHTML;
     }
 
+    // --- CALENDAR GENERATION ---
     function generateCalendar() {
       calendar.innerHTML = '';
-      // Display month/year
       monthLabel.textContent = `${monthNames[selectedMonth]} ${selectedYear}`;
 
-      // Add weekday names
       for (let d = 0; d < 7; d++) {
         const dayName = document.createElement('div');
         dayName.className = 'calendar-dayname';
@@ -322,104 +389,83 @@
         calendar.appendChild(dayName);
       }
 
-      // 1st day of month
       const firstDay = new Date(selectedYear, selectedMonth, 1);
       const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-      const startDay = firstDay.getDay(); // 0=Sun
-
-      // Get today's date for highlighting
+      const startDay = firstDay.getDay();
       const today = new Date();
       const isCurrentMonth = today.getFullYear() === selectedYear && today.getMonth() === selectedMonth;
-
-      // Get reminders for dots
       const reminders = getReminders();
+      const events = getEvents();
 
-      // Add blanks for days before the 1st
-      for (let i = 0; i < startDay; i++) {
-        const blank = document.createElement('div');
-        calendar.appendChild(blank);
-      }
+      for (let i = 0; i < startDay; i++) calendar.appendChild(document.createElement('div'));
 
-      // Render days
       const theme = themes[selectedMonth];
-      for (let day = 1; day <= daysInMonth; day++) {
+      for (let day=1; day<=daysInMonth; day++) {
         const date = new Date(selectedYear, selectedMonth, day);
         const dayOfWeek = date.getDay();
         const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
         const keyYYYYMMDD = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-
         const cell = document.createElement('div');
         cell.className = 'day';
         cell.dataset.day = day;
 
-        // Color for today
         if (isCurrentMonth && day === today.getDate()) cell.classList.add('today');
 
-        // Holiday highlight and emoji
+        // theme color
+        if (dayOfWeek === 0 || dayOfWeek === 6) cell.style.backgroundColor = theme.weekend;
+        else cell.style.backgroundColor = theme.weekday;
+
+        // Holiday highlight
         if (holidays[keyMMDD]) {
           const h = holidays[keyMMDD];
           cell.classList.add('holiday');
           cell.title = h.name;
-          cell.style.backgroundColor = theme.weekend; // Make holidays match weekend color!
+          // ensure holiday matches weekend theme color
+          cell.style.backgroundColor = theme.weekend;
           cell.innerHTML = `${day} <span style="font-size:1.2em">${h.emoji}</span>`;
         } else {
           cell.textContent = day;
-          if (dayOfWeek === 0 || dayOfWeek === 6) {
-            cell.style.backgroundColor = theme.weekend;
-          } else {
-            cell.style.backgroundColor = theme.weekday;
-          }
         }
 
-        // Dot if reminders (add after emoji if holiday)
+        // event emoji preview (first event)
+        const dayEvents = events.filter(e => e.date === keyYYYYMMDD);
+        if (dayEvents.length > 0) {
+          const emojiSpan = document.createElement('span');
+          emojiSpan.className = 'event-emoji';
+          emojiSpan.title = dayEvents.map(e => `${e.time || ''} ${e.title}`).join('\n');
+          emojiSpan.textContent = dayEvents[0].emoji || '📌';
+          cell.appendChild(emojiSpan);
+        }
+
+        // Dot if reminders
         if (reminders[keyYYYYMMDD] && reminders[keyYYYYMMDD].length > 0) {
           const dot = document.createElement('span');
           dot.className = 'reminder-dot';
           cell.appendChild(dot);
         }
 
-        // Select handler
         cell.onclick = () => showReminders(day);
-
-        // Selected day
-        if (selectedDay === day) {
-          cell.classList.add('selected');
-        }
-
+        if (selectedDay === day) cell.classList.add('selected');
         calendar.appendChild(cell);
       }
     }
 
     function prevMonth() {
-      if (selectedMonth === 0) {
-        selectedMonth = 11;
-        selectedYear--;
-      } else {
-        selectedMonth--;
-      }
-      selectedDay = null;
-      reminderBar.innerHTML = '';
-      generateCalendar();
+      if (selectedMonth === 0) { selectedMonth = 11; selectedYear--; } else selectedMonth--;
+      selectedDay = null; reminderBar.innerHTML = ''; generateCalendar();
     }
     function nextMonth() {
-      if (selectedMonth === 11) {
-        selectedMonth = 0;
-        selectedYear++;
-      } else {
-        selectedMonth++;
-      }
-      selectedDay = null;
-      reminderBar.innerHTML = '';
-      generateCalendar();
+      if (selectedMonth === 11) { selectedMonth = 0; selectedYear++; } else selectedMonth++;
+      selectedDay = null; reminderBar.innerHTML = ''; generateCalendar();
     }
 
-    // --- TASKS (unchanged) ---
+    // --- TASKS WITH DATE/TIME/PRIORITY ---
     const taskList = document.getElementById('taskList');
     const progressRing = document.getElementById('progressRing');
     const summaryStats = document.getElementById('summaryStats');
 
     function loadTasks() {
-      const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+      const tasks = getTasks();
       taskList.innerHTML = '';
       tasks.forEach((task, index) => {
         const li = document.createElement('li');
@@ -427,22 +473,31 @@
         cb.type = 'checkbox';
         cb.checked = task.done;
         cb.onchange = () => {
-          tasks[index].done = cb.checked;
-          saveTasks(tasks);
+          const all = getTasks();
+          all[index].done = cb.checked;
+          setTasks(all);
+          updateProgress(all);
+          updateDashboard(all);
         };
         const span = document.createElement('span');
-        span.textContent = ' ' + task.text;
+        span.innerHTML = ` ${escapeHTML(task.text)} ${task.date ? '['+task.date+']' : ''} ${task.time ? '['+task.time+']' : ''} Priority:${task.priority}`;
         span.className = `category-${task.category}`;
         li.appendChild(cb);
         li.appendChild(span);
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'small-btn';
+        editBtn.textContent = 'Edit';
+        editBtn.onclick = () => editTask(index);
+        const delBtn = document.createElement('button');
+        delBtn.className = 'small-btn';
+        delBtn.textContent = 'Delete';
+        delBtn.onclick = () => deleteTask(index);
+        li.appendChild(editBtn);
+        li.appendChild(delBtn);
+
         taskList.appendChild(li);
       });
-      updateProgress(tasks);
-      updateDashboard(tasks);
-    }
-
-    function saveTasks(tasks) {
-      localStorage.setItem('tasks', JSON.stringify(tasks));
       updateProgress(tasks);
       updateDashboard(tasks);
     }
@@ -451,11 +506,41 @@
       const input = document.getElementById('newTask');
       const category = document.getElementById('taskCategory').value;
       const text = input.value.trim();
+      const date = document.getElementById('taskDate').value || '';
+      const time = document.getElementById('taskTime').value || '';
+      const priority = document.getElementById('taskPriority').value || '2';
       if (!text) return;
-      const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-      tasks.push({ text, category, done: false });
-      saveTasks(tasks);
-      input.value = '';
+      const tasks = getTasks();
+      tasks.push({ text, category, done:false, date, time, priority });
+      setTasks(tasks);
+      input.value=''; document.getElementById('taskDate').value=''; document.getElementById('taskTime').value=''; document.getElementById('taskPriority').value='1';
+      loadTasks();
+    }
+
+    function editTask(index) {
+      const tasks = getTasks();
+      const t = tasks[index];
+      const newText = prompt('Edit task text:', t.text);
+      if (newText === null) return;
+      const newDate = prompt('Date (YYYY-MM-DD) or empty:', t.date || '');
+      if (newDate === null) return;
+      const newTime = prompt('Time (HH:MM) or empty:', t.time || '');
+      if (newTime === null) return;
+      const newPriority = prompt('Priority (1-3):', t.priority || '2');
+      if (newPriority === null) return;
+      t.text = newText.trim();
+      t.date = newDate.trim();
+      t.time = newTime.trim();
+      t.priority = ['1','2','3'].includes(newPriority) ? newPriority : '2';
+      setTasks(tasks);
+      loadTasks();
+    }
+
+    function deleteTask(index) {
+      if (!confirm('Delete this task?')) return;
+      const tasks = getTasks();
+      tasks.splice(index,1);
+      setTasks(tasks);
       loadTasks();
     }
 
@@ -471,15 +556,77 @@
     function updateDashboard(tasks) {
       const total = tasks.length;
       const done = tasks.filter(t => t.done).length;
-      const categories = tasks.reduce((acc, t) => {
-        acc[t.category] = (acc[t.category] || 0) + 1;
-        return acc;
-      }, {});
-      summaryStats.innerHTML = `
-        Total tasks: ${total}<br>
-        Completed: ${done}<br>
-        Work: ${categories.work || 0}, Personal: ${categories.personal || 0}, Errands: ${categories.errands || 0}
-      `;
+      const categories = tasks.reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + 1; return acc; }, {});
+      summaryStats.innerHTML = `Total tasks: ${total}<br>Completed: ${done}<br>Work: ${categories.work || 0}, Personal: ${categories.personal || 0}, Errands: ${categories.errands || 0}`;
+    }
+
+    // --- EVENTS ---
+    const eventList = document.getElementById('eventList');
+    function renderEvents() {
+      const evs = getEvents();
+      eventList.innerHTML = '';
+      evs.forEach(e => {
+        const li = document.createElement('li');
+        li.innerHTML = `${e.emoji ? e.emoji+' ' : ''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${e.time ? '['+e.time+']' : ''} ${e.location ? ' @'+escapeHTML(e.location) : ''}
+          <span class="item-controls">
+            <button class="small-btn" onclick="editEvent(${e.id})">Edit</button>
+            <button class="small-btn" onclick="deleteEvent(${e.id})">Delete</button>
+          </span>`;
+        eventList.appendChild(li);
+      });
+    }
+
+    function addEvent() {
+      const title = document.getElementById('eventTitle').value.trim();
+      const date = document.getElementById('eventDate').value;
+      const time = document.getElementById('eventTime').value || '';
+      const location = document.getElementById('eventLocation').value.trim();
+      const emoji = document.getElementById('eventEmoji').value.trim();
+      if (!title || !date) { alert('Event needs a title and date'); return; }
+      const evs = getEvents();
+      const id = evs.length ? Math.max(...evs.map(e=>e.id)) + 1 : 1;
+      evs.push({ id, title, date: date, time, location, emoji });
+      setEvents(evs);
+      document.getElementById('eventTitle').value=''; document.getElementById('eventDate').value=''; document.getElementById('eventTime').value=''; document.getElementById('eventLocation').value=''; document.getElementById('eventEmoji').value='';
+      renderEvents();
+      generateCalendar();
+    }
+
+    function editEvent(id) {
+      const evs = getEvents();
+      const idx = evs.findIndex(e=>e.id===id);
+      if (idx === -1) return;
+      const e = evs[idx];
+      const title = prompt('Title:', e.title);
+      if (title === null) return;
+      const date = prompt('Date (YYYY-MM-DD):', e.date);
+      if (date === null) return;
+      const time = prompt('Time (HH:MM):', e.time || '');
+      if (time === null) return;
+      const location = prompt('Location:', e.location || '');
+      if (location === null) return;
+      const emoji = prompt('Emoji:', e.emoji || '');
+      if (emoji === null) return;
+      e.title = title.trim(); e.date = date.trim(); e.time = time.trim(); e.location = location.trim(); e.emoji = emoji.trim();
+      setEvents(evs);
+      renderEvents();
+      generateCalendar();
+      if (selectedDay) showReminders(selectedDay);
+    }
+
+    function deleteEvent(id) {
+      if (!confirm('Delete this event?')) return;
+      let evs = getEvents();
+      evs = evs.filter(e=>e.id!==id);
+      setEvents(evs);
+      renderEvents();
+      generateCalendar();
+      if (selectedDay) showReminders(selectedDay);
+    }
+
+    // --- UTILITIES ---
+    function escapeHTML(s) {
+      return (s+'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
     // Init
@@ -491,6 +638,7 @@
       generateCalendar();
       showReminders(selectedDay);
       loadTasks();
+      renderEvents();
     })();
   </script>
 </body>
