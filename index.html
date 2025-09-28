@@ -267,6 +267,26 @@
   </section>
 
   <script>
+    // small visible error helper (appears under the header)
+    function showAppError(msg) {
+      let el = document.getElementById('appError');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'appError';
+        el.style.background = '#ffecec';
+        el.style.color = '#900';
+        el.style.padding = '8px 12px';
+        el.style.margin = '8px 16px';
+        el.style.border = '1px solid #f5c6cb';
+        el.style.borderRadius = '6px';
+        el.style.textAlign = 'left';
+        const header = document.querySelector('header') || document.body;
+        header.insertAdjacentElement('afterend', el);
+      }
+      el.textContent = msg;
+      console.warn('App message:', msg);
+    }
+
     // Calendar state
     let selectedMonth, selectedYear, selectedDay = null;
     const calendar = document.getElementById('calendar');
@@ -761,21 +781,45 @@
 
     // Init
     (function init() {
+      const now = new Date();
+      selectedMonth = now.getMonth();
+      selectedYear = now.getFullYear();
+      selectedDay = now.getDate();
+
+      if (!calendar || !monthLabel) {
+        showAppError('Initialization failed: missing DOM elements (calendar or month label).');
+        return;
+      }
+
       try {
-        const now = new Date();
-        selectedMonth = now.getMonth();
-        selectedYear = now.getFullYear();
-        selectedDay = now.getDate();
         generateCalendar();
+      } catch (err) {
+        console.error('generateCalendar error', err);
+        showAppError('Error generating calendar: ' + (err && err.message || err));
+        return;
+      }
+
+      try {
         showReminders(selectedDay);
+      } catch (err) {
+        console.error('showReminders error', err);
+        showAppError('Error showing reminders: ' + (err && err.message || err));
+      }
+
+      try {
         loadTasks();
+      } catch (err) {
+        console.error('loadTasks error', err);
+        showAppError('Error loading tasks: ' + (err && err.message || err));
+      }
+
+      try {
         renderEvents();
       } catch (err) {
-        console.error('Init error', err);
-        alert('An error occurred initializing the calendar. Check console for details.');
+        console.error('renderEvents error', err);
+        showAppError('Error rendering events: ' + (err && err.message || err));
       }
     })();
   </script>
 </body>
 </html>
-
