@@ -1,1023 +1,602 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>TimeScape Planner</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: #f5f7fa;
-      color: #333;
-      text-align: center;
-    }
-    header {
-      background: #4a90e2;
-      color: white;
-      padding: 1rem;
-      font-size: 1.5rem;
-    }
-    .calendar-controls {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin: 20px 0 0 0;
-    }
-    .calendar-controls button {
-      background: #4a90e2;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 10px;
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .calendar-controls button:hover {
-      background: #357abd;
-    }
-    .calendar-controls span {
-      font-size: 1.25rem;
-      min-width: 160px;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
-    /* calendar uses the entire viewport width on desktop and mobile */
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-      padding: 10px;
-      /* avoid using full 100vw which can produce horizontal overflow and hide content;
-         use a small inset so the calendar is visible on all viewports */
-      width: calc(100vw - 32px);
-      max-width: 100%;
-      margin: 0 auto 12px;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 1px 8px rgba(0,0,0,0.07);
-      box-sizing: border-box;
-      overflow-x: hidden;
-    }
-    .calendar-dayname {
-      font-weight: bold;
-      color: #4a90e2;
-      padding-bottom: 4px;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      cursor: default;
-    }
-    .day {
-      background: white;
-      border-radius: 6px;
-      padding: 10px 6px 6px 6px;
-      min-height: 58px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.09);
-      cursor: pointer;
-      position: relative;
-      transition: box-shadow 0.2s;
-      overflow: hidden;
-    }
-    .day.today {
-      outline: 2px solid #4a90e2;
-    }
-    /* remove fixed holiday background to allow dynamic month theme colors */
-    .day.holiday {
-      color: #c0392b;
-      font-weight: bold;
-    }
-    .day.selected {
-      box-shadow: 0 2px 7px 0 #4a90e250;
-      border: 2px solid #4a90e2;
-    }
-    .day .reminder-dot {
-      width: 8px; height: 8px;
-      background: #e67e22;
-      border-radius: 50%;
-      position: absolute;
-      left: 50%;
-      bottom: 8px;
-      transform: translateX(-50%);
-      display: inline-block;
-    }
-    .day .event-emoji {
-      position: absolute;
-      right: 6px;
-      top: 6px;
-      font-size: 1.1rem;
-    }
-    .tasks, .dashboard, .events, .reminders {
-      margin: 20px;
-      text-align: left;
-      max-width: 540px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .tasks h2, .dashboard h2, .events h2, .reminders h2 {
-      margin-bottom: 10px;
-    }
-    /* remove bullets for lists but preserve indentation */
-    .tasks ul, .events ul, .reminders ul, .reminder-bar ul, #taskList, #eventList {
-      list-style: none;
-      margin: 6px 0 0 18px;
-      padding: 0;
-    }
-    /* mobile-only small labels for selects/date/time */
-    .mobile-label { display: none; font-weight:600; margin-right:8px; min-width:64px; }
-    .mobile-row { display:inline-flex; align-items:center; gap:8px; }
-    @media (max-width: 600px) {
-      .mobile-label { display:inline-block; }
-      .mobile-row input, .mobile-row select { flex: 1 1 auto; }
-    }
-    .progress {
-      margin: 20px auto;
-      width: 120px; height: 120px;
-      border-radius: 50%;
-      border: 10px solid #ddd;
-      border-top-color: #4a90e2;
-      transition: transform 0.3s ease;
-    }
-    input[type="text"], select, input[type="date"], input[type="time"] {
-      padding: 8px;
-      width: 80%;
-      margin-bottom: 10px;
-      border-radius: 3px;
-      border: 1px solid #ccc;
-    }
-    button {
-      padding: 8px 12px;
-      background: #4a90e2;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .category-work { color: #e67e22; }
-    .category-personal { color: #2ecc71; }
-    .category-errands { color: #3498db; }
-    .reminder-bar {
-      background: #fbeee6;
-      border-left: 4px solid #e67e22;
-      color: #9a6b16;
-      margin: 8px 0 0 0;
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-size: 0.96rem;
-    }
-    .item-controls { margin-left:8px; }
-    .small-btn { padding:4px 6px; font-size:0.9rem; margin-left:6px; background:#888; }
-    @media (max-width: 600px) {
-      .calendar, .tasks, .dashboard, .reminders { max-width: 100vw; }
-    }
-    @media (max-width: 600px) {
-      .calendar, .tasks, .dashboard, .events, .reminders {
-        max-width: calc(100vw - 32px) !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        padding-left: 12px;
-        padding-right: 12px;
-        box-sizing: border-box;
-      }
-    }
+    /* ...compact styles for calendar, lists, modal... */
+    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
+    header { background:#4a90e2; color:#fff; padding:1rem; font-size:1.25rem; }
+    .calendar-controls{display:flex;gap:10px;justify-content:center;align-items:center;margin:18px 0;}
+    .calendar-controls button{background:#4a90e2;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;}
+    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;width:calc(100vw - 32px);max-width:100%;margin:0 auto 12px;background:#fff;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,0.07);box-sizing:border-box;}
+    .calendar-dayname{font-weight:700;color:#4a90e2;padding-bottom:4px}
+    .day{background:#fff;border-radius:8px;padding:8px;min-height:64px;position:relative;cursor:pointer;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+    .day.selected{border:2px solid #4a90e2;box-shadow:0 2px 8px rgba(74,144,226,0.15)}
+    .day.today{outline:2px solid #4a90e2;}
+    .day .day-number{font-weight:700;display:flex;gap:6px;align-items:center;justify-content:flex-start}
+    .day .day-topbars{margin-top:6px;text-align:left}
+    .reminder-dot{width:8px;height:8px;border-radius:50%;background:#e67e22;display:inline-block}
+    .reminder-bar{background:#fbeee6;border-left:4px solid #e67e22;color:#9a6b16;margin:8px 0;padding:8px;border-radius:6px;font-size:0.95rem;text-align:left}
+    .item-controls{margin-left:8px}
+    .small-btn{padding:4px 6px;background:#888;color:#fff;border:none;border-radius:4px;margin-left:6px;cursor:pointer}
+    .tasks,.events,.reminders,.dashboard{max-width:540px;margin:18px auto;text-align:left;padding:0 12px;box-sizing:border-box}
+    input[type="text"],input[type="date"],input[type="time"],select{padding:8px;border-radius:4px;border:1px solid #ccc;width:100%;box-sizing:border-box;margin-top:6px}
+    .mobile-row{display:flex;gap:8px;align-items:center}
+    .mobile-label{display:none;font-weight:600;margin-right:8px}
+    @media (max-width:600px){ .mobile-label{display:inline-block} .calendar,.tasks,.events,.reminders{width:calc(100vw - 32px);}}
+    /* modal */
+    #editModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
+    #editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
+    #editModal label{font-weight:600}
   </style>
 </head>
 <body>
   <header>📅 TimeScape Planner</header>
 
   <div class="calendar-controls">
-    <button onclick="prevMonth()">&lt;</button>
-    <span id="monthLabel"></span>
-    <button onclick="nextMonth()">&gt;</button>
+    <button id="prevBtn">&lt;</button>
+    <span id="monthLabel" aria-live="polite"></span>
+    <button id="nextBtn">&gt;</button>
   </div>
-  <section class="calendar" id="calendar"></section>
 
-  <!-- Reminders (grouped with other sections) -->
+  <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
+
   <section class="reminders">
-    <!-- date H2 goes above the static Reminders header; same size as the header -->
     <div id="reminderHeader">
-      <h2 id="reminderDate" style="display:none; margin-bottom:6px;"></h2>
+      <h2 id="reminderDate" style="display:none;margin-bottom:8px"></h2>
       <h2>⏰ Reminders</h2>
     </div>
-    <!-- top bars (holiday + events) show directly under the date -->
-    <div id="dayTopBars"></div>8px;" class="mobile-row">
-    <div id="reminderBar"></div>" for="reminderInput">Reminder</label>
-    <div style="margin-bottom:18px;" class="mobile-row">"Add reminder to selected day..." />
-      <label class="mobile-label" for="reminderInput">Reminder</label>ne;">Time</label>
+    <div id="reminderBar" aria-live="polite"></div>
+
+    <div style="margin-top:12px" class="mobile-row">
+      <label class="mobile-label" for="reminderInput">Reminder</label>
       <input type="text" id="reminderInput" placeholder="Add reminder to selected day..." />
-      <label class="mobile-label" for="reminderTime" style="display:none;">Time</label>
-    </div>el class="mobile-label" for="reminderTime">Time</label>
-    <div style="margin-bottom:18px;" class="mobile-row">18%; margin-left:6px;" />
-      <label class="mobile-label" for="reminderTime">Time</label>
-      <input type="time" id="reminderTime" style="width:18%; margin-left:6px;" />
-      <button onclick="addReminder()">Add Reminder</button>
     </div>
-  </section>modal for Event / Task / Reminder -->
-  <div id="editModal" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999;">
-  <!-- Edit modal for Event / Task / Reminder -->er-radius:8px;max-width:520px;margin:20px auto;box-shadow:0 6px 30px rgba(0,0,0,0.2);">
-  <div id="editModal" style="display:none; position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999;">
-    <div style="background:#fff;padding:16px;border-radius:8px;max-width:520px;margin:20px auto;box-shadow:0 6px 30px rgba(0,0,0,0.2);">
-      <h3 id="editModalHeading">Edit</h3>" />
-      <form id="editForm" onsubmit="event.preventDefault(); saveEdit();">
-        <input type="hidden" id="editKind" />x" />
-        <input type="hidden" id="editEventId" />" />
-        <input type="hidden" id="editTaskIndex" />" />
+    <div style="margin-top:8px" class="mobile-row">
+      <label class="mobile-label" for="reminderTime">Time</label>
+      <input type="time" id="reminderTime" style="width:36%" />
+      <button id="addReminderBtn" style="width:auto;margin-left:8px">Add Reminder</button>
+    </div>
+  </section>
+
+  <!-- edit modal -->
+  <div id="editModal" role="dialog" aria-modal="true">
+    <div class="panel">
+      <h3 id="editModalHeading">Edit</h3>
+      <form id="editForm">
+        <input type="hidden" id="editKind" />
+        <input type="hidden" id="editEventId" />
+        <input type="hidden" id="editTaskIndex" />
         <input type="hidden" id="editReminderKey" />
         <input type="hidden" id="editReminderIndex" />
-          <label style="font-weight:600">Text / Title</label><br/>
-        <div style="margin:8px 0;">="text" style="width:100%;padding:8px;margin-top:6px;border:1px solid #ccc;border-radius:4px" />
-          <label style="font-weight:600">Text / Title</label><br/>
-          <input id="editText" type="text" style="width:100%;padding:8px;margin-top:6px;border:1px solid #ccc;border-radius:4px" />
-        </div> style="flex:1">
-        <div style="display:flex;gap:8px;">Date</label><br/>
-          <div style="flex:1">e" type="date" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px" />
-            <label style="font-weight:600">Date</label><br/>
-            <input id="editDate" type="date" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px" />
-          </div>el style="font-weight:600">Time</label><br/>
-          <div style="width:140px">pe="time" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px" />
-            <label style="font-weight:600">Time</label><br/>
-            <input id="editTime" type="time" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px" />
-          </div>"editFieldsExtra" style="margin-top:8px;">
-        </div> style="margin-top:8px;">
-        <div id="editFieldsExtra" style="margin-top:8px;">><br/>
-          <div style="margin-top:8px;">pe="text" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px" />
-            <label style="font-weight:600">Location</label><br/>
-            <input id="editLocation" type="text" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px" />
-          </div> style="flex:1">
-          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
-            <div style="flex:1">ji" type="text" placeholder="🎉" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px" />
-              <label style="font-weight:600">Emoji</label><br/>
-              <input id="editEmoji" type="text" placeholder="🎉" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px" />
-            </div>el style="font-weight:600">Category</label><br/>
-            <div style="width:140px">y" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px">
-              <label style="font-weight:600">Category</label><br/>
-              <select id="editCategory" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px">
-                <option value="work">work</option>ption>
+
+        <div style="margin-top:8px;">
+          <label for="editText">Text / Title</label>
+          <input id="editText" type="text" />
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div style="flex:1">
+            <label for="editDate">Date</label>
+            <input id="editDate" type="date" />
+          </div>
+          <div style="width:140px">
+            <label for="editTime">Time</label>
+            <input id="editTime" type="time" />
+          </div>
+        </div>
+
+        <div id="editFieldsExtra" style="margin-top:8px">
+          <div style="margin-top:8px">
+            <label for="editLocation">Location</label>
+            <input id="editLocation" type="text" />
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <div style="flex:1">
+              <label for="editEmoji">Emoji</label>
+              <input id="editEmoji" type="text" placeholder="🎉" />
+            </div>
+
+            <div style="width:140px">
+              <label for="editCategory">Category</label>
+              <select id="editCategory">
+                <option value="work">work</option>
                 <option value="personal">personal</option>
                 <option value="errands">errands</option>
-              </select>"width:120px">
-            </div>el style="font-weight:600">Priority</label><br/>
-            <div style="width:120px">y" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px">
-              <label style="font-weight:600">Priority</label><br/>
-              <select id="editPriority" style="width:100%;padding:8px;border:1px solid #ccc;border-radius:4px">
-                <option value="1">!</option>n>
+              </select>
+            </div>
+
+            <div style="width:120px">
+              <label for="editPriority">Priority</label>
+              <select id="editPriority">
+                <option value="1">!</option>
                 <option value="2">!!</option>
                 <option value="3">!!!</option>
               </select>
             </div>
-          </div>le="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">
-        </div>ton type="button" onclick="closeEditModal()" style="background:#888;padding:8px 12px;border-radius:6px;color:#fff;border:none">Cancel</button>
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">dius:6px;color:#fff;border:none">Save</button>
-          <button type="button" onclick="closeEditModal()" style="background:#888;padding:8px 12px;border-radius:6px;color:#fff;border:none">Cancel</button>
-          <button type="submit" style="background:#4a90e2;padding:8px 12px;border-radius:6px;color:#fff;border:none">Save</button>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+          <button type="button" id="cancelEdit" class="small-btn">Cancel</button>
+          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
         </div>
       </form>
     </div>
-  </div>vents -->
+  </div>
+
   <section class="events">
-  <!-- Events --></h2>
-  <section class="events">"eventTitle" placeholder="Event title" />
-    <h2>📅 Events</h2>-row">
-    <input type="text" id="eventTitle" placeholder="Event title" />
-    <div class="mobile-row">"eventDate" />
-      <label class="mobile-label" for="eventDate">Date</label>
-      <input type="date" id="eventDate" />
-      <label class="mobile-label" for="eventTime">Time</label>
-      <input type="time" id="eventTime" />placeholder="Location" />
-    </div> type="text" id="eventEmoji" placeholder="Emoji (e.g. 🎉)" style="width:20%" />
-    <input type="text" id="eventLocation" placeholder="Location" />
-    <input type="text" id="eventEmoji" placeholder="Emoji (e.g. 🎉)" style="width:20%" />
-    <button onclick="addEvent()">Add Event</button>
+    <h2>📅 Events</h2>
+    <input id="eventTitle" type="text" placeholder="Event title" />
+    <div class="mobile-row" style="margin-top:8px">
+      <input id="eventDate" type="date" />
+      <input id="eventTime" type="time" />
+    </div>
+    <input id="eventLocation" type="text" placeholder="Location" style="margin-top:8px" />
+    <input id="eventEmoji" type="text" placeholder="Emoji (e.g. 🎉)" style="margin-top:8px;width:36%" />
+    <div style="margin-top:8px">
+      <button id="addEventBtn">Add Event</button>
+    </div>
     <ul id="eventList"></ul>
-  </section> -->
+  </section>
+
   <section class="tasks">
-  <!-- Tasks -->/h2>
-  <section class="tasks">="newTask" placeholder="Add a task..." />
-    <h2>✅ Tasks</h2>Category">
-    <input type="text" id="newTask" placeholder="Add a task..." />
-    <select id="taskCategory">>Personal</option>
-      <option value="work">Work</option>ption>
-      <option value="personal">Personal</option>
-      <option value="errands">Errands</option>6px;">
-    </select>class="mobile-label" for="taskDate">Date</label>
-    <div class="mobile-row" style="margin-top:6px;">
-      <label class="mobile-label" for="taskDate">Date</label>
-      <input type="date" id="taskDate" />
-      <label class="mobile-label" for="taskTime">Time</label>
-      <input type="time" id="taskTime" />-top:6px;">
-    </div>el class="mobile-label" for="taskPriority">Priority</label>
-    <div class="mobile-row" style="margin-top:6px;">
-      <label class="mobile-label" for="taskPriority">Priority</label>
-      <select id="taskPriority">tion>
-        <option value="1">!</option>n>
+    <h2>✅ Tasks</h2>
+    <input id="newTask" type="text" placeholder="Add a task..." />
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <select id="taskCategory" style="width:40%">
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="errands">Errands</option>
+      </select>
+      <input id="taskDate" type="date" style="flex:1" />
+      <input id="taskTime" type="time" style="width:120px" />
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+      <select id="taskPriority" style="width:120px">
+        <option value="1">!</option>
         <option value="2">!!</option>
         <option value="3">!!!</option>
-      </select>lick="addTask()">Add</button>
-    </div>="taskList"></ul>
-    <button onclick="addTask()">Add</button>
+      </select>
+      <button id="addTaskBtn">Add</button>
+    </div>
     <ul id="taskList"></ul>
-  </section>oard -->
+  </section>
+
   <section class="dashboard">
-  <!-- Dashboard --></h2>
-  <section class="dashboard">
-    <h2>📊 Dashboard</h2> id="progressRing" title="0% complete"></div>
+    <h2>📊 Dashboard</h2>
     <p id="summaryStats"></p>
     <div class="progress" id="progressRing" title="0% complete"></div>
   </section>
-    // small visible error helper (appears under the header)
-  <script>on showAppError(msg) {
-    // small visible error helper (appears under the header)
+
+  <script>
+    // defensive helpers
     function showAppError(msg) {
-      let el = document.getElementById('appError');
-      if (!el) {'appError';
-        el = document.createElement('div');
-        el.id = 'appError';900';
-        el.style.background = '#ffecec';
-        el.style.color = '#900';6px';
-        el.style.padding = '8px 12px';f5c6cb';
-        el.style.margin = '8px 16px';;
-        el.style.border = '1px solid #f5c6cb';
-        el.style.borderRadius = '6px';elector('header') || document.body;
-        el.style.textAlign = 'left';('afterend', el);
-        const header = document.querySelector('header') || document.body;
-        header.insertAdjacentElement('afterend', el);
-      }onsole.warn('App message:', msg);
-      el.textContent = msg;
-      console.warn('App message:', msg);
-    }/ Calendar state
-    let selectedMonth, selectedYear, selectedDay = null;
-    // Calendar statedocument.getElementById('calendar');
-    let selectedMonth, selectedYear, selectedDay = null;el');
-    const calendar = document.getElementById('calendar');Bar');
-    const monthLabel = document.getElementById('monthLabel');put');
-    const reminderBar = document.getElementById('reminderBar'););
+      try {
+        let el = document.getElementById('appError');
+        if (!el) {
+          el = document.createElement('div');
+          el.id = 'appError';
+          el.style.background = '#ffecec';
+          el.style.color = '#900';
+          el.style.padding = '8px 12px';
+          el.style.margin = '8px 16px';
+          el.style.border = '1px solid #f5c6cb';
+          el.style.borderRadius = '6px';
+          const header = document.querySelector('header') || document.body;
+          header.insertAdjacentElement('afterend', el);
+        }
+        el.textContent = msg;
+        console.warn('App message:', msg);
+      } catch (e) { console.warn('showAppError failed', e); }
+    }
+
+    const calendar = document.getElementById('calendar');
+    const monthLabel = document.getElementById('monthLabel');
+    const reminderBar = document.getElementById('reminderBar');
     const reminderInput = document.getElementById('reminderInput');
     const reminderTime = document.getElementById('reminderTime');
-    const monthNames = [
-    // Month namesFebruary", "March", "April", "May", "June",
-    const monthNames = ["September", "October", "November", "December"
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"at"];
-    ];
-    const weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const themes = [
-    // Pastel themes per monthekend: '#e0ccff' }, // Jan
-    const themes = [fd6e0', weekend: '#e6ccff' }, // Feb
-      { weekday: '#cce5ff', weekend: '#e0ccff' }, // Jan
-      { weekday: '#ffd6e0', weekend: '#e6ccff' }, // Feb
-      { weekday: '#d6f5d6', weekend: '#cce0ff' }, // Mar
-      { weekday: '#fff0b3', weekend: '#ffd9b3' }, // Apr
-      { weekday: '#e6ffe6', weekend: '#ccf2ff' }, // May
-      { weekday: '#ffe6cc', weekend: '#ffcccc' }, // Jun
-      { weekday: '#fff5cc', weekend: '#ffd6cc' }, // Jul
-      { weekday: '#e6f7ff', weekend: '#d9e6f2' }, // Aug
-      { weekday: '#ffe6b3', weekend: '#ffccb3' }, // Sep
-      { weekday: '#ffd9b3', weekend: '#e6ccb3' }, // Oct
-      { weekday: '#e6f0ff', weekend: '#d6e6f5' }, // Nov
-      { weekday: '#ffcccc', weekend: '#ccffcc' }  // Dec
-    ]; Example holidays
-    const holidays = {
-    // Example holidays"New Year's Day", emoji: '🎆' },
-    const holidays = { "Valentine's Day", emoji: '❤️' },
-      '01-01': { name: "New Year's Day", emoji: '🎆' }, },
-      '02-14': { name: "Valentine's Day", emoji: '❤️' },,
-      '03-17': { name: "St. Patrick's Day", emoji: '🍀' },
-      '04-01': { name: "April Fool's Day", emoji: '🤡' },
-      '07-04': { name: "Independence Day", emoji: '🎇' },
-      '10-31': { name: "Halloween", emoji: '🎃' },
-      '12-25': { name: "Christmas Day", emoji: '🎅' }
-    }; --- federal holiday helpers (adds Thanksgiving and other common US federal days) --- */
-    function computeNthWeekday(year, monthIndex, weekday, n) {
-    /* --- federal holiday helpers (adds Thanksgiving and other common US federal days) --- */
-    function computeNthWeekday(year, monthIndex, weekday, n) {
-      // n = 1..5 for nth occurrence. weekday 0=Sun..6=Sat
-      const first = new Date(year, monthIndex, 1);% 7) + (n-1)*7;
-      const firstWeekday = first.getDay();
-      let day = 1 + ((7 + weekday - firstWeekday) % 7) + (n-1)*7;
-      return day;uteLastWeekday(year, monthIndex, weekday) {
-    } const last = new Date(year, monthIndex + 1, 0);
-    function computeLastWeekday(year, monthIndex, weekday) {
-      const last = new Date(year, monthIndex + 1, 0);weekday) % 7);
-      const lastWeekday = last.getDay();
-      let day = last.getDate() - ((7 + lastWeekday - weekday) % 7);
-      return day;uteFederalHolidays(year) {
-    } // returns map 'MM-DD' -> {name, emoji}
-    function computeFederalHolidays(year) {
-      // returns map 'MM-DD' -> {name, emoji}Jan)
-      const map = {};computeNthWeekday(year,0,1,3))] = { name: "Martin Luther King Jr. Day", emoji: '✊' };
-      // Martin Luther King Jr. Day (3rd Mon Jan)
-      map['01-'+pad2(computeNthWeekday(year,0,1,3))] = { name: "Martin Luther King Jr. Day", emoji: '✊' };
-      // Presidents' Day (3rd Mon Feb)
-      map['02-'+pad2(computeNthWeekday(year,1,1,3))] = { name: "Presidents' Day", emoji: '🏛️' };
-      // Memorial Day (last Mon May)
-      map['05-'+pad2(computeLastWeekday(year,4,1))] = { name: "Memorial Day", emoji: '🎗️' };
-      // Juneteenth (fixed)rans, Christmas, New Year are already present or fixed; add Labor Day (1st Mon Sep)
-      map['06-19'] = { name: "Juneteenth National Independence Day", emoji: '🏳️‍🌈' };' };
-      // Independence, Veterans, Christmas, New Year are already present or fixed; add Labor Day (1st Mon Sep)
-      map['09-'+pad2(computeNthWeekday(year,8,1,1))] = { name: "Labor Day", emoji: '🛠️' };};
-      // Columbus Day (2nd Mon Oct)
-      map['10-'+pad2(computeNthWeekday(year,9,1,2))] = { name: "Columbus Day", emoji: '🧭' };;
-      // Thanksgiving (4th Thu Nov)
-      map['11-'+pad2(computeNthWeekday(year,10,4,4))] = { name: "Thanksgiving", emoji: '🦃' };
-      // Veterans Day (11-11)
-      map['11-11'] = { name: "Veterans Day", emoji: '🎖️' };
-      return map;oliday(mmdd, year) {
-    } // check static list first, then computed federal days for given year
-    function getHoliday(mmdd, year) {days[mmdd];
-      // check static list first, then computed federal days for given year
-      if (holidays[mmdd]) return holidays[mmdd];
-      const computed = computeFederalHolidays(year);
-      return computed[mmdd] || null;rs --- */
-    }
-    /* --- end federal holiday helpers --- */' + num : '' + num; }
 
-    function pad2(num) { return num < 10 ? '0' + num : '' + num; }
-    // small helper to safely parse localStorage values and recover from corrupted JSON
-    // --- STORAGE HELPERS ---key, fallback) {
-    // small helper to safely parse localStorage values and recover from corrupted JSON
-    function safeParseStorage(key, fallback) {
-      try {(!raw) return fallback;
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const weekdayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    const themes = [
+      {weekday:'#cce5ff',weekend:'#e0ccff'},{weekday:'#ffd6e0',weekend:'#e6ccff'},{weekday:'#d6f5d6',weekend:'#cce0ff'},
+      {weekday:'#fff0b3',weekend:'#ffd9b3'},{weekday:'#e6ffe6',weekend:'#ccf2ff'},{weekday:'#ffe6cc',weekend:'#ffcccc'},
+      {weekday:'#fff5cc',weekend:'#ffd6cc'},{weekday:'#e6f7ff',weekend:'#d9e6f2'},{weekday:'#ffe6b3',weekend:'#ffccb3'},
+      {weekday:'#ffd9b3',weekend:'#e6ccb3'},{weekday:'#e6f0ff',weekend:'#d6e6f5'},{weekday:'#ffcccc',weekend:'#ccffcc'}
+    ];
+
+    const holidays = {
+      '01-01':{name:"New Year's Day",emoji:'🎆'},
+      '02-14':{name:"Valentine's Day",emoji:'❤️'},
+      '03-17':{name:"St. Patrick's Day",emoji:'🍀'},
+      '04-01':{name:"April Fool's Day",emoji:'🤡'},
+      '07-04':{name:"Independence Day",emoji:'🎇'},
+      '10-31':{name:"Halloween",emoji:'🎃'},
+      '12-25':{name:"Christmas Day",emoji:'🎅'}
+    };
+
+    function pad2(n){ return n<10 ? '0'+n : ''+n; }
+
+    function safeParseStorage(key, fallback){
+      try{
         const raw = localStorage.getItem(key);
         if (!raw) return fallback;
-        return JSON.parse(raw);age parse failed for', key, err);
-      } catch (err) { corrupted entry so future loads are clean
-        console.warn('LocalStorage parse failed for', key, err);
-        // remove the corrupted entry so future loads are clean
-        try { localStorage.removeItem(key); } catch (e) {}
+        return JSON.parse(raw);
+      }catch(e){
+        console.warn('LocalStorage parse failed for', key, e);
+        try{ localStorage.removeItem(key); }catch(_) {}
         return fallback;
       }
-    }unction getReminders() {
-      // stored as { "YYYY-MM-DD": [ {text, time}, ... ] }
-    function getReminders() {('reminders', {});
-      // stored as { "YYYY-MM-DD": [ {text, time}, ... ] }
-      return safeParseStorage('reminders', {});setItem('reminders', JSON.stringify(data)); }
     }
-    function setReminders(data) { localStorage.setItem('reminders', JSON.stringify(data)); }
-    function setTasks(tasks) { localStorage.setItem('tasks', JSON.stringify(tasks)); }
-    function getTasks() { return safeParseStorage('tasks', []); }
-    function setTasks(tasks) { localStorage.setItem('tasks', JSON.stringify(tasks)); }
-    function setEvents(ev) { localStorage.setItem('events', JSON.stringify(ev)); }
-    function getEvents() { return safeParseStorage('events', []); }
-    function setEvents(ev) { localStorage.setItem('events', JSON.stringify(ev)); }eded:
-    // (() => { localStorage.removeItem('events'); localStorage.removeItem('tasks'); localStorage.removeItem('reminders'); console.info('cleared app storage'); })();
-    // quick dev helper: run in the browser console to clear all app storage if needed:
-    // (() => { localStorage.removeItem('events'); localStorage.removeItem('tasks'); localStorage.removeItem('reminders'); console.info('cleared app storage'); })();
-    function addReminder() {
-    // --- REMINDERS ---{ alert('Select a day in the calendar first!'); return; }
-    function addReminder() {put.value.trim();
-      if (!selectedDay) { alert('Select a day in the calendar first!'); return; }
-      const txt = reminderInput.value.trim();
-      if (!txt) return;lectedYear}-${pad2(selectedMonth+1)}-${pad2(selectedDay)}`;
+
+    function getReminders(){ return safeParseStorage('reminders', {}); }
+    function setReminders(v){ localStorage.setItem('reminders', JSON.stringify(v)); }
+    function getTasks(){ return safeParseStorage('tasks', []); }
+    function setTasks(v){ localStorage.setItem('tasks', JSON.stringify(v)); }
+    function getEvents(){ return safeParseStorage('events', []); }
+    function setEvents(v){ localStorage.setItem('events', JSON.stringify(v)); }
+
+    // holiday helpers
+    function computeNthWeekday(year,monthIndex,weekday,n){
+      const first = new Date(year,monthIndex,1);
+      const firstWeekday = first.getDay();
+      return 1 + ((7 + weekday - firstWeekday) % 7) + (n-1)*7;
+    }
+    function computeLastWeekday(year,monthIndex,weekday){
+      const last = new Date(year,monthIndex+1,0);
+      const lastWeekday = last.getDay();
+      return last.getDate() - ((7 + lastWeekday - weekday) % 7);
+    }
+    function computeFederalHolidays(year){
+      const map = {};
+      map['01-'+pad2(computeNthWeekday(year,0,1,3))] = {name:"Martin Luther King Jr. Day",emoji:'✊'};
+      map['02-'+pad2(computeNthWeekday(year,1,1,3))] = {name:"Presidents' Day",emoji:'🏛️'};
+      map['05-'+pad2(computeLastWeekday(year,4,1))] = {name:"Memorial Day",emoji:'🎗️'};
+      map['06-19'] = {name:"Juneteenth National Independence Day",emoji:'🏳️‍🌈'};
+      map['09-'+pad2(computeNthWeekday(year,8,1,1))] = {name:"Labor Day",emoji:'🛠️'};
+      map['10-'+pad2(computeNthWeekday(year,9,1,2))] = {name:"Columbus Day",emoji:'🧭'};
+      map['11-'+pad2(computeNthWeekday(year,10,4,4))] = {name:"Thanksgiving",emoji:'🦃'};
+      map['11-11'] = {name:"Veterans Day",emoji:'🎖️'};
+      return map;
+    }
+    function getHoliday(mmdd, year){
+      if (holidays[mmdd]) return holidays[mmdd];
+      const c = computeFederalHolidays(year);
+      return c[mmdd] || null;
+    }
+
+    // render calendar
+    let selectedMonth, selectedYear, selectedDay;
+    function generateCalendar(){
+      if (!calendar) { showAppError('Calendar container missing'); return; }
+      calendar.innerHTML = '';
+      monthLabel.textContent = monthNames[selectedMonth] + ' ' + selectedYear;
+
+      // weekday headers
+      for (let i=0;i<7;i++){
+        const hdr = document.createElement('div');
+        hdr.className = 'calendar-dayname';
+        hdr.textContent = weekdayNames[i];
+        calendar.appendChild(hdr);
+      }
+
+      const first = new Date(selectedYear, selectedMonth, 1);
+      const start = first.getDay();
+      const daysInMonth = new Date(selectedYear, selectedMonth+1, 0).getDate();
+      const today = new Date();
+      const isCurMonth = today.getFullYear()===selectedYear && today.getMonth()===selectedMonth;
+      const reminders = getReminders();
+      const events = getEvents();
+
+      // leading blanks
+      for (let i=0;i<start;i++) calendar.appendChild(document.createElement('div'));
+
+      const theme = themes[selectedMonth] || themes[0];
+
+      for (let day=1; day<=daysInMonth; day++){
+        const dt = new Date(selectedYear, selectedMonth, day);
+        const dow = dt.getDay();
+        const mmdd = pad2(selectedMonth+1)+'-'+pad2(day);
+        const ymd = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+        const cell = document.createElement('div');
+        cell.className = 'day';
+        cell.dataset.day = day;
+
+        if (isCurMonth && day === today.getDate()) cell.classList.add('today');
+
+        cell.style.backgroundColor = (dow===0||dow===6) ? theme.weekend : theme.weekday;
+
+        const h = getHoliday(mmdd, selectedYear);
+        const dayEvents = events.filter(e=>e.date===ymd);
+        const eventEmoji = dayEvents.length ? (dayEvents[0].emoji || '📌') : null;
+
+        const numberHtml = h ? `${day} <span>${h.emoji}</span>` : (eventEmoji ? `${day} <span>${eventEmoji}</span>` : `${day}`);
+        cell.innerHTML = `<div class="day-number">${numberHtml}</div><div class="day-topbars"></div>`;
+
+        if (h) { cell.classList.add('holiday'); cell.title = h.name; }
+        else if (eventEmoji) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
+
+        if (reminders[ymd] && reminders[ymd].length){
+          const dot = document.createElement('span'); dot.className = 'reminder-dot';
+          const num = cell.querySelector('.day-number') || cell;
+          num.appendChild(dot);
+        }
+
+        cell.addEventListener('click', ()=> showReminders(day));
+        if (selectedDay === day) cell.classList.add('selected');
+
+        calendar.appendChild(cell);
+      }
+    }
+
+    // show reminders and move ribbons into the clicked day's topbars
+    function showReminders(day){
+      selectedDay = day;
+      // update selection visuals
+      [...calendar.querySelectorAll('.day')].forEach(c=>{
+        const d = parseInt(c.dataset.day,10);
+        c.classList.toggle('selected', d===day);
+      });
+
+      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+      const reminders = getReminders();
+      const items = reminders[key] || [];
+      const events = getEvents().filter(e=>e.date===key);
+
+      const rd = document.getElementById('reminderDate');
+      if (rd) { rd.textContent = new Date(selectedYear, selectedMonth, day).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'}); rd.style.display='block'; }
+
+      const mmdd = pad2(selectedMonth+1)+'-'+pad2(day);
+      const h = getHoliday(mmdd, selectedYear);
+
+      const holidayHTML = h ? `<div class="reminder-bar" style="background:#ffe5e3;border-left:4px solid #c0392b;color:#c0392b"><b>${h.emoji} ${h.name}</b></div>` : '';
+      const eventsHTML = events.length ? `<div class="reminder-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234"><b>Events:</b><ul>${events.map(ev=>`<li>${ev.time?`[${ev.time}] `:''}${ev.emoji?ev.emoji+' ':''}<b>${escapeHTML(ev.title)}</b> ${escapeHTML(ev.location||'')} <span class="item-controls"><button class="small-btn" onclick="editEvent(${ev.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${ev.id})">Delete</button></span></li>`).join('')}</ul></div>` : '';
+
+      // clear all day-topbars then insert for selected day
+      document.querySelectorAll('.day-topbars').forEach(el => el.innerHTML = '');
+      const sel = [...calendar.querySelectorAll('.day')].find(c=>parseInt(c.dataset.day,10)===day);
+      if (sel){
+        const top = sel.querySelector('.day-topbars');
+        if (top) top.innerHTML = holidayHTML + eventsHTML;
+      }
+
+      // render reminders in the Reminders section
+      const reminderArea = document.getElementById('reminderBar');
+      if (reminderArea) {
+        if (items.length){
+          reminderArea.innerHTML = `<div class="reminder-bar"><b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${items.map((r,i)=>`<li>${r.time?`[${r.time}] `:''}${escapeHTML(r.text)} <span class="item-controls"><button class="small-btn" onclick="editReminder(${day},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button></span></li>`).join('')}</ul></div>`;
+        } else {
+          reminderArea.innerHTML = '';
+        }
+      }
+    }
+
+    // tasks/events/reminders CRUD + modal edit support
+    function addReminder(){
+      if (!selectedDay){ alert('Select a day first'); return; }
+      const txt = reminderInput.value.trim(); if (!txt) return;
       const time = reminderTime.value || '';
       const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(selectedDay)}`;
-      const reminders = getReminders();time });
-      if (!reminders[key]) reminders[key] = [];
-      reminders[key].push({ text: txt, time });
-      setReminders(reminders);
-      reminderInput.value = '';);
-      reminderTime.value = '';
-      showReminders(selectedDay);
-      generateCalendar();
-    }unction editReminder(day, index) {
-      const oldKey = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-    function editReminder(day, index) {
-      const oldKey = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-      const reminders = getReminders();
-      const arr = reminders[oldKey] || [];
-      const item = arr[index];'editKind').value = 'reminder';
-      if (!item) return;tById('editReminderKey').value = oldKey;
-      document.getElementById('editKind').value = 'reminder';dex;
-      document.getElementById('editReminderKey').value = oldKey;';
-      document.getElementById('editReminderIndex').value = index;
-      document.getElementById('editText').value = item.text || '';
-      // fill date and time; date uses the keye = item.time || '';
-      document.getElementById('editDate').value = oldKey || '';
-      document.getElementById('editTime').value = item.time || '';
-      document.getElementById('editEmoji').value = '';
-      showModalFieldsFor('reminder');
-      openEditModal('Edit Reminder');
-    }unction deleteReminder(day, index) {
-      if (!confirm('Delete this reminder?')) return;
-    function deleteReminder(day, index) {(selectedMonth+1)}-${pad2(day)}`;
-      if (!confirm('Delete this reminder?')) return;
-      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-      const reminders = getReminders();delete reminders[key];
-      reminders[key].splice(index,1);
-      if (reminders[key].length === 0) delete reminders[key];
-      setReminders(reminders);
-      showReminders(day);
-      generateCalendar();
-    }/ small helper to produce a full readable date (e.g. "Tuesday, January 14, 2025")
-    function formatFullDate(day, monthIndex, year) {
-    // small helper to produce a full readable date (e.g. "Tuesday, January 14, 2025")
-    function formatFullDate(day, monthIndex, year) {ay: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      const d = new Date(year, monthIndex, day);
-      return d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    }unction showReminders(day) {
-      selectedDay = day;
-    function showReminders(day) {
-      selectedDay = day;ren].forEach(cell => {
-      // Update selected UIcontains('day')) {
-      [...calendar.children].forEach(cell => {ay) cell.classList.add('selected');
-        if (cell.classList.contains('day')) {contains('day')) {d');
-          if (parseInt(cell.dataset.day) === day) cell.classList.add('selected');
-          else cell.classList.remove('selected');
-        }
-      });st key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-      const reminders = getReminders();
-      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-      const reminders = getReminders();(e => e.date === key);
-      const items = reminders[key] || [];
-      const events = getEvents().filter(e => e.date === key);rs header
-      const rd = document.getElementById('reminderDate');
-      // put the formatted date into its H2 above the Reminders header);
-      const rd = document.getElementById('reminderDate');
-      rd.textContent = formatFullDate(day, selectedMonth, selectedYear);
-      rd.style.display = 'block';
-      const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
-      // Holiday info = '';
-      const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
-      let holidayHTML = '';
-      const h = getHoliday(keyMMDD, selectedYear);
-      if (h) { class="reminder-bar" style="background:#ffe5e3;border-left:4px solid #c0392b;color:#c0392b;">
-        holidayHTML = `i} ${h.name}</b>
-          <div class="reminder-bar" style="background:#ffe5e3;border-left:4px solid #c0392b;color:#c0392b;">
-            <b>${h.emoji} ${h.name}</b>
-          </div>
-        `;
-      }/ Events (these go into the top bars under the date so edit/delete are visible there)
-      let eventsHTML = '';
-      // Events (these go into the top bars under the date so edit/delete are visible there)
-      let eventsHTML = '';
-      if (events.length > 0) {-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234;">
-        eventsHTML = `</b>
-          <div class="reminder-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234;">
-            <b>Events:</b>((ev, i) => `<li>${ev.time ? '['+ev.time+'] ' : ''}${ev.emoji ? ev.emoji+' ' : ''}<b>${escapeHTML(ev.title)}</b> — ${escapeHTML(ev.location || '')}
-            <ul><span class="item-controls">
-              ${events.map((ev, i) => `<li>${ev.time ? '['+ev.time+'] ' : ''}${ev.emoji ? ev.emoji+' ' : ''}<b>${escapeHTML(ev.title)}</b> — ${escapeHTML(ev.location || '')}
-                <span class="item-controls">onclick="deleteEvent(${ev.id})">Delete</button>
-                  <button class="small-btn" onclick="editEvent(${ev.id})">Edit</button>
-                  <button class="small-btn" onclick="deleteEvent(${ev.id})">Delete</button>
-                </span>
-              </li>`).join('')}
-            </ul>
-          </div>
-        `;
-      }/ Reminders (kept separate below the top bars)
-      let remindersHTML = '';
-      // Reminders (kept separate below the top bars)in the Reminders section)
-      let remindersHTML = '';
-      if (items.length > 0) {r-bar">
-        remindersHTML = `for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b>
-          <div class="reminder-bar">
-            <b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b>r.text)} 
-            <ul><span class="item-controls">
-              ${items.map((r, i) => `<li>${r.time ? '['+r.time+'] ' : ''}${escapeHTML(r.text)} 
-                <span class="item-controls">onclick="deleteReminder(${day},${i})">Delete</button>
-                  <button class="small-btn" onclick="editReminder(${day},${i})">Edit</button>
-                  <button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button>
-                </span>
-              </li>`).join('')}
-            </ul>
-          </div>
-        `;
-      }/ render top bars (holiday + events) directly under date, then render reminders below
-      document.getElementById('dayTopBars').innerHTML = holidayHTML + eventsHTML;
-      // render top bars (holiday + events) directly under date, then render reminders belowy's .day-topbars
-      document.getElementById('dayTopBars').innerHTML = holidayHTML + eventsHTML;; });
-      reminderBar.innerHTML = remindersHTML;ctorAll('.day')].find(c => parseInt(c.dataset.day,10) === day);
-    } if (selCell) {unction generateCalendar() {
-        const top = selCell.querySelector('.day-topbars');      // clear and set header
-    function generateCalendar() {holidayHTML + eventsHTML;
-      // clear and set headeredMonth]} ${selectedYear}`;
-      calendar.innerHTML = '';
-      monthLabel.textContent = `${monthNames[selectedMonth]} ${selectedYear}`;
-    }      for (let d = 0; d < 7; d++) {
-      // weekday headersdiv');
-      for (let d = 0; d < 7; d++) {-dayname';
-        const dayName = document.createElement('div');
-        dayName.className = 'calendar-dayname';
-        dayName.textContent = weekdayNames[d];electedMonth]} ${selectedYear}`;
-        calendar.appendChild(dayName);
-      }/ weekday headersonst firstDay = new Date(selectedYear, selectedMonth, 1);
-      for (let d = 0; d < 7; d++) {      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-      const firstDay = new Date(selectedYear, selectedMonth, 1);
-      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-      const startDay = firstDay.getDay();s[d];lYear() === selectedYear && today.getMonth() === selectedMonth;
-      const today = new Date();yName);nders();
-      const isCurrentMonth = today.getFullYear() === selectedYear && today.getMonth() === selectedMonth;
-      const reminders = getReminders();
-      const events = getEvents();electedYear, selectedMonth, 1);
-      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();      for (let i = 0; i < startDay; i++) calendar.appendChild(document.createElement('div'));
-      // leading blanksfirstDay.getDay();
-      for (let i = 0; i < startDay; i++) calendar.appendChild(document.createElement('div'));
-      const isCurrentMonth = today.getFullYear() === selectedYear && today.getMonth() === selectedMonth;
-      const theme = themes[selectedMonth];ay++) {
-      const events = getEvents();        const date = new Date(selectedYear, selectedMonth, day);
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(selectedYear, selectedMonth, day);
-        const dayOfWeek = date.getDay(); calendar.appendChild(document.createElement('div'));ear}-${pad2(selectedMonth + 1)}-${pad2(day)}`;
-        const keyMMDD = pad2(selectedMonth + 1) + '-' + pad2(day);
-        const keyYYYYMMDD = `${selectedYear}-${pad2(selectedMonth + 1)}-${pad2(day)}`;
-        cell.className = 'day';
-        const cell = document.createElement('div');{
-        cell.className = 'day';electedYear, selectedMonth, day);
-        cell.dataset.day = day;getDay();ay === today.getDate()) cell.classList.add('today');
-        const keyMMDD = pad2(selectedMonth + 1) + '-' + pad2(day);
-        if (isCurrentMonth && day === today.getDate()) cell.classList.add('today');}`;
-        cell.style.backgroundColor = (dayOfWeek === 0 || dayOfWeek === 6) ? theme.weekend : theme.weekday;
-        // theme backgroundnt.createElement('div');
-        cell.style.backgroundColor = (dayOfWeek === 0 || dayOfWeek === 6) ? theme.weekend : theme.weekday;
-        cell.dataset.day = day;        const h = getHoliday(keyMMDD, selectedYear);
-        // holiday or event emoji inline
-        const h = getHoliday(keyMMDD, selectedYear);)) cell.classList.add('today');ayEvents[0].emoji || '📌') : null;
-        const dayEvents = events.filter(e => e.date === keyYYYYMMDD);
-        const eventEmoji = dayEvents.length > 0 ? (dayEvents[0].emoji || '📌') : null;
-        cell.style.backgroundColor = (dayOfWeek === 0 || dayOfWeek === 6) ? theme.weekend : theme.weekday;          cell.classList.add('holiday');
-        // Build a consistent internal structure: number area + per-day topbars container
-        const numberHtml = hheme.weekend;
-          ? `${day} <span style="font-size:1.2em">${h.emoji}</span>`eyMMDD, selectedYear);day} <span style="font-size:1.2em">${h.emoji}</span>`;
-          : (eventEmoji ? `${day} <span style="font-size:1.2em">${eventEmoji}</span>` : `${day}`);== keyYYYYMMDD);
-        cell.innerHTML = `<div class="day-number">${numberHtml}</div><div class="day-topbars" style="margin-top:6px;"></div>`;l;
-        if (h) {>${eventEmoji}</span>`;
-          cell.classList.add('holiday');
-          cell.title = h.name;
-        } else if (eventEmoji) {itle = h.name;
-          cell.title = dayEvents.map(e => `${e.time || ''} ${e.title}`).join('\n');lor = theme.weekend;
-        } cell.innerHTML = `${day} <span style="font-size:1.2em">${h.emoji}</span>`;/ reminder dot
-        } else if (eventEmoji) {        if (reminders[keyYYYYMMDD] && reminders[keyYYYYMMDD].length > 0) {
-        // reminder dotdayEvents.map(e => `${e.time || ''} ${e.title}`).join('\n');ocument.createElement('span');
-        if (reminders[keyYYYYMMDD] && reminders[keyYYYYMMDD].length > 0) {oji}</span>`;
-          const dot = document.createElement('span');
-          dot.className = 'reminder-dot';
-          // place dot inside the number area
-          const num = cell.querySelector('.day-number') || cell;ck = () => showReminders(day);
-          num.appendChild(dot);        // reminder dot        if (selectedDay === day) cell.classList.add('selected');
-        }keyYYYYMMDD].length > 0) {
-
-        cell.onclick = () => showReminders(day);          dot.className = 'reminder-dot';      }
-        if (selectedDay === day) cell.classList.add('selected');
- }
-        calendar.appendChild(cell); small-screen layout tweak: keep panels inset from screen edges --- */
-      }        cell.onclick = () => showReminders(day);    (function enhanceResponsiveStyles() {
+      const r = getReminders();
+      if (!r[key]) r[key] = [];
+      r[key].push({text:txt,time});
+      setReminders(r);
+      reminderInput.value=''; reminderTime.value='';
+      showReminders(selectedDay); generateCalendar();
     }
 
-    /* --- small-screen layout tweak: keep panels inset from screen edges --- */
-    (function enhanceResponsiveStyles() {ashboard, .events, .reminders {
-      // Add an adjusted media rule so panels are not flush to the viewport edge on mobile.
-      const css = `
-        @media (max-width: 600px) {et from screen edges --- */
-          .calendar, .tasks, .dashboard, .events, .reminders {
-            max-width: calc(100vw - 32px) !important;els are not flush to the viewport edge on mobile.
-            margin-left: auto !important;
-            margin-right: auto !important;) {
-            padding-left: 12px;oard, .events, .reminders {
-            padding-right: 12px; max-width: calc(100vw - 32px) !important;
-            box-sizing: border-box;   margin-left: auto !important;st s = document.createElement('style');
-          }    margin-right: auto !important;appendChild(document.createTextNode(css));
-        }
-      `;
-      const s = document.createElement('style');
-      s.appendChild(document.createTextNode(css)); }- TASKS WITH DATE/TIME/PRIORITY ---
-      document.head.appendChild(s);        }    const taskList = document.getElementById('taskList');
-    })();
+    function deleteReminder(day,index){
+      if (!confirm('Delete this reminder?')) return;
+      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+      const r = getReminders();
+      if (!r[key]) return;
+      r[key].splice(index,1);
+      if (!r[key].length) delete r[key];
+      setReminders(r);
+      showReminders(day); generateCalendar();
+    }
 
-    // --- TASKS WITH DATE/TIME/PRIORITY ---
-    const taskList = document.getElementById('taskList');
-    const progressRing = document.getElementById('progressRing');    })();      const tasks = getTasks();
-    const summaryStats = document.getElementById('summaryStats');
-/PRIORITY ---'2': '!!', '3': '!!!' };
-    function loadTasks() {getElementById('taskList');ex) => {
-      const tasks = getTasks();essRing');
-      taskList.innerHTML = '';lementById('summaryStats');ent('input');
-      const pmap = { '1': '!', '2': '!!', '3': '!!!' };
-      tasks.forEach((task, index) => {
-        const li = document.createElement('li'););
-        const cb = document.createElement('input');;
-        cb.type = 'checkbox';, '2': '!!', '3': '!!!' };b.checked;
-        cb.checked = task.done; => {
-        cb.onchange = () => {nt('li');
-          const all = getTasks();ent.createElement('input');d(all);
-          all[index].done = cb.checked;
-          setTasks(all);reateElement('span');
-          updateProgress(all);.onchange = () => {an.innerHTML = ` ${escapeHTML(task.text)} ${task.date ? '['+task.date+']' : ''} ${task.time ? '['+task.time+']' : ''} Priority:${pmap[task.priority] || task.priority}`;
-          updateDashboard(all);
-        };
-        const span = document.createElement('span');
-        span.innerHTML = ` ${escapeHTML(task.text)} ${task.date ? '['+task.date+']' : ''} ${task.time ? '['+task.time+']' : ''} Priority:${pmap[task.priority] || task.priority}`;l);
-        span.className = `category-${task.category}`;);ent.createElement('button');
-        li.appendChild(cb);        };        editBtn.className = 'small-btn';
-        li.appendChild(span);
-task.text)} ${task.date ? '['+task.date+']' : ''} ${task.time ? '['+task.time+']' : ''} Priority:${pmap[task.priority] || task.priority}`;(index);
-        const editBtn = document.createElement('button');task.category}`;eElement('button');
-        editBtn.className = 'small-btn';
-        editBtn.textContent = 'Edit';
-        editBtn.onclick = () => editTask(index);
-        const delBtn = document.createElement('button');eElement('button');
-        delBtn.className = 'small-btn';
-        delBtn.textContent = 'Delete';dit';
-        delBtn.onclick = () => deleteTask(index); editTask(index););
-        li.appendChild(editBtn);        const delBtn = document.createElement('button');      });
-        li.appendChild(delBtn);-btn';
-elBtn.textContent = 'Delete';ateDashboard(tasks);
-        taskList.appendChild(li);=> deleteTask(index);
-      });n);
-      updateProgress(tasks);   li.appendChild(delBtn);unction addTask() {
-      updateDashboard(tasks);      const input = document.getElementById('newTask');
-    }hild(li);ocument.getElementById('taskCategory').value;
+    function editReminder(day,index){
+      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+      const r = getReminders();
+      const arr = r[key]||[];
+      const item = arr[index];
+      if (!item) return;
+      document.getElementById('editKind').value='reminder';
+      document.getElementById('editReminderKey').value=key;
+      document.getElementById('editReminderIndex').value=index;
+      document.getElementById('editText').value = item.text||'';
+      document.getElementById('editDate').value = key;
+      document.getElementById('editTime').value = item.time || '';
+      showModalFieldsFor('reminder'); openEditModal('Edit Reminder');
+    }
 
-    function addTask() {
-      const input = document.getElementById('newTask');kTime').value || '';
-      const category = document.getElementById('taskCategory').value;
-      const text = input.value.trim();
-      const date = document.getElementById('taskDate').value || '';
-      const time = document.getElementById('taskTime').value || '';ment.getElementById('newTask'); category, done:false, date, time, priority });
-      const priority = document.getElementById('taskPriority').value || '2';.getElementById('taskCategory').value;
-      if (!text) return;value=''; document.getElementById('taskPriority').value='1';
-      const tasks = getTasks();ument.getElementById('taskDate').value || '';
-      tasks.push({ text, category, done:false, date, time, priority });
-      setTasks(tasks);ty = document.getElementById('taskPriority').value || '2';
-      input.value=''; document.getElementById('taskDate').value=''; document.getElementById('taskTime').value=''; document.getElementById('taskPriority').value='1'; if (!text) return;unction editTask(index) {
-      loadTasks();      const tasks = getTasks();      const tasks = getTasks();
-    }ory, done:false, date, time, priority });
-
-    function editTask(index) {t.getElementById('taskDate').value=''; document.getElementById('taskTime').value=''; document.getElementById('taskPriority').value='1';('editKind').value = 'task';
-      const tasks = getTasks();tById('editTaskIndex').value = index;
-      const t = tasks[index];
-      if (!t) return;
-      document.getElementById('editKind').value = 'task';
-      document.getElementById('editTaskIndex').value = index;
-      document.getElementById('editText').value = t.text || '';
-      document.getElementById('editDate').value = t.date || '';
-      document.getElementById('editTime').value = t.time || '';
-      document.getElementById('editCategory').value = t.category || 'work';
-      document.getElementById('editPriority').value = t.priority || '2';itText').value = t.text || '';
-      document.getElementById('editEmoji').value = ''; // not used for tasksitDate').value = t.date || '';
-      showModalFieldsFor('task'); document.getElementById('editTime').value = t.time || '';unction deleteTask(index) {
-      openEditModal('Edit Task');      document.getElementById('editCategory').value = t.category || 'work';      if (!confirm('Delete this task?')) return;
-    }ditPriority').value = t.priority || '2';
- = ''; // not used for tasks
-    function deleteTask(index) {);
-      if (!confirm('Delete this task?')) return;sk');
+    // tasks
+    function loadTasks(){
       const tasks = getTasks();
-      tasks.splice(index,1);
-      setTasks(tasks);unction deleteTask(index) {unction updateProgress(tasks) {
-      loadTasks();      if (!confirm('Delete this task?')) return;      const total = tasks.length;
-    }ne).length;
-nd((done / total) * 100) : 0;
-    function updateProgress(tasks) {";
-      const total = tasks.length;
-      const done = tasks.filter(t => t.done).length;
-      const percent = total ? Math.round((done / total) * 100) : 0;
-      progressRing.style.borderTopColor = percent === 100 ? "limegreen" : "#4a90e2";
-      progressRing.title = percent + "% complete"; const total = tasks.length;unction updateDashboard(tasks) {
-      progressRing.style.transform = `rotate(${percent * 3.6}deg)`;      const done = tasks.filter(t => t.done).length;      const total = tasks.length;
-    }und((done / total) * 100) : 0;t.done).length;
-pColor = percent === 100 ? "limegreen" : "#4a90e2";duce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + 1; return acc; }, {});
-    function updateDashboard(tasks) {br>Completed: ${done}<br>Work: ${categories.work || 0}, Personal: ${categories.personal || 0}, Errands: ${categories.errands || 0}`;
-      const total = tasks.length;
-      const done = tasks.filter(t => t.done).length;
-      const categories = tasks.reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + 1; return acc; }, {}); EVENTS ---
-      summaryStats.innerHTML = `Total tasks: ${total}<br>Completed: ${done}<br>Work: ${categories.work || 0}, Personal: ${categories.personal || 0}, Errands: ${categories.errands || 0}`;    function updateDashboard(tasks) {    const eventList = document.getElementById('eventList');
-    }asks.length;ents() {
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
+      const pmap = {'1':'!','2':'!!','3':'!!!'};
+      tasks.forEach((t,i)=>{
+        const li = document.createElement('li');
+        const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = !!t.done;
+        cb.addEventListener('change', ()=>{ const all=getTasks(); all[i].done = cb.checked; setTasks(all); updateProgress(all); updateDashboard(all); });
+        const span = document.createElement('span'); span.innerHTML = ` ${escapeHTML(t.text)} ${t.date?`[${t.date}]`:''} ${t.time?`[${t.time}]`:''} Priority:${pmap[t.priority]||t.priority}`; span.className = `category-${t.category||''}`;
+        const editBtn = document.createElement('button'); editBtn.className='small-btn'; editBtn.textContent='Edit'; editBtn.addEventListener('click', ()=> editTask(i));
+        const delBtn = document.createElement('button'); delBtn.className='small-btn'; delBtn.textContent='Delete'; delBtn.addEventListener('click', ()=> deleteTask(i));
+        li.appendChild(cb); li.appendChild(span); li.appendChild(editBtn); li.appendChild(delBtn);
+        list.appendChild(li);
+      });
+      updateProgress(tasks); updateDashboard(tasks);
+    }
 
-    // --- EVENTS ---s.reduce((acc, t) => { acc[t.category] = (acc[t.category] || 0) + 1; return acc; }, {});';
-    const eventList = document.getElementById('eventList'); `Total tasks: ${total}<br>Completed: ${done}<br>Work: ${categories.work || 0}, Personal: ${categories.personal || 0}, Errands: ${categories.errands || 0}`;
-    function renderEvents() {
-      const evs = getEvents();: ''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${e.time ? '['+e.time+']' : ''} ${e.location ? ' @'+escapeHTML(e.location) : ''}
-      eventList.innerHTML = '';
-      evs.forEach(e => {
-        const li = document.createElement('li');deleteEvent(${e.id})">Delete</button>
-        li.innerHTML = `${e.emoji ? e.emoji+' ' : ''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${e.time ? '['+e.time+']' : ''} ${e.location ? ' @'+escapeHTML(e.location) : ''}
-          <span class="item-controls">
-            <button class="small-btn" onclick="editEvent(${e.id})">Edit</button> => {
-            <button class="small-btn" onclick="deleteEvent(${e.id})">Delete</button>Element('li');
-          </span>`;i.innerHTML = `${e.emoji ? e.emoji+' ' : ''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${e.time ? '['+e.time+']' : ''} ${e.location ? ' @'+escapeHTML(e.location) : ''}
-        eventList.appendChild(li);     <span class="item-controls">unction addEvent() {
-      });            <button class="small-btn" onclick="editEvent(${e.id})">Edit</button>      const title = document.getElementById('eventTitle').value.trim();
-    }="small-btn" onclick="deleteEvent(${e.id})">Delete</button>nt.getElementById('eventDate').value;
+    function addTask(){
+      const text = document.getElementById('newTask').value.trim(); if (!text) return;
+      const category = document.getElementById('taskCategory').value;
+      const date = document.getElementById('taskDate').value || '';
+      const time = document.getElementById('taskTime').value || '';
+      const priority = document.getElementById('taskPriority').value || '2';
+      const tasks = getTasks(); tasks.push({text,category,done:false,date,time,priority}); setTasks(tasks);
+      document.getElementById('newTask').value=''; document.getElementById('taskDate').value=''; document.getElementById('taskTime').value=''; document.getElementById('taskPriority').value='1';
+      loadTasks();
+    }
 
-    function addEvent() {
+    function deleteTask(i){ if(!confirm('Delete this task?')) return; const tasks=getTasks(); tasks.splice(i,1); setTasks(tasks); loadTasks(); }
+
+    function editTask(i){
+      const tasks=getTasks(); const t=tasks[i]; if(!t) return;
+      document.getElementById('editKind').value='task';
+      document.getElementById('editTaskIndex').value = i;
+      document.getElementById('editText').value = t.text||'';
+      document.getElementById('editDate').value = t.date||'';
+      document.getElementById('editTime').value = t.time||'';
+      document.getElementById('editCategory').value = t.category||'work';
+      document.getElementById('editPriority').value = t.priority||'2';
+      showModalFieldsFor('task'); openEditModal('Edit Task');
+    }
+
+    function updateProgress(tasks){
+      const total = tasks.length;
+      const done = tasks.filter(t=>t.done).length;
+      const percent = total ? Math.round((done/total)*100) : 0;
+      const ring = document.getElementById('progressRing');
+      if (ring) { ring.style.borderTopColor = percent===100 ? 'limegreen' : '#4a90e2'; ring.title = percent + '% complete'; ring.style.transform = `rotate(${percent*3.6}deg)`; }
+    }
+    function updateDashboard(tasks){
+      const total = tasks.length;
+      const done = tasks.filter(t=>t.done).length;
+      const categories = tasks.reduce((acc,t)=>{ acc[t.category]= (acc[t.category]||0)+1; return acc; },{});
+      const summary = document.getElementById('summaryStats');
+      if (summary) summary.innerHTML = `Total tasks: ${total}<br>Completed: ${done}<br>Work: ${categories.work||0}, Personal: ${categories.personal||0}, Errands: ${categories.errands||0}`;
+    }
+
+    // events
+    function renderEvents(){
+      const evs = getEvents();
+      const list = document.getElementById('eventList');
+      list.innerHTML = '';
+      evs.forEach(e=>{
+        const li = document.createElement('li');
+        li.innerHTML = `${e.emoji?e.emoji+' ':''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${e.time?`[${e.time}]`:''} ${e.location?`@${escapeHTML(e.location)}`:''} <span class="item-controls"><button class="small-btn" onclick="editEvent(${e.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${e.id})">Delete</button></span>`;
+        list.appendChild(li);
+      });
+    }
+
+    function addEvent(){
       const title = document.getElementById('eventTitle').value.trim();
       const date = document.getElementById('eventDate').value;
+      if (!title || !date) { alert('Event needs a title and date'); return; }
       const time = document.getElementById('eventTime').value || '';
       const location = document.getElementById('eventLocation').value.trim();
-      const emoji = document.getElementById('eventEmoji').value.trim();etElementById('eventTitle').value.trim();te: date, time, location, emoji });
-      if (!title || !date) { alert('Event needs a title and date'); return; }
-      const evs = getEvents();'';tElementById('eventDate').value=''; document.getElementById('eventTime').value=''; document.getElementById('eventLocation').value=''; document.getElementById('eventEmoji').value='';
-      const id = evs.length ? Math.max(...evs.map(e=>e.id)) + 1 : 1;= document.getElementById('eventLocation').value.trim();
-      evs.push({ id, title, date: date, time, location, emoji });
-      setEvents(evs);date) { alert('Event needs a title and date'); return; }
-      document.getElementById('eventTitle').value=''; document.getElementById('eventDate').value=''; document.getElementById('eventTime').value=''; document.getElementById('eventLocation').value=''; document.getElementById('eventEmoji').value='';ts();
-      renderEvents(); const id = evs.length ? Math.max(...evs.map(e=>e.id)) + 1 : 1;unction editEvent(id) {
-      generateCalendar();      evs.push({ id, title, date: date, time, location, emoji });      const evs = getEvents();
-    }> e.id === id);
-'eventTitle').value=''; document.getElementById('eventDate').value=''; document.getElementById('eventTime').value=''; document.getElementById('eventLocation').value=''; document.getElementById('eventEmoji').value='';
-    function editEvent(id) {
+      const emoji = document.getElementById('eventEmoji').value.trim();
       const evs = getEvents();
-      const idx = evs.findIndex(e => e.id === id);ue = 'event';
-      if (idx === -1) return;alue = id;
+      const id = evs.length ? Math.max(...evs.map(e=>e.id))+1 : 1;
+      evs.push({id,title,date,time,location,emoji});
+      setEvents(evs);
+      document.getElementById('eventTitle').value=''; document.getElementById('eventDate').value=''; document.getElementById('eventTime').value=''; document.getElementById('eventLocation').value=''; document.getElementById('eventEmoji').value='';
+      renderEvents(); generateCalendar();
+    }
+
+    function deleteEvent(id){ if(!confirm('Delete this event?')) return; let evs=getEvents(); evs = evs.filter(e=>e.id!==id); setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
+
+    function editEvent(id){
+      const evs = getEvents(); const idx = evs.findIndex(e=>e.id===id); if (idx===-1) return;
       const e = evs[idx];
-      // populate modal
-      document.getElementById('editKind').value = 'event';
+      document.getElementById('editKind').value='event';
       document.getElementById('editEventId').value = id;
       document.getElementById('editText').value = e.title || '';
       document.getElementById('editDate').value = e.date || '';
       document.getElementById('editTime').value = e.time || '';
-      document.getElementById('editLocation').value = e.location || '';lue = id;
-      document.getElementById('editEmoji').value = e.emoji || '';tText').value = e.title || '';
-      // show/hide fields appropriate for eventtDate').value = e.date || '';
-      showModalFieldsFor('event'); document.getElementById('editTime').value = e.time || '';unction deleteEvent(id) {
-      openEditModal('Edit Event');      document.getElementById('editLocation').value = e.location || '';      if (!confirm('Delete this event?')) return;
-    }'editEmoji').value = e.emoji || '';
-
-    function deleteEvent(id) {ent');
-      if (!confirm('Delete this event?')) return;
-      let evs = getEvents();
-      evs = evs.filter(e=>e.id!==id);tedDay);
-      setEvents(evs);id) {
-      renderEvents();
-      generateCalendar(); let evs = getEvents();/ --- UTILITIES ---
-      if (selectedDay) showReminders(selectedDay);      evs = evs.filter(e=>e.id!==id);    function escapeHTML(s) {
-    }(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-    // --- UTILITIES ---
-    function escapeHTML(s) { if (selectedDay) showReminders(selectedDay);/ show errors early (helps if a runtime error prevented calendar from rendering)
-      return (s+'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));    }    window.addEventListener('error', function (e) {
+      document.getElementById('editLocation').value = e.location || '';
+      document.getElementById('editEmoji').value = e.emoji || '';
+      showModalFieldsFor('event'); openEditModal('Edit Event');
     }
 
-    // show errors early (helps if a runtime error prevented calendar from rendering)
-    window.addEventListener('error', function (e) {'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-      console.error('Runtime error:', e.error || e.message);
-      // non-intrusive visible hint for development
-      const el = document.createElement('div');ps if a runtime error prevented calendar from rendering)#fdd';
-      el.style.position = 'fixed';ror', function (e) {
-      el.style.left = '12px';', e.error || e.message);
-      el.style.bottom = '12px'; hint for developmentolid #c00';
-      el.style.background = '#fdd';eElement('div');
-      el.style.color = '#600';? e.error.message : e.message);
-      el.style.padding = '8px';ld(el);
-      el.style.border = '1px solid #c00';
-      el.style.zIndex = 9999;
-      el.textContent = 'App error: ' + (e.error ? e.error.message : e.message);l.style.color = '#600';navigation helpers (restore prev/next buttons)
-      document.body.appendChild(el);      el.style.padding = '8px';    function prevMonth() {
-    });
-99;0) { selectedMonth = 11; selectedYear--; }
-    // navigation helpers (restore prev/next buttons) 'App error: ' + (e.error ? e.error.message : e.message);();
-    function prevMonth() {
-      selectedMonth--; 1, new Date(selectedYear, selectedMonth + 1, 0).getDate());
-      if (selectedMonth < 0) { selectedMonth = 11; selectedYear--; }
-      generateCalendar();
-      // reset selectedDay to 1 for clarity, then show if valid
-      selectedDay = Math.min(selectedDay || 1, new Date(selectedYear, selectedMonth + 1, 0).getDate()); selectedMonth--; selectedMonth++;
-      showReminders(selectedDay);0) { selectedMonth = 11; selectedYear--; }11) { selectedMonth = 0; selectedYear++; }
-    }();();
-    function nextMonth() {ectedMonth + 1, 0).getDate());
-      selectedMonth++;min(selectedDay || 1, new Date(selectedYear, selectedMonth + 1, 0).getDate());tedDay);
-      if (selectedMonth > 11) { selectedMonth = 0; selectedYear++; }
-      generateCalendar();
-      selectedDay = Math.min(selectedDay || 1, new Date(selectedYear, selectedMonth + 1, 0).getDate());unction nextMonth() {/ modal helpers
-      showReminders(selectedDay);      selectedMonth++;    function openEditModal(title) {
-    }nth > 11) { selectedMonth = 0; selectedYear++; }ementById('editModalHeading').textContent = title;
-yle.display = 'flex';
-    // modal helpersselectedMonth + 1, 0).getDate());
-    function openEditModal(title) {
-      document.getElementById('editModalHeading').textContent = title; document.getElementById('editModal').style.display = 'none';
-      document.getElementById('editModal').style.display = 'flex';
+    // modal helpers
+    function openEditModal(title){
+      const m = document.getElementById('editModal'), h = document.getElementById('editModalHeading');
+      if (h) h.textContent = title;
+      if (m) m.style.display = 'flex';
     }
-    function closeEditModal() {unction openEditModal(title) {unction showModalFieldsFor(kind) {
-      document.getElementById('editModal').style.display = 'none';      document.getElementById('editModalHeading').textContent = title;      // always show text/date/time; show extras per kind
-    }l').style.display = 'flex';Id('editLocation');
+    function closeEditModal(){ const m = document.getElementById('editModal'); if (m) m.style.display = 'none'; }
 
-    function showModalFieldsFor(kind) {
-      // always show text/date/time; show extras per kind= 'none';ity');
-      const loc = document.getElementById('editLocation');
-      const emoji = document.getElementById('editEmoji');
-      const category = document.getElementById('editCategory');or(kind) {tyle.display = 'block';
-      const priority = document.getElementById('editPriority');er kindne';
-      if (kind === 'event') {ion');';
-        loc.parentElement.style.display = 'block';');
-        emoji.parentElement.style.display = 'block';tegory');
-        category.parentElement.style.display = 'none';ElementById('editPriority');isplay = 'none';
-        priority.parentElement.style.display = 'none';
-      } else if (kind === 'task') {k';
-        loc.parentElement.style.display = 'none';
-        emoji.parentElement.style.display = 'none';
-        category.parentElement.style.display = 'block';splay = 'none';ay = 'none';
-        priority.parentElement.style.display = 'block';
-      } else if (kind === 'reminder') {;
-        loc.parentElement.style.display = 'none';
-        emoji.parentElement.style.display = 'none';;
-        category.parentElement.style.display = 'none'; priority.parentElement.style.display = 'block';
-        priority.parentElement.style.display = 'none'; } else if (kind === 'reminder') {unction saveEdit() {
-      }        loc.parentElement.style.display = 'none';      const kind = document.getElementById('editKind').value;
-    }nt.style.display = 'none';nt.getElementById('editText').value.trim();
+    function showModalFieldsFor(kind){
+      const loc = document.getElementById('editLocation'), emoji = document.getElementById('editEmoji'), category = document.getElementById('editCategory'), priority = document.getElementById('editPriority');
+      if (!loc || !emoji || !category || !priority) return;
+      if (kind==='event'){ loc.parentElement.style.display='block'; emoji.parentElement.style.display='block'; category.parentElement.style.display='none'; priority.parentElement.style.display='none'; }
+      else if (kind==='task'){ loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='block'; priority.parentElement.style.display='block'; }
+      else { loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='none'; priority.parentElement.style.display='none'; }
+    }
 
-    function saveEdit() {
+    document.getElementById('cancelEdit').addEventListener('click', closeEditModal);
+    document.getElementById('editForm').addEventListener('submit', function(e){
+      e.preventDefault();
       const kind = document.getElementById('editKind').value;
       const text = document.getElementById('editText').value.trim();
       const date = document.getElementById('editDate').value;
       const time = document.getElementById('editTime').value || '';
-      if (kind === 'event') {lementById('editKind').value;ditModal(); return; }
-        const id = parseInt(document.getElementById('editEventId').value,10);').value.trim();
-        const evs = getEvents();).value;
-        const idx = evs.findIndex(e => e.id === id);tElementById('editTime').value || '';
-        if (idx === -1) { closeEditModal(); return; }ocument.getElementById('editLocation').value.trim();
-        evs[idx].title = text;ocument.getElementById('editEventId').value,10);ment.getElementById('editEmoji').value.trim();
-        evs[idx].date = date;
-        evs[idx].time = time;
-        evs[idx].location = document.getElementById('editLocation').value.trim(); { closeEditModal(); return; }r();
-        evs[idx].emoji = document.getElementById('editEmoji').value.trim();= text;) showReminders(selectedDay);
-        setEvents(evs);e;task') {
-        renderEvents();,10);
-        generateCalendar();t.getElementById('editLocation').value.trim();
-        if (selectedDay) showReminders(selectedDay);
-      } else if (kind === 'task') {
+      if (kind==='event'){
+        const id = parseInt(document.getElementById('editEventId').value,10);
+        const evs = getEvents(); const idx = evs.findIndex(x=>x.id===id); if (idx===-1){ closeEditModal(); return; }
+        evs[idx].title = text; evs[idx].date = date; evs[idx].time = time; evs[idx].location = document.getElementById('editLocation').value.trim(); evs[idx].emoji = document.getElementById('editEmoji').value.trim();
+        setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
+      } else if (kind==='task'){
         const idx = parseInt(document.getElementById('editTaskIndex').value,10);
-        const tasks = getTasks();
-        if (!tasks[idx]) { closeEditModal(); return; }minders(selectedDay);ocument.getElementById('editCategory').value;
-        tasks[idx].text = text;') {ocument.getElementById('editPriority').value;
-        tasks[idx].date = date;10);
-        tasks[idx].time = time;
-        tasks[idx].category = document.getElementById('editCategory').value; { closeEditModal(); return; }= 'reminder') {
-        tasks[idx].priority = document.getElementById('editPriority').value;ext = text;y = document.getElementById('editReminderKey').value;
-        setTasks(tasks);ntById('editReminderIndex').value,10);
-        loadTasks();
-      } else if (kind === 'reminder') {
-        const origKey = document.getElementById('editReminderKey').value;tElementById('editPriority').value;
+        const tasks = getTasks(); if (!tasks[idx]) { closeEditModal(); return; }
+        tasks[idx].text = text; tasks[idx].date = date; tasks[idx].time = time; tasks[idx].category = document.getElementById('editCategory').value; tasks[idx].priority = document.getElementById('editPriority').value;
+        setTasks(tasks); loadTasks();
+      } else if (kind==='reminder'){
+        const origKey = document.getElementById('editReminderKey').value;
         const ridx = parseInt(document.getElementById('editReminderIndex').value,10);
-        const reminders = getReminders();
-        const arr = reminders[origKey] || [];
-        const item = arr[ridx];entById('editReminderKey').value;
-        if (!item) { closeEditModal(); return; }Int(document.getElementById('editReminderIndex').value,10); 0) delete reminders[origKey];
-        const newDate = date || origKey;etReminders();ewDate;
-        // remove original
-        arr.splice(ridx,1);ext, time });
-        if (arr.length === 0) delete reminders[origKey];
-        const targetKey = newDate;
-        if (!reminders[targetKey]) reminders[targetKey] = [];'-');
-        reminders[targetKey].push({ text, time });
-        setReminders(reminders);ers[origKey];10);
-        // update selection & UI;t(parts[1],10) - 1;
-        const parts = targetKey.split('-');rgetKey] = [];
-        if (parts.length === 3) {
-          selectedYear = parseInt(parts[0],10);
-          selectedMonth = parseInt(parts[1],10) - 1;/ update selection & UIhowReminders(selectedDay);
-          selectedDay = parseInt(parts[2],10);tKey.split('-');
-        }
-        generateCalendar();   selectedYear = parseInt(parts[0],10);
-        showReminders(selectedDay); = parseInt(parts[1],10) - 1;
-      }     selectedDay = parseInt(parts[2],10);/ Init
-      closeEditModal();        }    (function init() {
-    }erateCalendar(); now = new Date();
-selectedDay);now.getMonth();
-    // Init
-    (function init() {
-      const now = new Date();
-      selectedMonth = now.getMonth();
-      selectedYear = now.getFullYear();    // Init        showAppError('Initialization failed: missing DOM elements (calendar or month label).');
-      selectedDay = now.getDate();
-
-      if (!calendar || !monthLabel) {onth = now.getMonth();
-        showAppError('Initialization failed: missing DOM elements (calendar or month label).');electedYear = now.getFullYear();ry {
-        return;      selectedDay = now.getDate();        generateCalendar();
+        const r = getReminders(); const arr = r[origKey] || []; const item = arr[ridx]; if (!item){ closeEditModal(); return; }
+        const newDate = date || origKey;
+        arr.splice(ridx,1); if (!arr.length) delete r[origKey];
+        if (!r[newDate]) r[newDate]=[];
+        r[newDate].push({text,time});
+        setReminders(r);
+        const parts = newDate.split('-');
+        if (parts.length===3){ selectedYear = parseInt(parts[0],10); selectedMonth = parseInt(parts[1],10)-1; selectedDay = parseInt(parts[2],10); }
+        generateCalendar(); showReminders(selectedDay);
       }
-thLabel) {rateCalendar error', err);
-      try {'Initialization failed: missing DOM elements (calendar or month label).');'Error generating calendar: ' + (err && err.message || err));
+      closeEditModal();
+    });
+
+    // utilities
+    function escapeHTML(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+    // bind UI buttons
+    document.getElementById('prevBtn').addEventListener('click', ()=>{ selectedMonth--; if (selectedMonth<0){ selectedMonth=11; selectedYear--; } generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay); });
+    document.getElementById('nextBtn').addEventListener('click', ()=>{ selectedMonth++; if (selectedMonth>11){ selectedMonth=0; selectedYear++; } generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay); });
+    document.getElementById('addReminderBtn').addEventListener('click', addReminder);
+    document.getElementById('addEventBtn').addEventListener('click', addEvent);
+    document.getElementById('addTaskBtn').addEventListener('click', addTask);
+
+    // init
+    (function init(){
+      try{
+        const now = new Date();
+        selectedMonth = now.getMonth();
+        selectedYear = now.getFullYear();
+        selectedDay = now.getDate();
         generateCalendar();
-      } catch (err) {
-        console.error('generateCalendar error', err);
-        showAppError('Error generating calendar: ' + (err && err.message || err));ry {ry {
-        return;        generateCalendar();        showReminders(selectedDay);
-      }ch (err) {ch (err) {
-ndar error', err);s error', err);
-      try {'Error generating calendar: ' + (err && err.message || err));'Error showing reminders: ' + (err && err.message || err));
         showReminders(selectedDay);
-      } catch (err) {
-        console.error('showReminders error', err);
-        showAppError('Error showing reminders: ' + (err && err.message || err));      try {        loadTasks();
-      }wReminders(selectedDay);ch (err) {
-{r('loadTasks error', err);
-      try {('showReminders error', err);'Error loading tasks: ' + (err && err.message || err));
-        loadTasks(); ' + (err && err.message || err));
-      } catch (err) {
-        console.error('loadTasks error', err);
-        showAppError('Error loading tasks: ' + (err && err.message || err));      try {        renderEvents();
-      }dTasks();ch (err) {
-nderEvents error', err);
-      try {('loadTasks error', err);'Error rendering events: ' + (err && err.message || err));
-        renderEvents();rr && err.message || err));
-      } catch (err) {
-        console.error('renderEvents error', err);
-        showAppError('Error rendering events: ' + (err && err.message || err)); {
-      }derEvents();
-    })(); catch (err) {        console.error('renderEvents error', err);        showAppError('Error rendering events: ' + (err && err.message || err));
+        loadTasks();
+        renderEvents();
+      }catch(err){
+        console.error('Init error',err);
+        showAppError('Initialization error: ' + (err && err.message || err));
+      }
+    })();
+
+    // show runtime errors visibly
+    window.addEventListener('error', function(e){
+      console.error('Runtime error', e.error||e.message);
+      showAppError('App error: ' + (e.error ? e.error.message : e.message));
+    });
   </script>
-</body>    })();
-
-
-</html>  </script>
 </body>
 </html>
