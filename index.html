@@ -44,18 +44,20 @@
       font-weight: bold;
       letter-spacing: 1px;
     }
+    /* calendar uses the entire viewport width on desktop and mobile */
     .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
       gap: 5px;
       padding: 10px;
-      width: min(1200px, calc(100vw - 160px));
+      width: 100vw;
       max-width: 100%;
       margin: 0 auto 12px;
       background: #fff;
       border-radius: 10px;
       box-shadow: 0 1px 8px rgba(0,0,0,0.07);
       box-sizing: border-box;
+      overflow-x: hidden;
     }
     .calendar-dayname {
       font-weight: bold;
@@ -112,8 +114,21 @@
       margin-left: auto;
       margin-right: auto;
     }
-    .tasks h2, .dashboard h2, .events h2 {
+    .tasks h2, .dashboard h2, .events h2, .reminders h2 {
       margin-bottom: 10px;
+    }
+    /* remove bullets for lists but preserve indentation */
+    .tasks ul, .events ul, .reminders ul, .reminder-bar ul, #taskList, #eventList {
+      list-style: none;
+      margin: 6px 0 0 18px;
+      padding: 0;
+    }
+    /* mobile-only small labels for selects/date/time */
+    .mobile-label { display: none; font-weight:600; margin-right:8px; min-width:64px; }
+    .mobile-row { display:inline-flex; align-items:center; gap:8px; }
+    @media (max-width: 600px) {
+      .mobile-label { display:inline-block; }
+      .mobile-row input, .mobile-row select { flex: 1 1 auto; }
     }
     .progress {
       margin: 20px auto;
@@ -179,10 +194,19 @@
 
   <!-- Reminders (grouped with other sections) -->
   <section class="reminders">
-    <h2>⏰ Reminders</h2>
+    <!-- date H2 goes above the static Reminders header; same size as the header -->
+    <div id="reminderHeader">
+      <h2 id="reminderDate" style="display:none; margin-bottom:6px;"></h2>
+      <h2>⏰ Reminders</h2>
+    </div>
     <div id="reminderBar"></div>
-    <div style="margin-bottom:18px;">
+    <div style="margin-bottom:18px;" class="mobile-row">
+      <label class="mobile-label" for="reminderInput">Reminder</label>
       <input type="text" id="reminderInput" placeholder="Add reminder to selected day..." />
+      <label class="mobile-label" for="reminderTime" style="display:none;">Time</label>
+    </div>
+    <div style="margin-bottom:18px;" class="mobile-row">
+      <label class="mobile-label" for="reminderTime">Time</label>
       <input type="time" id="reminderTime" style="width:18%; margin-left:6px;" />
       <button onclick="addReminder()">Add Reminder</button>
     </div>
@@ -192,8 +216,12 @@
   <section class="events">
     <h2>📅 Events</h2>
     <input type="text" id="eventTitle" placeholder="Event title" />
-    <input type="date" id="eventDate" />
-    <input type="time" id="eventTime" />
+    <div class="mobile-row">
+      <label class="mobile-label" for="eventDate">Date</label>
+      <input type="date" id="eventDate" />
+      <label class="mobile-label" for="eventTime">Time</label>
+      <input type="time" id="eventTime" />
+    </div>
     <input type="text" id="eventLocation" placeholder="Location" />
     <input type="text" id="eventEmoji" placeholder="Emoji (e.g. 🎉)" style="width:20%" />
     <button onclick="addEvent()">Add Event</button>
@@ -209,13 +237,20 @@
       <option value="personal">Personal</option>
       <option value="errands">Errands</option>
     </select>
-    <input type="date" id="taskDate" />
-    <input type="time" id="taskTime" />
-    <select id="taskPriority">
-      <option value="1">!</option>
-      <option value="2">!!</option>
-      <option value="3">!!!</option>
-    </select>
+    <div class="mobile-row" style="margin-top:6px;">
+      <label class="mobile-label" for="taskDate">Date</label>
+      <input type="date" id="taskDate" />
+      <label class="mobile-label" for="taskTime">Time</label>
+      <input type="time" id="taskTime" />
+    </div>
+    <div class="mobile-row" style="margin-top:6px;">
+      <label class="mobile-label" for="taskPriority">Priority</label>
+      <select id="taskPriority">
+        <option value="1">!</option>
+        <option value="2">!!</option>
+        <option value="3">!!!</option>
+      </select>
+    </div>
     <button onclick="addTask()">Add</button>
     <ul id="taskList"></ul>
   </section>
@@ -346,17 +381,43 @@
     }
 
     function editReminder(day, index) {
-      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+      const oldKey = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
       const reminders = getReminders();
-      const item = reminders[key][index];
+      const item = reminders[oldKey][index];
       const newText = prompt('Edit reminder text:', item.text);
       if (newText === null) return;
       const newTime = prompt('Edit time (HH:MM, leave blank for none):', item.time || '');
       if (newTime === null) return;
-      reminders[key][index] = { text: newText.trim(), time: newTime.trim() };
+      // allow moving to a different date
+      const newDatePrompt = prompt('Date for this reminder (YYYY-MM-DD):', oldKey);
+      if (newDatePrompt === null) return;
+      const newDateKey = newDatePrompt.trim();
+      // sanitize: if empty, keep old key
+      const targetKey = newDateKey || oldKey;
+
+      // remove from old location
+      reminders[oldKey].splice(index,1);
+      if (reminders[oldKey].length === 0) delete reminders[oldKey];
+      // add to target location
+      if (!reminders[targetKey]) reminders[targetKey] = [];
+      reminders[targetKey].push({ text: newText.trim(), time: newTime.trim() });
       setReminders(reminders);
-      showReminders(day);
-      generateCalendar();
+
+      // update UI: if the changed date is the currently selected, show it; otherwise clear selection
+      if (targetKey === `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(selectedDay)}`) {
+        showReminders(selectedDay);
+      } else {
+        // parse targetKey and update calendar selection
+        const parts = targetKey.split('-');
+        if (parts.length === 3) {
+          const y = parseInt(parts[0],10);
+          const m = parseInt(parts[1],10)-1;
+          const d = parseInt(parts[2],10);
+          selectedYear = y; selectedMonth = m; selectedDay = d;
+        }
+        generateCalendar();
+        showReminders(selectedDay);
+      }
     }
 
     function deleteReminder(day, index) {
@@ -391,8 +452,10 @@
       const items = reminders[key] || [];
       const events = getEvents().filter(e => e.date === key);
 
-      // date header
-      const dateHeader = `<div style="font-weight:700;margin-bottom:8px;">${formatFullDate(day, selectedMonth, selectedYear)}</div>`;
+      // put the formatted date into its H2 above the Reminders header
+      const rd = document.getElementById('reminderDate');
+      rd.textContent = formatFullDate(day, selectedMonth, selectedYear);
+      rd.style.display = 'block';
 
       // Holiday info
       const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
@@ -411,7 +474,7 @@
         remindersHTML = `
           <div class="reminder-bar">
             <b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b>
-            <ul style="margin:6px 0 0 18px;padding:0;">
+            <ul>
               ${items.map((r, i) => `<li>${r.time ? '['+r.time+'] ' : ''}${escapeHTML(r.text)} 
                 <span class="item-controls">
                   <button class="small-btn" onclick="editReminder(${day},${i})">Edit</button>
@@ -428,7 +491,7 @@
         eventsHTML = `
           <div class="reminder-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234;">
             <b>Events:</b>
-            <ul style="margin:6px 0 0 18px;padding:0;">
+            <ul>
               ${events.map((ev, i) => `<li>${ev.time ? '['+ev.time+'] ' : ''}${ev.emoji ? ev.emoji+' ' : ''}<b>${escapeHTML(ev.title)}</b> — ${escapeHTML(ev.location || '')}
                 <span class="item-controls">
                   <button class="small-btn" onclick="editEvent(${ev.id})">Edit</button>
@@ -440,7 +503,7 @@
         `;
       }
 
-      reminderBar.innerHTML = dateHeader + holidayHTML + remindersHTML + eventsHTML;
+      reminderBar.innerHTML = holidayHTML + remindersHTML + eventsHTML;
     }
 
     // --- CALENDAR GENERATION ---
@@ -596,6 +659,8 @@
       const t = tasks[index];
       const newText = prompt('Edit task text:', t.text);
       if (newText === null) return;
+      const newCategory = prompt('Category (work|personal|errands):', t.category || 'work');
+      if (newCategory === null) return;
       const newDate = prompt('Date (YYYY-MM-DD) or empty:', t.date || '');
       if (newDate === null) return;
       const newTime = prompt('Time (HH:MM) or empty:', t.time || '');
@@ -603,6 +668,7 @@
       const newPriority = prompt('Priority (1-3):', t.priority || '2');
       if (newPriority === null) return;
       t.text = newText.trim();
+      t.category = ['work','personal','errands'].includes(newCategory.trim()) ? newCategory.trim() : t.category;
       t.date = newDate.trim();
       t.time = newTime.trim();
       t.priority = ['1','2','3'].includes(newPriority) ? newPriority : '2';
