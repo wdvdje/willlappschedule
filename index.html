@@ -50,7 +50,9 @@
       grid-template-columns: repeat(7, 1fr);
       gap: 5px;
       padding: 10px;
-      width: 100vw;
+      /* avoid using full 100vw which can produce horizontal overflow and hide content;
+         use a small inset so the calendar is visible on all viewports */
+      width: calc(100vw - 32px);
       max-width: 100%;
       margin: 0 auto 12px;
       background: #fff;
@@ -706,16 +708,55 @@
       return (s+'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
 
+    // show errors early (helps if a runtime error prevented calendar from rendering)
+    window.addEventListener('error', function (e) {
+      console.error('Runtime error:', e.error || e.message);
+      // non-intrusive visible hint for development
+      const el = document.createElement('div');
+      el.style.position = 'fixed';
+      el.style.left = '12px';
+      el.style.bottom = '12px';
+      el.style.background = '#fdd';
+      el.style.color = '#600';
+      el.style.padding = '8px';
+      el.style.border = '1px solid #c00';
+      el.style.zIndex = 9999;
+      el.textContent = 'App error: ' + (e.error ? e.error.message : e.message);
+      document.body.appendChild(el);
+    });
+
+    // navigation helpers (restore prev/next buttons)
+    function prevMonth() {
+      selectedMonth--;
+      if (selectedMonth < 0) { selectedMonth = 11; selectedYear--; }
+      generateCalendar();
+      // reset selectedDay to 1 for clarity, then show if valid
+      selectedDay = Math.min(selectedDay || 1, new Date(selectedYear, selectedMonth + 1, 0).getDate());
+      showReminders(selectedDay);
+    }
+    function nextMonth() {
+      selectedMonth++;
+      if (selectedMonth > 11) { selectedMonth = 0; selectedYear++; }
+      generateCalendar();
+      selectedDay = Math.min(selectedDay || 1, new Date(selectedYear, selectedMonth + 1, 0).getDate());
+      showReminders(selectedDay);
+    }
+
     // Init
     (function init() {
-      const now = new Date();
-      selectedMonth = now.getMonth();
-      selectedYear = now.getFullYear();
-      selectedDay = now.getDate();
-      generateCalendar();
-      showReminders(selectedDay);
-      loadTasks();
-      renderEvents();
+      try {
+        const now = new Date();
+        selectedMonth = now.getMonth();
+        selectedYear = now.getFullYear();
+        selectedDay = now.getDate();
+        generateCalendar();
+        showReminders(selectedDay);
+        loadTasks();
+        renderEvents();
+      } catch (err) {
+        console.error('Init error', err);
+        alert('An error occurred initializing the calendar. Check console for details.');
+      }
     })();
   </script>
 </body>
