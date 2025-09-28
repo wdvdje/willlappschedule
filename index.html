@@ -168,10 +168,10 @@
     .item-controls { margin-left:8px; }
     .small-btn { padding:4px 6px; font-size:0.9rem; margin-left:6px; background:#888; }
     @media (max-width: 600px) {
-      .calendar, .tasks, .dashboard { max-width: 100vw; }
+      .calendar, .tasks, .dashboard, .reminders { max-width: 100vw; }
     }
     @media (max-width: 600px) {
-      .calendar, .tasks, .dashboard, .events {
+      .calendar, .tasks, .dashboard, .events, .reminders {
         max-width: calc(100vw - 32px) !important;
         margin-left: auto !important;
         margin-right: auto !important;
@@ -199,6 +199,8 @@
       <h2 id="reminderDate" style="display:none; margin-bottom:6px;"></h2>
       <h2>⏰ Reminders</h2>
     </div>
+    <!-- top bars (holiday + events) show directly under the date -->
+    <div id="dayTopBars"></div>
     <div id="reminderBar"></div>
     <div style="margin-bottom:18px;" class="mobile-row">
       <label class="mobile-label" for="reminderInput">Reminder</label>
@@ -469,23 +471,7 @@
         `;
       }
 
-      let remindersHTML = '';
-      if (items.length > 0) {
-        remindersHTML = `
-          <div class="reminder-bar">
-            <b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b>
-            <ul>
-              ${items.map((r, i) => `<li>${r.time ? '['+r.time+'] ' : ''}${escapeHTML(r.text)} 
-                <span class="item-controls">
-                  <button class="small-btn" onclick="editReminder(${day},${i})">Edit</button>
-                  <button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button>
-                </span>
-              </li>`).join('')}
-            </ul>
-          </div>
-        `;
-      }
-
+      // Events (these go into the top bars under the date so edit/delete are visible there)
       let eventsHTML = '';
       if (events.length > 0) {
         eventsHTML = `
@@ -503,76 +489,27 @@
         `;
       }
 
-      reminderBar.innerHTML = holidayHTML + remindersHTML + eventsHTML;
-    }
-
-    // --- CALENDAR GENERATION ---
-    function generateCalendar() {
-      calendar.innerHTML = '';
-      monthLabel.textContent = `${monthNames[selectedMonth]} ${selectedYear}`;
-
-      for (let d = 0; d < 7; d++) {
-        const dayName = document.createElement('div');
-        dayName.className = 'calendar-dayname';
-        dayName.textContent = weekdayNames[d];
-        calendar.appendChild(dayName);
+      // Reminders (kept separate below the top bars)
+      let remindersHTML = '';
+      if (items.length > 0) {
+        remindersHTML = `
+          <div class="reminder-bar">
+            <b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b>
+            <ul>
+              ${items.map((r, i) => `<li>${r.time ? '['+r.time+'] ' : ''}${escapeHTML(r.text)} 
+                <span class="item-controls">
+                  <button class="small-btn" onclick="editReminder(${day},${i})">Edit</button>
+                  <button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button>
+                </span>
+              </li>`).join('')}
+            </ul>
+          </div>
+        `;
       }
 
-      const firstDay = new Date(selectedYear, selectedMonth, 1);
-      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-      const startDay = firstDay.getDay();
-      const today = new Date();
-      const isCurrentMonth = today.getFullYear() === selectedYear && today.getMonth() === selectedMonth;
-      const reminders = getReminders();
-      const events = getEvents();
-
-      for (let i = 0; i < startDay; i++) calendar.appendChild(document.createElement('div'));
-
-      const theme = themes[selectedMonth];
-      for (let day=1; day<=daysInMonth; day++) {
-        const date = new Date(selectedYear, selectedMonth, day);
-        const dayOfWeek = date.getDay();
-        const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
-        const keyYYYYMMDD = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-        const cell = document.createElement('div');
-        cell.className = 'day';
-        cell.dataset.day = day;
-
-        if (isCurrentMonth && day === today.getDate()) cell.classList.add('today');
-
-        // theme color
-        if (dayOfWeek === 0 || dayOfWeek === 6) cell.style.backgroundColor = theme.weekend;
-        else cell.style.backgroundColor = theme.weekday;
-
-        // Holiday highlight or event emoji (inline like holiday emoji)
-        const h = getHoliday(keyMMDD, selectedYear);
-        const dayEvents = events.filter(e => e.date === keyYYYYMMDD);
-        const eventEmoji = dayEvents.length > 0 ? (dayEvents[0].emoji || '📌') : null;
-
-        if (h) {
-          cell.classList.add('holiday');
-          cell.title = h.name;
-          cell.style.backgroundColor = theme.weekend;
-          cell.innerHTML = `${day} <span style="font-size:1.2em">${h.emoji}</span>`;
-        } else if (eventEmoji) {
-          // show the chosen event emoji inline next to the day number (falls back to pin if none chosen)
-          cell.title = dayEvents.map(e => `${e.time || ''} ${e.title}`).join('\n');
-          cell.innerHTML = `${day} <span style="font-size:1.2em">${eventEmoji}</span>`;
-        } else {
-          cell.textContent = day;
-        }
-
-        // Dot if reminders
-        if (reminders[keyYYYYMMDD] && reminders[keyYYYYMMDD].length > 0) {
-          const dot = document.createElement('span');
-          dot.className = 'reminder-dot';
-          cell.appendChild(dot);
-        }
-
-        cell.onclick = () => showReminders(day);
-        if (selectedDay === day) cell.classList.add('selected');
-        calendar.appendChild(cell);
-      }
+      // render top bars (holiday + events) directly under date, then render reminders below
+      document.getElementById('dayTopBars').innerHTML = holidayHTML + eventsHTML;
+      reminderBar.innerHTML = remindersHTML;
     }
 
     /* --- small-screen layout tweak: keep panels inset from screen edges --- */
@@ -580,7 +517,7 @@
       // Add an adjusted media rule so panels are not flush to the viewport edge on mobile.
       const css = `
         @media (max-width: 600px) {
-          .calendar, .tasks, .dashboard, .events {
+          .calendar, .tasks, .dashboard, .events, .reminders {
             max-width: calc(100vw - 32px) !important;
             margin-left: auto !important;
             margin-right: auto !important;
