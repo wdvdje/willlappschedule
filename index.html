@@ -153,6 +153,16 @@
     @media (max-width: 600px) {
       .calendar, .tasks, .dashboard { max-width: 100vw; }
     }
+    @media (max-width: 600px) {
+      .calendar, .tasks, .dashboard, .events {
+        max-width: calc(100vw - 32px) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        padding-left: 12px;
+        padding-right: 12px;
+        box-sizing: border-box;
+      }
+    }
   </style>
 </head>
 <body>
@@ -255,6 +265,49 @@
       '12-25': { name: "Christmas Day", emoji: '🎅' }
     };
 
+    /* --- federal holiday helpers (adds Thanksgiving and other common US federal days) --- */
+    function computeNthWeekday(year, monthIndex, weekday, n) {
+      // n = 1..5 for nth occurrence. weekday 0=Sun..6=Sat
+      const first = new Date(year, monthIndex, 1);
+      const firstWeekday = first.getDay();
+      let day = 1 + ((7 + weekday - firstWeekday) % 7) + (n-1)*7;
+      return day;
+    }
+    function computeLastWeekday(year, monthIndex, weekday) {
+      const last = new Date(year, monthIndex + 1, 0);
+      const lastWeekday = last.getDay();
+      let day = last.getDate() - ((7 + lastWeekday - weekday) % 7);
+      return day;
+    }
+    function computeFederalHolidays(year) {
+      // returns map 'MM-DD' -> {name, emoji}
+      const map = {};
+      // Martin Luther King Jr. Day (3rd Mon Jan)
+      map['01-'+pad2(computeNthWeekday(year,0,1,3))] = { name: "Martin Luther King Jr. Day", emoji: '✊' };
+      // Presidents' Day (3rd Mon Feb)
+      map['02-'+pad2(computeNthWeekday(year,1,1,3))] = { name: "Presidents' Day", emoji: '🏛️' };
+      // Memorial Day (last Mon May)
+      map['05-'+pad2(computeLastWeekday(year,4,1))] = { name: "Memorial Day", emoji: '🎗️' };
+      // Juneteenth (fixed)
+      map['06-19'] = { name: "Juneteenth National Independence Day", emoji: '🏳️‍🌈' };
+      // Independence, Veterans, Christmas, New Year are already present or fixed; add Labor Day (1st Mon Sep)
+      map['09-'+pad2(computeNthWeekday(year,8,1,1))] = { name: "Labor Day", emoji: '🛠️' };
+      // Columbus Day (2nd Mon Oct)
+      map['10-'+pad2(computeNthWeekday(year,9,1,2))] = { name: "Columbus Day", emoji: '🧭' };
+      // Thanksgiving (4th Thu Nov)
+      map['11-'+pad2(computeNthWeekday(year,10,4,4))] = { name: "Thanksgiving", emoji: '🦃' };
+      // Veterans Day (11-11)
+      map['11-11'] = { name: "Veterans Day", emoji: '🎖️' };
+      return map;
+    }
+    function getHoliday(mmdd, year) {
+      // check static list first, then computed federal days for given year
+      if (holidays[mmdd]) return holidays[mmdd];
+      const computed = computeFederalHolidays(year);
+      return computed[mmdd] || null;
+    }
+    /* --- end federal holiday helpers --- */
+
     function pad2(num) { return num < 10 ? '0' + num : '' + num; }
 
     // --- STORAGE HELPERS ---
@@ -331,8 +384,8 @@
       // Holiday info
       const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
       let holidayHTML = '';
-      if (holidays[keyMMDD]) {
-        const h = holidays[keyMMDD];
+      const h = getHoliday(keyMMDD, selectedYear);
+      if (h) {
         holidayHTML = `
           <div class="reminder-bar" style="background:#ffe5e3;border-left:4px solid #c0392b;color:#c0392b;">
             <b>${h.emoji} ${h.name}</b>
@@ -416,8 +469,8 @@
         else cell.style.backgroundColor = theme.weekday;
 
         // Holiday highlight
-        if (holidays[keyMMDD]) {
-          const h = holidays[keyMMDD];
+        const h = getHoliday(keyMMDD, selectedYear);
+        if (h) {
           cell.classList.add('holiday');
           cell.title = h.name;
           // ensure holiday matches weekend theme color
@@ -450,14 +503,25 @@
       }
     }
 
-    function prevMonth() {
-      if (selectedMonth === 0) { selectedMonth = 11; selectedYear--; } else selectedMonth--;
-      selectedDay = null; reminderBar.innerHTML = ''; generateCalendar();
-    }
-    function nextMonth() {
-      if (selectedMonth === 11) { selectedMonth = 0; selectedYear++; } else selectedMonth++;
-      selectedDay = null; reminderBar.innerHTML = ''; generateCalendar();
-    }
+    /* --- small-screen layout tweak: keep panels inset from screen edges --- */
+    (function enhanceResponsiveStyles() {
+      // Add an adjusted media rule so panels are not flush to the viewport edge on mobile.
+      const css = `
+        @media (max-width: 600px) {
+          .calendar, .tasks, .dashboard, .events {
+            max-width: calc(100vw - 32px) !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            padding-left: 12px;
+            padding-right: 12px;
+            box-sizing: border-box;
+          }
+        }
+      `;
+      const s = document.createElement('style');
+      s.appendChild(document.createTextNode(css));
+      document.head.appendChild(s);
+    })();
 
     // --- TASKS WITH DATE/TIME/PRIORITY ---
     const taskList = document.getElementById('taskList');
@@ -467,6 +531,7 @@
     function loadTasks() {
       const tasks = getTasks();
       taskList.innerHTML = '';
+      const pmap = { '1': '!', '2': '!!', '3': '!!!' };
       tasks.forEach((task, index) => {
         const li = document.createElement('li');
         const cb = document.createElement('input');
@@ -480,7 +545,7 @@
           updateDashboard(all);
         };
         const span = document.createElement('span');
-        span.innerHTML = ` ${escapeHTML(task.text)} ${task.date ? '['+task.date+']' : ''} ${task.time ? '['+task.time+']' : ''} Priority:${task.priority}`;
+        span.innerHTML = ` ${escapeHTML(task.text)} ${task.date ? '['+task.date+']' : ''} ${task.time ? '['+task.time+']' : ''} Priority:${pmap[task.priority] || task.priority}`;
         span.className = `category-${task.category}`;
         li.appendChild(cb);
         li.appendChild(span);
