@@ -19,6 +19,10 @@
     .event-preview{display:inline-flex;align-items:center;justify-content:center;line-height:1;border-radius:6px;padding:2px;background:transparent;user-select:none}
     .reminder-dot{width:8px;height:8px;border-radius:50%;background:#e67e22;display:inline-block;margin-left:6px}
     .reminder-bar{background:#fbeee6;border-left:4px solid #e67e22;color:#9a6b16;margin:8px 0;padding:8px;border-radius:6px;font-size:0.95rem;text-align:left}
+    .reminder-bar .events-list{ margin:6px 0 0 0; padding:0; }
+    .reminder-bar .r-event{ padding:4px 0; margin:0; display:flex; gap:8px; align-items:center; font-size:0.95rem; }
+    .reminder-bar .r-event b{ margin-right:4px; }
+    .reminder-bar .r-actions{ margin-left:auto; }
     .item-controls{margin-left:8px}
     .small-btn{padding:4px 6px;background:#888;color:#fff;border:none;border-radius:4px;margin-left:6px;cursor:pointer}
     .tasks,.events,.reminders,.dashboard{max-width:540px;margin:18px auto;text-align:left;padding:0 12px;box-sizing:border-box}
@@ -29,6 +33,13 @@
     #editModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
     #editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
     #editModal label{font-weight:600}
+
+    /* indicators: make holiday/reminder/task use same element/spacing as event emojis */
+    .event-preview.holiday { /* no visual change, sits inline like event emoji */ }
+    .event-preview.reminder { color: #e67e22; } /* visual cue */
+    .event-preview.task { color: green; } /* visual cue */
+    /* keep .reminder-dot for compatibility but no longer used for layout */
+    .reminder-dot { display:none; }
   </style>
 </head>
 <body>
@@ -123,6 +134,26 @@
               </select>
             </div>
           </div>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <div style="flex:1">
+              <label for="editPreBuffer">Pre-buffer</label>
+              <select id="editPreBuffer">
+                <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
+                <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
+                <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
+                <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
+              </select>
+            </div>
+            <div style="width:140px">
+              <label for="editPostBuffer">Post-buffer</label>
+              <select id="editPostBuffer">
+                <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
+                <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
+                <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
+                <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
@@ -143,6 +174,38 @@
     </div>
     <input id="eventLocation" type="text" placeholder="Location" style="margin-top:8px" />
     <input id="eventEmoji" type="text" placeholder="Emoji (e.g. 🎉)" style="margin-top:8px;width:36%" />
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+      <label style="min-width:90px;margin:0">Pre-buffer</label>
+      <select id="eventPreBuffer" style="width:120px">
+        <option value="5">5 min</option>
+        <option value="10">10 min</option>
+        <option value="15">15 min</option>
+        <option value="20">20 min</option>
+        <option value="25">25 min</option>
+        <option value="30">30 min</option>
+        <option value="35">35 min</option>
+        <option value="40">40 min</option>
+        <option value="45">45 min</option>
+        <option value="50">50 min</option>
+        <option value="55">55 min</option>
+        <option value="60">60 min</option>
+      </select>
+      <label style="min-width:90px;margin:0">Post-buffer</label>
+      <select id="eventPostBuffer" style="width:120px">
+        <option value="5">5 min</option>
+        <option value="10">10 min</option>
+        <option value="15">15 min</option>
+        <option value="20">20 min</option>
+        <option value="25">25 min</option>
+        <option value="30">30 min</option>
+        <option value="35">35 min</option>
+        <option value="40">40 min</option>
+        <option value="45">45 min</option>
+        <option value="50">50 min</option>
+        <option value="55">55 min</option>
+        <option value="60">60 min</option>
+      </select>
+    </div>
     <div style="margin-top:8px">
       <button id="addEventBtn">Add Event</button>
     </div>
@@ -303,36 +366,39 @@
 
         const h = getHoliday(mmdd, selectedYear);
         const dayEvents = events.filter(e=>e.date===ymd);
+        const dayTasks = getTasks().filter(t=>t.date===ymd);
+        const dayReminders = reminders[ymd] || [];
 
-        const numberHtml = h ? `${day} <span>${h.emoji}</span>` : `${day}`;
-        cell.innerHTML = `<div class="day-number">${numberHtml}</div><div class="emoji-row" aria-hidden="true"></div>`;
+        // day number only (no inline holiday emoji)
+        cell.innerHTML = `<div class="day-number">${day}</div><div class="emoji-row" aria-hidden="true"></div>`;
 
-        if (h) { cell.classList.add('holiday'); cell.title = h.name; }
+        // tooltip: holiday name or event summaries
+        if (h) cell.title = h.name;
         else if (dayEvents.length) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
 
-        if (dayEvents.length){
-          const emojiRow = cell.querySelector('.emoji-row');
-          const count = dayEvents.length;
-          const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
-          dayEvents.forEach(ev=>{
-            const sp = document.createElement('span');
-            sp.className = 'event-preview';
-            sp.textContent = ev.emoji || '📌';
-            sp.title = (ev.time?`[${ev.time}] `:'') + (ev.title||'');
-            sp.style.fontSize = size + 'px';
-            emojiRow.appendChild(sp);
-          });
-        }
+        // build unified indicators: events (each), holiday, reminder-summary, task-summary
+        const indicators = [];
+        dayEvents.forEach(ev => indicators.push({kind:'event', emoji: ev.emoji || '📌', title: (ev.time?`[${ev.time}] `:'') + (ev.title||''), id: ev.id}));
+        if (h) indicators.push({kind:'holiday', emoji: h.emoji || '🏳️', title: h.name});
+        if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
+        if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
 
-        if (reminders[ymd] && reminders[ymd].length){
-          const dot = document.createElement('span'); dot.className = 'reminder-dot';
-          const num = cell.querySelector('.day-number') || cell;
-          num.appendChild(dot);
-        }
+        // render indicators into emoji-row using same sizing logic
+        const emojiRow = cell.querySelector('.emoji-row');
+        const count = Math.max(1, indicators.length);
+        const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
+        indicators.forEach(ind=>{
+          const sp = document.createElement('span');
+          sp.className = 'event-preview ' + (ind.kind || '');
+          sp.textContent = ind.emoji || '';
+          sp.title = ind.title || '';
+          sp.style.fontSize = size + 'px';
+          if (ind.kind === 'event' && ind.id) sp.dataset.eventId = ind.id;
+          emojiRow.appendChild(sp);
+        });
 
         cell.addEventListener('click', ()=> showReminders(day));
         if (selectedDay === day) cell.classList.add('selected');
-
         calendar.appendChild(cell);
       }
     }
@@ -349,6 +415,14 @@
       const items = reminders[key] || [];
       const events = getEvents().filter(e=>e.date===key);
 
+      // sort: untimed events first (alphabetical), then timed events by time then title
+      const untimed = events.filter(e=>!e.time).slice().sort((a,b)=> (a.title||'').localeCompare(b.title||''));
+      const timed = events.filter(e=>e.time).slice().sort((a,b)=>{
+        if (a.time === b.time) return (a.title||'').localeCompare(b.title||'');
+        return (a.time||'').localeCompare(b.time||'');
+      });
+      const eventsSorted = untimed.concat(timed);
+
       const rd = document.getElementById('selectedDateLong');
       if (rd){
         rd.textContent = new Date(selectedYear, selectedMonth, day).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -359,7 +433,13 @@
       const h = getHoliday(mmdd, selectedYear);
 
       const holidayHTML = h ? `<div class="reminder-bar" style="background:#ffe5e3;border-left:4px solid #c0392b;color:#c0392b"><b>${h.emoji} ${h.name}</b></div>` : '';
-      const eventsHTML = events.length ? `<div class="reminder-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234"><b>Events:</b><ul>${events.map(ev=>`<li>${ev.time?`[${ev.time}] `:''}${ev.emoji?ev.emoji+' ':''}<b>${escapeHTML(ev.title)}</b> ${escapeHTML(ev.location||'')} <span class="item-controls"><button class="small-btn" onclick="editEvent(${ev.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${ev.id})">Delete</button></span></li>`).join('')}</ul></div>` : '';
+      const eventsHTML = eventsSorted.length ? `<div class="reminder-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234"><b>Events:</b><div class="events-list">${eventsSorted.map(ev=>{
+        const timePart = ev.time ? `[${escapeHTML(ev.time)}] ` : '';
+        const emojiPart = ev.emoji ? `${ev.emoji} ` : '';
+        const locationPart = ev.location ? ` @ <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}" target="_blank">${escapeHTML(ev.location)}</a>` : '';
+        const bufferPart = (ev.preBuffer||0) || (ev.postBuffer||0) ? ` <small style="color:#555">(${ev.preBuffer||0}m pre / ${ev.postBuffer||0}m post)</small>` : '';
+        return `<div class="r-event">${timePart}${emojiPart}<b>${escapeHTML(ev.title)}</b>${locationPart}${bufferPart}<span class="r-actions"><button class="small-btn" onclick="editEvent(${ev.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${ev.id})">Delete</button></span></div>`;
+      }).join('')}</div></div>` : '';
 
       const ribbons = document.getElementById('dayTopBars');
       if (ribbons) ribbons.innerHTML = holidayHTML + eventsHTML;
@@ -476,7 +556,9 @@
       list.innerHTML = '';
       evs.forEach(e=>{
         const li = document.createElement('li');
-        li.innerHTML = `${e.emoji?e.emoji+' ':''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${e.time?`[${e.time}]`:''} ${e.location?`@${escapeHTML(e.location)}`:''} <span class="item-controls"><button class="small-btn" onclick="editEvent(${e.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${e.id})">Delete</button></span>`;
+        const locHtml = e.location ? ` @ <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank">${escapeHTML(e.location)}</a>` : '';
+        const bufferHtml = ((e.preBuffer||0) || (e.postBuffer||0)) ? ` <small style="color:#555">(${e.preBuffer||0}m pre / ${e.postBuffer||0}m post)</small>` : '';
+        li.innerHTML = `${e.emoji?e.emoji+' ':''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${e.time?`[${e.time}]`:''}${locHtml}${bufferHtml} <span class="item-controls"><button class="small-btn" onclick="editEvent(${e.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${e.id})">Delete</button></span>`;
         list.appendChild(li);
       });
     }
@@ -488,11 +570,15 @@
       const time = document.getElementById('eventTime').value || '';
       const location = document.getElementById('eventLocation').value.trim();
       const emoji = document.getElementById('eventEmoji').value.trim();
+      const pre = parseInt(document.getElementById('eventPreBuffer').value,10) || 0;
+      const post = parseInt(document.getElementById('eventPostBuffer').value,10) || 0;
       const evs = getEvents();
       const id = evs.length ? Math.max(...evs.map(e=>e.id))+1 : 1;
-      evs.push({id,title,date,time,location,emoji});
+      evs.push({id,title,date,time,location,emoji,preBuffer:pre,postBuffer:post});
       setEvents(evs);
       document.getElementById('eventTitle').value=''; document.getElementById('eventDate').value=''; document.getElementById('eventTime').value=''; document.getElementById('eventLocation').value=''; document.getElementById('eventEmoji').value='';
+      document.getElementById('eventPreBuffer').value = '5';
+      document.getElementById('eventPostBuffer').value = '5';
       renderEvents(); generateCalendar();
     }
 
@@ -508,6 +594,8 @@
       document.getElementById('editTime').value = e.time || '';
       document.getElementById('editLocation').value = e.location || '';
       document.getElementById('editEmoji').value = e.emoji || '';
+      document.getElementById('editPreBuffer').value = (e.preBuffer || 5);
+      document.getElementById('editPostBuffer').value = (e.postBuffer || 5);
       showModalFieldsFor('event'); openEditModal('Edit Event');
     }
 
@@ -537,6 +625,8 @@
         const id = parseInt(document.getElementById('editEventId').value,10);
         const evs = getEvents(); const idx = evs.findIndex(x=>x.id===id); if (idx===-1){ closeEditModal(); return; }
         evs[idx].title = text; evs[idx].date = date; evs[idx].time = time; evs[idx].location = document.getElementById('editLocation').value.trim(); evs[idx].emoji = document.getElementById('editEmoji').value.trim();
+        evs[idx].preBuffer = parseInt(document.getElementById('editPreBuffer').value,10) || 0;
+        evs[idx].postBuffer = parseInt(document.getElementById('editPostBuffer').value,10) || 0;
         setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
       } else if (kind==='task'){
         const idx = parseInt(document.getElementById('editTaskIndex').value,10);
@@ -587,6 +677,55 @@
       console.error('Runtime error', e.error||e.message);
       showAppError('App error: ' + (e.error ? e.error.message : e.message));
     });
+
+    // initPlaces: wire Google Places Autocomplete to event and edit location inputs
+    function initPlaces(){
+      try{
+        const opts = { types: ['geocode'] }; // restrict to addresses; adjust if you want establishments
+        const evtInput = document.getElementById('eventLocation');
+        const editInput = document.getElementById('editLocation');
+        if (window.google && google.maps && google.maps.places){
+          if (evtInput){
+            const ac1 = new google.maps.places.Autocomplete(evtInput, opts);
+            ac1.addListener('place_changed', ()=>{
+              const place = ac1.getPlace();
+              if (place && place.formatted_address) evtInput.value = place.formatted_address;
+              evtInput.dataset.place = JSON.stringify({
+                address: place.formatted_address || evtInput.value,
+                lat: place.geometry ? place.geometry.location.lat() : null,
+                lng: place.geometry ? place.geometry.location.lng() : null,
+                placeId: place.place_id || null
+              });
+            });
+          }
+          if (editInput){
+            const ac2 = new google.maps.places.Autocomplete(editInput, opts);
+            ac2.addListener('place_changed', ()=>{
+              const place = ac2.getPlace();
+              if (place && place.formatted_address) editInput.value = place.formatted_address;
+              editInput.dataset.place = JSON.stringify({
+                address: place.formatted_address || editInput.value,
+                lat: place.geometry ? place.geometry.location.lat() : null,
+                lng: place.geometry ? place.geometry.location.lng() : null,
+                placeId: place.place_id || null
+              });
+            });
+          }
+        } else {
+          console.warn('Google Maps Places library not available.');
+        }
+      }catch(err){
+        console.warn('initPlaces error', err);
+      }
+    }
+
+    // attempt to call initPlaces if google was loaded earlier
+    if (window.google && google.maps && google.maps.places){
+      try{ initPlaces(); }catch(e){ console.warn(e); }
+    }
   </script>
+
+  <!-- load Google Maps JS with Places library; replace YOUR_API_KEY -->
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initPlaces"></script>
 </body>
 </html>
