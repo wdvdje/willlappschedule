@@ -27,6 +27,33 @@
     #editModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
     #editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
     #editModal label{font-weight:600}
+
+    /* NEW: layout for emojis under the day number */
+    .day { display:flex; flex-direction:column; align-items:stretch; }
+    .day .day-number { flex: 0 0 auto; }
+    .emoji-row {
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:center;
+      align-content:center;
+      gap:6px;
+      padding-top:6px;
+      flex: 1 1 auto;
+      min-height:18px; /* reserve space under number */
+      max-height:48px;
+      box-sizing:border-box;
+    }
+    .event-preview{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      line-height:1;
+      border-radius:6px;
+      padding:2px;
+      background:transparent;
+      /* font-size set from JS based on count */
+      user-select:none;
+    }
   </style>
 </head>
 <body>
@@ -309,13 +336,28 @@
 
         const h = getHoliday(mmdd, selectedYear);
         const dayEvents = events.filter(e=>e.date===ymd);
-        const eventEmoji = dayEvents.length ? (dayEvents[0].emoji || '📌') : null;
-
-        const numberHtml = h ? `${day} <span>${h.emoji}</span>` : (eventEmoji ? `${day} <span>${eventEmoji}</span>` : `${day}`);
-        cell.innerHTML = `<div class="day-number">${numberHtml}</div>`;
+        // keep holiday emoji next to number, event emojis go into the emoji-row below
+        const numberHtml = h ? `${day} <span>${h.emoji}</span>` : `${day}`;
+        cell.innerHTML = `<div class="day-number"><div>${numberHtml}</div></div><div class="emoji-row" aria-hidden="true"></div>`;
 
         if (h) { cell.classList.add('holiday'); cell.title = h.name; }
-        else if (eventEmoji) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
+        else if (dayEvents.length) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
+
+        // add event emoji(s) into emoji-row and size them based on count
+        if (dayEvents.length){
+          const emojiRow = cell.querySelector('.emoji-row');
+          const count = dayEvents.length;
+          // compute a font size that scales down as count increases; keep a sensible min
+          const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
+          dayEvents.forEach((ev, idx)=>{
+            const sp = document.createElement('span');
+            sp.className = 'event-preview';
+            sp.textContent = ev.emoji || '📌';
+            sp.title = (ev.time?`[${ev.time}] `:'') + (ev.title||'');
+            sp.style.fontSize = size + 'px';
+            emojiRow.appendChild(sp);
+          });
+        }
 
         if (reminders[ymd] && reminders[ymd].length){
           const dot = document.createElement('span'); dot.className = 'reminder-dot';
