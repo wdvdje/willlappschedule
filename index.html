@@ -11,11 +11,13 @@
     .calendar-controls button{background:#4a90e2;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;}
     .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;width:calc(100vw - 32px);max-width:100%;margin:0 auto 12px;background:#fff;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,0.07);box-sizing:border-box;}
     .calendar-dayname{font-weight:700;color:#4a90e2;padding-bottom:4px}
-    .day{background:#fff;border-radius:8px;padding:8px;min-height:64px;position:relative;cursor:pointer;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+    .day{background:#fff;border-radius:8px;padding:8px;min-height:64px;position:relative;cursor:pointer;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; flex-direction:column; align-items:stretch;}
     .day.selected{border:2px solid #4a90e2;box-shadow:0 2px 8px rgba(74,144,226,0.15)}
     .day.today{outline:2px solid #4a90e2;}
     .day .day-number{font-weight:700;display:flex;gap:6px;align-items:center;justify-content:flex-start}
-    .reminder-dot{width:8px;height:8px;border-radius:50%;background:#e67e22;display:inline-block}
+    .emoji-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding-top:6px;flex:1 1 auto;min-height:18px;max-height:48px;box-sizing:border-box}
+    .event-preview{display:inline-flex;align-items:center;justify-content:center;line-height:1;border-radius:6px;padding:2px;background:transparent;user-select:none}
+    .reminder-dot{width:8px;height:8px;border-radius:50%;background:#e67e22;display:inline-block;margin-left:6px}
     .reminder-bar{background:#fbeee6;border-left:4px solid #e67e22;color:#9a6b16;margin:8px 0;padding:8px;border-radius:6px;font-size:0.95rem;text-align:left}
     .item-controls{margin-left:8px}
     .small-btn{padding:4px 6px;background:#888;color:#fff;border:none;border-radius:4px;margin-left:6px;cursor:pointer}
@@ -27,33 +29,6 @@
     #editModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
     #editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
     #editModal label{font-weight:600}
-
-    /* NEW: layout for emojis under the day number */
-    .day { display:flex; flex-direction:column; align-items:stretch; }
-    .day .day-number { flex: 0 0 auto; }
-    .emoji-row {
-      display:flex;
-      flex-wrap:wrap;
-      justify-content:center;
-      align-content:center;
-      gap:6px;
-      padding-top:6px;
-      flex: 1 1 auto;
-      min-height:18px; /* reserve space under number */
-      max-height:48px;
-      box-sizing:border-box;
-    }
-    .event-preview{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      line-height:1;
-      border-radius:6px;
-      padding:2px;
-      background:transparent;
-      /* font-size set from JS based on count */
-      user-select:none;
-    }
   </style>
 </head>
 <body>
@@ -67,14 +42,16 @@
 
   <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
 
+  <!-- Selected-day area (long date + ribbons) shown under the calendar -->
+  <div id="selectedDateArea" style="max-width:540px;margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
+    <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
+    <div id="dayTopBars"></div>
+  </div>
+
   <section class="reminders">
     <div id="reminderHeader">
-      <h2 id="reminderDate" style="display:none;margin-bottom:8px"></h2>
       <h2>⏰ Reminders</h2>
     </div>
-
-    <!-- ribbons for holiday + events shown under long date -->
-    <div id="dayTopBars"></div>
 
     <div id="reminderBar" aria-live="polite"></div>
 
@@ -156,6 +133,7 @@
     </div>
   </div>
 
+  <!-- events -->
   <section class="events">
     <h2>📅 Events</h2>
     <input id="eventTitle" type="text" placeholder="Event title" />
@@ -171,6 +149,7 @@
     <ul id="eventList"></ul>
   </section>
 
+  <!-- tasks -->
   <section class="tasks">
     <h2>✅ Tasks</h2>
     <input id="newTask" type="text" placeholder="Add a task..." />
@@ -194,6 +173,7 @@
     <ul id="taskList"></ul>
   </section>
 
+  <!-- dashboard -->
   <section class="dashboard">
     <h2>📊 Dashboard</h2>
     <p id="summaryStats"></p>
@@ -201,10 +181,11 @@
   </section>
 
   <script>
-    function showAppError(msg) {
-      try {
+    // helpers
+    function showAppError(msg){
+      try{
         let el = document.getElementById('appError');
-        if (!el) {
+        if (!el){
           el = document.createElement('div');
           el.id = 'appError';
           el.style.background = '#ffecec';
@@ -218,14 +199,10 @@
         }
         el.textContent = msg;
         console.warn('App message:', msg);
-      } catch (e) { console.warn('showAppError failed', e); }
+      }catch(err){
+        console.warn('showAppError failed', err);
+      }
     }
-
-    const calendar = document.getElementById('calendar');
-    const monthLabel = document.getElementById('monthLabel');
-    const reminderBar = document.getElementById('reminderBar');
-    const reminderInput = document.getElementById('reminderInput');
-    const reminderTime = document.getElementById('reminderTime');
 
     const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
     const weekdayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -235,7 +212,6 @@
       {weekday:'#fff5cc',weekend:'#ffd6cc'},{weekday:'#e6f7ff',weekend:'#d9e6f2'},{weekday:'#ffe6b3',weekend:'#ffccb3'},
       {weekday:'#ffd9b3',weekend:'#e6ccb3'},{weekday:'#e6f0ff',weekend:'#d6e6f5'},{weekday:'#ffcccc',weekend:'#ccffcc'}
     ];
-
     const holidays = {
       '01-01':{name:"New Year's Day",emoji:'🎆'},
       '02-14':{name:"Valentine's Day",emoji:'❤️'},
@@ -247,19 +223,10 @@
     };
 
     function pad2(n){ return n<10 ? '0'+n : ''+n; }
-
     function safeParseStorage(key, fallback){
-      try{
-        const raw = localStorage.getItem(key);
-        if (!raw) return fallback;
-        return JSON.parse(raw);
-      }catch(e){
-        console.warn('LocalStorage parse failed for', key, e);
-        try{ localStorage.removeItem(key); }catch(_) {}
-        return fallback;
-      }
+      try{ const raw = localStorage.getItem(key); if (!raw) return fallback; return JSON.parse(raw); }
+      catch(e){ console.warn('LocalStorage parse failed for', key, e); try{ localStorage.removeItem(key); }catch(_){} return fallback; }
     }
-
     function getReminders(){ return safeParseStorage('reminders', {}); }
     function setReminders(v){ localStorage.setItem('reminders', JSON.stringify(v)); }
     function getTasks(){ return safeParseStorage('tasks', []); }
@@ -295,6 +262,7 @@
       return c[mmdd] || null;
     }
 
+    const calendar = document.getElementById('calendar');
     let selectedMonth, selectedYear, selectedDay;
 
     function generateCalendar(){
@@ -331,25 +299,22 @@
         cell.dataset.day = day;
 
         if (isCurMonth && day === today.getDate()) cell.classList.add('today');
-
         cell.style.backgroundColor = (dow===0||dow===6) ? theme.weekend : theme.weekday;
 
         const h = getHoliday(mmdd, selectedYear);
         const dayEvents = events.filter(e=>e.date===ymd);
-        // keep holiday emoji next to number, event emojis go into the emoji-row below
+
         const numberHtml = h ? `${day} <span>${h.emoji}</span>` : `${day}`;
-        cell.innerHTML = `<div class="day-number"><div>${numberHtml}</div></div><div class="emoji-row" aria-hidden="true"></div>`;
+        cell.innerHTML = `<div class="day-number">${numberHtml}</div><div class="emoji-row" aria-hidden="true"></div>`;
 
         if (h) { cell.classList.add('holiday'); cell.title = h.name; }
         else if (dayEvents.length) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
 
-        // add event emoji(s) into emoji-row and size them based on count
         if (dayEvents.length){
           const emojiRow = cell.querySelector('.emoji-row');
           const count = dayEvents.length;
-          // compute a font size that scales down as count increases; keep a sensible min
           const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
-          dayEvents.forEach((ev, idx)=>{
+          dayEvents.forEach(ev=>{
             const sp = document.createElement('span');
             sp.className = 'event-preview';
             sp.textContent = ev.emoji || '📌';
@@ -384,10 +349,10 @@
       const items = reminders[key] || [];
       const events = getEvents().filter(e=>e.date===key);
 
-      const rd = document.getElementById('reminderDate');
-      if (rd) {
+      const rd = document.getElementById('selectedDateLong');
+      if (rd){
         rd.textContent = new Date(selectedYear, selectedMonth, day).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-        rd.style.display='block';
+        rd.style.display = 'block';
       }
 
       const mmdd = pad2(selectedMonth+1)+'-'+pad2(day);
@@ -400,7 +365,7 @@
       if (ribbons) ribbons.innerHTML = holidayHTML + eventsHTML;
 
       const reminderArea = document.getElementById('reminderBar');
-      if (reminderArea) {
+      if (reminderArea){
         if (items.length){
           reminderArea.innerHTML = `<div class="reminder-bar"><b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${items.map((r,i)=>`<li>${r.time?`[${r.time}] `:''}${escapeHTML(r.text)} <span class="item-controls"><button class="small-btn" onclick="editReminder(${day},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button></span></li>`).join('')}</ul></div>`;
         } else {
@@ -411,14 +376,14 @@
 
     function addReminder(){
       if (!selectedDay){ alert('Select a day first'); return; }
-      const txt = reminderInput.value.trim(); if (!txt) return;
-      const time = reminderTime.value || '';
+      const txt = document.getElementById('reminderInput').value.trim(); if (!txt) return;
+      const time = document.getElementById('reminderTime').value || '';
       const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(selectedDay)}`;
       const r = getReminders();
       if (!r[key]) r[key] = [];
       r[key].push({text:txt,time});
       setReminders(r);
-      reminderInput.value=''; reminderTime.value='';
+      document.getElementById('reminderInput').value=''; document.getElementById('reminderTime').value='';
       showReminders(selectedDay); generateCalendar();
     }
 
@@ -478,7 +443,6 @@
     }
 
     function deleteTask(i){ if(!confirm('Delete this task?')) return; const tasks=getTasks(); tasks.splice(i,1); setTasks(tasks); loadTasks(); }
-
     function editTask(i){
       const tasks=getTasks(); const t=tasks[i]; if(!t) return;
       document.getElementById('editKind').value='task';
