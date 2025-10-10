@@ -35,11 +35,38 @@
     #editModal label{font-weight:600}
 
     /* indicators: make holiday/reminder/task use same element/spacing as event emojis */
-    .event-preview.holiday { /* no visual change, sits inline like event emoji */ }
+    /* Removed empty ruleset for .event-preview.holiday */
     .event-preview.reminder { color: #e67e22; } /* visual cue */
     .event-preview.task { color: green; } /* visual cue */
     /* keep .reminder-dot for compatibility but no longer used for layout */
     .reminder-dot { display:none; }
+
+    /* places suggestion dropdown */
+    .places-suggestions { position:relative; }
+    .places-suggestions .suggestions-list {
+      position:absolute;
+      left:0; right:0;
+      background:#fff;border:1px solid #ddd;border-radius:6px;margin-top:6px;z-index:2000;
+      max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,0.12);
+    }
+    .places-suggestions .suggestions-list button{
+      display:block;width:100%;text-align:left;padding:8px 10px;border:0;background:transparent;cursor:pointer;
+    }
+    .places-suggestions .suggestions-list button:hover{ background:#f2f6fb; }
+
+    .progress {
+      width:64px;
+      height:64px;
+      border-radius:50%;
+      border:8px solid #eee;
+      border-top:8px solid #4a90e2;
+      display:inline-block;
+      margin-top:8px;
+      transition: transform 0.4s linear;
+      box-sizing:border-box;
+    }
+    #dayProgressRing { border-top-color: #4a90e2; }
+    #progressRing { border-top-color: #4a90e2; }
   </style>
 </head>
 <body>
@@ -58,6 +85,19 @@
     <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
     <div id="dayTopBars"></div>
   </div>
+
+  <!-- dashboard -->
+  <section class="dashboard">
+    <h2>📊 Dashboard</h2>
+    <p id="summaryStats"></p>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="progress" id="progressRing" title="Overall progress"></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-start">
+        <div style="font-size:0.95rem;color:#444;">Selected day</div>
+        <div class="progress" id="dayProgressRing" title="Selected-day progress"></div>
+      </div>
+    </div>
+  </section>
 
   <section class="reminders">
     <div id="reminderHeader">
@@ -107,7 +147,10 @@
         <div id="editFieldsExtra" style="margin-top:8px">
           <div style="margin-top:8px">
             <label for="editLocation">Location</label>
-            <input id="editLocation" type="text" />
+            <div class="places-suggestions" style="margin-top:8px">
+              <input id="editLocation" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" />
+              <div id="editLocationList" class="suggestions-list" style="display:none"></div>
+            </div>
           </div>
 
           <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
@@ -172,7 +215,10 @@
       <input id="eventDate" type="date" />
       <input id="eventTime" type="time" />
     </div>
-    <input id="eventLocation" type="text" placeholder="Location" style="margin-top:8px" />
+    <div class="places-suggestions" style="margin-top:8px">
+      <input id="eventLocation" type="text" placeholder="Location" autocomplete="off" autocorrect="off" autocapitalize="off" />
+      <div id="eventLocationList" class="suggestions-list" style="display:none"></div>
+    </div>
     <input id="eventEmoji" type="text" placeholder="Emoji (e.g. 🎉)" style="margin-top:8px;width:36%" />
     <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
       <label style="min-width:90px;margin:0">Pre-buffer</label>
@@ -234,13 +280,6 @@
       <button id="addTaskBtn">Add</button>
     </div>
     <ul id="taskList"></ul>
-  </section>
-
-  <!-- dashboard -->
-  <section class="dashboard">
-    <h2>📊 Dashboard</h2>
-    <p id="summaryStats"></p>
-    <div class="progress" id="progressRing" title="0% complete"></div>
   </section>
 
   <script>
@@ -326,6 +365,8 @@
     }
 
     const calendar = document.getElementById('calendar');
+    // restore month label reference (was removed) — used by generateCalendar()
+    const monthLabel = document.getElementById('monthLabel') || { textContent: '' };
     let selectedMonth, selectedYear, selectedDay;
 
     function generateCalendar(){
@@ -452,6 +493,8 @@
           reminderArea.innerHTML = '';
         }
       }
+
+      updateDayProgress(day);
     }
 
     function addReminder(){
@@ -509,6 +552,7 @@
         list.appendChild(li);
       });
       updateProgress(tasks); updateDashboard(tasks);
+      updateDayProgress(selectedDay);
     }
 
     function addTask(){
@@ -678,54 +722,149 @@
       showAppError('App error: ' + (e.error ? e.error.message : e.message));
     });
 
-    // initPlaces: wire Google Places Autocomplete to event and edit location inputs
+    // initPlaces: improved suggestions UI using AutocompleteService + PlacesService
     function initPlaces(){
+      if (!window.google || !google.maps || !google.maps.places){
+        console.warn('Google Maps Places library not available.');
+        return;
+      }
       try{
-        const opts = { types: ['geocode'] }; // restrict to addresses; adjust if you want establishments
-        const evtInput = document.getElementById('eventLocation');
-        const editInput = document.getElementById('editLocation');
-        if (window.google && google.maps && google.maps.places){
-          if (evtInput){
-            const ac1 = new google.maps.places.Autocomplete(evtInput, opts);
-            ac1.addListener('place_changed', ()=>{
-              const place = ac1.getPlace();
-              if (place && place.formatted_address) evtInput.value = place.formatted_address;
-              evtInput.dataset.place = JSON.stringify({
-                address: place.formatted_address || evtInput.value,
-                lat: place.geometry ? place.geometry.location.lat() : null,
-                lng: place.geometry ? place.geometry.location.lng() : null,
-                placeId: place.place_id || null
+        const acService = new google.maps.places.AutocompleteService();
+        const placesSvc = new google.maps.places.PlacesService(document.createElement('div'));
+
+        function attachAutocompleteUI(input, listEl){
+          let currentRequestId = 0;
+          input.dataset.place = ''; // ensure exists
+
+          function hideList(){ listEl.style.display = 'none'; listEl.innerHTML = ''; }
+
+          input.addEventListener('input', function(){
+            const q = input.value.trim();
+            if (!q){
+              hideList(); return;
+            }
+            const reqId = ++currentRequestId;
+            acService.getPlacePredictions({ input: q, types: ['geocode'] }, (preds, status)=>{
+              if (reqId !== currentRequestId) return; // stale
+              if (!preds || !preds.length){
+                hideList(); return;
+              }
+              listEl.innerHTML = '';
+              preds.forEach(p=>{
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = p.description;
+                btn.addEventListener('click', ()=>{
+                  // set immediate visible text
+                  input.value = p.description;
+                  hideList();
+                  // store minimal place info; fetch details for formatted address + coordinates
+                  input.dataset.place = JSON.stringify({description: p.description, placeId: p.place_id});
+                  placesSvc.getDetails({ placeId: p.place_id, fields: ['formatted_address','geometry','place_id'] }, (detail, st)=>{
+                    if (st === google.maps.places.PlacesServiceStatus.OK && detail){
+                      input.value = detail.formatted_address || input.value;
+                      input.dataset.place = JSON.stringify({
+                        address: detail.formatted_address || p.description,
+                        lat: detail.geometry && detail.geometry.location ? detail.geometry.location.lat() : null,
+                        lng: detail.geometry && detail.geometry.location ? detail.geometry.location.lng() : null,
+                        placeId: detail.place_id || p.place_id
+                      });
+                    }
+                  });
+                  input.dispatchEvent(new Event('change')); // in case other code listens
+                });
+                listEl.appendChild(btn);
               });
+              listEl.style.display = 'block';
             });
-          }
-          if (editInput){
-            const ac2 = new google.maps.places.Autocomplete(editInput, opts);
-            ac2.addListener('place_changed', ()=>{
-              const place = ac2.getPlace();
-              if (place && place.formatted_address) editInput.value = place.formatted_address;
-              editInput.dataset.place = JSON.stringify({
-                address: place.formatted_address || editInput.value,
-                lat: place.geometry ? place.geometry.location.lat() : null,
-                lng: place.geometry ? place.geometry.location.lng() : null,
-                placeId: place.place_id || null
-              });
-            });
-          }
-        } else {
-          console.warn('Google Maps Places library not available.');
+          });
+
+          // hide on blur (delay to allow click)
+          input.addEventListener('blur', ()=> setTimeout(hideList, 200));
+          // show suggestions on focus if there is content
+          input.addEventListener('focus', ()=> {
+            if (input.value && listEl.children.length) listEl.style.display = 'block';
+          });
+          // prevent Enter from submitting forms while selecting suggestions
+          input.addEventListener('keydown', (e)=> { if (e.key === 'Enter') e.stopPropagation(); });
         }
+
+        const evtInput = document.getElementById('eventLocation');
+        const evtList = document.getElementById('eventLocationList');
+        if (evtInput && evtList) attachAutocompleteUI(evtInput, evtList);
+
+        const editInput = document.getElementById('editLocation');
+        const editList = document.getElementById('editLocationList');
+        if (editInput && editList) attachAutocompleteUI(editInput, editList);
       }catch(err){
         console.warn('initPlaces error', err);
       }
     }
 
-    // attempt to call initPlaces if google was loaded earlier
+    // ensure initPlaces is available on window for external callers / loaders
+    window.initPlaces = initPlaces;
+
+    // call initPlaces if google was already loaded
     if (window.google && google.maps && google.maps.places){
       try{ initPlaces(); }catch(e){ console.warn(e); }
     }
+
+    function updateDayProgress(day){
+      const ring = document.getElementById('dayProgressRing');
+      if (!ring) return;
+      if (!day){
+        ring.style.borderTopColor = '#ccc';
+        ring.title = 'No day selected';
+        ring.style.transform = 'rotate(0deg)';
+        return;
+      }
+      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+      const tasks = getTasks().filter(t=>t.date===key);
+      const total = tasks.length;
+      const done = tasks.filter(t=>t.done).length;
+      const percent = total ? Math.round((done/total)*100) : 0;
+      ring.style.borderTopColor = percent===100 ? 'limegreen' : '#4a90e2';
+      ring.title = percent + '% complete (' + (total) + ' task' + (total!==1 ? 's' : '') + ') on ' + key;
+      ring.style.transform = `rotate(${percent * 3.6}deg)`;
+    }
   </script>
 
-  <!-- load Google Maps JS with Places library; replace YOUR_API_KEY -->
-  <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initPlaces"></script>
+  <!-- Replace the static script tag with this dynamic loader -->
+  <script>
+    // Set your Maps API key here for local testing (or store in localStorage)
+    // IMPORTANT: replace 'YOUR_API_KEY' with a real key when ready.
+    const MAPS_API_KEY = (window.MAPS_API_KEY || localStorage.getItem('MAPS_API_KEY') || 'YOUR_API_KEY').trim();
+
+    function loadMapsScript(key){
+      return new Promise((resolve, reject)=>{
+        if (!key || key === 'YOUR_API_KEY') {
+          console.warn('Google Maps API key not configured — skipping Maps load.');
+          return resolve(null);
+        }
+        const s = document.createElement('script');
+        s.async = true;
+        s.defer = true;
+        s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`;
+        s.onload = ()=> {
+          // call initPlaces if defined, but guard any errors so app keeps running
+          try{ if (typeof window.initPlaces === 'function') window.initPlaces(); }catch(err){ console.warn('initPlaces failed after maps load', err); }
+          resolve(s);
+        };
+        s.onerror = (e)=> reject(new Error('Failed to load Google Maps script'));
+        document.head.appendChild(s);
+      });
+    }
+
+    // Attempt to load maps; if it fails, app still works without Places.
+    loadMapsScript(MAPS_API_KEY).then((el)=>{
+      if (el) console.info('Google Maps script loaded.');
+      else console.info('Maps not loaded (no API key).');
+    }).catch(err=>{
+      console.warn('Maps script load failed:', err);
+    });
+
+    // Helper: if you want to set key quickly in the browser console for testing:
+    // localStorage.setItem('MAPS_API_KEY', 'YOUR_REAL_KEY'); location.reload();
+  </script>
 </body>
 </html>
