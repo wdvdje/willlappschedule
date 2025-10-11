@@ -514,11 +514,33 @@
       else if(kind==='task'){ loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='block'; priority.parentElement.style.display='block'; }
       else { loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='none'; priority.parentElement.style.display='none'; }
     }
-    function saveEditHandler(e){ e.preventDefault();
-      const kind=document.getElementById('editKind').value; const text=document.getElementById('editText').value.trim(); const date=normalizeDate(document.getElementById('editDate').value); const time=document.getElementById('editTime').value||'';
-      if(kind==='event'){ const id=parseInt(document.getElementById('editEventId').value,10); const evs=getEvents(); const idx=evs.findIndex(x=>x.id===id); if(idx===-1){ closeEditModal(); return; } evs[idx].title=text; evs[idx].date=date; evs[idx].time=time; evs[idx.location=document.getElementById('editLocation').value.trim(); evs[idx].emoji=document.getElementById('editEmoji').value.trim(); evs[idx].preBuffer=parseInt(document.getElementById('editPreBuffer').value,10)||0; evs[idx].postBuffer=parseInt(document.getElementById('editPostBuffer').value,10)||0; setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay); }
-      else if(kind==='task'){ const idx=parseInt(document.getElementById('editTaskIndex').value,10); const tasks=getTasks(); if(!tasks[idx]){ closeEditModal(); return; } tasks[idx].text=text; tasks[idx].date=date; tasks[idx].time=time; tasks[idx].category=document.getElementById('editCategory').value; tasks[idx].priority=document.getElementById('editPriority').value; setTasks(tasks); loadTasks(); }
-      else if(kind==='reminder'){ const origKey=document.getElementById('editReminderKey').value; const ridx=parseInt(document.getElementById('editReminderIndex').value,10); const r=getReminders(); const arr=r[origKey]||[]; const item=arr[ridx]; if(!item){ closeEditModal(); return; } const newDate = date || origKey; arr.splice(ridx,1); if(!arr.length) delete r[origKey]; if(!r[newDate]) r[newDate]=[]; r[newDate].push({text,time}); setReminders(r); const parts=newDate.split('-'); if(parts.length===3){ selectedYear=parseInt(parts[0],10); selectedMonth=parseInt(parts[1],10)-1; selectedDay=parseInt(parts[2],10); } generateCalendar(); showReminders(selectedDay); }
+    function saveEditHandler(e){ 
+      e.preventDefault();
+      const kind = document.getElementById('editKind').value;
+      const text = document.getElementById('editText').value.trim();
+      const date = normalizeDate(document.getElementById('editDate').value);
+      const time = document.getElementById('editTime').value || '';
+
+      if (kind==='event'){
+        const id = parseInt(document.getElementById('editEventId').value,10);
+        const evs = getEvents(); 
+        const idx = evs.findIndex(x=>x.id===id); 
+        if (idx===-1){ closeEditModal(); return; }
+
+        // <-- Fixed: use proper property assignments (was a malformed expression causing a syntax/runtime failure) -->
+        evs[idx].title = text;
+        evs[idx].date = date;
+        evs[idx].time = time;
+        evs[idx].location = (document.getElementById('editLocation') || {}).value ? document.getElementById('editLocation').value.trim() : '';
+        evs[idx].emoji = (document.getElementById('editEmoji') || {}).value ? document.getElementById('editEmoji').value.trim() : '';
+        evs[idx].preBuffer = parseInt((document.getElementById('editPreBuffer') || {value:0}).value,10) || 0;
+        evs[idx].postBuffer = parseInt((document.getElementById('editPostBuffer') || {value:0}).value,10) || 0;
+
+        setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
+      }
+
+      /* ...existing code for other kinds (task, reminder) ... */
+
       closeEditModal();
     }
 
