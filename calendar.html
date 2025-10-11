@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="theme-color" content="#4a90e2" />
+  <link rel="manifest" href="manifest.json" />
+  <title>TimeScape Planner — Calendar</title>
+  <link rel="stylesheet" href="assets/app.css" />
+</head>
+<body>
+  <header>📅 TimeScape Planner</header>
+
+  <div class="calendar-controls">
+    <button id="prevBtn">&lt;</button>
+    <span id="monthLabel" aria-live="polite"></span>
+    <button id="nextBtn">&gt;</button>
+  </div>
+
+  <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
+
+  <div id="selectedDateArea" style="max-width:540px;margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
+    <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
+    <div id="dayTopBars"></div>
+  </div>
+
+  <section class="dashboard">
+    <h2>📊 Dashboard</h2>
+    <p id="summaryStats"></p>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="progress" id="progressRing" title="Overall progress"></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-start">
+        <div style="font-size:0.95rem;color:#444;">Selected day</div>
+        <div class="progress" id="dayProgressRing" title="Selected-day progress"></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="reminderBar" aria-live="polite" style="max-width:540px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>
+
+  <!-- edit modal (present on every page so edits work anywhere) -->
+  <div id="editModal" role="dialog" aria-modal="true">
+    <div class="panel">
+      <h3 id="editModalHeading">Edit</h3>
+      <form id="editForm">
+        <input type="hidden" id="editKind" />
+        <input type="hidden" id="editEventId" />
+        <input type="hidden" id="editTaskIndex" />
+        <input type="hidden" id="editReminderKey" />
+        <input type="hidden" id="editReminderIndex" />
+
+        <div style="margin-top:8px;">
+          <label for="editText">Text / Title</label>
+          <input id="editText" type="text" />
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div style="flex:1">
+            <label for="editDate">Date</label>
+            <input id="editDate" type="date" />
+          </div>
+          <div style="width:140px">
+            <label for="editTime">Time</label>
+            <input id="editTime" type="time" />
+          </div>
+        </div>
+
+        <div id="editFieldsExtra" style="margin-top:8px">
+          <div style="margin-top:8px">
+            <label for="editLocation">Location</label>
+            <div class="places-suggestions" style="margin-top:8px">
+              <input id="editLocation" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" />
+              <div id="editLocationList" class="suggestions-list" style="display:none"></div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <div style="flex:1">
+              <label for="editEmoji">Emoji</label>
+              <input id="editEmoji" type="text" placeholder="🎉" />
+            </div>
+
+            <div style="width:140px">
+              <label for="editCategory">Category</label>
+              <select id="editCategory">
+                <option value="work">work</option>
+                <option value="personal">personal</option>
+                <option value="errands">errands</option>
+              </select>
+            </div>
+
+            <div style="width:120px">
+              <label for="editPriority">Priority</label>
+              <select id="editPriority">
+                <option value="1">!</option>
+                <option value="2">!!</option>
+                <option value="3">!!!</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <div style="flex:1">
+              <label for="editPreBuffer">Pre-buffer</label>
+              <select id="editPreBuffer">
+                <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
+                <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
+                <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
+                <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
+              </select>
+            </div>
+            <div style="width:140px">
+              <label for="editPostBuffer">Post-buffer</label>
+              <select id="editPostBuffer">
+                <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
+                <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
+                <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
+                <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+          <button type="button" id="cancelEdit" class="small-btn">Cancel</button>
+          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- bottom ribbon navigation -->
+  <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
+    <a href="events.html" class="r-item"><span>📅</span><span class="r-label">Events</span></a>
+    <a href="reminders.html" class="r-item"><span>🔔</span><span class="r-label">Reminders</span></a>
+    <a href="calendar.html" class="r-item r-center"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="tasks.html" class="r-item"><span>✅</span><span class="r-label">Tasks</span></a>
+    <a href="settings.html" class="r-item"><span>⚙️</span><span class="r-label">Settings</span></a>
+  </nav>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
