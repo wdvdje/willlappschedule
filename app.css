@@ -1,0 +1,72 @@
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
+header { background:#4a90e2; color:#fff; padding:1rem; font-size:1.25rem; }
+.calendar-controls{display:flex;gap:10px;justify-content:center;align-items:center;margin:18px 0;}
+.calendar-controls button{background:#4a90e2;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;width:calc(100vw - 32px);max-width:100%;margin:0 auto 12px;background:#fff;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,0.07);box-sizing:border-box;}
+.calendar-dayname{font-weight:700;color:#4a90e2;padding-bottom:4px}
+.day{background:#fff;border-radius:8px;padding:8px;min-height:64px;position:relative;cursor:pointer;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; flex-direction:column; align-items:stretch;}
+.day.selected{border:2px solid #4a90e2;box-shadow:0 2px 8px rgba(74,144,226,0.15)}
+.day.today{outline:2px solid #4a90e2;}
+.day .day-number{font-weight:700;display:flex;gap:6px;align-items:center;justify-content:flex-start}
+.emoji-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding-top:6px;flex:1 1 auto;min-height:18px;max-height:48px;box-sizing:border-box}
+.event-preview{display:inline-flex;align-items:center;justify-content:center;line-height:1;border-radius:6px;padding:2px;background:transparent;user-select:none}
+.reminder-dot{width:8px;height:8px;border-radius:50%;background:#e67e22;display:inline-block;margin-left:6px}
+.reminder-bar{background:#fbeee6;border-left:4px solid #e67e22;color:#9a6b16;margin:8px 0;padding:8px;border-radius:6px;font-size:0.95rem;text-align:left}
+.reminder-bar .events-list{ margin:6px 0 0 0; padding:0; }
+.reminder-bar .r-event{ padding:4px 0; margin:0; display:flex; gap:8px; align-items:center; font-size:0.95rem; }
+.reminder-bar .r-event b{ margin-right:4px; }
+.reminder-bar .r-actions{ margin-left:auto; }
+.item-controls{margin-left:8px}
+.small-btn{padding:4px 6px;background:#888;color:#fff;border:none;border-radius:4px;margin-left:6px;cursor:pointer}
+.tasks,.events,.reminders,.dashboard{max-width:540px;margin:18px auto;text-align:left;padding:0 12px;box-sizing:border-box}
+input[type="text"],input[type="date"],input[type="time"],select{padding:8px;border-radius:4px;border:1px solid #ccc;width:100%;box-sizing:border-box;margin-top:6px}
+.mobile-row{display:flex;gap:8px;align-items:center}
+.mobile-label{display:none;font-weight:600;margin-right:8px}
+@media (max-width:600px){ .mobile-label{display:inline-block} .calendar,.tasks,.events,.reminders{width:calc(100vw - 32px);}}
+#editModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
+#editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
+#editModal label{font-weight:600}
+
+/* indicators */
+.event-preview.reminder { color: #e67e22; }
+.event-preview.task { color: green; }
+.reminder-dot { display:none; }
+
+/* places suggestion dropdown */
+.places-suggestions { position:relative; }
+.places-suggestions .suggestions-list {
+  position:absolute;
+  left:0; right:0;
+  background:#fff;border:1px solid #ddd;border-radius:6px;margin-top:6px;z-index:2000;
+  max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,0.12);
+}
+.places-suggestions .suggestions-list button{
+  display:block;width:100%;text-align:left;padding:8px 10px;border:0;background:transparent;cursor:pointer;
+}
+.places-suggestions .suggestions-list button:hover{ background:#f2f6fb; }
+
+.progress {
+  width:64px;
+  height:64px;
+  border-radius:50%;
+  border:8px solid #eee;
+  border-top:8px solid #4a90e2;
+  display:inline-block;
+  margin-top:8px;
+  transition: transform 0.4s linear;
+  box-sizing:border-box;
+}
+#dayProgressRing { border-top-color: #4a90e2; }
+#progressRing { border-top-color: #4a90e2; }
+
+/* bottom ribbon nav */
+.bottom-ribbon{
+  position:fixed;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid #e6e6e6;display:flex;align-items:center;justify-content:space-around;
+  box-shadow:0 -4px 18px rgba(0,0,0,0.06);z-index:999;
+}
+.bottom-ribbon .r-item{ text-decoration:none;color:#333;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:6px 4px;}
+.bottom-ribbon .r-item .r-label{ font-size:11px;margin-top:4px;display:block;}
+.bottom-ribbon .r-item.r-center{ background:linear-gradient(0deg, rgba(74,144,226,0.06), transparent); border-radius:12px; margin:0 6px; padding:8px 6px; }
+
+/* mobile adjustments so page content won't be hidden behind ribbon */
+body { padding-bottom: 80px; }

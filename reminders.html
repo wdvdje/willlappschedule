@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <link rel="manifest" href="manifest.json" />
+  <title>TimeScape Planner — Reminders</title>
+  <link rel="stylesheet" href="assets/app.css" />
+</head>
+<body>
+  <header>📅 TimeScape Planner</header>
+
+  <section class="reminders" style="max-width:640px;margin:18px auto;padding:0 12px;box-sizing:border-box">
+    <div id="reminderHeader">
+      <h2>⏰ Reminders</h2>
+    </div>
+
+    <div id="reminderBar" aria-live="polite"></div>
+
+    <form id="reminderForm" style="margin-top:12px">
+      <div class="mobile-row" style="gap:8px;align-items:center">
+        <label class="mobile-label" for="reminderDate">Date</label>
+        <input id="reminderDate" type="date" />
+      </div>
+      <div style="margin-top:8px" class="mobile-row">
+        <label class="mobile-label" for="reminderInput">Reminder</label>
+        <input type="text" id="reminderInput" placeholder="Add reminder..." />
+      </div>
+      <div style="margin-top:8px" class="mobile-row">
+        <label class="mobile-label" for="reminderTime">Time</label>
+        <input type="time" id="reminderTime" style="width:36%" />
+        <button id="addReminderBtn" type="submit" style="width:auto;margin-left:8px">Add Reminder</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- bottom ribbon navigation -->
+  <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
+    <a href="events.html" class="r-item"><span>📅</span><span class="r-label">Events</span></a>
+    <a href="reminders.html" class="r-item"><span>🔔</span><span class="r-label">Reminders</span></a>
+    <a href="calendar.html" class="r-item r-center"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="tasks.html" class="r-item"><span>✅</span><span class="r-label">Tasks</span></a>
+    <a href="settings.html" class="r-item"><span>⚙️</span><span class="r-label">Settings</span></a>
+  </nav>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>

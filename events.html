@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <link rel="manifest" href="manifest.json" />
+  <title>TimeScape Planner — Events</title>
+  <link rel="stylesheet" href="assets/app.css" />
+</head>
+<body>
+  <header>📅 TimeScape Planner</header>
+
+  <section class="events" style="max-width:640px;margin:18px auto;padding:0 12px;box-sizing:border-box">
+    <h2>📅 Events</h2>
+    <form id="eventForm">
+      <input id="eventTitle" type="text" placeholder="Event title" required />
+      <div class="mobile-row" style="margin-top:8px">
+        <input id="eventDate" type="date" required />
+        <input id="eventTime" type="time" />
+      </div>
+      <div class="places-suggestions" style="margin-top:8px">
+        <input id="eventLocation" type="text" placeholder="Location" autocomplete="off" autocorrect="off" autocapitalize="off" />
+        <div id="eventLocationList" class="suggestions-list" style="display:none"></div>
+      </div>
+      <input id="eventEmoji" type="text" placeholder="Emoji (e.g. 🎉)" style="margin-top:8px;width:36%" />
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+        <label style="min-width:90px;margin:0">Pre-buffer</label>
+        <select id="eventPreBuffer" style="width:120px">
+          <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
+          <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
+          <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
+          <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
+        </select>
+        <label style="min-width:90px;margin:0">Post-buffer</label>
+        <select id="eventPostBuffer" style="width:120px">
+          <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
+          <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
+          <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
+          <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
+        </select>
+      </div>
+      <div style="margin-top:8px">
+        <button id="addEventBtn" type="submit">Add Event</button>
+      </div>
+    </form>
+
+    <ul id="eventList" style="margin-top:12px"></ul>
+  </section>
+
+  <!-- edit modal -->
+  <div id="editModal" role="dialog" aria-modal="true">
+    <div class="panel">
+      <h3 id="editModalHeading">Edit</h3>
+      <form id="editForm">
+        <input type="hidden" id="editKind" />
+        <input type="hidden" id="editEventId" />
+        <input type="hidden" id="editTaskIndex" />
+        <input type="hidden" id="editReminderKey" />
+        <input type="hidden" id="editReminderIndex" />
+        <div style="margin-top:8px;">
+          <label for="editText">Text / Title</label>
+          <input id="editText" type="text" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div style="flex:1">
+            <label for="editDate">Date</label>
+            <input id="editDate" type="date" />
+          </div>
+          <div style="width:140px">
+            <label for="editTime">Time</label>
+            <input id="editTime" type="time" />
+          </div>
+        </div>
+        <div id="editFieldsExtra" style="margin-top:8px">
+          <div style="margin-top:8px">
+            <label for="editLocation">Location</label>
+            <div class="places-suggestions" style="margin-top:8px">
+              <input id="editLocation" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" />
+              <div id="editLocationList" class="suggestions-list" style="display:none"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <div style="flex:1">
+              <label for="editEmoji">Emoji</label>
+              <input id="editEmoji" type="text" placeholder="🎉" />
+            </div>
+            <div style="width:140px">
+              <label for="editCategory">Category</label>
+              <select id="editCategory">
+                <option value="work">work</option>
+                <option value="personal">personal</option>
+                <option value="errands">errands</option>
+              </select>
+            </div>
+            <div style="width:120px">
+              <label for="editPriority">Priority</label>
+              <select id="editPriority">
+                <option value="1">!</option><option value="2">!!</option><option value="3">!!!</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+          <button type="button" id="cancelEdit" class="small-btn">Cancel</button>
+          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- bottom ribbon -->
+  <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
+    <a href="events.html" class="r-item"><span>📅</span><span class="r-label">Events</span></a>
+    <a href="reminders.html" class="r-item"><span>🔔</span><span class="r-label">Reminders</span></a>
+    <a href="calendar.html" class="r-item r-center"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="tasks.html" class="r-item"><span>✅</span><span class="r-label">Tasks</span></a>
+    <a href="settings.html" class="r-item"><span>⚙️</span><span class="r-label">Settings</span></a>
+  </nav>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
