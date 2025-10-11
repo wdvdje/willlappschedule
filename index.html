@@ -253,40 +253,137 @@
     // simple escape
     function escapeHTML(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+    /* ---------- NEW: monthly color themes + holiday utilities ---------- */
+    const themes = [
+      /* Jan */ { weekday:'#f0f7ff', weekend:'#e6f1ff' },
+      /* Feb */ { weekday:'#fff0f6', weekend:'#ffd9ec' },
+      /* Mar */ { weekday:'#eefaf0', weekend:'#dff4e6' },
+      /* Apr */ { weekday:'#fffaf0', weekend:'#fff3cc' },
+      /* May */ { weekday:'#f0fcff', weekend:'#dff8ff' },
+      /* Jun */ { weekday:'#fff7ec', weekend:'#fff0cc' },
+      /* Jul */ { weekday:'#fff5f5', weekend:'#ffd9d9' },
+      /* Aug */ { weekday:'#fff8e6', weekend:'#ffeecb' },
+      /* Sep */ { weekday:'#f7fff7', weekend:'#e6f7ec' },
+      /* Oct */ { weekday:'#fff6f0', weekend:'#ffeede' },
+      /* Nov */ { weekday:'#f5f5fb', weekend:'#e8e8ff' },
+      /* Dec */ { weekday:'#ffe6e6', weekend:'#e6ffe6' } // e.g. red (weekday) + green (weekend/holiday)
+    ];
+
+    const fixedHolidays = {
+      '01-01':{name:"New Year's Day", emoji:'🎆'},
+      '02-14':{name:"Valentine's Day", emoji:'❤️'},
+      '03-17':{name:"St. Patrick's Day", emoji:'🍀'},
+      '04-01':{name:"April Fool's Day", emoji:'🤡'},
+      '07-04':{name:"Independence Day", emoji:'🎇'},
+      '10-31':{name:"Halloween", emoji:'🎃'},
+      '12-25':{name:"Christmas Day", emoji:'🎅'}
+    };
+
+    function computeNthWeekday(year,monthIndex,weekday,n){
+      const first = new Date(year,monthIndex,1);
+      const firstWeekday = first.getDay();
+      return 1 + ((7 + weekday - firstWeekday) % 7) + (n-1)*7;
+    }
+    function computeLastWeekday(year,monthIndex,weekday){
+      const last = new Date(year,monthIndex+1,0);
+      const lastWeekday = last.getDay();
+      return last.getDate() - ((7 + lastWeekday - weekday) % 7);
+    }
+    function computeFederalHolidays(year){
+      const map = {};
+      map['01-'+pad2(computeNthWeekday(year,0,1,3))] = {name:"Martin Luther King Jr. Day", emoji:'✊'};
+      map['02-'+pad2(computeNthWeekday(year,1,1,3))] = {name:"Presidents' Day", emoji:'🏛️'};
+      map['05-'+pad2(computeLastWeekday(year,4,1))] = {name:"Memorial Day", emoji:'🎗️'};
+      map['06-19'] = {name:"Juneteenth", emoji:'🏳️‍🌈'};
+      map['09-'+pad2(computeNthWeekday(year,8,1,1))] = {name:"Labor Day", emoji:'🛠️'};
+      map['10-'+pad2(computeNthWeekday(year,9,1,2))] = {name:"Columbus Day", emoji:'🧭'};
+      map['11-'+pad2(computeNthWeekday(year,10,4,4))] = {name:"Thanksgiving", emoji:'🦃'};
+      map['11-11'] = {name:"Veterans Day", emoji:'🎖️'};
+      return map;
+    }
+
+    function getHoliday(mmdd, year){
+      // fixed-date first
+      if (fixedHolidays[mmdd]) return fixedHolidays[mmdd];
+      // compute federal holidays for year (cached minimally if you like)
+      const fed = computeFederalHolidays(year);
+      return fed[mmdd] || null;
+    }
+    /* ----------------------------------------------------------------- */
+
     // Calendar generation
     function generateCalendar(){
-      if(!calendar) return;
-      calendar.innerHTML='';
+      if (!calendar) { showAppError('Calendar container missing'); return; }
+      calendar.innerHTML = '';
       monthLabel.textContent = monthNames[selectedMonth] + ' ' + selectedYear;
-      for(let i=0;i<7;i++){ const hdr=document.createElement('div'); hdr.className='calendar-dayname'; hdr.textContent=weekdayNames[i]; calendar.appendChild(hdr); }
-      const first=new Date(selectedYear, selectedMonth, 1);
-      const start=first.getDay();
-      const daysInMonth=new Date(selectedYear, selectedMonth+1, 0).getDate();
-      const today=new Date(); const isCurMonth = today.getFullYear()===selectedYear && today.getMonth()===selectedMonth;
+
+      for (let i=0;i<7;i++){
+        const hdr = document.createElement('div');
+        hdr.className = 'calendar-dayname';
+        hdr.textContent = weekdayNames[i];
+        calendar.appendChild(hdr);
+      }
+
+      const first = new Date(selectedYear, selectedMonth, 1);
+      const start = first.getDay();
+      const daysInMonth = new Date(selectedYear, selectedMonth+1, 0).getDate();
+      const today = new Date();
+      const isCurMonth = today.getFullYear()===selectedYear && today.getMonth()===selectedMonth;
       const reminders = getReminders();
       const events = getEvents();
-      for(let i=0;i<start;i++) calendar.appendChild(document.createElement('div'));
-      const themeIndex = selectedMonth % 12;
-      for(let day=1; day<=daysInMonth; day++){
+
+      for (let i=0;i<start;i++) calendar.appendChild(document.createElement('div'));
+
+      const theme = themes[selectedMonth] || { weekday:'#fff', weekend:'#f2f2f2' };
+
+      for (let day=1; day<=daysInMonth; day++){
         const dt = new Date(selectedYear, selectedMonth, day);
         const dow = dt.getDay();
+        const mmdd = pad2(selectedMonth+1)+'-'+pad2(day);
         const ymd = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-        const cell = document.createElement('div'); cell.className='day'; cell.dataset.day=day;
-        if(isCurMonth && day===today.getDate()) cell.classList.add('today');
-        cell.style.backgroundColor = (dow===0||dow===6) ? '#e0f0ff' : '#f7fbff';
-        const dayEvents = events.filter(e=> normalizeDate(e.date)===ymd );
-        const dayTasks = getTasks().filter(t=> normalizeDate(t.date)===ymd );
+        const cell = document.createElement('div');
+        cell.className = 'day';
+        cell.dataset.day = day;
+
+        if (isCurMonth && day === today.getDate()) cell.classList.add('today');
+
+        // treat holidays as weekends (use weekend color)
+        const h = getHoliday(mmdd, selectedYear);
+        cell.style.backgroundColor = (h || dow===0 || dow===6) ? theme.weekend : theme.weekday;
+
+        const dayEvents = events.filter(e=>normalizeDate(e.date)===ymd);
+        const dayTasks = getTasks().filter(t=>normalizeDate(t.date)===ymd);
         const dayReminders = reminders[ymd] || [];
+
         cell.innerHTML = `<div class="day-number">${day}</div><div class="emoji-row" aria-hidden="true"></div>`;
-        const emojiRow = cell.querySelector('.emoji-row');
+
+        // tooltip: holiday name or event summaries
+        if (h) cell.title = h.name;
+        else if (dayEvents.length) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
+
+        // build unified indicators: events (each), holiday, reminder-summary, task-summary
         const indicators = [];
         dayEvents.forEach(ev => indicators.push({kind:'event', emoji: ev.emoji || '📌', title: (ev.time?`[${ev.time}] `:'') + (ev.title||''), id: ev.id}));
-        if(dayReminders.length) indicators.push({kind:'reminder', emoji:'🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
-        if(dayTasks.length) indicators.push({kind:'task', emoji:'✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
-        const count = Math.max(1, indicators.length); const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
-        indicators.forEach(ind=>{ const sp=document.createElement('span'); sp.className='event-preview '+ind.kind; sp.textContent = ind.emoji; sp.title = ind.title; sp.style.fontSize = size+'px'; if(ind.id) sp.dataset.eventId = ind.id; emojiRow.appendChild(sp); });
-        cell.addEventListener('click', ()=> { showReminders(day); showView('calendar'); });
-        if(selectedDay===day) cell.classList.add('selected');
+        if (h) indicators.push({kind:'holiday', emoji: h.emoji || '🏳️', title: h.name});
+        if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
+        if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
+
+        // render indicators into emoji-row using same sizing logic
+        const emojiRow = cell.querySelector('.emoji-row');
+        const count = Math.max(1, indicators.length);
+        const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
+        indicators.forEach(ind=>{
+          const sp = document.createElement('span');
+          sp.className = 'event-preview ' + (ind.kind || '');
+          sp.textContent = ind.emoji || '';
+          sp.title = ind.title || '';
+          sp.style.fontSize = size + 'px';
+          if (ind.kind === 'event' && ind.id) sp.dataset.eventId = ind.id;
+          emojiRow.appendChild(sp);
+        });
+
+        cell.addEventListener('click', ()=> showReminders(day));
+        if (selectedDay === day) cell.classList.add('selected');
         calendar.appendChild(cell);
       }
     }
@@ -419,9 +516,9 @@
     }
     function saveEditHandler(e){ e.preventDefault();
       const kind=document.getElementById('editKind').value; const text=document.getElementById('editText').value.trim(); const date=normalizeDate(document.getElementById('editDate').value); const time=document.getElementById('editTime').value||'';
-      if(kind==='event'){ const id=parseInt(document.getElementById('editEventId').value,10); const evs=getEvents(); const idx=evs.findIndex(x=>x.id===id); if(idx===-1){ closeEditModal(); return; } evs[idx].title=text; evs[idx].date=date; evs[idx].time=time; evs[idx].location=document.getElementById('editLocation').value.trim(); evs[idx].emoji=document.getElementById('editEmoji').value.trim(); evs[idx].preBuffer=parseInt(document.getElementById('editPreBuffer').value,10)||0; evs[idx].postBuffer=parseInt(document.getElementById('editPostBuffer').value,10)||0; setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay); }
+      if(kind==='event'){ const id=parseInt(document.getElementById('editEventId').value,10); const evs=getEvents(); const idx=evs.findIndex(x=>x.id===id); if(idx===-1){ closeEditModal(); return; } evs[idx].title=text; evs[idx].date=date; evs[idx].time=time; evs[idx.location=document.getElementById('editLocation').value.trim(); evs[idx].emoji=document.getElementById('editEmoji').value.trim(); evs[idx].preBuffer=parseInt(document.getElementById('editPreBuffer').value,10)||0; evs[idx].postBuffer=parseInt(document.getElementById('editPostBuffer').value,10)||0; setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay); }
       else if(kind==='task'){ const idx=parseInt(document.getElementById('editTaskIndex').value,10); const tasks=getTasks(); if(!tasks[idx]){ closeEditModal(); return; } tasks[idx].text=text; tasks[idx].date=date; tasks[idx].time=time; tasks[idx].category=document.getElementById('editCategory').value; tasks[idx].priority=document.getElementById('editPriority').value; setTasks(tasks); loadTasks(); }
-      else if(kind==='reminder'){ const origKey=document.getElementById('editReminderKey').value; const ridx=parseInt(document.getElementById('editReminderIndex').value,10); const r=getReminders(); const arr=r[origKey]||[]; const item=arr[ridx]; if(!item){ closeEditModal(); return; } const newDate = date || origKey; arr.splice(ridx,1); if(!arr.length) delete r[origKey]; if(!r[newDate]) r[newDate]=[]; r[newDate].push({text,time}); setReminders(r); const parts=newDate.split('-'); if(parts.length===3){ selectedYear=parseInt(parts[0],10); selectedMonth=parseInt(parts[1],10)-1; selectedDay=parseInt(parts[2],10); } generateCalendar(); showReminders(selectedDay); }
+      else if(kind==='reminder'){ const origKey=document.getElementById('editReminderKey').value; const ridx=parseInt(document.getElementById('editReminderIndex').value,10); const r=getReminders(); const arr=r[origKey]||[]; const item=arr[ridx]; if(!item){ closeEditModal(); return; } const newDate = date || origKey; arr.splice(ridx,1); if(!arr.length) delete r[origKey]; if(!r[newDate]) r[newDate].push({text,time}); setReminders(r); const parts=newDate.split('-'); if(parts.length===3){ selectedYear=parseInt(parts[0],10); selectedMonth=parseInt(parts[1],10)-1; selectedDay=parseInt(parts[2],10); } generateCalendar(); showReminders(selectedDay); }
       closeEditModal();
     }
 
