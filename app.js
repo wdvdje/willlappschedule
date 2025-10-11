@@ -349,7 +349,7 @@ function editTask(i){
   showModalFieldsFor('task'); openEditModal('Edit Task');
 }
 
-/* events rendering and add/edit/delete */
+/* Render events: include endTime in display */
 function renderEvents(){
   const evs = getEvents();
   const list = document.getElementById('eventList');
@@ -358,32 +358,40 @@ function renderEvents(){
   evs.forEach(e=>{
     const li = document.createElement('li');
     const locHtml = e.location ? ` @ <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank">${escapeHTML(e.location)}</a>` : '';
+    // show time range if endTime present
+    const timeHtml = e.time ? (e.endTime ? `[${escapeHTML(e.time)}–${escapeHTML(e.endTime)}]` : `[${escapeHTML(e.time)}]`) : '';
     const bufferHtml = ((e.preBuffer||0) || (e.postBuffer||0)) ? ` <small style="color:#555">(${e.preBuffer||0}m pre / ${e.postBuffer||0}m post)</small>` : '';
-    li.innerHTML = `${e.emoji?e.emoji+' ':''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${e.time?`[${e.time}]`:''}${locHtml}${bufferHtml} <span class="item-controls"><button class="small-btn" onclick="editEvent(${e.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${e.id})">Delete</button></span>`;
+    li.innerHTML = `${e.emoji?e.emoji+' ':''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${timeHtml}${locHtml}${bufferHtml} <span class="item-controls"><button class="small-btn" onclick="editEvent(${e.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${e.id})">Delete</button></span>`;
     list.appendChild(li);
   });
 }
+
+/* Add event: capture end time */
 function addEvent(e){
   if (e && e.preventDefault) e.preventDefault();
   const title = document.getElementById('eventTitle') ? document.getElementById('eventTitle').value.trim() : '';
   const date = normalizeDate(document.getElementById('eventDate') ? document.getElementById('eventDate').value : '');
   if (!title || !date) { alert('Event needs a title and date'); return; }
   const time = document.getElementById('eventTime') ? document.getElementById('eventTime').value || '' : '';
+  const endTime = document.getElementById('eventEndTime') ? document.getElementById('eventEndTime').value || '' : '';
   const location = document.getElementById('eventLocation') ? document.getElementById('eventLocation').value.trim() : '';
   const emoji = document.getElementById('eventEmoji') ? document.getElementById('eventEmoji').value.trim() : '';
   const pre = parseInt(document.getElementById('eventPreBuffer') ? document.getElementById('eventPreBuffer').value : 0,10) || 0;
   const post = parseInt(document.getElementById('eventPostBuffer') ? document.getElementById('eventPostBuffer').value : 0,10) || 0;
   const evs = getEvents();
   const id = evs.length ? Math.max(...evs.map(e=>e.id))+1 : 1;
-  evs.push({id,title,date,time,location,emoji,preBuffer:pre,postBuffer:post});
+  evs.push({id,title,date,time,endTime,location,emoji,preBuffer:pre,postBuffer:post});
   setEvents(evs);
   if (document.getElementById('eventTitle')) document.getElementById('eventTitle').value='';
   if (document.getElementById('eventDate')) document.getElementById('eventDate').value='';
   if (document.getElementById('eventTime')) document.getElementById('eventTime').value='';
+  if (document.getElementById('eventEndTime')) document.getElementById('eventEndTime').value='';
   if (document.getElementById('eventLocation')) document.getElementById('eventLocation').value='';
   if (document.getElementById('eventEmoji')) document.getElementById('eventEmoji').value='';
   renderEvents(); generateCalendar();
 }
+
+/* delete/edit events */
 function deleteEvent(id){ if(!confirm('Delete this event?')) return; let evs=getEvents(); evs = evs.filter(e=>e.id!==id); setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
 function editEvent(id){
   const evs = getEvents(); const idx = evs.findIndex(e=>e.id===id); if (idx===-1) return;
@@ -393,6 +401,7 @@ function editEvent(id){
   document.getElementById('editText').value = e.title || '';
   document.getElementById('editDate').value = e.date || '';
   document.getElementById('editTime').value = e.time || '';
+  document.getElementById('editEndTime').value = e.endTime || '';
   document.getElementById('editLocation').value = e.location || '';
   document.getElementById('editEmoji').value = e.emoji || '';
   document.getElementById('editPreBuffer').value = (e.preBuffer || 5);
@@ -419,14 +428,21 @@ function saveEditHandler(e){
   const text = document.getElementById('editText').value.trim();
   const date = normalizeDate(document.getElementById('editDate').value);
   const time = document.getElementById('editTime').value || '';
-  if (kind==='event'){
+  const endTime = document.getElementById('editEndTime') ? document.getElementById('editEndTime').value || '' : '';
+
+  if (kind === 'event'){
     const id = parseInt(document.getElementById('editEventId').value,10);
     const evs = getEvents(); const idx = evs.findIndex(x=>x.id===id); if (idx===-1){ closeEditModal(); return; }
-    evs[idx].title = text; evs[idx].date = date; evs[idx].time = time; evs[idx].location = document.getElementById('editLocation').value.trim(); evs[idx].emoji = document.getElementById('editEmoji').value.trim();
+    evs[idx].title = text; evs[idx].date = date; evs[idx].time = time; evs[idx].endTime = endTime; evs[idx].location = document.getElementById('editLocation').value.trim(); evs[idx].emoji = document.getElementById('editEmoji').value.trim();
     evs[idx].preBuffer = parseInt(document.getElementById('editPreBuffer').value,10) || 0;
     evs[idx].postBuffer = parseInt(document.getElementById('editPostBuffer').value,10) || 0;
     setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
-  } else if (kind==='task'){
+    closeEditModal();
+    return;
+  }
+
+  /* ...existing handling for task/reminder... */
+  else if (kind==='task'){
     const idx = parseInt(document.getElementById('editTaskIndex').value,10);
     const tasks = getTasks(); if (!tasks[idx]) { closeEditModal(); return; }
     tasks[idx].text = text; tasks[idx].date = date; tasks[idx].time = time; tasks[idx].category = document.getElementById('editCategory').value; tasks[idx].priority = document.getElementById('editPriority').value;
@@ -544,6 +560,22 @@ function initPlaces(){
   }catch(err){ console.warn('initPlaces error', err); }
 }
 
+/* UI: overlay inputs - toggle has-value class on input events (call on DOMContentLoaded) */
+function initOverlayInputs(){
+  document.querySelectorAll('.overlay-input').forEach(container=>{
+    const input = container.querySelector('.overlay-field');
+    if(!input) return;
+    const toggle = ()=> {
+      if(input.value && input.value.length) container.classList.add('has-value'); else container.classList.remove('has-value');
+    };
+    input.addEventListener('input', toggle);
+    input.addEventListener('focus', ()=> container.classList.add('focused'));
+    input.addEventListener('blur', ()=> container.classList.remove('focused'));
+    // initial state
+    toggle();
+  });
+}
+
 /* event wiring and initialization */
 function attachPageListeners(){
   try{
@@ -613,6 +645,9 @@ function loadMapsScript(key){
     } else {
       loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); });
     }
+
+    // initialize overlay fields behavior
+    initOverlayInputs();
   }catch(err){
     console.error('Init error',err);
     showAppError('Initialization error: ' + (err && err.message || err));

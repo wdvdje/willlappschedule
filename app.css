@@ -70,3 +70,19 @@ input[type="text"],input[type="date"],input[type="time"],select{padding:8px;bord
 
 /* mobile adjustments so page content won't be hidden behind ribbon */
 body { padding-bottom: 80px; }
+
+/* overlay input (mobile): small label positioned over date/time inputs */
+.overlay-input{ position:relative; display:block; }
+.overlay-input input.overlay-field{ position:relative; z-index:1; background:transparent; }
+.overlay-input .overlay-label{
+  position:absolute; left:10px; top:8px; color:#666; font-size:0.9rem; pointer-events:none; transition: transform 0.12s ease, opacity 0.12s ease;
+  z-index:2;
+}
+.overlay-input.focused .overlay-label,
+.overlay-input.has-value .overlay-label,
+.overlay-input input:focus + .overlay-label { transform: translateY(-18px) scale(0.9); opacity:0.8; }
+
+/* only show overlay behavior on small screens (mobile) */
+@media (min-width:601px){
+  .overlay-input .overlay-label{ display:none; }
+}

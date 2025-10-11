@@ -92,31 +92,52 @@
       <h2>📅 Events</h2>
       <form id="eventForm">
         <input id="eventTitle" type="text" placeholder="Event title" required />
-        <div class="mobile-row" style="margin-top:8px">
-          <input id="eventDate" type="date" required />
-          <input id="eventTime" type="time" />
+
+        <!-- Date input with overlay label -->
+        <div class="overlay-input" style="margin-top:8px">
+          <input id="eventDate" type="date" class="overlay-field" required />
+          <span class="overlay-label">Date</span>
         </div>
+
+        <!-- Start time input with overlay -->
+        <div class="overlay-input" style="margin-top:8px;display:inline-block;width:48%;box-sizing:border-box">
+          <input id="eventTime" type="time" class="overlay-field" />
+          <span class="overlay-label">Start time</span>
+        </div>
+
+        <!-- End time input with overlay -->
+        <div class="overlay-input" style="margin-top:8px;display:inline-block;width:48%;box-sizing:border-box;margin-left:4%">
+          <input id="eventEndTime" type="time" class="overlay-field" />
+          <span class="overlay-label">End time</span>
+        </div>
+
         <div class="places-suggestions" style="margin-top:8px">
           <input id="eventLocation" type="text" placeholder="Location" autocomplete="off" autocorrect="off" autocapitalize="off" />
           <div id="eventLocationList" class="suggestions-list" style="display:none"></div>
         </div>
+
         <input id="eventEmoji" type="text" placeholder="Emoji (e.g. 🎉)" style="margin-top:8px;width:36%" />
+
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
           <label style="min-width:90px;margin:0">Pre-buffer</label>
           <select id="eventPreBuffer" style="width:120px">
-            <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
-            <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
-            <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
-            <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
+            <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option>
+            <option value="20">20 m</option><option value="25">25 m</option><option value="30">30 m</option>
+            <option value="35">35 m</option><option value="40">40 m</option><option value="45">45 m</option>
+            <option value="50">50 m</option><option value="55">55 m</option><option value="60">60 m</option>
+            <option value="90">90 m</option><option value="120">120 m</option>
           </select>
+
           <label style="min-width:90px;margin:0">Post-buffer</label>
           <select id="eventPostBuffer" style="width:120px">
-            <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
-            <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
-            <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
-            <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
+            <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option>
+            <option value="20">20 m</option><option value="25">25 m</option><option value="30">30 m</option>
+            <option value="35">35 m</option><option value="40">40 m</option><option value="45">45 m</option>
+            <option value="50">50 m</option><option value="55">55 m</option><option value="60">60 m</option>
+            <option value="90">90 m</option><option value="120">120 m</option>
           </select>
         </div>
+
         <div style="margin-top:8px"><button id="addEventBtn" type="submit">Add Event</button></div>
       </form>
       <ul id="eventList" style="margin-top:12px"></ul>
@@ -187,6 +208,7 @@
         <div style="display:flex;gap:8px;margin-top:8px;">
           <div style="flex:1"><label for="editDate">Date</label><input id="editDate" type="date" /></div>
           <div style="width:140px"><label for="editTime">Time</label><input id="editTime" type="time" /></div>
+          <div style="width:140px"><label for="editEndTime">End</label><input id="editEndTime" type="time" /></div>
         </div>
         <div id="editFieldsExtra" style="margin-top:8px">
           <div style="margin-top:8px">
@@ -495,14 +517,14 @@
     function addEvent(e){ if(e && e.preventDefault) e.preventDefault();
       const title=(document.getElementById('eventTitle')||{value:''}).value.trim(); const date=normalizeDate(document.getElementById('eventDate')?document.getElementById('eventDate').value:'');
       if(!title||!date){ alert('Event needs a title and date'); return; }
-      const time=document.getElementById('eventTime')?document.getElementById('eventTime').value:''; const location=document.getElementById('eventLocation')?document.getElementById('eventLocation').value.trim():''; const emoji=document.getElementById('eventEmoji')?document.getElementById('eventEmoji').value.trim():'';
+      const time=document.getElementById('eventTime')?document.getElementById('eventTime').value:''; const endTime=document.getElementById('eventEndTime')?document.getElementById('eventEndTime').value:''; const location=document.getElementById('eventLocation')?document.getElementById('eventLocation').value.trim():''; const emoji=document.getElementById('eventEmoji')?document.getElementById('eventEmoji').value.trim():'';
       const pre=parseInt(document.getElementById('eventPreBuffer')?document.getElementById('eventPreBuffer').value:0,10)||0; const post=parseInt(document.getElementById('eventPostBuffer')?document.getElementById('eventPostBuffer').value:0,10)||0;
-      const evs=getEvents(); const id = evs.length?Math.max(...evs.map(x=>x.id))+1:1; evs.push({id,title,date,time,location,emoji,preBuffer:pre,postBuffer:post}); setEvents(evs);
-      if(document.getElementById('eventTitle'))document.getElementById('eventTitle').value=''; if(document.getElementById('eventDate'))document.getElementById('eventDate').value=''; if(document.getElementById('eventTime'))document.getElementById('eventTime').value=''; renderEvents(); generateCalendar();
+      const evs=getEvents(); const id = evs.length?Math.max(...evs.map(x=>x.id))+1:1; evs.push({id,title,date,time,endTime,location,emoji,preBuffer:pre,postBuffer:post}); setEvents(evs);
+      if(document.getElementById('eventTitle'))document.getElementById('eventTitle').value=''; if(document.getElementById('eventDate'))document.getElementById('eventDate').value=''; if(document.getElementById('eventTime'))document.getElementById('eventTime').value=''; if(document.getElementById('eventEndTime'))document.getElementById('eventEndTime').value=''; renderEvents(); generateCalendar();
     }
     function deleteEvent(id){ if(!confirm('Delete this event?')) return; let evs=getEvents(); evs=evs.filter(e=>e.id!==id); setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay); }
     function editEvent(id){ const evs=getEvents(); const idx=evs.findIndex(e=>e.id===id); if(idx===-1) return; const e=evs[idx];
-      document.getElementById('editKind').value='event'; document.getElementById('editEventId').value=id; document.getElementById('editText').value=e.title||''; document.getElementById('editDate').value=e.date||''; document.getElementById('editTime').value=e.time||''; document.getElementById('editLocation').value=e.location||''; document.getElementById('editEmoji').value=e.emoji||''; document.getElementById('editPreBuffer').value=(e.preBuffer||5); document.getElementById('editPostBuffer').value=(e.postBuffer||5); showModalFieldsFor('event'); openEditModal('Edit Event'); }
+      document.getElementById('editKind').value='event'; document.getElementById('editEventId').value=id; document.getElementById('editText').value=e.title||''; document.getElementById('editDate').value=e.date||''; document.getElementById('editTime').value=e.time||''; document.getElementById('editEndTime').value=e.endTime||''; document.getElementById('editLocation').value=e.location||''; document.getElementById('editEmoji').value=e.emoji||''; document.getElementById('editPreBuffer').value=(e.preBuffer||5); document.getElementById('editPostBuffer').value=(e.postBuffer||5); showModalFieldsFor('event'); openEditModal('Edit Event'); }
 
     // Modal helpers
     function openEditModal(title){ const m=document.getElementById('editModal'); const h=document.getElementById('editModalHeading'); if(h) h.textContent=title; if(m){ m.classList.remove('hidden'); m.style.display='flex'; } }
@@ -531,6 +553,7 @@
         evs[idx].title = text;
         evs[idx].date = date;
         evs[idx].time = time;
+        evs[idx].endTime = document.getElementById('editEndTime').value || '';
         evs[idx].location = (document.getElementById('editLocation') || {}).value ? document.getElementById('editLocation').value.trim() : '';
         evs[idx].emoji = (document.getElementById('editEmoji') || {}).value ? document.getElementById('editEmoji').value.trim() : '';
         evs[idx].preBuffer = parseInt((document.getElementById('editPreBuffer') || {value:0}).value,10) || 0;
