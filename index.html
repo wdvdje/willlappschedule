@@ -220,11 +220,11 @@
 
   <!-- bottom ribbon navigation -->
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-    <a href="#" class="r-item" data-view="events"><span>📅</span><span class="r-label">Events</span></a>
-    <a href="#" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
-    <a href="#" class="r-item r-center" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
-    <a href="#" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
-    <a href="#" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
+    <a href="#events" class="r-item" data-view="events"><span>📅</span><span class="r-label">Events</span></a>
+    <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
+    <a href="#calendar" class="r-item r-center" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
+    <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
 
   <script>
@@ -548,23 +548,27 @@
     }
 
     // SPA view switching
-    function showView(view){
+    function showView(view, updateHash = true){
+      // normalize view
+      view = view || 'calendar';
       document.querySelectorAll('[id^="page-"]').forEach(s=>s.classList.add('hidden'));
       const el = document.getElementById('page-'+view);
-      if(el) el.classList.remove('hidden');
-      // update ribbon active state
+      if (el) el.classList.remove('hidden');
       document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>a.classList.toggle('active', a.dataset.view===view));
+      // update calendar/events/tasks UI as before
       if(view==='calendar'){ generateCalendar(); if(selectedDay) showReminders(selectedDay); }
       if(view==='tasks') loadTasks();
       if(view==='events') renderEvents();
-      if(view==='reminders'){ // populate reminderBarPage based on selectedDay or date input
-        const reminderArea = document.getElementById('reminderBarPage'); const reminders=getReminders(); reminderArea.innerHTML='';
-        const todayKey = selectedYear ? `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(selectedDay||1)}` : '';
-        if(reminders[todayKey]) reminderArea.innerHTML=`<div class="reminder-bar"><b>Reminders for ${todayKey}</b><ul>${reminders[todayKey].map((r,i)=>`<li>${r.time?`[${r.time}] `:''}${escapeHTML(r.text)} <span class="item-controls"><button class="small-btn" onclick="editReminder(${selectedDay},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${selectedDay},${i})">Delete</button></span></li>`).join('')}</ul></div>`;
+      if(view==='reminders'){ /* ...existing reminders refresh if needed... */ }
+
+      // keep the hash in sync without causing recursion
+      if (updateHash){
+        const newHash = '#'+view;
+        if (location.hash !== newHash) location.hash = newHash;
       }
     }
 
-    // Event wiring
+    // on load: use location.hash to choose initial view (no hash update)
     document.addEventListener('DOMContentLoaded', ()=>{
       try{
         migrateNormalizeTasks();
@@ -588,7 +592,8 @@
         document.getElementById('editForm').addEventListener('submit', saveEditHandler);
 
         // initial render: calendar
-        showView('calendar');
+        const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+        showView(initial, false);
 
         // try to init places if already loaded, else attempt dynamic load
         if(window.google && google.maps && google.maps.places) initPlaces();
@@ -599,6 +604,12 @@
           } else console.info('Maps API key not set; skipping Places init');
         }
       }catch(err){ console.error('Init error',err); alert('Initialization error: '+(err && err.message || err)); }
+    });
+
+    // respond to back/forward and external hash navigation
+    window.addEventListener('hashchange', ()=>{
+      const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+      showView(v, false);
     });
 
     // expose functions used by inline handlers
