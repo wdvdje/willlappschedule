@@ -3,36 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar</title>
+    <title>TimeScape Planner</title>
     <style>
-        .weekday {
-            background-color: blue;
-        }
-        .weekend, .holiday {
-            background-color: red;
-        }
+        /* Color Schemes */
+        body { font-family: Arial, sans-serif; }
+        .holiday { font-weight: bold; }
+        /* January */
+        .january .weekday { background-color: iceblue; }
+        .january .weekend, .january .holiday { background-color: white; }
+        /* February */
+        .february .weekday { background-color: pink; }
+        .february .weekend, .february .holiday { background-color: red; }
+        /* March */
+        .march .weekday { background-color: lightgreen; }
+        .march .weekend, .march .holiday { background-color: green; }
+        /* April */
+        .april .weekday { background-color: lavender; }
+        .april .weekend, .april .holiday { background-color: purple; }
+        /* May */
+        .may .weekday { background-color: lightyellow; }
+        .may .weekend, .may .holiday { background-color: yellow; }
+        /* June */
+        .june .weekday { background-color: skyblue; }
+        .june .weekend, .june .holiday { background-color: blue; }
+        /* July */
+        .july .weekday { background-color: lightcoral; }
+        .july .weekend, .july .holiday { background-color: blue; }
+        /* August */
+        .august .weekday { background-color: peach; }
+        .august .weekend, .august .holiday { background-color: orange; }
+        /* September */
+        .september .weekday { background-color: tan; }
+        .september .weekend, .september .holiday { background-color: brown; }
+        /* October */
+        .october .weekday { background-color: orange; }
+        .october .weekend, .october .holiday { background-color: black; }
+        /* November */
+        .november .weekday { background-color: beige; }
+        .november .weekend, .november .holiday { background-color: brown; }
+        /* December */
+        .december .weekday { background-color: lightblue; }
+        .december .weekend, .december .holiday { background-color: red; }
     </style>
 </head>
 <body>
-    <h1>Calendar</h1>
+    <h1>TimeScape Planner</h1>
     <div id="calendar">
-        <!-- Calendar structure goes here -->
-        <div class="day weekday">1</div>
-        <div class="day weekend">2</div>
-        <div class="day weekday">3</div>
-        <div class="day holiday">4 New Year's Day 🎆</div>
-        <div class="day weekday">5</div>
-        <div class="day holiday">14 Valentine's Day ❤️</div>
-        <div class="day weekday">15</div>
-        <div class="day holiday">17 St. Patrick's Day 🍀</div>
-        <div class="day holiday">9 Easter 🐰</div>
-        <div class="day weekday">4</div>
-        <div class="day holiday">4 Independence Day 🎆</div>
-        <div class="day weekday">5</div>
-        <div class="day holiday">31 Halloween 🎃</div>
-        <div class="day holiday">28 Thanksgiving 🦃</div>
-        <div class="day holiday">25 Christmas 🎄</div>
-        <!-- More days and holidays can be added as needed -->
+        <!-- Calendar Content Here -->
     </div>
+    <script>
+        const holidays = {
+            '1-1': 'New Year&#x1F386;',
+            '2-14': 'Valentine&#x1F496;',
+            '3-17': 'St. Patrick&#x1F340;',
+            '4-4': 'Easter&#x1F430;',
+            '5-31': 'Memorial Day&#x1F1FA;&#x1F1F8;',
+            '7-4': 'Independence Day&#x1F386;',
+            '9-6': 'Labor Day&#x1F6E0;&#xFE0F;',
+            '10-31': 'Halloween&#x1F383;',
+            '11-25': 'Thanksgiving&#x1F983;',
+            '12-25': 'Christmas&#x1F384;'
+        };
+
+        function renderCalendar() {
+            // Logic to render the calendar with holidays and color schemes
+        }
+    </script>
 </body>
 </html>
