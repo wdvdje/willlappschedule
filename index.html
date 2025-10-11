@@ -247,8 +247,6 @@
 
     // state
     let selectedMonth, selectedYear, selectedDay;
-    const monthLabel = document.getElementById('monthLabel');
-    const calendar = document.getElementById('calendar');
 
     // simple escape
     function escapeHTML(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -313,7 +311,9 @@
 
     // Calendar generation
     function generateCalendar(){
-      if (!calendar) { showAppError('Calendar container missing'); return; }
+      const calendar = document.getElementById('calendar');
+      const monthLabel = document.getElementById('monthLabel');
+      if (!calendar || !monthLabel) { showAppError('Calendar container missing'); return; }
       calendar.innerHTML = '';
       monthLabel.textContent = monthNames[selectedMonth] + ' ' + selectedYear;
 
@@ -518,7 +518,7 @@
       const kind=document.getElementById('editKind').value; const text=document.getElementById('editText').value.trim(); const date=normalizeDate(document.getElementById('editDate').value); const time=document.getElementById('editTime').value||'';
       if(kind==='event'){ const id=parseInt(document.getElementById('editEventId').value,10); const evs=getEvents(); const idx=evs.findIndex(x=>x.id===id); if(idx===-1){ closeEditModal(); return; } evs[idx].title=text; evs[idx].date=date; evs[idx].time=time; evs[idx.location=document.getElementById('editLocation').value.trim(); evs[idx].emoji=document.getElementById('editEmoji').value.trim(); evs[idx].preBuffer=parseInt(document.getElementById('editPreBuffer').value,10)||0; evs[idx].postBuffer=parseInt(document.getElementById('editPostBuffer').value,10)||0; setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay); }
       else if(kind==='task'){ const idx=parseInt(document.getElementById('editTaskIndex').value,10); const tasks=getTasks(); if(!tasks[idx]){ closeEditModal(); return; } tasks[idx].text=text; tasks[idx].date=date; tasks[idx].time=time; tasks[idx].category=document.getElementById('editCategory').value; tasks[idx].priority=document.getElementById('editPriority').value; setTasks(tasks); loadTasks(); }
-      else if(kind==='reminder'){ const origKey=document.getElementById('editReminderKey').value; const ridx=parseInt(document.getElementById('editReminderIndex').value,10); const r=getReminders(); const arr=r[origKey]||[]; const item=arr[ridx]; if(!item){ closeEditModal(); return; } const newDate = date || origKey; arr.splice(ridx,1); if(!arr.length) delete r[origKey]; if(!r[newDate]) r[newDate].push({text,time}); setReminders(r); const parts=newDate.split('-'); if(parts.length===3){ selectedYear=parseInt(parts[0],10); selectedMonth=parseInt(parts[1],10)-1; selectedDay=parseInt(parts[2],10); } generateCalendar(); showReminders(selectedDay); }
+      else if(kind==='reminder'){ const origKey=document.getElementById('editReminderKey').value; const ridx=parseInt(document.getElementById('editReminderIndex').value,10); const r=getReminders(); const arr=r[origKey]||[]; const item=arr[ridx]; if(!item){ closeEditModal(); return; } const newDate = date || origKey; arr.splice(ridx,1); if(!arr.length) delete r[origKey]; if(!r[newDate]) r[newDate]=[]; r[newDate].push({text,time}); setReminders(r); const parts=newDate.split('-'); if(parts.length===3){ selectedYear=parseInt(parts[0],10); selectedMonth=parseInt(parts[1],10)-1; selectedDay=parseInt(parts[2],10); } generateCalendar(); showReminders(selectedDay); }
       closeEditModal();
     }
 
@@ -568,39 +568,53 @@
       }
     }
 
-    // on load: use location.hash to choose initial view (no hash update)
+    // on load: attach listeners only when corresponding elements exist
     document.addEventListener('DOMContentLoaded', ()=>{
       try{
         migrateNormalizeTasks();
         const now=new Date();
         selectedMonth = now.getMonth(); selectedYear = now.getFullYear(); selectedDay = now.getDate();
-        // ribbon clicks
+
+        // ribbon clicks (anchor hrefs are hashes, no preventDefault needed for navigation from other pages)
         document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
-          a.addEventListener('click', (ev)=>{ ev.preventDefault(); const v=a.dataset.view||'calendar'; showView(v); });
+          a.addEventListener('click', (ev)=>{
+            // On the SPA (index) we want client-side navigation.
+            if (location.pathname.endsWith('index.html') || location.pathname.endsWith('/') ){
+              ev.preventDefault();
+              const v = a.dataset.view || 'calendar';
+              showView(v);
+            }
+            // Otherwise, anchors with href="#..." will navigate to index.html#view when clicked from other pages.
+          });
         });
-        // calendar nav
-        document.getElementById('prevBtn').addEventListener('click', ()=>{ selectedMonth--; if(selectedMonth<0){ selectedMonth=11; selectedYear--; } generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay); });
-        document.getElementById('nextBtn').addEventListener('click', ()=>{ selectedMonth++; if(selectedMonth>11){ selectedMonth=0; selectedYear++; } generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay); });
 
-        // forms
-        document.getElementById('eventForm').addEventListener('submit', addEvent);
-        document.getElementById('reminderForm').addEventListener('submit', addReminder);
-        document.getElementById('taskForm').addEventListener('submit', addTask);
+        // calendar nav (guarded)
+        const prev = document.getElementById('prevBtn');
+        if (prev) prev.addEventListener('click', ()=>{ selectedMonth--; if(selectedMonth<0){ selectedMonth=11; selectedYear--; } generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay); });
+        const next = document.getElementById('nextBtn');
+        if (next) next.addEventListener('click', ()=>{ selectedMonth++; if(selectedMonth>11){ selectedMonth=0; selectedYear++; } generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay); });
 
-        // edit modal handlers
-        document.getElementById('cancelEdit').addEventListener('click', closeEditModal);
-        document.getElementById('editForm').addEventListener('submit', saveEditHandler);
+        // forms (guarded)
+        const evtForm = document.getElementById('eventForm'); if (evtForm) evtForm.addEventListener('submit', addEvent);
+        const remForm = document.getElementById('reminderForm'); if (remForm) remForm.addEventListener('submit', addReminder);
+        const tForm = document.getElementById('taskForm'); if (tForm) tForm.addEventListener('submit', addTask);
 
-        // initial render: calendar
+        // edit modal handlers (guarded)
+        const cancelBtn = document.getElementById('cancelEdit'); if (cancelBtn) cancelBtn.addEventListener('click', closeEditModal);
+        const editForm = document.getElementById('editForm'); if (editForm) editForm.addEventListener('submit', saveEditHandler);
+
+        // initial render: use hash if present
         const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
         showView(initial, false);
 
-        // try to init places if already loaded, else attempt dynamic load
+        // attempt to init Places if API key set
         if(window.google && google.maps && google.maps.places) initPlaces();
         else {
           const MAPS_API_KEY = (window.MAPS_API_KEY || localStorage.getItem('MAPS_API_KEY') || 'YOUR_API_KEY').trim();
           if(MAPS_API_KEY && MAPS_API_KEY !== 'YOUR_API_KEY'){
-            const s = document.createElement('script'); s.async=true; s.defer=true; s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(MAPS_API_KEY)}&libraries=places`; s.onload = initPlaces; s.onerror = ()=>console.warn('maps load failed'); document.head.appendChild(s);
+            const s = document.createElement('script'); s.async=true; s.defer=true;
+            s.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(MAPS_API_KEY)}&libraries=places`;
+            s.onload = initPlaces; s.onerror = ()=>console.warn('maps load failed'); document.head.appendChild(s);
           } else console.info('Maps API key not set; skipping Places init');
         }
       }catch(err){ console.error('Init error',err); alert('Initialization error: '+(err && err.message || err)); }
