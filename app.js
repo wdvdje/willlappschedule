@@ -103,15 +103,18 @@ function getHoliday(mmdd, year){
 
 /* app state */
 let selectedMonth, selectedYear, selectedDay;
-const calendarEl = document.getElementById('calendar');
-const monthLabelEl = document.getElementById('monthLabel') || { textContent: '' };
 
 /* UI helpers */
 function escapeHTML(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-/* generate calendar */
+/* generate calendar
+   NOTE: fetch DOM elements at runtime so the calendar renders even if the script executed
+   before the DOM on some pages. */
 function generateCalendar(){
-  if (!calendarEl) return;
+  const calendarEl = document.getElementById('calendar');
+  const monthLabelEl = document.getElementById('monthLabel') || { textContent: '' };
+  if (!calendarEl) { /* graceful no-op if calendar not present on page */ return; }
+
   calendarEl.innerHTML = '';
   monthLabelEl.textContent = monthNames[selectedMonth] + ' ' + selectedYear;
 
@@ -181,13 +184,17 @@ function generateCalendar(){
   }
 }
 
-/* show reminders + events for a selected day */
+/* show reminders + events for a selected day
+   also query calendar at runtime */
 function showReminders(day){
   selectedDay = day;
-  if (calendarEl) [...calendarEl.querySelectorAll('.day')].forEach(c=>{
-    const d = parseInt(c.dataset.day,10);
-    c.classList.toggle('selected', d===day);
-  });
+  const calendarEl = document.getElementById('calendar');
+  if (calendarEl) {
+    [...calendarEl.querySelectorAll('.day')].forEach(c=>{
+      const d = parseInt(c.dataset.day,10);
+      c.classList.toggle('selected', d===day);
+    });
+  }
 
   const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
   const reminders = getReminders();
