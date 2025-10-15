@@ -569,7 +569,6 @@ function saveEditHandler(e){
     return;
   }
 
-  /* ...existing handling for task/reminder... */
   else if (kind==='task'){
     const idx = parseInt(document.getElementById('editTaskIndex').value,10);
     const tasks = getTasks(); if (!tasks[idx]) { closeEditModal(); return; }
@@ -704,6 +703,45 @@ function initOverlayInputs(){
   });
 }
 
+/* SPA view switching (new) */
+function showView(view, updateHash = true){
+  view = view || 'calendar';
+  // hide all pages
+  document.querySelectorAll('[id^="page-"]').forEach(p=> p.classList.add('hidden'));
+  // show selected page
+  const el = document.getElementById('page-'+view);
+  if (el) el.classList.remove('hidden');
+
+  // update ribbon active state
+  document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
+    const v = a.dataset.view || (a.getAttribute('href')||'').replace('#','');
+    a.classList.toggle('active', v === view);
+  });
+
+  // refresh page-specific UI
+  if (view === 'calendar'){
+    try{ generateCalendar(); }catch(e){ console.warn('generateCalendar failed', e); }
+    if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn('showReminders failed', e); }
+  } else if (view === 'events'){
+    try{ renderEvents(); }catch(e){ console.warn('renderEvents failed', e); }
+  } else if (view === 'tasks'){
+    try{ loadTasks(); }catch(e){ console.warn('loadTasks failed', e); }
+  } else if (view === 'reminders'){
+    // optionally populate reminders view if needed
+  }
+
+  if (updateHash){
+    const newHash = '#'+view;
+    if (location.hash !== newHash) location.hash = newHash;
+  }
+}
+
+// react to back/forward
+window.addEventListener('hashchange', ()=> {
+  const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+  showView(v, false);
+});
+
 /* event wiring and initialization */
 function attachPageListeners(){
   try{
@@ -733,10 +771,24 @@ function attachPageListeners(){
     const editForm = document.getElementById('editForm');
     if (editForm) editForm.addEventListener('submit', saveEditHandler);
 
+    // ribbon clicks: if already on SPA (index) do client navigation; otherwise links point to index.html#view
+    document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
+      a.addEventListener('click', function(ev){
+        // if currently on index (SPA) intercept and do client-side view switch
+        const onIndex = location.pathname.endsWith('index.html') || location.pathname.endsWith('/') || location.pathname.endsWith('/index.html');
+        const targetView = a.dataset.view || (a.getAttribute('href')||'#calendar').replace('#','');
+        if (onIndex){
+          ev.preventDefault();
+          showView(targetView);
+        }
+        // else let the anchor navigate to index.html#view (links on other pages should use index.html#...)
+      });
+    });
+
+    // existing day-part select listener (kept)
     const sel = document.getElementById('dayPartSelect');
     if(sel){
       sel.addEventListener('change', ()=>{
-        // re-render daily view for selected day (if any)
         if (selectedYear != null && selectedMonth != null && selectedDay != null){
           const key = sel.value === 'auto' ? 'auto' : sel.value;
           renderDailyViewForDay(selectedYear, selectedMonth, selectedDay, key);
@@ -745,6 +797,13 @@ function attachPageListeners(){
     }
   }catch(e){ console.warn('attachPageListeners failed', e); }
 }
+
+/* expose functions used by inline handlers (Edit/Delete buttons) */
+window.editEvent = editEvent;
+window.deleteEvent = deleteEvent;
+window.editReminder = editReminder;
+window.deleteReminder = deleteReminder;
+window.showView = showView; // expose for debugging / direct calls
 
 /* dynamic maps loader */
 const MAPS_API_KEY = (window.MAPS_API_KEY || localStorage.getItem('MAPS_API_KEY') || 'YOUR_API_KEY').trim();
@@ -772,20 +831,21 @@ function loadMapsScript(key){
     selectedYear = now.getFullYear();
     selectedDay = now.getDate();
 
-    if (document.getElementById('calendar')) generateCalendar();
-    if (document.getElementById('calendar')) showReminders(selectedDay);
-    if (document.getElementById('taskList')) loadTasks();
-    if (document.getElementById('eventList')) renderEvents();
-
     attachPageListeners();
 
-    if (window.google && google.maps && google.maps.places){
-      try{ initPlaces(); }catch(e){ console.warn(e); }
-    } else {
-      loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); });
-    }
+    // determine initial view from hash (if any) and show it
+    const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+    showView(initial, false);
 
-    // initialize overlay fields behavior
+    // ensure calendar/daily rendering even if previously attempted
+    try{ if (document.getElementById('calendar')) generateCalendar(); }catch(e){ console.warn('generateCalendar init failed',e); }
+    try{ if (document.getElementById('calendar')) showReminders(selectedDay); }catch(e){ console.warn('showReminders init failed',e); }
+
+    // rest of existing init (places, tasks/events renders, overlay inputs)
+    if (document.getElementById('taskList')) loadTasks();
+    if (document.getElementById('eventList')) renderEvents();
+    if (window.google && google.maps && google.maps.places){ try{ initPlaces(); }catch(e){ console.warn(e); } }
+    else { loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); }); }
     initOverlayInputs();
   }catch(err){
     console.error('Init error',err);
