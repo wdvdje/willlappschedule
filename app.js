@@ -107,6 +107,121 @@ let selectedMonth, selectedYear, selectedDay;
 /* UI helpers */
 function escapeHTML(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+/* ---------- DAILY VIEW: hourly rendering and part selection ---------- */
+const DAY_PARTS = {
+  morning: { start: 1, end: 9 },  // 01:00 - 09:00 (end exclusive)
+  day:     { start: 9, end: 17 }, // 09:00 - 17:00
+  night:   { start: 17, end: 25 } // 17:00 - 01:00 -> represent 01:00 as 25 to make span easy
+};
+
+function hourToLabel(h){
+  const hh = h % 24;
+  const ampm = hh < 12 ? 'AM' : 'PM';
+  const display = (hh % 12) === 0 ? 12 : hh % 12;
+  return `${String(display).padStart(2,'0')}:00 ${ampm}`;
+}
+
+function getEventsForDateKey(dateKey){
+  // returns events (with normalized times) for the given YYYY-MM-DD
+  return getEvents().filter(ev => normalizeDate(ev.date) === dateKey && (ev.time || ev.endTime));
+}
+
+function renderDailyViewForDay(year, monthIndex, day, partKey){
+  const container = document.getElementById('dailyView');
+  if(!container) return;
+  const dateKey = `${year}-${pad2(monthIndex+1)}-${pad2(day)}`;
+  const events = getEventsForDateKey(dateKey);
+
+  // Determine part
+  let part = DAY_PARTS[partKey];
+  if(!part){
+    // if auto, pick part containing current hour
+    const now = new Date();
+    const curHour = (now.getFullYear()===year && now.getMonth()===monthIndex && now.getDate()===day) ? now.getHours() : new Date().getHours();
+    partKey = determinePartFromHour(curHour);
+    part = DAY_PARTS[partKey];
+  }
+
+  // Build hours array interpreted as numbers (use 24..25 for 00:00 next day if needed)
+  const hours = [];
+  for(let h = part.start; h < part.end; h++){
+    hours.push(h);
+  }
+
+  // render
+  container.innerHTML = '';
+  const wrapper = document.createElement('div');
+  wrapper.className = 'daily-view';
+  hours.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'hour-row';
+    if (isCurrentHourForDate(year, monthIndex, day, h)) row.classList.add('current');
+
+    const label = document.createElement('div');
+    label.className = 'hour-label';
+    label.textContent = hourToLabel(h);
+    row.appendChild(label);
+
+    const eventsCell = document.createElement('div');
+    eventsCell.className = 'hour-events';
+
+    // list events overlapping this hour
+    events.forEach(ev=>{
+      const start = parseTimeToFloat(ev.time); // e.g., "09:30" -> 9.5
+      const end = parseTimeToFloat(ev.endTime) || start;
+      // map to numeric comparable range; treat end < start as next-day if needed
+      let s = start, e = end;
+      if (e && e <= s) e = e + 24;
+      const hNumeric = (h >= 24) ? h - 24 + 24 : h; // keep 24..25 mapping
+      // include if event overlaps [h, h+1)
+      if ( (s < h+1) && (e > h) ){
+        const evb = document.createElement('div');
+        evb.className = 'event-block' + ( (s < h || e > h+1) ? ' continues' : '' );
+        const timeSpan = document.createElement('span'); timeSpan.className='event-time';
+        timeSpan.textContent = (ev.time ? ev.time : '') + (ev.endTime ? `–${ev.endTime}` : '');
+        evb.appendChild(timeSpan);
+        const title = document.createElement('span'); title.textContent = ' ' + (ev.emoji ? ev.emoji + ' ' : '') + (ev.title||'');
+        evb.appendChild(title);
+        // attach edit on click
+        evb.addEventListener('click', ()=> { editEvent(ev.id); });
+        eventsCell.appendChild(evb);
+      }
+    });
+
+    row.appendChild(eventsCell);
+    wrapper.appendChild(row);
+  });
+
+  container.appendChild(wrapper);
+
+  const info = document.getElementById('dailyViewInfo');
+  if(info) info.textContent = `${capitalize(partKey)} view (${hourToLabel(hours[0])} – ${hourToLabel(hours[hours.length-1])})`;
+}
+
+function determinePartFromHour(hour){
+  if(hour >=1 && hour < 9) return 'morning';
+  if(hour >=9 && hour < 17) return 'day';
+  return 'night';
+}
+function capitalize(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+function parseTimeToFloat(t){
+  if(!t) return null;
+  const parts = t.split(':'); if(parts.length<1) return null;
+  const hh = parseInt(parts[0],10) || 0; const mm = parseInt(parts[1]||'0',10) || 0;
+  return hh + (mm/60);
+}
+
+function isCurrentHourForDate(year, monthIndex, day, hourCell){
+  const now = new Date();
+  const cmpHour = now.getHours();
+  const sameDate = now.getFullYear()===year && now.getMonth()===monthIndex && now.getDate()===day;
+  if(!sameDate) return false;
+  // map night range where cell hour may be 24 representing 00:00
+  const mapped = hourCell % 24;
+  return cmpHour === mapped;
+}
+
 /* generate calendar
    NOTE: fetch DOM elements at runtime so the calendar renders even if the script executed
    before the DOM on some pages. */
@@ -239,6 +354,19 @@ function showReminders(day){
   }
 
   updateDayProgress(day);
+
+  // render daily view for selected day; choose part auto
+  if (selectedYear != null && selectedMonth != null && day){
+    const sel = document.getElementById('dayPartSelect');
+    const part = (sel && sel.value && sel.value !== 'auto') ? sel.value : 'auto';
+    renderDailyViewForDay(selectedYear, selectedMonth, day, part);
+    // scroll to current hour row
+    const container = document.getElementById('dailyView');
+    if(container){
+      const current = container.querySelector('.hour-row.current');
+      if(current) current.scrollIntoView({ behavior:'smooth', block:'center' });
+    }
+  }
 }
 
 /* Add reminder: if calendar selection missing, read reminderDate input */
@@ -604,6 +732,17 @@ function attachPageListeners(){
 
     const editForm = document.getElementById('editForm');
     if (editForm) editForm.addEventListener('submit', saveEditHandler);
+
+    const sel = document.getElementById('dayPartSelect');
+    if(sel){
+      sel.addEventListener('change', ()=>{
+        // re-render daily view for selected day (if any)
+        if (selectedYear != null && selectedMonth != null && selectedDay != null){
+          const key = sel.value === 'auto' ? 'auto' : sel.value;
+          renderDailyViewForDay(selectedYear, selectedMonth, selectedDay, key);
+        }
+      });
+    }
   }catch(e){ console.warn('attachPageListeners failed', e); }
 }
 
