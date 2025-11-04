@@ -1,7 +1,7 @@
 {
   "name": "TimeScape Planner",
   "short_name": "TimeScape",
-  "start_url": "calendar.html",
+  "start_url": "index.html#calendar",
   "display": "standalone",
   "background_color": "#f5f7fa",
   "theme_color": "#4a90e2",

@@ -823,7 +823,7 @@ function loadMapsScript(key){
 }
 
 /* initial startup */
-(function init(){
+document.addEventListener('DOMContentLoaded', function(){
   try{
     migrateNormalizeTasks();
     const now = new Date();
@@ -831,24 +831,32 @@ function loadMapsScript(key){
     selectedYear = now.getFullYear();
     selectedDay = now.getDate();
 
+    // Wire up page listeners now that DOM is ready
     attachPageListeners();
 
-    // determine initial view from hash (if any) and show it
+    // Show initial SPA view (from hash or default)
     const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
-    showView(initial, false);
+    try { showView(initial, false); } catch(e){ console.warn('showView failed', e); }
 
-    // ensure calendar/daily rendering even if previously attempted
+    // Ensure calendar & day rendering are attempted (guarded)
     try{ if (document.getElementById('calendar')) generateCalendar(); }catch(e){ console.warn('generateCalendar init failed',e); }
     try{ if (document.getElementById('calendar')) showReminders(selectedDay); }catch(e){ console.warn('showReminders init failed',e); }
 
-    // rest of existing init (places, tasks/events renders, overlay inputs)
-    if (document.getElementById('taskList')) loadTasks();
-    if (document.getElementById('eventList')) renderEvents();
-    if (window.google && google.maps && google.maps.places){ try{ initPlaces(); }catch(e){ console.warn(e); } }
-    else { loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); }); }
-    initOverlayInputs();
+    // Render lists if present
+    try{ if (document.getElementById('taskList')) loadTasks(); }catch(e){ console.warn('loadTasks failed', e); }
+    try{ if (document.getElementById('eventList')) renderEvents(); }catch(e){ console.warn('renderEvents failed', e); }
+
+    // Initialize Places/maps (loads script dynamically if API key present)
+    if (window.google && google.maps && google.maps.places){
+      try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); }
+    } else {
+      loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); });
+    }
+
+    // Overlay input behavior
+    try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }
   }catch(err){
     console.error('Init error',err);
     showAppError('Initialization error: ' + (err && err.message || err));
   }
-})();
+});
