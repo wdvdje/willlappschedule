@@ -222,13 +222,11 @@ function isCurrentHourForDate(year, monthIndex, day, hourCell){
   return cmpHour === mapped;
 }
 
-/* generate calendar
-   NOTE: fetch DOM elements at runtime so the calendar renders even if the script executed
-   before the DOM on some pages. */
+/* generate calendar */
 function generateCalendar(){
   const calendarEl = document.getElementById('calendar');
   const monthLabelEl = document.getElementById('monthLabel') || { textContent: '' };
-  if (!calendarEl) { /* graceful no-op if calendar not present on page */ return; }
+  if (!calendarEl) return;
 
   calendarEl.innerHTML = '';
   monthLabelEl.textContent = monthNames[selectedMonth] + ' ' + selectedYear;
@@ -299,8 +297,7 @@ function generateCalendar(){
   }
 }
 
-/* show reminders + events for a selected day
-   also query calendar at runtime */
+/* show reminders + events for a selected day */
 function showReminders(day){
   selectedDay = day;
   const calendarEl = document.getElementById('calendar');
@@ -355,12 +352,10 @@ function showReminders(day){
 
   updateDayProgress(day);
 
-  // render daily view for selected day; choose part auto
   if (selectedYear != null && selectedMonth != null && day){
     const sel = document.getElementById('dayPartSelect');
     const part = (sel && sel.value && sel.value !== 'auto') ? sel.value : 'auto';
     renderDailyViewForDay(selectedYear, selectedMonth, day, part);
-    // scroll to current hour row
     const container = document.getElementById('dailyView');
     if(container){
       const current = container.querySelector('.hour-row.current');
@@ -369,7 +364,7 @@ function showReminders(day){
   }
 }
 
-/* Add reminder: if calendar selection missing, read reminderDate input */
+/* Add reminder */
 function addReminder(e){
   if (e && e.preventDefault) e.preventDefault();
   let dayForKey = null;
@@ -392,7 +387,6 @@ function addReminder(e){
   r[dayForKey].push({text:txt,time});
   setReminders(r);
   if (txtEl) txtEl.value=''; if (timeEl) timeEl.value='';
-  // If the added date is in current calendar view, update UI
   const parts = dayForKey.split('-');
   if (parts.length===3){
     selectedYear = parseInt(parts[0],10);
@@ -477,7 +471,7 @@ function editTask(i){
   showModalFieldsFor('task'); openEditModal('Edit Task');
 }
 
-/* Render events: include endTime in display */
+/* Render events */
 function renderEvents(){
   const evs = getEvents();
   const list = document.getElementById('eventList');
@@ -486,7 +480,6 @@ function renderEvents(){
   evs.forEach(e=>{
     const li = document.createElement('li');
     const locHtml = e.location ? ` @ <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank">${escapeHTML(e.location)}</a>` : '';
-    // show time range if endTime present
     const timeHtml = e.time ? (e.endTime ? `[${escapeHTML(e.time)}–${escapeHTML(e.endTime)}]` : `[${escapeHTML(e.time)}]`) : '';
     const bufferHtml = ((e.preBuffer||0) || (e.postBuffer||0)) ? ` <small style="color:#555">(${e.preBuffer||0}m pre / ${e.postBuffer||0}m post)</small>` : '';
     li.innerHTML = `${e.emoji?e.emoji+' ':''}<b>${escapeHTML(e.title)}</b> — ${e.date} ${timeHtml}${locHtml}${bufferHtml} <span class="item-controls"><button class="small-btn" onclick="editEvent(${e.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${e.id})">Delete</button></span>`;
@@ -494,7 +487,7 @@ function renderEvents(){
   });
 }
 
-/* Add event: capture end time */
+/* Add event */
 function addEvent(e){
   if (e && e.preventDefault) e.preventDefault();
   const title = document.getElementById('eventTitle') ? document.getElementById('eventTitle').value.trim() : '';
@@ -549,7 +542,7 @@ function showModalFieldsFor(kind){
 }
 
 /* edit form submit handling */
-document.addEventListener('click', function(){}, true); // ensure page has loaded a minimal listener
+document.addEventListener('click', function(){}, true);
 function saveEditHandler(e){
   e.preventDefault();
   const kind = document.getElementById('editKind').value;
@@ -567,9 +560,7 @@ function saveEditHandler(e){
     setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
     closeEditModal();
     return;
-  }
-
-  else if (kind==='task'){
+  } else if (kind==='task'){
     const idx = parseInt(document.getElementById('editTaskIndex').value,10);
     const tasks = getTasks(); if (!tasks[idx]) { closeEditModal(); return; }
     tasks[idx].text = text; tasks[idx].date = date; tasks[idx].time = time; tasks[idx].category = document.getElementById('editCategory').value; tasks[idx].priority = document.getElementById('editPriority').value;
@@ -687,7 +678,7 @@ function initPlaces(){
   }catch(err){ console.warn('initPlaces error', err); }
 }
 
-/* UI: overlay inputs - toggle has-value class on input events (call on DOMContentLoaded) */
+/* UI: overlay inputs */
 function initOverlayInputs(){
   document.querySelectorAll('.overlay-input').forEach(container=>{
     const input = container.querySelector('.overlay-field');
@@ -698,52 +689,32 @@ function initOverlayInputs(){
     input.addEventListener('input', toggle);
     input.addEventListener('focus', ()=> container.classList.add('focused'));
     input.addEventListener('blur', ()=> container.classList.remove('focused'));
-    // initial state
     toggle();
   });
 }
 
-/* SPA view switching (updated: robust target extraction + fallback) */
+/* SPA view switching */
 function showView(view, updateHash = true){
   view = view || 'calendar';
-
-  // hide all SPA pages (if present)
   document.querySelectorAll('[id^="page-"]').forEach(p=> p.classList.add('hidden'));
-
-  // show selected page; fallback to calendar if missing
   const el = document.getElementById('page-'+view) || document.getElementById('page-calendar');
   if (el) el.classList.remove('hidden');
-
-  // update ribbon active state (robustly compute target view from data-view or href)
   document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
     const href = a.getAttribute('href') || '';
     const candidate = (a.dataset && a.dataset.view) ? a.dataset.view : (href.indexOf('#')>-1 ? href.split('#').pop() : '');
     a.classList.toggle('active', candidate === view);
   });
-
-  // refresh page-specific UI
-  if (view === 'calendar'){
-    try{ generateCalendar(); }catch(e){ console.warn('generateCalendar failed', e); }
-    if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn('showReminders failed', e); }
-  } else if (view === 'events'){
-    try{ renderEvents(); }catch(e){ console.warn('renderEvents failed', e); }
-  } else if (view === 'tasks'){
-    try{ loadTasks(); }catch(e){ console.warn('loadTasks failed', e); }
-  }
-
-  if (updateHash){
-    const newHash = '#'+view;
-    if (location.hash !== newHash) location.hash = newHash;
-  }
+  if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } }
+  else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
+  else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
+  if (updateHash){ const newHash = '#'+view; if (location.hash !== newHash) location.hash = newHash; }
 }
-
-// react to back/forward
 window.addEventListener('hashchange', ()=> {
   const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
   showView(v, false);
 });
 
-/* event wiring and initialization */
+/* event wiring */
 function attachPageListeners(){
   try{
     const prev = document.getElementById('prevBtn');
@@ -772,26 +743,21 @@ function attachPageListeners(){
     const editForm = document.getElementById('editForm');
     if (editForm) editForm.addEventListener('submit', saveEditHandler);
 
-    // ribbon clicks: parse href/hash safely and only bind once per element
     document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
-      if (a.__ribbonBound) return; // guard: bind once
+      if (a.__ribbonBound) return;
       a.__ribbonBound = true;
       a.addEventListener('click', function(ev){
         const href = a.getAttribute('href') || '';
         const targetView = (a.dataset && a.dataset.view) ? a.dataset.view : (href.indexOf('#')>-1 ? href.split('#').pop() : '');
         const onIndex = location.pathname.endsWith('index.html') || location.pathname.endsWith('/') || location.pathname.endsWith('/index.html');
-        // If we're on the SPA page (index), intercept and do client-side view switch.
-        // Also intercept pure-hash links (href starts with '#') when on any page that already points at same document.
         const isHashOnly = href && href.trim().startsWith('#');
         if (onIndex || isHashOnly){
           ev.preventDefault();
-          // fallback to calendar when target missing
           showView(targetView || 'calendar');
-        } // else let anchor navigate (e.g., from other static pages to index.html#view)
+        }
       });
     });
 
-    // existing day-part select listener (kept)
     const sel = document.getElementById('dayPartSelect');
     if(sel){
       sel.addEventListener('change', ()=>{
@@ -804,14 +770,14 @@ function attachPageListeners(){
   }catch(e){ console.warn('attachPageListeners failed', e); }
 }
 
-/* expose functions used by inline handlers (Edit/Delete buttons) */
+/* expose inline handlers */
 window.editEvent = editEvent;
 window.deleteEvent = deleteEvent;
 window.editReminder = editReminder;
 window.deleteReminder = deleteReminder;
-window.showView = showView; // expose for debugging / direct calls
+window.showView = showView;
 
-/* dynamic maps loader */
+/* maps loader */
 const MAPS_API_KEY = (window.MAPS_API_KEY || localStorage.getItem('MAPS_API_KEY') || 'YOUR_API_KEY').trim();
 function loadMapsScript(key){
   return new Promise((resolve, reject)=>{
@@ -828,7 +794,7 @@ function loadMapsScript(key){
   });
 }
 
-/* initial startup */
+/* startup after DOM ready */
 document.addEventListener('DOMContentLoaded', function(){
   try{
     migrateNormalizeTasks();
@@ -836,30 +802,15 @@ document.addEventListener('DOMContentLoaded', function(){
     selectedMonth = now.getMonth();
     selectedYear = now.getFullYear();
     selectedDay = now.getDate();
-
-    // Wire up page listeners now that DOM is ready
     attachPageListeners();
-
-    // Show initial SPA view (from hash or default)
     const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
     try { showView(initial, false); } catch(e){ console.warn('showView failed', e); }
-
-    // Ensure calendar & day rendering are attempted (guarded)
     try{ if (document.getElementById('calendar')) generateCalendar(); }catch(e){ console.warn('generateCalendar init failed',e); }
     try{ if (document.getElementById('calendar')) showReminders(selectedDay); }catch(e){ console.warn('showReminders init failed',e); }
-
-    // Render lists if present
     try{ if (document.getElementById('taskList')) loadTasks(); }catch(e){ console.warn('loadTasks failed', e); }
     try{ if (document.getElementById('eventList')) renderEvents(); }catch(e){ console.warn('renderEvents failed', e); }
-
-    // Initialize Places/maps (loads script dynamically if API key present)
-    if (window.google && google.maps && google.maps.places){
-      try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); }
-    } else {
-      loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); });
-    }
-
-    // Overlay input behavior
+    if (window.google && google.maps && google.maps.places){ try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); } }
+    else { loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); }); }
     try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }
   }catch(err){
     console.error('Init error',err);
