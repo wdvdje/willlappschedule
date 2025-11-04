@@ -372,6 +372,84 @@
   <!-- load canonical app script -->
   <script src="./app.js"></script>
 
+  <!-- ADDED: ensure latest view scripts load and SPA routing (cache-bust + client router) -->
+  <script>
+  (function () {
+    const viewSrcs = ['./utils.js','./events-view.js','./daily-view.js'];
+
+    // remove existing script tags that match base src (so we can reload fresh)
+    document.querySelectorAll('script[src]').forEach(s => {
+      const base = s.getAttribute('src').replace(/\?.*$/, '');
+      if (viewSrcs.includes(base)) s.remove();
+    });
+
+    // load script with cache-bust
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src + '?cb=' + Date.now();
+        s.defer = true;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.body.appendChild(s);
+      });
+    }
+
+    // SPA navigation helpers
+    function showView(view) {
+      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+      const el = document.querySelector('#page-' + view);
+      if (el) el.classList.remove('hidden');
+      document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
+        a.classList.toggle('active', a.dataset.view === view);
+      });
+    }
+
+    function navTo(view) {
+      // if already on index, just update hash + show
+      const path = location.pathname.split('/').pop();
+      if (path === '' || path === 'index.html') {
+        location.hash = view;
+        showView(view);
+        return;
+      }
+      // otherwise navigate to index with cache-bust so latest files load
+      location.href = 'index.html?_=' + Date.now() + '#' + view;
+    }
+
+    function wireRibbon() {
+      document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
+          navTo(view || 'calendar');
+        }, { passive: true });
+      });
+    }
+
+    function updateHeaderFromProfile() {
+      try {
+        const name = localStorage.getItem('userName') || '';
+        const header = document.getElementById('appHeader');
+        const profileStatus = document.getElementById('profileStatus');
+        if (header) header.textContent = name ? (name + "'s Planner") : '📅 TimeScape Planner';
+        if (profileStatus) profileStatus.textContent = name ? ('Name set: ' + name) : 'Name not set';
+      } catch (e) { /* ignore */ }
+    }
+
+    // load view scripts and initialize router
+    Promise.all(viewSrcs.map(loadScript)).catch(() => { /* ignore load errors */ }).then(() => {
+      wireRibbon();
+      window.addEventListener('hashchange', () => showView(location.hash.replace('#', '') || 'calendar'));
+      // initial view
+      const initial = location.hash.replace('#', '') || 'calendar';
+      showView(initial);
+      updateHeaderFromProfile();
+    });
+
+  })();
+  </script>
+
   <!-- ADDED: shared utilities used by view scripts -->
   <script src="./utils.js"></script>
 
