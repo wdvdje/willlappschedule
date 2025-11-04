@@ -61,15 +61,22 @@ input[type="text"],input[type="date"],input[type="time"],select{padding:8px;bord
 
 /* bottom ribbon nav */
 .bottom-ribbon{
-  position:fixed;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid #e6e6e6;display:flex;align-items:center;justify-content:space-around;
-  box-shadow:0 -4px 18px rgba(0,0,0,0.06);z-index:999;
+  position:fixed;
+  left:0;
+  right:0;
+  bottom: env(safe-area-inset-bottom, 0);
+  height: calc(64px + env(safe-area-inset-bottom, 0));
+  background:#fff;
+  border-top:1px solid #e6e6e6;
+  display:flex;
+  align-items:center;
+  justify-content:space-around;
+  box-shadow:0 -4px 18px rgba(0,0,0,0.06);
+  z-index:999;
 }
-.bottom-ribbon .r-item{ text-decoration:none;color:#333;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:6px 4px;}
-.bottom-ribbon .r-item .r-label{ font-size:11px;margin-top:4px;display:block;}
-.bottom-ribbon .r-item.r-center{ background:linear-gradient(0deg, rgba(74,144,226,0.06), transparent); border-radius:12px; margin:0 6px; padding:8px 6px; }
 
 /* mobile adjustments so page content won't be hidden behind ribbon */
-body { padding-bottom: 80px; }
+body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
 
 /* overlay input (mobile): small label positioned over date/time inputs */
 .overlay-input{ position:relative; display:block; }
