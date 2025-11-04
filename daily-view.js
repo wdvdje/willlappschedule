@@ -16,22 +16,27 @@
     return `${hh}:00`;
   }
 
+  // inclusive hours helper: returns array of hours (0..23) between start and end inclusive.
   function hoursForPart(part) {
-    if (part === 'morning') {
-      return range(1, 9); // 01–09
-    } else if (part === 'day') {
-      return range(9, 17); // 09–17
-    } else if (part === 'night') {
-      // show 17..23 then 0..1 (maps to midnight/early)
-      return range(17, 24).concat(range(0, 2)); // 17–23, 00–01
-    }
-    return range(0, 24);
+    if (part === 'morning') return hoursInclusive(1, 9);   // 01..09
+    if (part === 'day') return hoursInclusive(9, 17);      // 09..17
+    if (part === 'night') return hoursInclusiveOvernight(17, 1); // 17..23 and 00..01
+    return hoursInclusive(0, 23);
   }
 
-  function range(start, endExclusive) {
+  function hoursInclusive(start, end) {
     const arr = [];
-    for (let i = start; i < endExclusive; i++) arr.push(i % 24);
+    let h = start;
+    while (true) {
+      arr.push(((h % 24) + 24) % 24);
+      if (h === end) break;
+      h = (h + 1) % 24;
+    }
     return arr;
+  }
+
+  function hoursInclusiveOvernight(start, end) { // start > end e.g. 17..1
+    return hoursInclusive(start, end);
   }
 
   function normalizeHourForCompare(h) {
@@ -96,7 +101,7 @@
       row.className = 'hour-row';
       row.dataset.hour = String(h);
       row.style.display = 'flex';
-      row.style.alignItems = 'flex-start';
+      row.style.alignItems = 'center';
       row.style.gap = '8px';
       row.style.borderBottom = '1px solid #f0f0f0';
       row.style.padding = '8px 6px';
@@ -108,19 +113,20 @@
       label.style.color = '#666';
       label.textContent = formatHourLabel(h);
 
-      const content = document.createElement('div');
-      content.className = 'hour-content';
-      content.style.flex = '1';
-      content.style.minHeight = '28px';
-      content.style.position = 'relative';
-      content.style.display = 'flex';
-      content.style.flexDirection = 'column';
-      content.style.alignItems = 'stretch';
+      // squares container: holds small interactive rounded squares for events overlapping this hour
+      const squares = document.createElement('div');
+      squares.className = 'hour-squares';
+      squares.style.flex = '1';
+      squares.style.display = 'flex';
+      squares.style.flexWrap = 'wrap';
+      squares.style.gap = '6px';
+      squares.style.minHeight = '40px';
+      squares.style.alignItems = 'center';
 
       row.appendChild(label);
-      row.appendChild(content);
+      row.appendChild(squares);
       dailyView.appendChild(row);
-      rows[String(h)] = content;
+      rows[String(h)] = squares;
     });
 
     // Place events into each hour they overlap. This also ensures events spanning hours
@@ -128,48 +134,60 @@
     events.forEach(ev => {
       const startHour = parseHourFromTime(ev.startTime);
       const endHour = parseEndHourFromTime(ev.endTime, startHour);
-      // If no start hour, append to the first displayed hour
+      // If no start hour, append a single square to the first displayed hour
       if (startHour === null) {
         const firstKey = Object.keys(rows)[0];
         if (firstKey) {
-          const el = createDailyEventNode(ev);
-          rows[firstKey].appendChild(el);
+          const sq = createEventSquare(ev);
+          rows[firstKey].appendChild(sq);
         }
         return;
       }
 
-      // For each displayed hour, check overlap and add a box for that hour.
+      // For each displayed hour, check overlap and add a square for that hour.
       hours.forEach(h => {
         if (eventOverlapsHour(startHour, endHour, h)) {
-          const el = createDailyEventNode(ev);
-          rows[String(h)].appendChild(el);
+          const sq = createEventSquare(ev);
+          rows[String(h)].appendChild(sq);
         }
       });
     });
 
-    // helper to create visually consistent event box nodes
-    function createDailyEventNode(ev) {
-      const el = document.createElement('div');
-      el.className = 'daily-event';
-      el.style.display = 'block';
-      el.style.padding = '6px 8px';
-      el.style.borderRadius = '8px';
-      el.style.background = 'rgba(74,144,226,0.08)'; // light tint to match calendar
-      el.style.border = `1px solid rgba(74,144,226,0.22)`;
-      el.style.color = '#0b3358';
-      el.style.fontSize = '0.95rem';
-      el.style.marginBottom = '6px';
-      el.style.boxSizing = 'border-box';
-      el.style.cursor = 'pointer';
-      el.title = ev.title || 'Event';
+    // helper: create small rounded interactive square for an event (shows emoji or colored dot)
+    function createEventSquare(ev) {
+      const btn = document.createElement('button');
+      btn.className = 'event-square';
+      btn.type = 'button';
+      btn.style.width = '36px';
+      btn.style.height = '36px';
+      btn.style.borderRadius = '8px';
+      btn.style.display = 'inline-flex';
+      btn.style.alignItems = 'center';
+      btn.style.justifyContent = 'center';
+      btn.style.padding = '0';
+      btn.style.border = `1px solid rgba(74,144,226,0.28)`;
+      btn.style.background = 'white';
+      btn.style.cursor = 'pointer';
+      btn.title = ev.title || 'Event';
+      btn.setAttribute('aria-label', ev.title || 'Event');
 
-      const timeText = ev.startTime ? ev.startTime + (ev.endTime ? '–' + ev.endTime : '') : '';
-      const emoji = ev.emoji ? (ev.emoji + ' ') : '';
-      el.textContent = `${timeText} ${emoji}${ev.title || '(untitled)'}`;
+      // emoji or colored dot
+      const inner = document.createElement('span');
+      inner.style.fontSize = '18px';
+      inner.style.lineHeight = '1';
+      if (ev.emoji && ev.emoji.trim()) {
+        inner.textContent = ev.emoji.trim();
+      } else {
+        inner.textContent = '•';
+        inner.style.color = PRIMARY_COLOR;
+        inner.style.fontSize = '20px';
+      }
+      btn.appendChild(inner);
 
-      el.addEventListener('click', () => {
+      // click/keyboard handlers
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         if (openEditModal) { openEditModal(ev); return; }
-        // fallback: try to populate edit modal inline
         const modal = document.getElementById('editModal');
         if (!modal) { console.log('Edit requested:', ev); return; }
         const setIf = (id, value) => { const el = document.getElementById(id); if (el) el.value = value || ''; };
@@ -178,7 +196,10 @@
         setIf('editEmoji', ev.emoji || '');
         modal.classList.remove('hidden');
       });
-      return el;
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); btn.click(); }
+      });
+      return btn;
     }
 
     // If no events, show placeholder
