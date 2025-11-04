@@ -114,11 +114,10 @@ const DAY_PARTS = {
   night:   { start: 17, end: 25 } // 17:00 - 01:00 -> represent 01:00 as 25 to make span easy
 };
 
+/* Replace hourToLabel to use 24-hour format */
 function hourToLabel(h){
   const hh = h % 24;
-  const ampm = hh < 12 ? 'AM' : 'PM';
-  const display = (hh % 12) === 0 ? 12 : hh % 12;
-  return `${String(display).padStart(2,'0')}:00 ${ampm}`;
+  return `${String(hh).padStart(2,'0')}:00`;
 }
 
 function getEventsForDateKey(dateKey){
@@ -126,17 +125,23 @@ function getEventsForDateKey(dateKey){
   return getEvents().filter(ev => normalizeDate(ev.date) === dateKey && (ev.time || ev.endTime));
 }
 
+/* Updated renderDailyViewForDay:
+   - If partKey not provided or invalid, compute the part that contains the current hour.
+   - Color hour-label background to match the calendar day (weekday/weekend theme).
+   - Show events for the date, placing them in any hour they overlap; display start–end in 24h.
+*/
 function renderDailyViewForDay(year, monthIndex, day, partKey){
   const container = document.getElementById('dailyView');
   if(!container) return;
   const dateKey = `${year}-${pad2(monthIndex+1)}-${pad2(day)}`;
   const events = getEventsForDateKey(dateKey);
 
-  // Determine part
+  // Determine part: if explicit valid partKey given (morning/day/night) use it,
+  // otherwise pick the part containing current hour (so no 'auto' behavior needed)
   let part = DAY_PARTS[partKey];
   if(!part){
-    // if auto, pick part containing current hour
     const now = new Date();
+    // use current hour (local) for selecting the part
     const curHour = (now.getFullYear()===year && now.getMonth()===monthIndex && now.getDate()===day) ? now.getHours() : new Date().getHours();
     partKey = determinePartFromHour(curHour);
     part = DAY_PARTS[partKey];
@@ -147,6 +152,12 @@ function renderDailyViewForDay(year, monthIndex, day, partKey){
   for(let h = part.start; h < part.end; h++){
     hours.push(h);
   }
+
+  // Determine theme color for this date (match calendar cell)
+  const dt = new Date(year, monthIndex, day);
+  const dow = dt.getDay();
+  const theme = themes[monthIndex] || themes[0];
+  const labelBg = (dow===0 || dow===6) ? theme.weekend : theme.weekday;
 
   // render
   container.innerHTML = '';
@@ -160,6 +171,11 @@ function renderDailyViewForDay(year, monthIndex, day, partKey){
     const label = document.createElement('div');
     label.className = 'hour-label';
     label.textContent = hourToLabel(h);
+    // style label background to match calendar day color
+    label.style.background = labelBg;
+    label.style.borderRadius = '6px';
+    label.style.padding = '6px';
+    label.style.color = '#000';
     row.appendChild(label);
 
     const eventsCell = document.createElement('div');
@@ -169,19 +185,26 @@ function renderDailyViewForDay(year, monthIndex, day, partKey){
     events.forEach(ev=>{
       const start = parseTimeToFloat(ev.time); // e.g., "09:30" -> 9.5
       const end = parseTimeToFloat(ev.endTime) || start;
-      // map to numeric comparable range; treat end < start as next-day if needed
+      if (start == null) return; // skip untimed events in daily view
       let s = start, e = end;
-      if (e && e <= s) e = e + 24;
-      const hNumeric = (h >= 24) ? h - 24 + 24 : h; // keep 24..25 mapping
-      // include if event overlaps [h, h+1)
+      // treat end <= start as next-day end
+      if (e <= s) e = e + 24;
+
+      // hour cell represents [h, h+1)
       if ( (s < h+1) && (e > h) ){
         const evb = document.createElement('div');
         evb.className = 'event-block' + ( (s < h || e > h+1) ? ' continues' : '' );
+
+        // show start–end if end present
         const timeSpan = document.createElement('span'); timeSpan.className='event-time';
-        timeSpan.textContent = (ev.time ? ev.time : '') + (ev.endTime ? `–${ev.endTime}` : '');
+        const startLabel = ev.time ? ev.time : '';
+        const endLabel = ev.endTime ? ('–' + ev.endTime) : '';
+        timeSpan.textContent = startLabel + endLabel;
+
         evb.appendChild(timeSpan);
         const title = document.createElement('span'); title.textContent = ' ' + (ev.emoji ? ev.emoji + ' ' : '') + (ev.title||'');
         evb.appendChild(title);
+
         // attach edit on click
         evb.addEventListener('click', ()=> { editEvent(ev.id); });
         eventsCell.appendChild(evb);
@@ -675,8 +698,84 @@ function initPlaces(){
     const editInput = document.getElementById('editLocation');
     const editList = document.getElementById('editLocationList');
     if (editInput && editList) attachAutocompleteUI(editInput, editList);
+
+    // new: attach to userHome if present
+    const userHomeInput = document.getElementById('userHome');
+    const userHomeList = document.getElementById('userHomeList');
+    if (userHomeInput && userHomeList) attachAutocompleteUI(userHomeInput, userHomeList);
+
   }catch(err){ console.warn('initPlaces error', err); }
 }
+
+/* ---------------- Settings: Maps API key management ----------------
+   Adds simple UI handlers that read/write localStorage 'MAPS_API_KEY',
+   update the settings form, and attempt to load the Maps script immediately.
+*/
+
+/* read saved key (returns string or empty) */
+function readSavedMapsKey(){
+  try{ return (localStorage.getItem('MAPS_API_KEY')||'').trim(); }catch(e){ return ''; }
+}
+
+/* update settings UI (if present) */
+function updateMapsSettingsUI(){
+  try{
+    const el = document.getElementById('mapsKeyInput');
+    const disp = document.getElementById('mapsKeyDisplay');
+    const k = readSavedMapsKey();
+    if (el) el.value = k;
+    if (disp) disp.textContent = k ? 'configured' : 'none';
+  }catch(e){ /* ignore */ }
+}
+
+/* save key from input to localStorage and attempt to load maps */
+function saveMapsKeyFromUI(){
+  try{
+    const el = document.getElementById('mapsKeyInput');
+    if (!el) return;
+    const k = (el.value||'').trim();
+    if (!k){ alert('Enter a non-empty API key or use Clear.'); return; }
+    localStorage.setItem('MAPS_API_KEY', k);
+    // update runtime var used by loader
+    try{ window.MAPS_API_KEY = k; }catch(e){}
+    updateMapsSettingsUI();
+    // attempt to load maps now
+    loadMapsScript(k).then((s)=>{ if (s) alert('Maps script loaded'); else alert('Maps script not loaded (check key)'); }).catch(err=>{ alert('Maps load failed: '+err.message); });
+  }catch(err){ console.warn('saveMapsKeyFromUI failed', err); }
+}
+
+/* clear saved key */
+function clearMapsKey(){
+  try{ localStorage.removeItem('MAPS_API_KEY'); window.MAPS_API_KEY = ''; updateMapsSettingsUI(); alert('Maps API key cleared.'); }catch(e){ console.warn('clearMapsKey failed',e); }
+}
+
+/* attempt to load maps using current saved key (for test button) */
+function loadMapsNow(){
+  const k = readSavedMapsKey();
+  if (!k){ alert('No Maps API key configured.'); return; }
+  loadMapsScript(k).then((s)=>{ if (s) alert('Maps script loaded'); else alert('Maps not loaded'); }).catch(err=>{ alert('Maps load failed: '+err.message); });
+}
+
+/* expose for debugging/calls from HTML buttons */
+window.saveMapsKeyFromUI = saveMapsKeyFromUI;
+window.clearMapsKey = clearMapsKey;
+window.loadMapsNow = loadMapsNow;
+
+/* Wire settings UI after DOM ready — add into attachPageListeners so we don't duplicate handlers */
+(function wireSettingsUI(){
+  try{
+    // if attachPageListeners runs after DOM ready it will set these; this is safe to call early
+    document.addEventListener('DOMContentLoaded', function(){
+      updateMapsSettingsUI();
+      const saveBtn = document.getElementById('saveMapsKeyBtn');
+      const clearBtn = document.getElementById('clearMapsKeyBtn');
+      const testBtn = document.getElementById('testMapsKeyBtn');
+      if (saveBtn) saveBtn.addEventListener('click', function(e){ e.preventDefault(); saveMapsKeyFromUI(); });
+      if (clearBtn) clearBtn.addEventListener('click', function(e){ e.preventDefault(); if (confirm('Clear stored Maps API key?')) clearMapsKey(); });
+      if (testBtn) testBtn.addEventListener('click', function(e){ e.preventDefault(); loadMapsNow(); });
+    });
+  }catch(e){ console.warn('wireSettingsUI failed', e); }
+})();
 
 /* UI: overlay inputs */
 function initOverlayInputs(){
@@ -812,8 +911,131 @@ document.addEventListener('DOMContentLoaded', function(){
     if (window.google && google.maps && google.maps.places){ try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); } }
     else { loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); }); }
     try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }
+
+    // set dayPartSelect default to current part if present
+    const sel = document.getElementById('dayPartSelect');
+    if (sel){
+      const now = new Date();
+      const curPart = determinePartFromHour(now.getHours());
+      // If user had a value, we keep it; otherwise set to current
+      if (!sel.value || !DAY_PARTS[sel.value]) sel.value = curPart;
+    }
   }catch(err){
     console.error('Init error',err);
     showAppError('Initialization error: ' + (err && err.message || err));
   }
 });
+
+/* ---------- User profile persistence & UI wiring ---------- */
+
+/* Read user profile from localStorage */
+function readUserProfile(){
+  try{
+    const raw = localStorage.getItem('USER_PROFILE');
+    if (!raw) return { name: '', home: { address:'', placeId:'', lat:null, lng:null } };
+    return JSON.parse(raw) || { name: '', home: { address:'', placeId:'', lat:null, lng:null } };
+  }catch(e){ return { name: '', home: { address:'', placeId:'', lat:null, lng:null } }; }
+}
+
+/* Save profile object */
+function writeUserProfile(profile){
+  try{
+    localStorage.setItem('USER_PROFILE', JSON.stringify(profile||{}));
+  }catch(e){ console.warn('writeUserProfile failed', e); }
+}
+
+/* update profile UI elements (welcome + dashboard + settings link) */
+function updateProfileUI(){
+  try{
+    const p = readUserProfile();
+    const welcome = document.getElementById('welcomeText');
+    const dashH = document.getElementById('dashboardHeading');
+    if (welcome) welcome.textContent = p.name ? `Welcome, ${p.name}` : 'Welcome,';
+    if (dashH) dashH.textContent = p.name ? `${p.name}'s Dashboard` : '📊 Dashboard';
+
+    // update settings inputs if present
+    const nameInput = document.getElementById('userName');
+    if (nameInput && !nameInput.dataset.userset) nameInput.value = p.name || '';
+    const homeInput = document.getElementById('userHome');
+    if (homeInput && !homeInput.dataset.userset) homeInput.value = (p.home && p.home.address) ? p.home.address : '';
+
+    // update home directions link
+    const homeLink = document.getElementById('homeDirections');
+    if (homeLink){
+      if (p.home && p.home.address){
+        const q = encodeURIComponent(p.home.address);
+        homeLink.href = `https://www.google.com/maps/dir/?api=1&destination=${q}`;
+        homeLink.textContent = p.home.address;
+      } else {
+        homeLink.href = '#';
+        homeLink.textContent = 'not set';
+      }
+    }
+  }catch(e){ console.warn('updateProfileUI failed', e); }
+}
+
+/* Save profile from settings UI */
+function saveProfileFromUI(){
+  try{
+    const nameInput = document.getElementById('userName');
+    const homeInput = document.getElementById('userHome');
+    if (!nameInput || !homeInput) return;
+    const name = nameInput.value.trim();
+    const homeAddr = homeInput.value.trim();
+
+    // If the input has dataset.place (from Places autocomplete) parse it
+    let homePlace = { address: homeAddr, placeId: null, lat:null, lng:null };
+    try{
+      if (homeInput.dataset && homeInput.dataset.place){
+        const p = JSON.parse(homeInput.dataset.place);
+        if (p){
+          homePlace.address = p.address || p.description || homeAddr;
+          if (p.placeId) homePlace.placeId = p.placeId;
+          if (p.lat) homePlace.lat = p.lat;
+          if (p.lng) homePlace.lng = p.lng;
+          // sometimes Places details use geometry.location.lat()
+        }
+      }
+    }catch(e){ /* ignore parse */ }
+
+    const profile = { name: name, home: homePlace };
+    writeUserProfile(profile);
+    updateProfileUI();
+    alert('Profile saved');
+  }catch(e){ console.warn('saveProfileFromUI failed', e); alert('Save failed'); }
+}
+
+/* Clear user profile (keeps maps key separate) */
+function clearUserProfile(){
+  try{
+    localStorage.removeItem('USER_PROFILE');
+    updateProfileUI();
+    alert('Profile cleared');
+  }catch(e){ console.warn('clearUserProfile failed', e); }
+}
+
+/* Expose for debugging/buttons */
+window.saveProfileFromUI = saveProfileFromUI;
+window.clearUserProfile = clearUserProfile;
+
+/* Wire profile UI on DOMContentLoaded (safe if attachPageListeners runs later) */
+(function wireProfileUI(){
+  try{
+    document.addEventListener('DOMContentLoaded', function(){
+      updateProfileUI();
+      const saveBtn = document.getElementById('saveProfileBtn');
+      const clearBtn = document.getElementById('clearProfileBtn');
+      if (saveBtn) saveBtn.addEventListener('click', function(e){ e.preventDefault(); saveProfileFromUI(); });
+      if (clearBtn) clearBtn.addEventListener('click', function(e){ e.preventDefault(); if (confirm('Clear saved profile?')) clearUserProfile(); });
+      // mark inputs as user-editable so updateProfileUI doesn't overwrite while editing
+      const nameInput = document.getElementById('userName');
+      const homeInput = document.getElementById('userHome');
+      if (nameInput){
+        nameInput.addEventListener('input', ()=> { nameInput.dataset.userset = '1'; });
+      }
+      if (homeInput){
+        homeInput.addEventListener('input', ()=> { homeInput.dataset.userset = '1'; });
+      }
+    });
+  }catch(e){ console.warn('wireProfileUI failed', e); }
+})();

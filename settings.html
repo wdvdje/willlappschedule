@@ -10,9 +10,49 @@
 </head>
 <body>
   <header>📅 TimeScape Planner</header>
-  <main style="max-width:540px;margin:18px auto;padding:12px;">
+
+  <main style="max-width:640px;margin:18px auto;padding:12px;">
     <h2>Settings</h2>
-    <p>Placeholder — settings will be added later.</p>
+
+    <!-- User Profile -->
+    <section id="userProfile" style="margin-top:12px">
+      <h3>User Profile</h3>
+
+      <label for="userName" style="display:block;font-weight:600;margin-top:8px">Name</label>
+      <input id="userName" type="text" placeholder="Your name" />
+
+      <label for="userHome" style="display:block;font-weight:600;margin-top:8px">Home address</label>
+      <div class="places-suggestions" style="position:relative">
+        <input id="userHome" type="text" placeholder="Enter your home address" autocomplete="off" />
+        <div id="userHomeList" class="suggestions-list" style="display:none"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="saveProfileBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save profile</button>
+        <button id="clearProfileBtn" class="small-btn">Clear</button>
+      </div>
+
+      <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
+    </section>
+
+    <!-- Jobs placeholder -->
+    <section id="userJobs" style="margin-top:18px">
+      <h3>Jobs</h3>
+      <p>Placeholder — will add job inputs here later.</p>
+    </section>
+
+    <!-- Maps API Key settings (kept) -->
+    <section id="mapsSettings" style="margin-top:18px">
+      <h3>Google Maps</h3>
+      <label for="mapsKeyInput" style="display:block;font-weight:600">Google Maps API Key</label>
+      <input id="mapsKeyInput" type="text" placeholder="Enter Maps API key (stored in localStorage)" />
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="saveMapsKeyBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save key</button>
+        <button id="clearMapsKeyBtn" class="small-btn">Clear key</button>
+        <button id="testMapsKeyBtn" class="small-btn">Load Maps Now</button>
+      </div>
+      <p id="mapsKeyNotice" style="margin-top:8px;color:#666;font-size:0.95rem">Saved key: <span id="mapsKeyDisplay">none</span></p>
+    </section>
   </main>
 
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
