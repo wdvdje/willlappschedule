@@ -215,78 +215,93 @@
 
     <!-- Settings page -->
     <section id="page-settings" class="page hidden">
-      <h2>⚙️ Settings</h2>
+      <h2 style="text-align:center">Settings</h2>
 
-      <!-- User profile -->
-      <form id="settingsForm" style="max-width:860px;margin:8px auto;padding:12px;background:#fff;border-radius:10px;border:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,0.04);text-align:left">
-        <fieldset style="border:0;padding:0;margin:0">
-          <legend style="font-weight:700;margin-bottom:8px">User profile</legend>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <label style="min-width:120px;font-weight:600">Full name</label>
-            <input id="settingsFullName" type="text" placeholder="Jane Doe" />
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-            <label style="min-width:120px;font-weight:600">Email</label>
-            <input id="settingsEmail" type="email" placeholder="you@example.com" />
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-            <label style="min-width:120px;font-weight:600">Time zone</label>
-            <select id="settingsTimeZone" style="flex:1">
-              <option value="local">Local</option>
-              <option value="UTC">UTC</option>
-              <option value="America/New_York">America/New_York</option>
-              <option value="Europe/London">Europe/London</option>
-            </select>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-            <label style="min-width:120px;font-weight:600">Home location</label>
-            <input id="settingsHomeLocation" type="text" placeholder="City or address" />
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-            <label style="min-width:120px;font-weight:600">Work day</label>
-            <input id="settingsWorkStart" type="time" style="width:120px" /> – <input id="settingsWorkEnd" type="time" style="width:120px" />
-          </div>
-        </fieldset>
+      <main style="max-width:640px;margin:18px auto;padding:12px;">
+        <!-- User Profile -->
+        <section id="userProfile" style="margin-top:12px">
+          <h3>User Profile</h3>
 
-        <hr style="margin:12px 0;border:0;border-top:1px solid #eee" />
+          <label for="userName" style="display:block;font-weight:600;margin-top:8px">Name</label>
+          <input id="userName" type="text" placeholder="Your name" />
+
+          <label for="userHome" style="display:block;font-weight:600;margin-top:8px">Home address</label>
+          <div class="places-suggestions" style="position:relative">
+            <input id="userHome" type="text" placeholder="Enter your home address" autocomplete="off" />
+            <div id="userHomeList" class="suggestions-list" style="display:none"></div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="saveProfileBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save profile</button>
+            <button id="clearProfileBtn" class="small-btn">Clear</button>
+          </div>
+
+          <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
+        </section>
 
         <!-- Jobs -->
-        <fieldset style="border:0;padding:0;margin:0">
-          <legend style="font-weight:700;margin-bottom:8px">Jobs</legend>
-          <p style="margin:0 0 8px 0;color:#555;font-size:0.95rem">Add one or more jobs (role, company, hours, commute). Jobs appear in scheduling heuristics.</p>
+        <section id="userJobs" style="margin-top:18px">
+          <h3>Jobs</h3>
 
-          <div id="jobFormRow" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
-            <input id="jobRole" type="text" placeholder="Role (e.g. Designer)" style="flex:1;min-width:180px" />
-            <input id="jobCompany" type="text" placeholder="Company" style="flex:1;min-width:180px" />
-            <input id="jobLocation" type="text" placeholder="Location" style="flex:1;min-width:180px" />
-            <input id="jobStart" type="time" style="width:120px" />
-            <input id="jobEnd" type="time" style="width:120px" />
-            <input id="jobCommute" type="number" min="0" placeholder="Commute min" style="width:120px" />
-            <button id="addJobBtn" type="button" style="background:#4a90e2;color:#fff;border:none;padding:8px 10px;border-radius:6px">Add job</button>
+          <!-- Saved Jobs -->
+          <div id="savedJobs" style="margin-top:8px">
+            <h4>Saved Jobs</h4>
+            <ul id="jobList" style="list-style:none;padding:0;margin:8px 0;">
+              <!-- ... populated by JS ... -->
+            </ul>
           </div>
 
-          <ul id="jobsList" style="margin-top:12px;padding-left:16px"></ul>
-        </fieldset>
+          <!-- Add / Edit Job -->
+          <div id="addJob" style="margin-top:16px">
+            <h4>Add Job</h4>
+            <input id="jobId" type="hidden" />
+            <label for="jobName" style="display:block;margin-top:6px;font-weight:600">Job name</label>
+            <input id="jobName" type="text" placeholder="e.g. Lawn mowing" />
 
-        <hr style="margin:12px 0;border:0;border-top:1px solid #eee" />
+            <label for="jobEmoji" style="display:block;margin-top:6px;font-weight:600">Emoji</label>
+            <input id="jobEmoji" type="text" placeholder="e.g. 🚜" />
 
-        <!-- Buffers and general prefs -->
-        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-          <label style="min-width:120px;font-weight:600">Default pre-buffer</label>
-          <select id="settingsPreBuffer" style="width:120px">
-            <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option><option value="30">30 m</option>
-          </select>
-          <label style="min-width:120px;font-weight:600;margin-left:12px">Default post-buffer</label>
-          <select id="settingsPostBuffer" style="width:120px">
-            <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option><option value="30">30 m</option>
-          </select>
-        </div>
+            <label for="jobLocation" style="display:block;margin-top:6px;font-weight:600">Location</label>
+            <div class="places-suggestions" style="position:relative">
+              <input id="jobLocation" type="text" placeholder="Address or area" autocomplete="off" />
+              <div id="jobLocationList" class="suggestions-list" style="display:none"></div>
+            </div>
 
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
-          <button type="button" id="resetSettings" class="small-btn">Reset</button>
-          <button type="button" id="saveSettings" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
-        </div>
-      </form>
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <div style="flex:1">
+                <label for="jobRate" style="display:block;font-weight:600">Rate</label>
+                <input id="jobRate" type="text" placeholder="e.g. 25.00" />
+              </div>
+              <div style="width:140px">
+                <label for="jobUnit" style="display:block;font-weight:600">Unit</label>
+                <select id="jobUnit">
+                  <option value="hour">hour</option>
+                  <option value="job">job</option>
+                  <option value="day">day</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
+              <button id="clearJobBtn" class="small-btn">Clear</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Maps API Key settings (kept) -->
+        <section id="mapsSettings" style="margin-top:18px">
+          <h3>Google Maps</h3>
+          <label for="mapsKeyInput" style="display:block;font-weight:600">Google Maps API Key</label>
+          <input id="mapsKeyInput" type="text" placeholder="Enter Maps API key (stored in localStorage)" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="saveMapsKeyBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save key</button>
+            <button id="clearMapsKeyBtn" class="small-btn">Clear key</button>
+            <button id="testMapsKeyBtn" class="small-btn">Load Maps Now</button>
+          </div>
+          <p id="mapsKeyNotice" style="margin-top:8px;color:#666;font-size:0.95rem">Saved key: <span id="mapsKeyDisplay">none</span></p>
+        </section>
+      </main>
     </section>
   </main>
 
