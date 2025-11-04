@@ -494,13 +494,9 @@ function editTask(i){
   showModalFieldsFor('task'); openEditModal('Edit Task');
 }
 
-/* Render events (updated)
-   - shows emoji as bullet
-   - upcoming events first, past events moved to bottom
-   - past events get class "event-past"
-*/
+/* Render events (fixed) */
 function renderEvents(){
-  const evs = getEvents().slice(); // copy
+  const evs = getEvents().slice();
   const list = document.getElementById('eventList');
   if (!list) return;
   list.innerHTML = '';
@@ -511,16 +507,14 @@ function renderEvents(){
     const d = normalizeDate(ev.date);
     if (!d) return 0;
     if (ev.time){
-      // parse as local date-time
-      const t = ev.time;
-      return new Date(`${d}T${t}`).getTime();
+      // parse as local date-time (ISO-like)
+      const dt = new Date(`${d}T${ev.time}`);
+      return isNaN(dt.getTime()) ? new Date(`${d}T00:00`).getTime() : dt.getTime();
     } else {
-      // treat untimed event as end-of-day
       return new Date(`${d}T23:59:59`).getTime();
     }
   }
 
-  // partition into upcoming and past
   const upcoming = [], past = [];
   evs.forEach(ev=>{
     const ts = eventTimestamp(ev);
@@ -528,7 +522,6 @@ function renderEvents(){
     else past.push({ev,ts});
   });
 
-  // sort upcoming ascending, past ascending (older first)
   upcoming.sort((a,b)=> a.ts - b.ts);
   past.sort((a,b)=> a.ts - b.ts);
 
@@ -537,24 +530,21 @@ function renderEvents(){
   combined.forEach(e=>{
     const li = document.createElement('li');
     li.className = 'event-item';
-    // compute whether past
     const isPast = (eventTimestamp(e) || 0) < now.getTime();
     if (isPast) li.classList.add('event-past');
 
-    // emoji bullet
     const bullet = document.createElement('span');
     bullet.className = 'event-bullet';
     bullet.textContent = e.emoji || '📌';
     bullet.setAttribute('aria-hidden','true');
 
-    // main content
     const content = document.createElement('div');
     content.className = 'event-content';
     const locHtml = e.location ? ` @ <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank">${escapeHTML(e.location)}</a>` : '';
     const timeHtml = e.time ? (e.endTime ? `[${escapeHTML(e.time)}–${escapeHTML(e.endTime)}] ` : `[${escapeHTML(e.time)}] `) : '';
-    const bufferHtml = ((e.preBuffer||0) || (e.postBuffer||0)) ? ` <small style="color:#555">(${e.preBuffer||0}m pre / ${e.postBuffer||0}m post)</small>` : '    content.innerHTML = `<b>${escapeHTML(e.title)}</b> — ${escapeHTML(e.date)} ${timeHtml}${locHtml}${bufferHtml}`;
+    const bufferHtml = ((e.preBuffer||0) || (e.postBuffer||0)) ? ` <small style="color:#555">(${e.preBuffer||0}m pre / ${e.postBuffer||0}m post)</small>` : '';
+    content.innerHTML = `<b>${escapeHTML(e.title)}</b> — ${escapeHTML(e.date)} ${timeHtml}${locHtml}${bufferHtml}`;
 
-    // actions
     const actions = document.createElement('span');
     actions.className = 'item-controls';
     const editBtn = document.createElement('button'); editBtn.className='small-btn'; editBtn.textContent='Edit'; editBtn.addEventListener('click', ()=> editEvent(e.id));
