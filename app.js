@@ -703,19 +703,22 @@ function initOverlayInputs(){
   });
 }
 
-/* SPA view switching (new) */
+/* SPA view switching (updated: robust target extraction + fallback) */
 function showView(view, updateHash = true){
   view = view || 'calendar';
-  // hide all pages
+
+  // hide all SPA pages (if present)
   document.querySelectorAll('[id^="page-"]').forEach(p=> p.classList.add('hidden'));
-  // show selected page
-  const el = document.getElementById('page-'+view);
+
+  // show selected page; fallback to calendar if missing
+  const el = document.getElementById('page-'+view) || document.getElementById('page-calendar');
   if (el) el.classList.remove('hidden');
 
-  // update ribbon active state
+  // update ribbon active state (robustly compute target view from data-view or href)
   document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
-    const v = a.dataset.view || (a.getAttribute('href')||'').replace('#','');
-    a.classList.toggle('active', v === view);
+    const href = a.getAttribute('href') || '';
+    const candidate = (a.dataset && a.dataset.view) ? a.dataset.view : (href.indexOf('#')>-1 ? href.split('#').pop() : '');
+    a.classList.toggle('active', candidate === view);
   });
 
   // refresh page-specific UI
@@ -726,8 +729,6 @@ function showView(view, updateHash = true){
     try{ renderEvents(); }catch(e){ console.warn('renderEvents failed', e); }
   } else if (view === 'tasks'){
     try{ loadTasks(); }catch(e){ console.warn('loadTasks failed', e); }
-  } else if (view === 'reminders'){
-    // optionally populate reminders view if needed
   }
 
   if (updateHash){
@@ -771,17 +772,22 @@ function attachPageListeners(){
     const editForm = document.getElementById('editForm');
     if (editForm) editForm.addEventListener('submit', saveEditHandler);
 
-    // ribbon clicks: if already on SPA (index) do client navigation; otherwise links point to index.html#view
+    // ribbon clicks: parse href/hash safely and only bind once per element
     document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
+      if (a.__ribbonBound) return; // guard: bind once
+      a.__ribbonBound = true;
       a.addEventListener('click', function(ev){
-        // if currently on index (SPA) intercept and do client-side view switch
+        const href = a.getAttribute('href') || '';
+        const targetView = (a.dataset && a.dataset.view) ? a.dataset.view : (href.indexOf('#')>-1 ? href.split('#').pop() : '');
         const onIndex = location.pathname.endsWith('index.html') || location.pathname.endsWith('/') || location.pathname.endsWith('/index.html');
-        const targetView = a.dataset.view || (a.getAttribute('href')||'#calendar').replace('#','');
-        if (onIndex){
+        // If we're on the SPA page (index), intercept and do client-side view switch.
+        // Also intercept pure-hash links (href starts with '#') when on any page that already points at same document.
+        const isHashOnly = href && href.trim().startsWith('#');
+        if (onIndex || isHashOnly){
           ev.preventDefault();
-          showView(targetView);
-        }
-        // else let the anchor navigate to index.html#view (links on other pages should use index.html#...)
+          // fallback to calendar when target missing
+          showView(targetView || 'calendar');
+        } // else let anchor navigate (e.g., from other static pages to index.html#view)
       });
     });
 
