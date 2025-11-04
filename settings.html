@@ -7,9 +7,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <link rel="manifest" href="./manifest.json" />
   <link rel="stylesheet" href="./app.css" />
+  <style>
+    /* ADDED: center only the User Profile and Jobs headings on settings page */
+    #userProfile h3, #userJobs h3 { text-align: center; }
+  </style>
 </head>
 <body>
-  <header>📅 TimeScape Planner</header>
+  <header id="appHeader">📅 TimeScape Planner</header>
 
   <main style="max-width:640px;margin:18px auto;padding:12px;">
     <h2 style="text-align:center">Settings</h2>
@@ -20,6 +24,9 @@
 
       <label for="userName" style="display:block;font-weight:600;margin-top:8px">Name</label>
       <input id="userName" type="text" placeholder="Your name" />
+
+      <!-- ADDED: profile status indicator -->
+      <div id="profileStatus" style="margin-top:6px;color:#666;font-size:0.95rem">Name not set</div>
 
       <label for="userHome" style="display:block;font-weight:600;margin-top:8px">Home address</label>
       <div class="places-suggestions" style="position:relative">
@@ -108,5 +115,7 @@
   </nav>
 
   <script src="./app.js"></script>
+  <!-- ADDED: same wiring used in index to keep header/profile status in sync -->
+  <script src="./events-view.js"></script>
 </body>
 </html>

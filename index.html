@@ -55,10 +55,13 @@
 
     /* ADDED: center top headings on each page */
     .page h2 { text-align: center; margin-top: 6px; }
+
+    /* ADDED: center only the User Profile and Jobs headings on settings page */
+    #userProfile h3, #userJobs h3 { text-align: center; }
   </style>
 </head>
 <body>
-  <header>📅 TimeScape Planner</header>
+  <header id="appHeader">📅 TimeScape Planner</header>
   <main>
     <!-- Calendar page -->
     <section id="page-calendar" class="page">
@@ -225,6 +228,9 @@
           <label for="userName" style="display:block;font-weight:600;margin-top:8px">Name</label>
           <input id="userName" type="text" placeholder="Your name" />
 
+          <!-- ADDED: profile status indicator -->
+          <div id="profileStatus" style="margin-top:6px;color:#666;font-size:0.95rem">Name not set</div>
+
           <label for="userHome" style="display:block;font-weight:600;margin-top:8px">Home address</label>
           <div class="places-suggestions" style="position:relative">
             <input id="userHome" type="text" placeholder="Enter your home address" autocomplete="off" />
@@ -365,6 +371,9 @@
 
   <!-- load canonical app script -->
   <script src="./app.js"></script>
+
+  <!-- ADDED: events renderer and header/profile wiring -->
+  <script src="./events-view.js"></script>
 
   <!-- ADDED: daily view renderer -->
   <script src="./daily-view.js"></script>
