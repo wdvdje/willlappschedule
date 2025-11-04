@@ -3,6 +3,7 @@
   const dailyView = document.getElementById('dailyView');
   const dayPartSelect = document.getElementById('dayPartSelect');
   const calendarEl = document.getElementById('calendar');
+  const PRIMARY_COLOR = '#4a90e2'; // kept in sync with CSS
 
   function loadEvents() {
     try {
@@ -59,6 +60,26 @@
     return isNaN(h) ? null : normalizeHourForCompare(h);
   }
 
+  function parseEndHourFromTime(t, fallbackStart) {
+    if (!t) return (typeof fallbackStart === 'number') ? fallbackStart + 1 : null;
+    const parts = String(t).split(':');
+    const h = parseInt(parts[0], 10);
+    return isNaN(h) ? null : normalizeHourForCompare(h);
+  }
+
+  // returns true if event span [start,end) overlaps displayed hour (hour)
+  function eventOverlapsHour(evStart, evEnd, hour) {
+    // normalize into numeric ranges possibly >24 to handle overnight spans
+    let s = evStart;
+    let e = evEnd;
+    if (s === null) return false;
+    if (e === null) e = s + 1;
+    if (e <= s) e += 24; // overnight span
+    // test hour candidates hour and hour+24
+    const candidates = [hour, hour + 24];
+    return candidates.some(hc => hc >= s && hc < e);
+  }
+
   function clearDailyView() {
     dailyView.innerHTML = '';
   }
@@ -94,6 +115,9 @@
       content.style.flex = '1';
       content.style.minHeight = '28px';
       content.style.position = 'relative';
+      content.style.display = 'flex';
+      content.style.flexDirection = 'column';
+      content.style.alignItems = 'stretch';
 
       row.appendChild(label);
       row.appendChild(content);
@@ -101,18 +125,39 @@
       rows[String(h)] = content;
     });
 
-    // Place events into matching rows (by start hour). If an event has no startTime,
-    // append to top of the day view.
+    // Place events into each hour they overlap. This also ensures events spanning hours
+    // (and overnight) appear in every daily view segment they intersect.
     events.forEach(ev => {
       const startHour = parseHourFromTime(ev.startTime);
-      const targetHour = (startHour === null) ? null : String(startHour);
+      const endHour = parseEndHourFromTime(ev.endTime, startHour);
+      // If no start hour, append to the first displayed hour
+      if (startHour === null) {
+        const firstKey = Object.keys(rows)[0];
+        if (firstKey) {
+          const el = createDailyEventNode(ev);
+          rows[firstKey].appendChild(el);
+        }
+        return;
+      }
+
+      // For each displayed hour, check overlap and add a box for that hour.
+      hours.forEach(h => {
+        if (eventOverlapsHour(startHour, endHour, h)) {
+          const el = createDailyEventNode(ev);
+          rows[String(h)].appendChild(el);
+        }
+      });
+    });
+
+    // helper to create visually consistent event box nodes
+    function createDailyEventNode(ev) {
       const el = document.createElement('div');
       el.className = 'daily-event';
-      el.style.display = 'inline-block';
+      el.style.display = 'block';
       el.style.padding = '6px 8px';
-      el.style.borderRadius = '6px';
-      el.style.background = '#f2f8ff';
-      el.style.border = '1px solid rgba(74,144,226,0.18)';
+      el.style.borderRadius = '8px';
+      el.style.background = 'rgba(74,144,226,0.08)'; // light tint to match calendar
+      el.style.border = `1px solid rgba(74,144,226,0.22)`;
       el.style.color = '#0b3358';
       el.style.fontSize = '0.95rem';
       el.style.marginBottom = '6px';
@@ -124,17 +169,14 @@
       const emoji = ev.emoji ? (ev.emoji + ' ') : '';
       el.textContent = `${timeText} ${emoji}${ev.title || '(untitled)'}`;
 
-      // attach minimal click to open edit modal if present
+      // click to open edit modal / fallback behavior retained
       el.addEventListener('click', () => {
-        // existing app may provide a global openEditModal function - try to use it
         if (typeof openEditModal === 'function') {
           openEditModal(ev);
           return;
         }
-        // fallback: populate edit modal fields if present
         const editModal = document.getElementById('editModal');
         if (editModal) {
-          // try to populate edit form inputs
           const editKind = document.getElementById('editKind');
           const editEventId = document.getElementById('editEventId');
           const editText = document.getElementById('editText');
@@ -150,15 +192,8 @@
           editModal.classList.remove('hidden');
         }
       });
-
-      if (targetHour !== null && rows[targetHour]) {
-        rows[targetHour].appendChild(el);
-      } else {
-        // append to the first visible row if no hour match
-        const firstKey = Object.keys(rows)[0];
-        if (firstKey) rows[firstKey].appendChild(el);
-      }
-    });
+      return el;
+    }
 
     // If no events, show placeholder
     if (events.length === 0) {
