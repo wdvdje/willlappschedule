@@ -13,7 +13,7 @@
   <header>📅 TimeScape Planner</header>
 
   <section class="events" style="max-width:640px;margin:18px auto;padding:0 12px;box-sizing:border-box">
-    <h2>📅 Events</h2>
+    <h2 style="text-align:center">📅 Events</h2>
     <form id="eventForm">
       <input id="eventTitle" type="text" placeholder="Event title" required />
 
@@ -22,14 +22,15 @@
         <span class="overlay-label">Date</span>
       </div>
 
-      <div class="overlay-input" style="margin-top:8px;display:inline-block;width:48%;box-sizing:border-box">
-        <input id="eventTime" type="time" class="overlay-field" />
-        <span class="overlay-label">Start time</span>
-      </div>
-
-      <div class="overlay-input" style="margin-top:8px;display:inline-block;width:48%;box-sizing:border-box;margin-left:4%">
-        <input id="eventEndTime" type="time" class="overlay-field" />
-        <span class="overlay-label">End time</span>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <div class="overlay-input" style="flex:1">
+          <input id="eventTime" type="time" class="overlay-field" />
+          <span class="overlay-label">Start time</span>
+        </div>
+        <div class="overlay-input" style="flex:1">
+          <input id="eventEndTime" type="time" class="overlay-field" />
+          <span class="overlay-label">End time</span>
+        </div>
       </div>
 
       <div class="places-suggestions" style="margin-top:8px">
@@ -53,12 +54,12 @@
           <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
         </select>
       </div>
-      <div style="margin-top:8px">
-        <button id="addEventBtn" type="submit">Add Event</button>
+      <div style="margin-top:12px;text-align:center">
+        <button id="addEventBtn" type="submit" style="width:160px">Add Event</button>
       </div>
     </form>
 
-    <ul id="eventList" style="margin-top:12px"></ul>
+    <ul id="eventList" style="margin-top:12px;padding-left:0"></ul>
   </section>
 
   <!-- edit modal -->
