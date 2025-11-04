@@ -107,12 +107,35 @@
   </main>
 
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-    <a href="index.html#events" class="r-item"><span>📅</span><span class="r-label">Events</span></a>
-    <a href="index.html#reminders" class="r-item"><span>🔔</span><span class="r-label">Reminders</span></a>
-    <a href="index.html#calendar" class="r-item r-center"><span>🗓️</span><span class="r-label">Calendar</span></a>
-    <a href="index.html#tasks" class="r-item"><span>✅</span><span class="r-label">Tasks</span></a>
-    <a href="index.html#settings" class="r-item"><span>⚙️</span><span class="r-label">Settings</span></a>
+    <a href="#events" class="r-item" data-view="events"><span>📅</span><span class="r-label">Events</span></a>
+    <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
+    <a href="#calendar" class="r-item r-center" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
+    <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
+
+  <!-- Ensure clicking ribbon on this standalone page loads the fresh index.html (cache-busting).
+       If already on index.html we only change the hash to keep SPA behavior. -->
+  <script>
+    (function () {
+      const items = document.querySelectorAll('.bottom-ribbon a.r-item');
+      items.forEach(a => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
+          // If already on index, just set hash (SPA)
+          const path = location.pathname.split('/').pop();
+          if (path === 'index.html' || path === '' ) {
+            location.hash = view;
+            return;
+          }
+          // Otherwise navigate to index.html with a cache-busting query so the newest version is loaded
+          const target = 'index.html?_=' + Date.now() + '#' + view;
+          location.href = target;
+        }, { passive: true });
+      });
+    })();
+  </script>
 
   <script src="./app.js"></script>
   <!-- ADDED: same wiring used in index to keep header/profile status in sync -->
