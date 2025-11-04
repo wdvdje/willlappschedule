@@ -52,6 +52,9 @@
     .bottom-ribbon .r-item .r-label{ font-size:11px;margin-top:4px;display:block;}
     .bottom-ribbon .r-item.r-center{ background:linear-gradient(0deg, rgba(74,144,226,0.06), transparent); border-radius:12px; margin:0 6px; padding:8px 6px; }
     body { padding-bottom: 92px; }
+
+    /* ADDED: center top headings on each page */
+    .page h2 { text-align: center; margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -213,7 +216,44 @@
     <!-- Settings page -->
     <section id="page-settings" class="page hidden">
       <h2>⚙️ Settings</h2>
-      <p>Placeholder — settings will be added later.</p>
+      <form id="settingsForm" style="max-width:720px;margin:8px auto;padding:12px;background:#fff;border-radius:10px;border:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,0.04);text-align:left">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="min-width:110px;font-weight:600">Display name</label>
+          <input id="settingsName" type="text" placeholder="Your name" />
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+          <label style="min-width:110px;font-weight:600">Default pre-buffer</label>
+          <select id="settingsPreBuffer" style="width:160px">
+            <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option><option value="30">30 m</option>
+          </select>
+          <label style="min-width:110px;font-weight:600;margin-left:12px">Default post-buffer</label>
+          <select id="settingsPostBuffer" style="width:160px">
+            <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option><option value="30">30 m</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+          <label style="min-width:110px;font-weight:600">Default day view</label>
+          <select id="settingsDefaultView">
+            <option value="calendar">Calendar</option>
+            <option value="events">Events</option>
+            <option value="tasks">Tasks</option>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+          <label style="min-width:110px;font-weight:600">Week starts on</label>
+          <select id="settingsWeekStart" style="width:160px">
+            <option value="0">Sunday</option><option value="1">Monday</option>
+          </select>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+          <button type="button" id="resetSettings" class="small-btn">Reset</button>
+          <button type="button" id="saveSettings" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
+        </div>
+      </form>
     </section>
   </main>
 
