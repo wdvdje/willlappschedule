@@ -307,6 +307,19 @@
           </div>
           <p id="mapsKeyNotice" style="margin-top:8px;color:#666;font-size:0.95rem">Saved key: <span id="mapsKeyDisplay">none</span></p>
         </section>
+
+        <!-- ADDED: PouchDB sync settings -->
+        <section id="pouchSyncSettings" style="margin-top:18px">
+          <h3>Sync (PouchDB)</h3>
+          <label for="syncUrl" style="display:block;font-weight:600">Remote CouchDB base URL</label>
+          <input id="syncUrl" type="text" placeholder="https://user:pass@host:5984" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="startSyncBtn" class="small-btn" style="background:#4a90e2;color:#fff">Start sync</button>
+            <button id="stopSyncBtn" class="small-btn">Stop sync</button>
+            <button id="importNowBtn" class="small-btn">Import now</button>
+          </div>
+          <div id="pouchSyncStatus" style="margin-top:8px;color:#666;font-size:0.95rem">Not syncing</div>
+        </section>
       </main>
     </section>
   </main>
@@ -631,6 +644,92 @@
             await importAll();
           }
         } catch (e) { /* ignore */ }
+      })();
+
+      // --- ADDED: settings wiring + merge logic for incoming docs ---
+      (function wirePouchUiAndMerge() {
+        const elUrl = document.getElementById('syncUrl');
+        const startBtn = document.getElementById('startSyncBtn');
+        const stopBtn = document.getElementById('stopSyncBtn');
+        const importBtn = document.getElementById('importNowBtn');
+        const statusEl = document.getElementById('pouchSyncStatus');
+        function setStatus(s){ if(statusEl) statusEl.textContent = s; }
+
+        if (elUrl) elUrl.value = localStorage.getItem('pouchSyncUrl') || '';
+
+        startBtn && startBtn.addEventListener('click', async () => {
+          const url = (elUrl && elUrl.value || '').trim();
+          if (!url) return setStatus('Enter remote URL first');
+          setStatus('Starting sync...');
+          try {
+            localStorage.setItem('pouchSyncUrl', url);
+            await window.initPouchSync(url);
+            setStatus('Sync running');
+          } catch (err) {
+            console.error(err);
+            setStatus('Error starting: ' + (err && err.message ? err.message : String(err)));
+          }
+        });
+
+        stopBtn && stopBtn.addEventListener('click', () => {
+          window.stopPouchSync && window.stopPouchSync();
+          setStatus('Sync stopped');
+        });
+
+        importBtn && importBtn.addEventListener('click', () => {
+          (async () => {
+            try {
+              const evDb = new PouchDB('events');
+              const prDb = new PouchDB('profile');
+              const evs = (await evDb.allDocs({ include_docs: true })).rows.map(r => r.doc);
+              const prs = (await prDb.allDocs({ include_docs: true })).rows.map(r => r.doc);
+              window.dispatchEvent(new CustomEvent('pouch-sync:import', { detail: { events: evs, profile: prs } }));
+              setStatus('Imported local pouch data');
+            } catch (e) { console.error(e); setStatus('Import failed: ' + (e && e.message ? e.message : String(e))); }
+          })();
+        });
+
+        // merge incoming docs into localStorage structures used by the app
+        document.addEventListener('pouch-sync:import', (ev) => {
+          const { events = [], profile = [] } = ev.detail || {};
+          try {
+            // merge events by _id into localStorage 'events' array
+            const localEvents = JSON.parse(localStorage.getItem('events') || '[]');
+            const map = {};
+            localEvents.forEach(item => { if (item && item._id) map[item._id] = item; });
+            events.forEach(d => { if (d && d._id) map[d._id] = Object.assign({}, map[d._id] || {}, d); });
+            const mergedEvents = Object.values(map);
+            localStorage.setItem('events', JSON.stringify(mergedEvents));
+
+            // profile: merge first profile doc fields into localStorage keys used by app
+            if (profile && profile.length) {
+              const p = profile[0];
+              if (p.name) localStorage.setItem('userName', p.name);
+              if (p.home) localStorage.setItem('userHome', p.home);
+              if (p.jobs) localStorage.setItem('jobs', JSON.stringify(p.jobs));
+            }
+
+            // update UI hooks
+            if (window.updateHeaderFromProfile) window.updateHeaderFromProfile();
+            window.dispatchEvent(new CustomEvent('app:data:updated'));
+            setStatus('Imported ' + events.length + ' events, ' + profile.length + ' profile docs');
+          } catch (err) {
+            console.error(err);
+            setStatus('Import error: ' + (err && err.message ? err.message : String(err)));
+          }
+        });
+
+        document.addEventListener('pouch-sync:error', (e) => { setStatus('Sync error: ' + (e.detail && (e.detail.message || e.detail) ? (e.detail.message || e.detail) : 'unknown')); });
+        document.addEventListener('pouch-sync:active', () => setStatus('Sync active'));
+        document.addEventListener('pouch-sync:paused', () => setStatus('Sync paused'));
+
+        // try to auto-start if the user saved a URL
+        (async function autoStartSaved() {
+          const saved = localStorage.getItem('pouchSyncUrl');
+          if (saved) {
+            try { await window.initPouchSync(saved); setStatus('Sync running'); } catch (e) { setStatus('Auto-start failed'); }
+          }
+        })();
       })();
 
     })();
