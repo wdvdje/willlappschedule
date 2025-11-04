@@ -13,6 +13,8 @@ function getTasks(){ return safeParseStorage('tasks', []); }
 function setTasks(v){ localStorage.setItem('tasks', JSON.stringify(v)); }
 function getEvents(){ return safeParseStorage('events', []); }
 function setEvents(v){ localStorage.setItem('events', JSON.stringify(v)); }
+function getJobs(){ return safeParseStorage('jobs', []); }
+function setJobs(v){ localStorage.setItem('jobs', JSON.stringify(v)); }
 
 function showAppError(msg){
   try{
@@ -244,6 +246,125 @@ function isCurrentHourForDate(year, monthIndex, day, hourCell){
   const mapped = hourCell % 24;
   return cmpHour === mapped;
 }
+
+/* ---------- Jobs: storage and UI ---------- */
+
+/* render saved jobs list */
+function renderJobs(){
+  try{
+    const list = document.getElementById('jobList');
+    if (!list) return;
+    list.innerHTML = '';
+    const jobs = getJobs();
+    jobs.forEach(job=>{
+      const li = document.createElement('li');
+      li.className = 'job-item';
+      li.dataset.jobId = job.id;
+
+      const bullet = document.createElement('span');
+      bullet.className = 'job-bullet';
+      bullet.textContent = job.emoji || '🧾';
+
+      const content = document.createElement('div');
+      content.className = 'job-content';
+      const locHtml = job.location ? ` — <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}" target="_blank">${escapeHTML(job.location)}</a>` : '';
+      content.innerHTML = `<b>${escapeHTML(job.name)}</b> <small style="color:#666">(${escapeHTML(job.rate||'')}${job.unit?(' /'+escapeHTML(job.unit)):""})</small>${locHtml}`;
+
+      const controls = document.createElement('span');
+      controls.className = 'job-controls';
+      const editBtn = document.createElement('button'); editBtn.className='small-btn'; editBtn.textContent='Edit';
+      editBtn.addEventListener('click', ()=> editJob(job.id));
+      const delBtn = document.createElement('button'); delBtn.className='small-btn'; delBtn.textContent='Delete';
+      delBtn.addEventListener('click', ()=> { if(confirm('Delete job?')) deleteJob(job.id); });
+      controls.appendChild(editBtn); controls.appendChild(delBtn);
+
+      li.appendChild(bullet);
+      li.appendChild(content);
+      li.appendChild(controls);
+      list.appendChild(li);
+    });
+  }catch(e){ console.warn('renderJobs failed', e); }
+}
+
+/* save job from Add Job form (create or update) */
+function saveJobFromUI(){
+  try{
+    const idField = document.getElementById('jobId');
+    const name = (document.getElementById('jobName')||{}).value.trim();
+    if (!name){ alert('Enter a job name'); return; }
+    const emoji = (document.getElementById('jobEmoji')||{}).value.trim();
+    const location = (document.getElementById('jobLocation')||{}).value.trim();
+    const rate = (document.getElementById('jobRate')||{}).value.trim();
+    const unit = (document.getElementById('jobUnit')||{}).value;
+
+    let jobs = getJobs();
+    if (idField && idField.value){
+      const id = parseInt(idField.value,10);
+      const idx = jobs.findIndex(j=>j.id===id);
+      if (idx!==-1){
+        jobs[idx] = Object.assign({}, jobs[idx], {name, emoji, location, rate, unit});
+      }
+    } else {
+      const nid = jobs.length ? Math.max(...jobs.map(j=>j.id))+1 : 1;
+      jobs.push({ id: nid, name, emoji, location, rate, unit });
+    }
+    setJobs(jobs);
+    renderJobs();
+    // clear form
+    clearJobForm();
+  }catch(e){ console.warn('saveJobFromUI failed', e); alert('Save failed'); }
+}
+
+/* populate form for editing */
+function editJob(id){
+  try{
+    const jobs = getJobs();
+    const job = jobs.find(j=>j.id===id);
+    if (!job) return;
+    document.getElementById('jobId').value = job.id;
+    document.getElementById('jobName').value = job.name || '';
+    document.getElementById('jobEmoji').value = job.emoji || '';
+    document.getElementById('jobLocation').value = job.location || '';
+    document.getElementById('jobRate').value = job.rate || '';
+    document.getElementById('jobUnit').value = job.unit || 'hour';
+    // mark inputs as user-editable to avoid being overwritten by profile UI
+    const homeInput = document.getElementById('jobLocation'); if (homeInput) homeInput.dataset.userset = '1';
+  }catch(e){ console.warn('editJob failed', e); }
+}
+
+/* delete job */
+function deleteJob(id){
+  try{
+    let jobs = getJobs();
+    jobs = jobs.filter(j=>j.id !== id);
+    setJobs(jobs);
+    renderJobs();
+  }catch(e){ console.warn('deleteJob failed', e); }
+}
+
+function clearJobForm(){
+  try{
+    document.getElementById('jobId').value = '';
+    document.getElementById('jobName').value = '';
+    document.getElementById('jobEmoji').value = '';
+    document.getElementById('jobLocation').value = '';
+    document.getElementById('jobRate').value = '';
+    document.getElementById('jobUnit').value = 'hour';
+  }catch(e){ /* ignore */ }
+}
+
+/* wire job UI handlers on DOM ready */
+(function wireJobsUI(){
+  try{
+    document.addEventListener('DOMContentLoaded', function(){
+      const saveBtn = document.getElementById('saveJobBtn');
+      const clearBtn = document.getElementById('clearJobBtn');
+      if (saveBtn) saveBtn.addEventListener('click', function(e){ e.preventDefault(); saveJobFromUI(); });
+      if (clearBtn) clearBtn.addEventListener('click', function(e){ e.preventDefault(); if (confirm('Clear job form?')) clearJobForm(); });
+      renderJobs();
+    });
+  }catch(e){ console.warn('wireJobsUI failed', e); }
+})();
 
 /* generate calendar */
 function generateCalendar(){
@@ -752,6 +873,11 @@ function initPlaces(){
     const userHomeList = document.getElementById('userHomeList');
     if (userHomeInput && userHomeList) attachAutocompleteUI(userHomeInput, userHomeList);
 
+    // attach to jobLocation if present
+    const jobLocInput = document.getElementById('jobLocation');
+    const jobLocList = document.getElementById('jobLocationList');
+    if (jobLocInput && jobLocList) attachAutocompleteUI(jobLocInput, jobLocList);
+
   }catch(err){ console.warn('initPlaces error', err); }
 }
 
@@ -854,6 +980,7 @@ function showView(view, updateHash = true){
   if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } }
   else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
+  else if (view === 'jobs'){ try{ renderJobs(); }catch(e){ console.warn(e); } }
   if (updateHash){ const newHash = '#'+view; if (location.hash !== newHash) location.hash = newHash; }
 }
 window.addEventListener('hashchange', ()=> {
@@ -956,6 +1083,7 @@ document.addEventListener('DOMContentLoaded', function(){
     try{ if (document.getElementById('calendar')) showReminders(selectedDay); }catch(e){ console.warn('showReminders init failed',e); }
     try{ if (document.getElementById('taskList')) loadTasks(); }catch(e){ console.warn('loadTasks failed', e); }
     try{ if (document.getElementById('eventList')) renderEvents(); }catch(e){ console.warn('renderEvents failed', e); }
+    try{ if (document.getElementById('jobList')) renderJobs(); }catch(e){ console.warn('renderJobs failed', e); }
     if (window.google && google.maps && google.maps.places){ try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); } }
     else { loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); }); }
     try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }

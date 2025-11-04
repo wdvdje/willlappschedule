@@ -122,3 +122,9 @@ body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
 .event-past{ opacity:0.55; }
 /* make actions stay on the right */
 .event-item .item-controls{ margin-left:12px; display:flex; gap:6px; align-items:center; }
+
+/* job-list layout */
+.job-item { display:flex; gap:10px; align-items:flex-start; padding:8px 6px; border-bottom:1px solid #f0f0f0; }
+.job-bullet { width:34px; flex:0 0 34px; font-size:1.25rem; text-align:center; line-height:1; }
+.job-content { flex:1; text-align:left; }
+.job-controls { margin-left:12px; display:flex; gap:6px; align-items:center; }

@@ -35,10 +35,54 @@
       <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
     </section>
 
-    <!-- Jobs placeholder -->
+    <!-- Jobs -->
     <section id="userJobs" style="margin-top:18px">
       <h3>Jobs</h3>
-      <p>Placeholder — will add job inputs here later.</p>
+
+      <!-- Saved Jobs -->
+      <div id="savedJobs" style="margin-top:8px">
+        <h4>Saved Jobs</h4>
+        <ul id="jobList" style="list-style:none;padding:0;margin:8px 0;">
+          <!-- ... populated by JS ... -->
+        </ul>
+      </div>
+
+      <!-- Add / Edit Job -->
+      <div id="addJob" style="margin-top:16px">
+        <h4>Add Job</h4>
+        <input id="jobId" type="hidden" />
+        <label for="jobName" style="display:block;margin-top:6px;font-weight:600">Job name</label>
+        <input id="jobName" type="text" placeholder="e.g. Lawn mowing" />
+
+        <label for="jobEmoji" style="display:block;margin-top:6px;font-weight:600">Emoji</label>
+        <input id="jobEmoji" type="text" placeholder="e.g. 🚜" />
+
+        <label for="jobLocation" style="display:block;margin-top:6px;font-weight:600">Location</label>
+        <div class="places-suggestions" style="position:relative">
+          <input id="jobLocation" type="text" placeholder="Address or area" autocomplete="off" />
+          <div id="jobLocationList" class="suggestions-list" style="display:none"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1">
+            <label for="jobRate" style="display:block;font-weight:600">Rate</label>
+            <input id="jobRate" type="text" placeholder="e.g. 25.00" />
+          </div>
+          <div style="width:140px">
+            <label for="jobUnit" style="display:block;font-weight:600">Unit</label>
+            <select id="jobUnit">
+              <option value="hour">hour</option>
+              <option value="job">job</option>
+              <option value="day">day</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
+          <button id="clearJobBtn" class="small-btn">Clear</button>
+        </div>
+      </div>
     </section>
 
     <!-- Maps API Key settings (kept) -->
