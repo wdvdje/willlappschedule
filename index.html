@@ -216,36 +216,69 @@
     <!-- Settings page -->
     <section id="page-settings" class="page hidden">
       <h2>⚙️ Settings</h2>
-      <form id="settingsForm" style="max-width:720px;margin:8px auto;padding:12px;background:#fff;border-radius:10px;border:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,0.04);text-align:left">
-        <div style="display:flex;gap:8px;align-items:center;">
-          <label style="min-width:110px;font-weight:600">Display name</label>
-          <input id="settingsName" type="text" placeholder="Your name" />
-        </div>
 
+      <!-- User profile -->
+      <form id="settingsForm" style="max-width:860px;margin:8px auto;padding:12px;background:#fff;border-radius:10px;border:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,0.04);text-align:left">
+        <fieldset style="border:0;padding:0;margin:0">
+          <legend style="font-weight:700;margin-bottom:8px">User profile</legend>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <label style="min-width:120px;font-weight:600">Full name</label>
+            <input id="settingsFullName" type="text" placeholder="Jane Doe" />
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <label style="min-width:120px;font-weight:600">Email</label>
+            <input id="settingsEmail" type="email" placeholder="you@example.com" />
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <label style="min-width:120px;font-weight:600">Time zone</label>
+            <select id="settingsTimeZone" style="flex:1">
+              <option value="local">Local</option>
+              <option value="UTC">UTC</option>
+              <option value="America/New_York">America/New_York</option>
+              <option value="Europe/London">Europe/London</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <label style="min-width:120px;font-weight:600">Home location</label>
+            <input id="settingsHomeLocation" type="text" placeholder="City or address" />
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <label style="min-width:120px;font-weight:600">Work day</label>
+            <input id="settingsWorkStart" type="time" style="width:120px" /> – <input id="settingsWorkEnd" type="time" style="width:120px" />
+          </div>
+        </fieldset>
+
+        <hr style="margin:12px 0;border:0;border-top:1px solid #eee" />
+
+        <!-- Jobs -->
+        <fieldset style="border:0;padding:0;margin:0">
+          <legend style="font-weight:700;margin-bottom:8px">Jobs</legend>
+          <p style="margin:0 0 8px 0;color:#555;font-size:0.95rem">Add one or more jobs (role, company, hours, commute). Jobs appear in scheduling heuristics.</p>
+
+          <div id="jobFormRow" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <input id="jobRole" type="text" placeholder="Role (e.g. Designer)" style="flex:1;min-width:180px" />
+            <input id="jobCompany" type="text" placeholder="Company" style="flex:1;min-width:180px" />
+            <input id="jobLocation" type="text" placeholder="Location" style="flex:1;min-width:180px" />
+            <input id="jobStart" type="time" style="width:120px" />
+            <input id="jobEnd" type="time" style="width:120px" />
+            <input id="jobCommute" type="number" min="0" placeholder="Commute min" style="width:120px" />
+            <button id="addJobBtn" type="button" style="background:#4a90e2;color:#fff;border:none;padding:8px 10px;border-radius:6px">Add job</button>
+          </div>
+
+          <ul id="jobsList" style="margin-top:12px;padding-left:16px"></ul>
+        </fieldset>
+
+        <hr style="margin:12px 0;border:0;border-top:1px solid #eee" />
+
+        <!-- Buffers and general prefs -->
         <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-          <label style="min-width:110px;font-weight:600">Default pre-buffer</label>
-          <select id="settingsPreBuffer" style="width:160px">
+          <label style="min-width:120px;font-weight:600">Default pre-buffer</label>
+          <select id="settingsPreBuffer" style="width:120px">
             <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option><option value="30">30 m</option>
           </select>
-          <label style="min-width:110px;font-weight:600;margin-left:12px">Default post-buffer</label>
-          <select id="settingsPostBuffer" style="width:160px">
+          <label style="min-width:120px;font-weight:600;margin-left:12px">Default post-buffer</label>
+          <select id="settingsPostBuffer" style="width:120px">
             <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option><option value="30">30 m</option>
-          </select>
-        </div>
-
-        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-          <label style="min-width:110px;font-weight:600">Default day view</label>
-          <select id="settingsDefaultView">
-            <option value="calendar">Calendar</option>
-            <option value="events">Events</option>
-            <option value="tasks">Tasks</option>
-          </select>
-        </div>
-
-        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-          <label style="min-width:110px;font-weight:600">Week starts on</label>
-          <select id="settingsWeekStart" style="width:160px">
-            <option value="0">Sunday</option><option value="1">Monday</option>
           </select>
         </div>
 
