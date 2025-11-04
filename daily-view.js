@@ -5,13 +5,11 @@
   const calendarEl = document.getElementById('calendar');
   const PRIMARY_COLOR = '#4a90e2'; // kept in sync with CSS
 
-  function loadEvents() {
-    try {
-      return JSON.parse(localStorage.getItem('events') || '[]');
-    } catch (e) {
-      return [];
-    }
-  }
+  // use shared loader if available, fallback to local impl
+  const loadEvents = (window.appUtils && window.appUtils.loadEvents) ? window.appUtils.loadEvents : function () {
+    try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (_) { return []; }
+  };
+  const openEditModal = (window.appUtils && window.appUtils.openEditModalFill) ? window.appUtils.openEditModalFill : null;
 
   function formatHourLabel(h) {
     const hh = String(h).padStart(2, '0');
@@ -169,28 +167,16 @@
       const emoji = ev.emoji ? (ev.emoji + ' ') : '';
       el.textContent = `${timeText} ${emoji}${ev.title || '(untitled)'}`;
 
-      // click to open edit modal / fallback behavior retained
       el.addEventListener('click', () => {
-        if (typeof openEditModal === 'function') {
-          openEditModal(ev);
-          return;
-        }
-        const editModal = document.getElementById('editModal');
-        if (editModal) {
-          const editKind = document.getElementById('editKind');
-          const editEventId = document.getElementById('editEventId');
-          const editText = document.getElementById('editText');
-          const editDate = document.getElementById('editDate');
-          const editTime = document.getElementById('editTime');
-          const editEndTime = document.getElementById('editEndTime');
-          if (editKind) editKind.value = 'event';
-          if (editEventId) editEventId.value = ev.id || '';
-          if (editText) editText.value = ev.title || '';
-          if (editDate) editDate.value = ev.date || '';
-          if (editTime) editTime.value = ev.startTime || '';
-          if (editEndTime) editEndTime.value = ev.endTime || '';
-          editModal.classList.remove('hidden');
-        }
+        if (openEditModal) { openEditModal(ev); return; }
+        // fallback: try to populate edit modal inline
+        const modal = document.getElementById('editModal');
+        if (!modal) { console.log('Edit requested:', ev); return; }
+        const setIf = (id, value) => { const el = document.getElementById(id); if (el) el.value = value || ''; };
+        setIf('editKind', 'event'); setIf('editEventId', ev.id || ''); setIf('editText', ev.title || '');
+        setIf('editDate', ev.date || ''); setIf('editTime', ev.startTime || ''); setIf('editEndTime', ev.endTime || '');
+        setIf('editEmoji', ev.emoji || '');
+        modal.classList.remove('hidden');
       });
       return el;
     }

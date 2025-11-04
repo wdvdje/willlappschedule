@@ -345,10 +345,10 @@
           </div>
           <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
             <div style="flex:1"><label for="editPreBuffer">Pre-buffer</label>
-              <select id="editPreBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option></select>
+              <select id="editPreBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25 min">25 min</option><option value="30 min">30 min</option></select>
             </div>
             <div style="width:140px"><label for="editPostBuffer">Post-buffer</label>
-              <select id="editPostBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option></select>
+              <select id="editPostBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25 min">25 min</option><option value="30 min">30 min</option></select>
             </div>
           </div>
         </div>
@@ -371,6 +371,9 @@
 
   <!-- load canonical app script -->
   <script src="./app.js"></script>
+
+  <!-- ADDED: shared utilities used by view scripts -->
+  <script src="./utils.js"></script>
 
   <!-- ADDED: events renderer and header/profile wiring -->
   <script src="./events-view.js"></script>

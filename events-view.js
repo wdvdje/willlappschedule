@@ -1,12 +1,7 @@
 (function () {
-  // Utility: parse events from localStorage (expected array of {id,title,date,startTime,endTime,emoji,...})
-  function loadEvents() {
-    try {
-      return JSON.parse(localStorage.getItem('events') || '[]') || [];
-    } catch (e) {
-      return [];
-    }
-  }
+  const loadEvents = (window.appUtils && window.appUtils.loadEvents) ? window.appUtils.loadEvents : function () {
+    try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (e) { return []; }
+  };
 
   function getTodayDateStr() {
     const d = new Date();
@@ -48,7 +43,7 @@
     body.appendChild(title);
     body.appendChild(meta);
 
-    // optional actions column
+    // optional actions column (uses shared openEdit)
     const actions = document.createElement('div');
     actions.style.flex = '0 0 auto';
     actions.style.marginLeft = '8px';
@@ -64,30 +59,15 @@
     return li;
   }
 
-  function openEdit(ev) {
-    // Try to use existing edit modal; fall back to console
-    const editModal = document.getElementById('editModal');
-    if (!editModal) {
-      console.log('Edit event:', ev);
-      return;
-    }
-    const editKind = document.getElementById('editKind');
-    const editEventId = document.getElementById('editEventId');
-    const editText = document.getElementById('editText');
-    const editDate = document.getElementById('editDate');
-    const editTime = document.getElementById('editTime');
-    const editEndTime = document.getElementById('editEndTime');
-    const editEmoji = document.getElementById('editEmoji');
-
-    if (editKind) editKind.value = 'event';
-    if (editEventId) editEventId.value = ev.id || '';
-    if (editText) editText.value = ev.title || '';
-    if (editDate) editDate.value = ev.date || '';
-    if (editTime) editTime.value = ev.startTime || '';
-    if (editEndTime) editEndTime.value = ev.endTime || '';
-    if (editEmoji) editEmoji.value = ev.emoji || '';
-    editModal.classList.remove('hidden');
-  }
+  const openEdit = (window.appUtils && window.appUtils.openEditModalFill) ? window.appUtils.openEditModalFill : function (ev) {
+    const modal = document.getElementById('editModal');
+    if (!modal) { console.log('Edit event:', ev); return; }
+    const setIf = (id, value) => { const el = document.getElementById(id); if (el) el.value = value || ''; };
+    setIf('editKind', 'event'); setIf('editEventId', ev.id || ''); setIf('editText', ev.title || '');
+    setIf('editDate', ev.date || ''); setIf('editTime', ev.startTime || ''); setIf('editEndTime', ev.endTime || '');
+    setIf('editEmoji', ev.emoji || '');
+    modal.classList.remove('hidden');
+  };
 
   function renderEventsList() {
     const listEl = document.getElementById('eventList');
