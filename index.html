@@ -152,8 +152,7 @@
             <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option>
             <option value="20">20 m</option><option value="25">25 m</option><option value="30">30 m</option>
             <option value="35">35 m</option><option value="40">40 m</option><option value="45">45 m</option>
-            <option value="50">50 m</option><option value="55">55 m</option>
-            <option value="60">60 m</option>
+            <option value="50">50 m</option><option value="55">55 m</option><option value="60">60 m</option>
             <option value="90">90 m</option><option value="120">120 m</option>
           </select>
         </div>
@@ -269,8 +268,89 @@
     <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
 
+  <!-- Minimal fallback app (used if assets/app.js cannot be loaded) -->
   <script>
-    // Try a few locations for assets/app.js (local, absolute on GH Pages, fallback to raw GitHub)
+    function minimalAppInit(){
+      try{
+        // basic state
+        const now = new Date();
+        let m = now.getMonth(), y = now.getFullYear(), selDay = now.getDate();
+
+        function pad2(n){ return n<10 ? '0'+n : ''+n; }
+        const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        const weekdayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+        function renderCalendar(){
+          const calendarEl = document.getElementById('calendar');
+          const monthLabelEl = document.getElementById('monthLabel') || { textContent: '' };
+          if (!calendarEl) return;
+          calendarEl.innerHTML = '';
+          monthLabelEl.textContent = monthNames[m] + ' ' + y;
+          for (let i=0;i<7;i++){
+            const hdr = document.createElement('div'); hdr.className='calendar-dayname'; hdr.textContent = weekdayNames[i]; calendarEl.appendChild(hdr);
+          }
+          const first = new Date(y,m,1);
+          const start = first.getDay();
+          const daysInMonth = new Date(y,m+1,0).getDate();
+          for (let i=0;i<start;i++) calendarEl.appendChild(document.createElement('div'));
+          for (let d=1; d<=daysInMonth; d++){
+            const dt = new Date(y,m,d);
+            const cell = document.createElement('div');
+            cell.className = 'day' + (d===selDay ? ' selected' : '') + ((dt.getFullYear()===now.getFullYear() && dt.getMonth()===now.getMonth() && dt.getDate()===now.getDate()) ? ' today' : '');
+            cell.dataset.day = d;
+            cell.innerHTML = `<div class="day-number">${d}</div><div class="emoji-row" aria-hidden="true"></div>`;
+            cell.addEventListener('click', ()=> { selDay = d; renderCalendar(); showSelected(d); });
+            calendarEl.appendChild(cell);
+          }
+        }
+
+        function showSelected(day){
+          const rd = document.getElementById('selectedDateLong');
+          if (rd){ rd.textContent = new Date(y,m,day).toLocaleDateString(); rd.style.display='block'; }
+          // basic daily view: hours
+          const dv = document.getElementById('dailyView');
+          if (!dv) return;
+          dv.innerHTML = '';
+          for (let h=0; h<24; h++){
+            const row = document.createElement('div'); row.className='hour-row' + ( (new Date()).getHours()===h && (new Date()).getDate()===day && (new Date()).getMonth()===m && (new Date()).getFullYear()===y ? ' current' : '' );
+            const lbl = document.createElement('div'); lbl.className='hour-label'; lbl.textContent = (h%12===0?12:h%12)+':00 ' + (h<12?'AM':'PM');
+            const evs = document.createElement('div'); evs.className='hour-events'; evs.textContent = ''; row.appendChild(lbl); row.appendChild(evs); dv.appendChild(row);
+          }
+        }
+
+        function wireControls(){
+          const prev = document.getElementById('prevBtn');
+          const next = document.getElementById('nextBtn');
+          if (prev) prev.addEventListener('click', ()=>{ m--; if (m<0){ m=11; y--; } renderCalendar(); });
+          if (next) next.addEventListener('click', ()=>{ m++; if (m>11){ m=0; y++; } renderCalendar(); });
+          document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
+            a.addEventListener('click', (ev)=>{
+              // if it is a hash for SPA, handle locally
+              const href = a.getAttribute('href')||'';
+              const view = (href.indexOf('#')>-1) ? href.split('#').pop() : null;
+              if (view){
+                ev.preventDefault();
+                // simple show/hide of page sections by id "page-<view>" if present
+                document.querySelectorAll('[id^="page-"]').forEach(p=>p.classList.add('hidden'));
+                const el = document.getElementById('page-'+view) || document.getElementById('page-calendar');
+                if (el) el.classList.remove('hidden');
+                document.querySelectorAll('.bottom-ribbon .r-item').forEach(x=> x.classList.toggle('active', x===a));
+              }
+            });
+          });
+        }
+
+        // initialize
+        renderCalendar();
+        showSelected(selDay);
+        wireControls();
+        console.info('minimalAppInit: fallback calendar ready');
+      }catch(err){ console.error('minimalAppInit failed', err); }
+    }
+  </script>
+
+  <!-- loader: try to fetch assets/app.js, call minimalAppInit() on total failure -->
+  <script>
     (function loadAppJs(){
       const candidates = [
         './assets/app.js',
@@ -288,10 +368,13 @@
       }
       function tryNext(){
         idx++;
-        if (idx >= candidates.length) { console.error('Unable to load assets/app.js from any candidate'); return; }
+        if (idx >= candidates.length) {
+          console.error('Unable to load assets/app.js from any candidate — running minimal fallback');
+          try{ minimalAppInit(); }catch(e){ console.error('fallback failed',e); }
+          return;
+        }
         const url = candidates[idx];
         if (url.startsWith('http')){
-          // fetch raw text and load via Blob to avoid CSP issues with inline eval
           fetch(url).then(r=>{ if(!r.ok) throw new Error('fetch failed'); return r.text(); }).then(code=>{
             const b = new Blob([code], { type: 'text/javascript' });
             const blobUrl = URL.createObjectURL(b);
