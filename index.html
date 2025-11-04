@@ -311,8 +311,18 @@
         <!-- ADDED: PouchDB sync settings -->
         <section id="pouchSyncSettings" style="margin-top:18px">
           <h3>Sync (PouchDB)</h3>
-          <label for="syncUrl" style="display:block;font-weight:600">Remote CouchDB base URL</label>
-          <input id="syncUrl" type="text" placeholder="https://user:pass@host:5984" />
+          <label for="syncHost" style="display:block;font-weight:600">CouchDB Host</label>
+          <input id="syncHost" type="text" placeholder="e.g. couch.example.com" />
+          <label for="syncPort" style="display:block;font-weight:600;margin-top:8px">Port</label>
+          <input id="syncPort" type="text" placeholder="e.g. 5984" />
+          <label for="syncHttps" style="display:block;font-weight:600;margin-top:8px">Use HTTPS</label>
+          <input id="syncHttps" type="checkbox" />
+          <label for="syncUser" style="display:block;font-weight:600;margin-top:8px">Username</label>
+          <input id="syncUser" type="text" placeholder="e.g. admin" />
+          <label for="syncPass" style="display:block;font-weight:600;margin-top:8px">Password</label>
+          <input id="syncPass" type="password" placeholder="e.g. password" />
+          <label for="saveCreds" style="display:block;font-weight:600;margin-top:8px">Save Credentials</label>
+          <input id="saveCreds" type="checkbox" />
           <div style="display:flex;gap:8px;margin-top:8px">
             <button id="startSyncBtn" class="small-btn" style="background:#4a90e2;color:#fff">Start sync</button>
             <button id="stopSyncBtn" class="small-btn">Stop sync</button>
@@ -513,7 +523,7 @@
     (function () {
       // Simple PouchDB sync helpers for "events" and "profile" (user data)
       // Usage:
-      //   window.initPouchSync('https://user:pass@couch.example.com'); // returns Promise
+      //   window.initPouchSync('https://user:pass@host:5984'); // returns Promise
       //   window.stopPouchSync();
       // Listens for remote changes and dispatches custom events:
       //   document.addEventListener('pouch-sync:import', (e) => { /* e.detail = { events: [...], profile: [...] } */ });
@@ -648,22 +658,56 @@
 
       // --- ADDED: settings wiring + merge logic for incoming docs ---
       (function wirePouchUiAndMerge() {
-        const elUrl = document.getElementById('syncUrl');
+        const elHost = document.getElementById('syncHost');
+        const elPort = document.getElementById('syncPort');
+        const elHttps = document.getElementById('syncHttps');
+        const elUser = document.getElementById('syncUser');
+        const elPass = document.getElementById('syncPass');
+        const elSave = document.getElementById('saveCreds');
         const startBtn = document.getElementById('startSyncBtn');
         const stopBtn = document.getElementById('stopSyncBtn');
         const importBtn = document.getElementById('importNowBtn');
         const statusEl = document.getElementById('pouchSyncStatus');
         function setStatus(s){ if(statusEl) statusEl.textContent = s; }
 
-        if (elUrl) elUrl.value = localStorage.getItem('pouchSyncUrl') || '';
+        // populate saved parts if present
+        if (elHost) elHost.value = localStorage.getItem('pouchSyncHost') || '';
+        if (elPort) elPort.value = localStorage.getItem('pouchSyncPort') || '5984';
+        if (elHttps) elHttps.checked = localStorage.getItem('pouchSyncHttps') === '1';
+        if (elUser) elUser.value = localStorage.getItem('pouchSyncUser') || '';
+        if (elSave) elSave.checked = localStorage.getItem('pouchSyncSaveCreds') === '1';
 
         startBtn && startBtn.addEventListener('click', async () => {
-          const url = (elUrl && elUrl.value || '').trim();
-          if (!url) return setStatus('Enter remote URL first');
+          const host = (elHost && elHost.value || '').trim();
+          if (!host) return setStatus('Enter CouchDB host first');
+          const port = (elPort && elPort.value || '').trim();
+          const https = !!(elHttps && elHttps.checked);
+          const user = (elUser && elUser.value || '').trim();
+          const pass = (elPass && elPass.value || '').trim();
+          const saveCreds = !!(elSave && elSave.checked);
+
+          // assemble base URL
+          const proto = https ? 'https://' : 'http://';
+          const hostPort = port ? (host + ':' + port) : host;
+          let baseUrl = proto + hostPort;
+          if (user) {
+            // include credentials in URL for quick replication (encode them)
+            const cred = encodeURIComponent(user) + (pass ? ':' + encodeURIComponent(pass) : '');
+            baseUrl = proto + cred + '@' + hostPort;
+          }
+
           setStatus('Starting sync...');
           try {
-            localStorage.setItem('pouchSyncUrl', url);
-            await window.initPouchSync(url);
+            // persist parts (optionally password)
+            localStorage.setItem('pouchSyncHost', host);
+            localStorage.setItem('pouchSyncPort', port);
+            localStorage.setItem('pouchSyncHttps', https ? '1' : '0');
+            localStorage.setItem('pouchSyncUser', user || '');
+            localStorage.setItem('pouchSyncSaveCreds', saveCreds ? '1' : '0');
+            if (saveCreds && pass) localStorage.setItem('pouchSyncPass', pass);
+            else localStorage.removeItem('pouchSyncPass');
+
+            await window.initPouchSync(baseUrl);
             setStatus('Sync running');
           } catch (err) {
             console.error(err);
@@ -725,9 +769,20 @@
 
         // try to auto-start if the user saved a URL
         (async function autoStartSaved() {
-          const saved = localStorage.getItem('pouchSyncUrl');
-          if (saved) {
-            try { await window.initPouchSync(saved); setStatus('Sync running'); } catch (e) { setStatus('Auto-start failed'); }
+          const host = localStorage.getItem('pouchSyncHost');
+          if (host) {
+            try {
+              const port = localStorage.getItem('pouchSyncPort') || '';
+              const https = localStorage.getItem('pouchSyncHttps') === '1';
+              const user = localStorage.getItem('pouchSyncUser') || '';
+              const pass = localStorage.getItem('pouchSyncPass') || '';
+              const proto = https ? 'https://' : 'http://';
+              const hostPort = port ? (host + ':' + port) : host;
+              let base = proto + hostPort;
+              if (user) base = proto + encodeURIComponent(user) + (pass ? ':' + encodeURIComponent(pass) : '') + '@' + hostPort;
+              await window.initPouchSync(base);
+              setStatus('Sync running');
+            } catch (e) { setStatus('Auto-start failed'); }
           }
         })();
       })();
