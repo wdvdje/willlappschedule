@@ -348,7 +348,7 @@
               <select id="editPreBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25 min">25 min</option><option value="30 min">30 min</option></select>
             </div>
             <div style="width:140px"><label for="editPostBuffer">Post-buffer</label>
-              <select id="editPostBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25 min">25 min</option><option value="30 min">30 min</option></select>
+              <select id="editPostBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15 min">15 min</option><option value="20 min">20 min</option><option value="25 min">25 min</option><option value="30 min">30 min</option></select>
             </div>
           </div>
         </div>
@@ -368,6 +368,41 @@
     <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
     <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
+
+  <!-- Ensure ribbon links always target a cache-busted index.html, but avoid full reload when already on index -->
+  <script>
+  (function () {
+    const items = document.querySelectorAll('.bottom-ribbon .r-item');
+    if (!items || !items.length) return;
+    const now = Date.now();
+    items.forEach(a => {
+      const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '') || 'calendar';
+      // set href to cache-busted target so navigating from other pages loads newest index.html
+      a.setAttribute('href', 'index.html?_=' + now + '#' + view);
+    });
+
+    // Intercept clicks when already on index.html to use SPA router
+    items.forEach(a => {
+      a.addEventListener('click', (e) => {
+        const path = location.pathname.split('/').pop();
+        const view = a.dataset.view || (a.getAttribute('href') || '').split('#')[1] || 'calendar';
+        if (path === '' || path === 'index.html') {
+          // already on index: prevent reload, update hash and trigger hashchange so router shows view
+          e.preventDefault();
+          if (location.hash.replace('#','') !== view) {
+            location.hash = view;
+            // trigger router if it listens to hashchange
+            window.dispatchEvent(new Event('hashchange'));
+          } else {
+            // still call router show via dispatch so UI refreshes if needed
+            window.dispatchEvent(new Event('hashchange'));
+          }
+        }
+        // otherwise allow default navigation to cache-busted index.html target
+      }, { passive: true });
+    });
+  })();
+  </script>
 
   <!-- load canonical app script -->
   <script src="./app.js"></script>
@@ -458,5 +493,147 @@
 
   <!-- ADDED: daily view renderer -->
   <script src="./daily-view.js"></script>
+
+  <!-- ADDED: PouchDB sync support (loads PouchDB and provides simple sync helpers) -->
+  <script src="https://unpkg.com/pouchdb@7.3.0/dist/pouchdb.min.js"></script>
+  <script>
+    (function () {
+      // Simple PouchDB sync helpers for "events" and "profile" (user data)
+      // Usage:
+      //   window.initPouchSync('https://user:pass@couch.example.com'); // returns Promise
+      //   window.stopPouchSync();
+      // Listens for remote changes and dispatches custom events:
+      //   document.addEventListener('pouch-sync:import', (e) => { /* e.detail = { events: [...], profile: [...] } */ });
+      //   document.addEventListener('pouch-sync:error', (e) => { /* e.detail = error */ });
+
+      const state = {
+        local: {},
+        syncHandlers: [],
+      };
+
+      function docsToArray(result) {
+        return (result && result.rows) ? result.rows.map(r => r.doc) : [];
+      }
+
+      async function pullAllDocs(db) {
+        const res = await db.allDocs({ include_docs: true });
+        return docsToArray(res);
+      }
+
+      async function importAll() {
+        try {
+          const events = state.local.events ? await pullAllDocs(state.local.events) : [];
+          const profile = state.local.profile ? await pullAllDocs(state.local.profile) : [];
+          // Broadcast to the app so other scripts can reconcile with localStorage/UI
+          window.dispatchEvent(new CustomEvent('pouch-sync:import', { detail: { events, profile } }));
+        } catch (err) {
+          window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err }));
+        }
+      }
+
+      function makeHandler(dbName) {
+        return async (change) => {
+          // A change occurred in either direction; do a full import (simple, reliable)
+          try {
+            await importAll();
+          } catch (err) {
+            window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err }));
+          }
+        };
+      }
+
+      window.initPouchSync = async function initPouchSync(remoteBaseUrl) {
+        // remoteBaseUrl example: https://user:pass@mycouch.example.com/dbs
+        if (!remoteBaseUrl || typeof remoteBaseUrl !== 'string') {
+          throw new Error('remoteBaseUrl required, e.g. https://user:pass@couch.example.com');
+        }
+
+        // create local DB instances
+        state.local.events = new PouchDB('events');
+        state.local.profile = new PouchDB('profile');
+
+        // compose remote endpoints
+        const remoteEvents = remoteBaseUrl.replace(/\/$/, '') + '/events';
+        const remoteProfile = remoteBaseUrl.replace(/\/$/, '') + '/profile';
+
+        // cancel any existing syncs
+        window.stopPouchSync && window.stopPouchSync();
+
+        // start bidirectional live sync (auto-retry)
+        const opts = { live: true, retry: true };
+        const syncEv = state.local.events.sync(remoteEvents, opts)
+          .on('change', makeHandler('events'))
+          .on('paused', info => window.dispatchEvent(new CustomEvent('pouch-sync:paused', { detail: info })))
+          .on('active', info => window.dispatchEvent(new CustomEvent('pouch-sync:active', { detail: info })))
+          .on('denied', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })))
+          .on('error', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })));
+
+        const syncPr = state.local.profile.sync(remoteProfile, opts)
+          .on('change', makeHandler('profile'))
+          .on('paused', info => window.dispatchEvent(new CustomEvent('pouch-sync:paused', { detail: info })))
+          .on('active', info => window.dispatchEvent(new CustomEvent('pouch-sync:active', { detail: info })))
+          .on('denied', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })))
+          .on('error', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })));
+
+        // keep references so we can cancel later
+        state.syncHandlers = [syncEv, syncPr];
+
+        // initial import of current docs
+        await importAll();
+
+        return { eventsDb: state.local.events, profileDb: state.local.profile };
+      };
+
+      window.stopPouchSync = function stopPouchSync() {
+        if (state.syncHandlers && state.syncHandlers.length) {
+          state.syncHandlers.forEach(s => {
+            try { s.cancel && s.cancel(); } catch (e) { /* ignore */ }
+          });
+        }
+        state.syncHandlers = [];
+        // don't destroy local DB instances (app may still read them)
+      };
+
+      // expose helper to push local JSON objects into PouchDB (upsert by id)
+      // docs should be array of { _id: '...', ... } - if no _id provided one will be created
+      window.upsertDocs = async function upsertDocs(dbName, docs = []) {
+        if (!state.local[dbName]) throw new Error('unknown db: ' + dbName);
+        const db = state.local[dbName];
+        const results = [];
+        for (const doc of docs) {
+          try {
+            if (!doc._id) doc._id = (dbName + ':' + Date.now() + ':' + Math.random().toString(36).slice(2));
+            // try get to preserve _rev when updating
+            const existing = await db.get(doc._id).catch(() => null);
+            if (existing) {
+              const merged = Object.assign({}, existing, doc);
+              merged._rev = existing._rev;
+              results.push(await db.put(merged));
+            } else {
+              results.push(await db.put(doc));
+            }
+          } catch (err) {
+            results.push({ error: err.message || String(err) });
+          }
+        }
+        return results;
+      };
+
+      // lightweight auto-import on load if PouchDB data exists locally
+      (async function autoImportIfLocal() {
+        try {
+          // only import if local DBs are present
+          const test = new PouchDB('events');
+          const count = await test.allDocs({ limit: 1 }).catch(() => ({ rows: [] }));
+          if (count && Array.isArray(count.rows)) {
+            state.local.events = test;
+            state.local.profile = new PouchDB('profile');
+            await importAll();
+          }
+        } catch (e) { /* ignore */ }
+      })();
+
+    })();
+  </script>
 </body>
 </html>

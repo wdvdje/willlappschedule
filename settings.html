@@ -118,20 +118,29 @@
        If already on index.html we only change the hash to keep SPA behavior. -->
   <script>
     (function () {
-      const items = document.querySelectorAll('.bottom-ribbon a.r-item');
+      const items = document.querySelectorAll('.bottom-ribbon .r-item');
+      if (!items || !items.length) return;
+      const now = Date.now();
+      items.forEach(a => {
+        const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '') || 'calendar';
+        a.setAttribute('href', 'index.html?_=' + now + '#' + view);
+      });
       items.forEach(a => {
         a.addEventListener('click', (e) => {
-          e.preventDefault();
-          const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
-          // If already on index, just set hash (SPA)
           const path = location.pathname.split('/').pop();
-          if (path === 'index.html' || path === '' ) {
-            location.hash = view;
+          const view = a.dataset.view || (a.getAttribute('href') || '').split('#')[1] || 'calendar';
+          if (path === '' || path === 'index.html') {
+            e.preventDefault();
+            if (location.hash.replace('#','') !== view) {
+              location.hash = view;
+              window.dispatchEvent(new Event('hashchange'));
+            } else {
+              window.dispatchEvent(new Event('hashchange'));
+            }
             return;
           }
-          // Otherwise navigate to index.html with a cache-busting query so the newest version is loaded
-          const target = 'index.html?_=' + Date.now() + '#' + view;
-          location.href = target;
+          // not on index -> navigate to cache-busted index.html (href was already set)
+          // allow default behavior
         }, { passive: true });
       });
     })();
