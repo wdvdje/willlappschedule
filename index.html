@@ -269,6 +269,41 @@
     <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
 
-  <script src="./assets/app.js"></script>
+  <script>
+    // Try a few locations for assets/app.js (local, absolute on GH Pages, fallback to raw GitHub)
+    (function loadAppJs(){
+      const candidates = [
+        './assets/app.js',
+        '/willlappschedule/assets/app.js',
+        'https://raw.githubusercontent.com/wdvdje/willlappschedule/main/assets/app.js'
+      ];
+      let idx = 0;
+      function injectSrc(src){
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = true;
+        s.onload = ()=> console.info('Loaded app.js from', src);
+        s.onerror = ()=> { console.warn('Failed to load', src); tryNext(); };
+        document.head.appendChild(s);
+      }
+      function tryNext(){
+        idx++;
+        if (idx >= candidates.length) { console.error('Unable to load assets/app.js from any candidate'); return; }
+        const url = candidates[idx];
+        if (url.startsWith('http')){
+          // fetch raw text and load via Blob to avoid CSP issues with inline eval
+          fetch(url).then(r=>{ if(!r.ok) throw new Error('fetch failed'); return r.text(); }).then(code=>{
+            const b = new Blob([code], { type: 'text/javascript' });
+            const blobUrl = URL.createObjectURL(b);
+            injectSrc(blobUrl);
+          }).catch(e=>{ console.warn('Fetch fallback failed', e); tryNext(); });
+        } else {
+          injectSrc(url);
+        }
+      }
+      // start with first candidate
+      injectSrc(candidates[0]);
+    })();
+  </script>
 </body>
 </html>
