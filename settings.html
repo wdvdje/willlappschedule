@@ -23,14 +23,6 @@
     <a href="index.html#settings" class="r-item"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
 
-  <script>
-    (function loadAppJs(){
-      const candidates = ['./assets/app.js','/willlappschedule/assets/app.js','https://raw.githubusercontent.com/wdvdje/willlappschedule/main/assets/app.js'];
-      let index=0;
-      function add(src){ const s=document.createElement('script'); s.src=src; s.async=true; s.onload=()=>console.info('Loaded',src); s.onerror=()=>{console.warn('fail',src); goNext();}; document.head.appendChild(s); }
-      function goNext(){ index++; if(index>=candidates.length){ console.error('Unable to load app.js'); return; } const u=candidates[index]; if(u.startsWith('http')){ fetch(u).then(r=>{ if(!r.ok) throw new Error('fetch failed'); return r.text(); }).then(txt=> add(URL.createObjectURL(new Blob([txt],{type:'text/javascript'})))).catch(goNext); } else add(u); }
-      add(candidates[0]);
-    })();
-  </script>
+  <script src="./assets/app.js"></script>
 </body>
 </html>
