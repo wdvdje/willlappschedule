@@ -216,8 +216,9 @@
       <form id="taskForm">
         <input id="newTask" type="text" placeholder="Add a task..." required />
         <div style="display:flex;gap:8px;margin-top:8px">
-          <select id="taskCategory" style="width:40%">
-            <option value="work">Work</option><option value="personal">Personal</option><option value="errands">Errands</option>
+          <!-- category select will be populated by tasks.js -->
+          <select id="taskCategory" style="width:30%">
+            <option value="">No category</option>
           </select>
           <input id="taskDate" type="date" style="flex:1" />
           <input id="taskTime" type="time" style="width:120px" />
@@ -227,7 +228,9 @@
           <button id="addTaskBtn" type="submit">Add</button>
         </div>
       </form>
-      <ul id="taskList" style="margin-top:12px"></ul>
+
+      <!-- New: card container for tasks -->
+      <div id="tasksContainer" style="margin-top:12px;display:flex;flex-direction:column;gap:10px"></div>
     </section>
 
     <!-- Settings page -->
@@ -818,5 +821,8 @@
 
     })();
   </script>
+
+  <!-- ADDED: tasks UI script -->
+  <script src="./tasks.js"></script>
 </body>
 </html>

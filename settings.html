@@ -92,6 +92,17 @@
       </div>
     </section>
 
+    <!-- Task categories -->
+    <section id="taskCategories" style="margin-top:18px">
+      <h3 style="text-align:center">Task categories</h3>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <input id="newCategoryName" type="text" placeholder="Category name" style="flex:1" />
+        <input id="newCategoryColor" type="color" value="#ffd54f" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+        <button id="addCategoryBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+      </div>
+      <div id="categoriesList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+    </section>
+
     <!-- Maps API Key settings (kept) -->
     <section id="mapsSettings" style="margin-top:18px">
       <h3>Google Maps</h3>
@@ -114,33 +125,19 @@
     <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
 
-  <!-- Ensure clicking ribbon on this standalone page loads the fresh index.html (cache-busting).
-       If already on index.html we only change the hash to keep SPA behavior. -->
+  <!-- REPLACED: Always navigate to a cache-busted index.html so the latest build loads -->
   <script>
     (function () {
       const items = document.querySelectorAll('.bottom-ribbon .r-item');
       if (!items || !items.length) return;
-      const now = Date.now();
       items.forEach(a => {
-        const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '') || 'calendar';
-        a.setAttribute('href', 'index.html?_=' + now + '#' + view);
-      });
-      items.forEach(a => {
+        const view = a.dataset.view || (a.getAttribute('href') || '').replace('#','') || 'calendar';
+        // set href to cache-busted target (fallback)
+        a.setAttribute('href', 'index.html?_=' + Date.now() + '#' + view);
         a.addEventListener('click', (e) => {
-          const path = location.pathname.split('/').pop();
-          const view = a.dataset.view || (a.getAttribute('href') || '').split('#')[1] || 'calendar';
-          if (path === '' || path === 'index.html') {
-            e.preventDefault();
-            if (location.hash.replace('#','') !== view) {
-              location.hash = view;
-              window.dispatchEvent(new Event('hashchange'));
-            } else {
-              window.dispatchEvent(new Event('hashchange'));
-            }
-            return;
-          }
-          // not on index -> navigate to cache-busted index.html (href was already set)
-          // allow default behavior
+          e.preventDefault();
+          // always load fresh index with the requested view
+          location.href = 'index.html?_=' + Date.now() + '#' + view;
         }, { passive: true });
       });
     })();
@@ -149,5 +146,7 @@
   <script src="./app.js"></script>
   <!-- ADDED: same wiring used in index to keep header/profile status in sync -->
   <script src="./events-view.js"></script>
+  <!-- ADDED: tasks manager (handles categories too) -->
+  <script src="./tasks.js"></script>
 </body>
 </html>
