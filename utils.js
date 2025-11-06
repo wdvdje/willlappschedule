@@ -8,6 +8,40 @@
     }
   }
 
+  // --- Edit modal helpers/wiring ---
+  function hideEditModal() {
+    const m = document.getElementById('editModal');
+    if (!m) return;
+    m.classList.add('hidden');
+  }
+  function showEditModal() {
+    const m = document.getElementById('editModal');
+    if (!m) return;
+    if (!m.classList.contains('hidden')) return; // already visible
+    m.classList.remove('hidden');
+    // focus first input
+    setTimeout(() => {
+      const el = document.getElementById('editText');
+      if (el && el.focus) try { el.focus(); } catch(_) {}
+    }, 0);
+  }
+  function wireEditModalOnce() {
+    const m = document.getElementById('editModal');
+    if (!m || m.dataset.wired === '1') return;
+    m.dataset.wired = '1';
+    const cancel = document.getElementById('cancelEdit');
+    if (cancel) cancel.addEventListener('click', (e) => { e.preventDefault(); hideEditModal(); });
+    // click outside panel closes
+    m.addEventListener('click', (e) => {
+      if (e.target === m) hideEditModal();
+    });
+    // escape closes
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !m.classList.contains('hidden')) hideEditModal();
+    });
+  }
+  document.addEventListener('DOMContentLoaded', wireEditModalOnce);
+
   function openEditModalFill(ev) {
     // populate existing edit modal if present; otherwise log
     const editModal = document.getElementById('editModal');
@@ -26,7 +60,7 @@
     setIf('editTime', ev.startTime || '');
     setIf('editEndTime', ev.endTime || '');
     setIf('editEmoji', ev.emoji || '');
-    editModal.classList.remove('hidden');
+    showEditModal();
   }
 
   // date helpers
@@ -111,4 +145,6 @@
   window.appUtils.loadEvents = loadEvents;
   window.appUtils.openEditModalFill = openEditModalFill;
   window.appUtils.expandEvents = expandEvents;
+  window.appUtils.hideEditModal = hideEditModal;
+  window.appUtils.showEditModal = showEditModal;
 })();

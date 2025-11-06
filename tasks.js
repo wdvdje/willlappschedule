@@ -22,6 +22,8 @@
   const quickCatName = () => document.getElementById('newTaskCatName');
   const quickCatColor = () => document.getElementById('newTaskCatColor');
   const quickCatAddBtn = () => document.getElementById('addTaskCatBtn');
+  const toggleTaskInputsBtn = () => document.getElementById('toggleTaskInputsBtn');
+  const taskFormFields = () => document.getElementById('taskFormFields');
 
   // helpers
   function uid(prefix = 'id') { return prefix + ':' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
@@ -222,11 +224,9 @@
     renderCategoriesList();
     renderTasksList();
 
-    // bind add task
+    // bind add task (use submit only to avoid duplicates)
     const form = document.getElementById('taskForm');
     if (form) form.addEventListener('submit', addTaskFromForm);
-    const addBtn = addTaskBtn();
-    if (addBtn) addBtn.addEventListener('click', addTaskFromForm);
 
     // bind category add
     const addCatBtn = addCategoryBtn();
@@ -241,6 +241,17 @@
     });
     const qAdd = quickCatAddBtn();
     if (qAdd) qAdd.addEventListener('click', addCategoryFromTasks);
+
+    // bind show/hide for task inputs
+    const tToggle = toggleTaskInputsBtn();
+    if (tToggle) tToggle.addEventListener('click', () => {
+      const panel = taskFormFields();
+      if (!panel) return;
+      const show = (panel.style.display === 'none' || !panel.style.display);
+      panel.style.display = show ? 'block' : 'none';
+      // optional: focus title when opening
+      if (show) setTimeout(() => { const ti = newTaskInput(); if (ti && ti.focus) ti.focus(); }, 0);
+    });
 
     // respond to external app changes (e.g., sync import)
     window.addEventListener('app:data:updated', () => { renderCategoryOptions(); renderCategoriesList(); renderTasksList(); });
