@@ -9,9 +9,18 @@
 
   function dateFromParts(dateISO, timeStr, fallback = '09:00') {
     const base = parseISODate(dateISO);
-    const t = (timeStr && timeStr.indexOf(':') > -1) ? timeStr : fallback;
-    const [hh, mm] = t.split(':').map(x=>parseInt(x||'0',10));
-    base.setHours(isNaN(hh)?0:hh, isNaN(mm)?0:mm, 0, 0);
+    const raw = String(timeStr || fallback).trim().toLowerCase();
+    let hh = 9, mm = 0;
+    const m = raw.match(/(\d{1,2})(?::(\d{1,2}))?/);
+    if (m) {
+      hh = parseInt(m[1] || '0', 10) || 0;
+      mm = parseInt(m[2] || '0', 10) || 0;
+      const isAM = /\bam\b/.test(raw);
+      const isPM = /\bpm\b/.test(raw);
+      if (isPM && hh < 12) hh += 12;
+      if (isAM && hh === 12) hh = 0;
+    }
+    base.setHours(hh, mm, 0, 0);
     return base;
   }
 
@@ -87,6 +96,7 @@
     let list = [];
     try { list = JSON.parse(localStorage.getItem('reminders') || '[]'); } catch(_) { list = []; }
     list = ensureArray(list);
+    if (!Array.isArray(list)) { try { list = ensureArray(list); } catch(_) { list = []; } }
     const offsetSel = readOffsetFromSelect('reminderNotify', 'none');
     list.forEach((r, idx) => {
       if (!r || !r.date) return;

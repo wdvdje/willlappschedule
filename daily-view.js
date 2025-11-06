@@ -113,11 +113,19 @@
     return candidates.some(hc => hc >= s && hc < e);
   }
 
-  // helper: parse "HH:MM" into minutes since 00:00 (0..1439)
+  // helper: parse "HH:MM" or "H:MM am/pm" into minutes since 00:00 (0..1439)
   function toMinutes(t, fallback = null) {
-    if (!t || typeof t !== 'string' || t.indexOf(':') < 0) return fallback;
-    const [hh, mm] = t.split(':').map(n => parseInt(n || '0', 10));
+    if (!t) return fallback;
+    const s = String(t).trim().toLowerCase();
+    const m = s.match(/(\d{1,2})(?::(\d{1,2}))?/); // matches "H" or "H:MM"
+    if (!m) return fallback;
+    let hh = parseInt(m[1] || '0', 10);
+    let mm = parseInt(m[2] || '0', 10);
     if (isNaN(hh) || isNaN(mm)) return fallback;
+    const isAM = /\bam\b/.test(s);
+    const isPM = /\bpm\b/.test(s);
+    if (isPM && hh < 12) hh += 12;
+    if (isAM && hh === 12) hh = 0;
     return ((hh * 60 + mm) % (24 * 60) + 24 * 60) % (24 * 60);
   }
 

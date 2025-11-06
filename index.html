@@ -578,6 +578,19 @@
 
   <!-- ADDED: push notifications client -->
   <script src="./push.js"></script>
+  <!-- ADDED: normalize legacy reminders structure to array before notifications init -->
+  <script>
+    (function migrateRemindersToArray(){
+      try {
+        const raw = localStorage.getItem('reminders');
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return;
+        const arr = (parsed && typeof parsed === 'object') ? Object.values(parsed) : (parsed ? [parsed] : []);
+        localStorage.setItem('reminders', JSON.stringify(arr));
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
   <!-- ADDED: local notifications scheduler (events + reminders) -->
   <script src="./notifications.js"></script>
   <!-- ADDED: PouchDB sync support (loads PouchDB and provides simple sync helpers) -->
