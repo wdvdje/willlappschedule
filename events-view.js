@@ -52,7 +52,8 @@
     const editBtn = document.createElement('button');
     editBtn.className = 'small-btn';
     editBtn.textContent = 'Edit';
-    editBtn.addEventListener('click', () => openEdit(ev));
+    editBtn.type = 'button';
+    editBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openEdit(ev); });
     actions.appendChild(editBtn);
 
     li.appendChild(emojiSpan);

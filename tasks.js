@@ -16,6 +16,12 @@
   const newCategoryName = () => document.getElementById('newCategoryName');
   const newCategoryColor = () => document.getElementById('newCategoryColor');
   const categoriesList = () => document.getElementById('categoriesList');
+  // quick-add category (Tasks page)
+  const quickCatToggleBtn = () => document.getElementById('quickCatToggleBtn');
+  const quickCatPanel = () => document.getElementById('quickCatPanel');
+  const quickCatName = () => document.getElementById('newTaskCatName');
+  const quickCatColor = () => document.getElementById('newTaskCatColor');
+  const quickCatAddBtn = () => document.getElementById('addTaskCatBtn');
 
   // helpers
   function uid(prefix = 'id') { return prefix + ':' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
@@ -191,6 +197,24 @@
     renderCategoriesList(); renderCategoryOptions(); renderTasksList();
   }
 
+  // quick add from Tasks page
+  function addCategoryFromTasks() {
+    const name = (quickCatName() && quickCatName().value || '').trim();
+    const color = (quickCatColor() && quickCatColor().value) || '#ffd54f';
+    if (!name) return;
+    const cats = loadCategories();
+    const c = { id: uid('cat'), name, color };
+    cats.push(c);
+    saveCategories(cats);
+    // clear inputs and hide panel
+    if (quickCatName()) quickCatName().value = '';
+    if (quickCatPanel()) quickCatPanel().style.display = 'none';
+    // refresh select and auto-select new category
+    renderCategoryOptions();
+    const sel = taskCategorySelect();
+    if (sel) sel.value = c.id;
+  }
+
   // wire up
   document.addEventListener('DOMContentLoaded', () => {
     // populate categories and tasks
@@ -207,6 +231,16 @@
     // bind category add
     const addCatBtn = addCategoryBtn();
     if (addCatBtn) addCatBtn.addEventListener('click', addCategory);
+
+    // bind quick category UI (Tasks page)
+    const qToggle = quickCatToggleBtn();
+    if (qToggle) qToggle.addEventListener('click', () => {
+      const panel = quickCatPanel();
+      if (!panel) return;
+      panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'flex' : 'none';
+    });
+    const qAdd = quickCatAddBtn();
+    if (qAdd) qAdd.addEventListener('click', addCategoryFromTasks);
 
     // respond to external app changes (e.g., sync import)
     window.addEventListener('app:data:updated', () => { renderCategoryOptions(); renderCategoriesList(); renderTasksList(); });

@@ -37,9 +37,8 @@
     .mobile-row{display:flex;gap:8px;align-items:center}
     .mobile-label{display:none;font-weight:600;margin-right:8px}
     @media (max-width:600px){ .mobile-label{display:inline-block} .calendar,.tasks,.events,.reminders{width:calc(100vw - 32px);}}
-    #editModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
+    #editModal{position:fixed;inset:0;display:flex;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
     #editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
-    #editModal label{font-weight:600}
     .event-preview.reminder { color: #e67e22; } .event-preview.task { color: green; } .reminder-dot { display:none; }
     .places-suggestions { position:relative; }
     .places-suggestions .suggestions-list { position:absolute; left:0; right:0; background:#fff;border:1px solid #ddd;border-radius:6px;margin-top:6px;z-index:2000; max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,0.12); }
@@ -160,6 +159,21 @@
           <input id="eventRepeatUntil" type="date" style="width:160px" />
         </div>
 
+        <!-- Notify selector -->
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <label style="min-width:90px;margin:0">Notify</label>
+          <select id="eventNotify" style="width:180px">
+            <option value="none">None</option>
+            <option value="at">At start time</option>
+            <option value="5m">5 minutes before</option>
+            <option value="15m">15 minutes before</option>
+            <option value="30m">30 minutes before</option>
+            <option value="1h">1 hour before</option>
+            <option value="2h">2 hours before</option>
+            <option value="1d">1 day before</option>
+          </select>
+        </div>
+
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
           <label style="min-width:90px;margin:0">Pre-buffer</label>
           <select id="eventPreBuffer" style="width:120px">
@@ -174,7 +188,7 @@
 
           <label style="min-width:90px;margin:0">Post-buffer</label>
           <select id="eventPostBuffer" style="width:120px">
-            <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option>
+            <option value="5">5 m</option><option value="10">10 m</option><option value="15 m">15 m</option>
             <option value="20">20 m</option><option value="25">25 m</option>
             <option value="30">30 m</option><option value="35">35 m</option>
             <option value="40">40 m</option><option value="45">45 m</option>
@@ -207,6 +221,19 @@
           <input type="time" id="reminderTime" style="width:36%" />
           <button id="addReminderBtn" type="submit" style="width:auto;margin-left:8px">Add Reminder</button>
         </div>
+        <div style="margin-top:8px" class="mobile-row">
+          <label class="mobile-label" for="reminderNotify">Notify</label>
+          <select id="reminderNotify" style="width:48%">
+            <option value="none">None</option>
+            <option value="at">At time</option>
+            <option value="5m">5 minutes before</option>
+            <option value="15m">15 minutes before</option>
+            <option value="30m">30 minutes before</option>
+            <option value="1h">1 hour before</option>
+            <option value="2h">2 hours before</option>
+            <option value="1d">1 day before</option>
+          </select>
+        </div>
       </form>
     </section>
 
@@ -215,13 +242,28 @@
       <h2>✅ Tasks</h2>
       <form id="taskForm">
         <input id="newTask" type="text" placeholder="Add a task..." required />
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <!-- category select will be populated by tasks.js -->
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <!-- category select populated by tasks.js -->
           <select id="taskCategory" style="width:30%">
             <option value="">No category</option>
           </select>
-          <input id="taskDate" type="date" style="flex:1" />
-          <input id="taskTime" type="time" style="width:120px" />
+          <button id="quickCatToggleBtn" type="button" class="small-btn">+ Category</button>
+          <!-- Date with overlay label -->
+          <div class="overlay-input" style="flex:1">
+            <input id="taskDate" type="date" class="overlay-field" />
+            <span class="overlay-label">Date</span>
+          </div>
+          <!-- Time with overlay label -->
+          <div class="overlay-input" style="width:120px">
+            <input id="taskTime" type="time" class="overlay-field" />
+            <span class="overlay-label">Time</span>
+          </div>
+        </div>
+        <!-- Quick add category panel -->
+        <div id="quickCatPanel" style="display:none;margin-top:8px;display:flex;gap:8px;align-items:center">
+          <input id="newTaskCatName" type="text" placeholder="New category" style="flex:1" />
+          <input id="newTaskCatColor" type="color" value="#ffd54f" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <button id="addTaskCatBtn" type="button" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
         </div>
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
           <select id="taskPriority" style="width:120px"><option value="1">!</option><option value="2">!!</option><option value="3">!!!</option></select>
@@ -544,7 +586,8 @@
 
   <!-- ADDED: push notifications client -->
   <script src="./push.js"></script>
-
+  <!-- ADDED: local notifications scheduler (events + reminders) -->
+  <script src="./notifications.js"></script>
   <!-- ADDED: PouchDB sync support (loads PouchDB and provides simple sync helpers) -->
   <script src="https://unpkg.com/pouchdb@7.3.0/dist/pouchdb.min.js"></script>
   <script>
