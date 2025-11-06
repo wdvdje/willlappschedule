@@ -37,7 +37,8 @@
     .mobile-row{display:flex;gap:8px;align-items:center}
     .mobile-label{display:none;font-weight:600;margin-right:8px}
     @media (max-width:600px){ .mobile-label{display:inline-block} .calendar,.tasks,.events,.reminders{width:calc(100vw - 32px);}}
-    #editModal{position:fixed;inset:0;display:flex;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
+    #editModal{position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
+    #editModal:not(.hidden){display:flex}
     #editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
     .event-preview.reminder { color: #e67e22; } .event-preview.task { color: green; } .reminder-dot { display:none; }
     .places-suggestions { position:relative; }
