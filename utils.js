@@ -29,8 +29,86 @@
     editModal.classList.remove('hidden');
   }
 
+  // date helpers
+  function parseISO(d) { return d ? new Date(d + 'T00:00:00') : null; }
+  function toISODate(dt) { return dt.toISOString().slice(0,10); }
+  function addDaysISO(dateISO, days) {
+    const dt = parseISO(dateISO);
+    dt.setDate(dt.getDate() + days);
+    return toISODate(dt);
+  }
+
+  // expandEvents(startISO, endISO): returns occurrences (including non-repeating) whose date falls within [startISO,endISO]
+  // Each occurrence is a shallow clone of the base event with .occurrenceDate and ._baseId set to original id.
+  function expandEvents(startISO, endISO, storageKey = 'events') {
+    const start = parseISO(startISO);
+    const end = parseISO(endISO);
+    if (!start || !end) return [];
+    const events = loadEvents(storageKey);
+    const out = [];
+    events.forEach(ev => {
+      if (!ev || !ev.date) return;
+      const baseDate = ev.date;
+      const repeat = (ev.repeat || 'none'); // expected value strings from UI
+      const until = ev.repeatUntil || null; // optional YYYY-MM-DD
+
+      // helper to push occurrence if in range
+      const pushIfInRange = (dISO) => {
+        const dt = parseISO(dISO);
+        if (dt >= start && dt <= end) {
+          const occ = Object.assign({}, ev);
+          occ.occurrenceDate = dISO;
+          occ.date = dISO; // make date property be the occurrence date for downstream code
+          occ._baseId = ev.id || ev._id || null;
+          out.push(occ);
+        }
+      };
+
+      // non repeating -> push if in range
+      if (!repeat || repeat === 'none') {
+        pushIfInRange(baseDate);
+        return;
+      }
+
+      // repeating: iterate from baseDate to end, advancing according to rule, stop at repeatUntil if present
+      let d = baseDate;
+      const maxLoop = 2000; // safety cap
+      let loops = 0;
+      while (true) {
+        if (loops++ > maxLoop) break;
+        // stop if beyond end or beyond repeatUntil
+        if (parseISO(d) > end) break;
+        if (until && parseISO(d) > parseISO(until)) break;
+        // push occurrence if >= start and <= end
+        pushIfInRange(d);
+        // advance
+        if (repeat === 'daily') d = addDaysISO(d, 1);
+        else if (repeat === '2day') d = addDaysISO(d, 2);
+        else if (repeat === 'weekly') d = addDaysISO(d, 7);
+        else if (repeat === 'monthly') {
+          // advance month, keep day number where possible
+          const dt = parseISO(d);
+          const day = dt.getDate();
+          dt.setMonth(dt.getMonth() + 1);
+          // if month overflowed to next month adjust last day
+          if (dt.getDate() < day) { dt.setDate(0); } // move to last day of prev month if needed
+          d = toISODate(dt);
+        } else {
+          // unknown rule: break
+          break;
+        }
+        // stop when d built beyond reasonable date
+        if (parseISO(d) > parseISO('2100-01-01')) break;
+      }
+    });
+    // sort by date asc
+    out.sort((a,b) => (a.date||'').localeCompare(b.date||''));
+    return out;
+  }
+
   // expose
   window.appUtils = window.appUtils || {};
   window.appUtils.loadEvents = loadEvents;
   window.appUtils.openEditModalFill = openEditModalFill;
+  window.appUtils.expandEvents = expandEvents;
 })();

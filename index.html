@@ -146,6 +146,20 @@
 
         <input id="eventEmoji" type="text" placeholder="Emoji (e.g. 🎉)" style="margin-top:8px;width:36%" />
 
+        <!-- Repeat selector -->
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <label style="min-width:90px;margin:0">Repeat</label>
+          <select id="eventRepeat" style="width:160px">
+            <option value="none">None</option>
+            <option value="daily">Every day</option>
+            <option value="2day">Every 2 days</option>
+            <option value="weekly">Every week</option>
+            <option value="monthly">Every month</option>
+          </select>
+          <label style="min-width:90px;margin:0">Until</label>
+          <input id="eventRepeatUntil" type="date" style="width:160px" />
+        </div>
+
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
           <label style="min-width:90px;margin:0">Pre-buffer</label>
           <select id="eventPreBuffer" style="width:120px">
@@ -353,6 +367,21 @@
           <div style="width:140px"><label for="editTime">Time</label><input id="editTime" type="time" /></div>
           <div style="width:140px"><label for="editEndTime">End</label><input id="editEndTime" type="time" /></div>
         </div>
+
+        <!-- Repeat controls in edit modal -->
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <label style="min-width:90px;margin:0">Repeat</label>
+          <select id="editRepeat" style="width:160px">
+            <option value="none">None</option>
+            <option value="daily">Every day</option>
+            <option value="2day">Every 2 days</option>
+            <option value="weekly">Every week</option>
+            <option value="monthly">Every month</option>
+          </select>
+          <label style="min-width:90px;margin:0">Until</label>
+          <input id="editRepeatUntil" type="date" style="width:160px" />
+        </div>
+
         <div id="editFieldsExtra" style="margin-top:8px">
           <div style="margin-top:8px">
             <label for="editLocation">Location</label>

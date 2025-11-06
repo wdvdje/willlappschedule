@@ -3,6 +3,8 @@
     try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (e) { return []; }
   };
 
+  const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
+
   function getTodayDateStr() {
     const d = new Date();
     return d.toISOString().slice(0,10);
@@ -74,26 +76,30 @@
     if (!listEl) return;
 
     listEl.innerHTML = '';
-    const events = loadEvents().slice().sort((a,b) => {
-      // sort by date then startTime
+    // build a date window sufficiently wide to include repeats (past 30 days .. next 365 days)
+    const today = getTodayDateStr();
+    const past30 = (new Date(new Date(today + 'T00:00:00').getTime() - (30*24*60*60*1000))).toISOString().slice(0,10);
+    const future365 = (new Date(new Date(today + 'T00:00:00').getTime() + (365*24*60*60*1000))).toISOString().slice(0,10);
+    const events = expandEvents ? expandEvents(past30, future365) : loadEvents().slice();
+
+    // events already sorted by expandEvents, but ensure stable sort
+    events.sort((a,b) => {
       if (a.date === b.date) return (a.startTime || '').localeCompare(b.startTime || '');
       return (a.date || '').localeCompare(b.date || '');
     });
 
-    const today = getTodayDateStr();
+    const today2 = getTodayDateStr();
     const upcoming = [];
     const pastWithin30 = [];
 
     events.forEach(ev => {
       if (!ev || !ev.date) return;
-      const days = daysBetween(today, ev.date); // today - ev.date
+      const days = daysBetween(today2, ev.date); // today - ev.date
       if (days < 0) {
         // future
         upcoming.push(ev);
       } else if (days >= 0 && days <= 30) {
-        // past within 30 days or today (days 0..30)
-        // treat days === 0 as past only if startTime < now? Keep simple: if date < today we mark past, if date == today it's upcoming/current
-        if (ev.date === today) {
+        if (ev.date === today2) {
           upcoming.push(ev);
         } else {
           pastWithin30.push(ev);

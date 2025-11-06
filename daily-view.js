@@ -9,6 +9,7 @@
   const loadEvents = (window.appUtils && window.appUtils.loadEvents) ? window.appUtils.loadEvents : function () {
     try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (_) { return []; }
   };
+  const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
   const openEditModal = (window.appUtils && window.appUtils.openEditModalFill) ? window.appUtils.openEditModalFill : null;
 
   function formatHourLabel(h) {
@@ -93,7 +94,8 @@
 
     const part = (dayPartSelect && dayPartSelect.value) || 'day';
     const hours = hoursForPart(part);
-    const events = loadEvents().filter(e => e && e.date === dateStr);
+    // expand occurrences for exactly this date
+    const events = expandEvents ? expandEvents(dateStr, dateStr) : loadEvents().filter(e => e && e.date === dateStr);
 
     const rows = {}; // map hour->row element
     hours.forEach(h => {
