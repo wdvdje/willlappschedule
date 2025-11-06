@@ -16,9 +16,19 @@
   const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
   const openEditModal = (window.appUtils && window.appUtils.openEditModalFill) ? window.appUtils.openEditModalFill : null;
 
+  // helper to coerce parsed localStorage values into arrays
+  function ensureArray(v) {
+    if (Array.isArray(v)) return v;
+    if (v == null) return [];
+    if (typeof v === 'object') return Object.values(v);
+    return [v];
+  }
   // local loaders for reminders and tasks
   function loadReminders() {
-    try { return JSON.parse(localStorage.getItem('reminders') || '[]') || []; } catch (_) { return []; }
+    try {
+      const parsed = JSON.parse(localStorage.getItem('reminders') || '[]') || [];
+      return ensureArray(parsed);
+    } catch (_) { return []; }
   }
   function loadTasksLS() {
     try { return JSON.parse(localStorage.getItem('tasks') || '[]') || []; } catch (_) { return []; }
