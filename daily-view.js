@@ -322,6 +322,12 @@
     renderDailyView(dateStr);
   }
 
+  // re-render when reminders/categories/events updated
+  window.addEventListener('app:data:updated', refreshForSelectedDate);
+  window.addEventListener('storage', (e) => {
+    if (!e || !e.key || ['reminders','tasks','events','taskCategories'].includes(e.key)) refreshForSelectedDate();
+  });
+
   // Re-render when navigating to the Calendar view
   window.addEventListener('view:show', (e) => {
     const v = (e && e.detail && e.detail.view) || '';

@@ -72,6 +72,70 @@
     modal.classList.remove('hidden');
   };
 
+  // Jobs helpers
+  function loadJobs() {
+    try { return JSON.parse(localStorage.getItem('jobs') || '[]') || []; } catch (_) { return []; }
+  }
+  function jobSelectEl() { return document.getElementById('eventJobId'); }
+  function jobRowEl() { return document.getElementById('eventJobRow'); }
+  function catEl() { return document.getElementById('eventCategory'); }
+  function setHidden(id, v) { const el = document.getElementById(id); if (el) el.value = (v == null ? '' : String(v)); }
+  function fillJobSnapshot(job) {
+    if (!job) { // clear
+      setHidden('eventJobName',''); setHidden('eventJobRate',''); setHidden('eventJobUnit','');
+      setHidden('eventJobEmoji',''); setHidden('eventJobLocation',''); return;
+    }
+    setHidden('eventJobName', job.name || job.jobName || '');
+    setHidden('eventJobRate', job.rate || job.jobRate || '');
+    setHidden('eventJobUnit', job.unit || job.jobUnit || '');
+    setHidden('eventJobEmoji', job.emoji || job.jobEmoji || '');
+    setHidden('eventJobLocation', job.location || job.jobLocation || '');
+  }
+  function renderJobOptions() {
+    const sel = jobSelectEl();
+    if (!sel) return;
+    const jobs = loadJobs();
+    sel.innerHTML = '';
+    const def = document.createElement('option'); def.value = ''; def.textContent = 'Select a job…';
+    sel.appendChild(def);
+    jobs.forEach(j => {
+      const o = document.createElement('option');
+      o.value = j.id || j._id || '';
+      const nm = j.name || j.jobName || 'Unnamed job';
+      const em = (j.emoji || j.jobEmoji || '').trim();
+      o.textContent = em ? (em + ' ' + nm) : nm;
+      sel.appendChild(o);
+    });
+  }
+  function toggleJobRow() {
+    const cat = catEl() ? catEl().value : 'event';
+    const row = jobRowEl();
+    if (!row) return;
+    const show = (cat === 'job');
+    row.style.display = show ? 'flex' : 'none';
+    if (!show) { fillJobSnapshot(null); const sel = jobSelectEl(); if (sel) sel.value = ''; }
+  }
+  function wireCategoryJobUi() {
+    const cat = catEl();
+    const sel = jobSelectEl();
+    if (cat) {
+      cat.addEventListener('change', () => {
+        toggleJobRow();
+      });
+    }
+    if (sel) {
+      sel.addEventListener('change', () => {
+        const id = sel.value || '';
+        const jobs = loadJobs();
+        const chosen = jobs.find(j => (j.id || j._id) === id);
+        fillJobSnapshot(chosen || null);
+      });
+    }
+    // initial state
+    renderJobOptions();
+    toggleJobRow();
+  }
+
   function renderEventsList() {
     const listEl = document.getElementById('eventList');
     if (!listEl) return;
@@ -196,7 +260,8 @@
   }
 
   // refresh when storage changes (other tabs) and periodically
-  window.addEventListener('storage', () => {
+  window.addEventListener('storage', (e) => {
+    if (!e || !e.key || e.key === 'jobs') renderJobOptions();
     updateHeaderAndProfileStatus();
     renderEventsList();
   });
@@ -204,10 +269,15 @@
   // Re-render when navigating to the Events view
   window.addEventListener('view:show', (e) => {
     const v = (e && e.detail && e.detail.view) || '';
-    if (v === 'events') renderEventsList();
+    if (v === 'events') {
+      renderJobOptions();
+      toggleJobRow();
+      renderEventsList();
+    }
   });
 
   document.addEventListener('DOMContentLoaded', () => {
+    wireCategoryJobUi();
     wireProfileButtons();
     updateHeaderAndProfileStatus();
     renderEventsList();
@@ -217,4 +287,7 @@
       renderEventsList();
     }, 60000);
   });
+
+  // refresh job options when settings change (e.g., jobs edited/synced)
+  window.addEventListener('app:data:updated', renderJobOptions);
 })();

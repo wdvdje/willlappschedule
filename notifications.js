@@ -150,19 +150,32 @@
     }
     const rForm = el('reminderForm');
     if (rForm) {
-      rForm.addEventListener('submit', () => {
+      rForm.addEventListener('submit', (e) => {
+        // prevent page reload or default form submission
+        if (e && e.preventDefault) e.preventDefault();
         try {
           const text = (el('reminderInput') && el('reminderInput').value) || 'Reminder';
           const dateISO = (el('reminderDate') && el('reminderDate').value) || '';
           const time = (el('reminderTime') && el('reminderTime').value) || '09:00';
           const offsetVal = readOffsetFromSelect('reminderNotify', 'none');
           const offsetMin = minutesOffset(offsetVal);
-          if (dateISO && offsetMin != null) {
-            const when = dateFromParts(dateISO, time);
-            when.setMinutes(when.getMinutes() - offsetMin);
-            const key = keyFor('reminder', 'temp-' + Date.now(), dateISO);
-            const body = [dateISO, time].filter(Boolean).join(' • ');
-            scheduleAt(key, when, { title: text, body, emoji: '', url: 'index.html#reminders', tag: key });
+          // persist the reminder so daily view and other parts see it
+          if (dateISO) {
+            const reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
+            const newRem = { id: 'rem:' + Date.now().toString(36), date: dateISO, time: time, text: text, notify: offsetVal || 'none' };
+            reminders.push(newRem);
+            localStorage.setItem('reminders', JSON.stringify(reminders));
+            // schedule immediate notification (if offset set)
+            if (offsetMin != null) {
+              const when = dateFromParts(dateISO, time);
+              when.setMinutes(when.getMinutes() - offsetMin);
+              const key = keyFor('reminder', newRem.id, dateISO);
+              const body = [dateISO, time].filter(Boolean).join(' • ');
+              scheduleAt(key, when, { title: text, body, emoji: '', url: 'index.html#reminders', tag: key });
+            }
+            // notify app to refresh UI (daily view, reminders lists)
+            window.dispatchEvent(new CustomEvent('app:data:updated'));
+            // keep in same view (no navigation) — done via preventDefault
           }
         } catch(_) {}
       }, { capture: true });

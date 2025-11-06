@@ -146,6 +146,31 @@
 
         <input id="eventEmoji" type="text" placeholder="Emoji (e.g. 🎉)" style="margin-top:8px;width:36%" />
 
+        <!-- Category -->
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <label style="min-width:90px;margin:0">Category</label>
+          <select id="eventCategory" style="width:200px">
+            <option value="event">Events</option>
+            <option value="appointment">Appointments</option>
+            <option value="job">Jobs</option>
+            <option value="holiday">Holiday</option>
+            <option value="commitment">Commitment</option>
+          </select>
+        </div>
+        <!-- Job picker (shown only when Category = Jobs) -->
+        <div id="eventJobRow" style="margin-top:8px;display:none;align-items:center;gap:8px">
+          <label style="min-width:90px;margin:0">Job</label>
+          <select id="eventJobId" style="width:260px">
+            <option value="">Select a job…</option>
+          </select>
+        </div>
+        <!-- Hidden snapshot fields attached to the event so later earnings can be computed -->
+        <input type="hidden" id="eventJobName" />
+        <input type="hidden" id="eventJobRate" />
+        <input type="hidden" id="eventJobUnit" />
+        <input type="hidden" id="eventJobEmoji" />
+        <input type="hidden" id="eventJobLocation" />
+
         <!-- Repeat selector -->
         <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
           <label style="min-width:90px;margin:0">Repeat</label>
@@ -160,29 +185,16 @@
           <input id="eventRepeatUntil" type="date" style="width:160px" />
         </div>
 
-        <!-- Notify selector -->
-        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-          <label style="min-width:90px;margin:0">Notify</label>
-          <select id="eventNotify" style="width:180px">
-            <option value="none">None</option>
-            <option value="at">At start time</option>
-            <option value="5m">5 minutes before</option>
-            <option value="15m">15 minutes before</option>
-            <option value="30m">30 minutes before</option>
-            <option value="1h">1 hour before</option>
-            <option value="2h">2 hours before</option>
-            <option value="1d">1 day before</option>
-          </select>
-        </div>
-
         <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
           <label style="min-width:90px;margin:0">Pre-buffer</label>
           <select id="eventPreBuffer" style="width:120px">
             <option value="5">5 m</option><option value="10">10 m</option><option value="15">15 m</option>
             <option value="20">20 m</option><option value="25">25 m</option>
             <option value="30">30 m</option><option value="35">35 m</option>
-            <option value="40">40 m</option><option value="45">45 m</option>
-            <option value="50">50 m</option><option value="55">55 m</option>
+            <option value="40">40 m</option>
+            <option value="45">45 m</option>
+            <option value="50">50 m</option>
+            <option value="55">55 m</option>
             <option value="60">60 m</option>
             <option value="90">90 m</option><option value="120">120 m</option>
           </select>
@@ -252,7 +264,7 @@
             <select id="taskCategory" style="width:30%">
               <option value="">No category</option>
             </select>
-            <button id="quickCatToggleBtn" type="button" class="small-btn">+ Category</button>
+            <button id="quickCatToggleBtn" type="button" class="small-btn">+ Category</button> <!-- opens modal -->
             <!-- Date with overlay label -->
             <div class="overlay-input" style="flex:1">
               <input id="taskDate" type="date" class="overlay-field" />
@@ -264,12 +276,7 @@
               <span class="overlay-label">Time</span>
             </div>
           </div>
-          <!-- Quick add category panel -->
-          <div id="quickCatPanel" style="display:none;margin-top:8px;display:flex;gap:8px;align-items:center">
-            <input id="newTaskCatName" type="text" placeholder="New category" style="flex:1" />
-            <input id="newTaskCatColor" type="color" value="#ffd54f" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
-            <button id="addTaskCatBtn" type="button" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
-          </div>
+          <!-- note: quick category input now in modal (see #catModal below) -->
           <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
             <select id="taskPriority" style="width:120px"><option value="1">!</option><option value="2">!!</option><option value="3">!!!</option></select>
             <button id="addTaskBtn" type="submit">Add</button>
@@ -280,6 +287,24 @@
       <!-- New: card container for tasks -->
       <div id="tasksContainer" style="margin-top:12px;display:flex;flex-direction:column;gap:10px"></div>
     </section>
+
+    <!-- Category modal (used by Tasks page) -->
+    <div id="catModal" class="hidden" role="dialog" aria-modal="true" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:9999">
+      <div style="background:#fff;padding:12px;border-radius:8px;width:320px;box-shadow:0 8px 30px rgba(0,0,0,0.15)">
+        <h3 style="margin:0 0 8px 0">Add category</h3>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input id="catNameInput" type="text" placeholder="Category name" />
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="margin:0">Color</label>
+            <input id="catColorInput" type="color" value="#ffd54f" />
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
+            <button id="catCancelBtn" type="button" class="small-btn">Cancel</button>
+            <button id="catAddBtn" type="button" style="background:#4a90e2;color:#fff;border:none;padding:6px 10px;border-radius:6px">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Settings page -->
     <section id="page-settings" class="page hidden">
@@ -871,3 +896,4 @@
   <script src="./tasks.js"></script>
 </body>
 </html>
+``` 

@@ -16,12 +16,13 @@
   const newCategoryName = () => document.getElementById('newCategoryName');
   const newCategoryColor = () => document.getElementById('newCategoryColor');
   const categoriesList = () => document.getElementById('categoriesList');
-  // quick-add category (Tasks page)
+  // quick-add category modal
+  const catModal = () => document.getElementById('catModal');
+  const catNameInput = () => document.getElementById('catNameInput');
+  const catColorInput = () => document.getElementById('catColorInput');
+  const catAddBtn = () => document.getElementById('catAddBtn');
+  const catCancelBtn = () => document.getElementById('catCancelBtn');
   const quickCatToggleBtn = () => document.getElementById('quickCatToggleBtn');
-  const quickCatPanel = () => document.getElementById('quickCatPanel');
-  const quickCatName = () => document.getElementById('newTaskCatName');
-  const quickCatColor = () => document.getElementById('newTaskCatColor');
-  const quickCatAddBtn = () => document.getElementById('addTaskCatBtn');
   const toggleTaskInputsBtn = () => document.getElementById('toggleTaskInputsBtn');
   const taskFormFields = () => document.getElementById('taskFormFields');
 
@@ -199,22 +200,26 @@
     renderCategoriesList(); renderCategoryOptions(); renderTasksList();
   }
 
-  // quick add from Tasks page
-  function addCategoryFromTasks() {
-    const name = (quickCatName() && quickCatName().value || '').trim();
-    const color = (quickCatColor() && quickCatColor().value) || '#ffd54f';
+  // quick add from Tasks page (now from modal)
+  function addCategoryFromModal() {
+    const name = (catNameInput() && catNameInput().value || '').trim();
+    const color = (catColorInput() && catColorInput().value) || '#ffd54f';
     if (!name) return;
     const cats = loadCategories();
     const c = { id: uid('cat'), name, color };
     cats.push(c);
     saveCategories(cats);
-    // clear inputs and hide panel
-    if (quickCatName()) quickCatName().value = '';
-    if (quickCatPanel()) quickCatPanel().style.display = 'none';
+    // clear and close modal
+    if (catNameInput()) catNameInput().value = '';
+    if (catColorInput()) catColorInput().value = '#ffd54f';
+    const m = catModal();
+    if (m) m.classList.add('hidden');
     // refresh select and auto-select new category
     renderCategoryOptions();
     const sel = taskCategorySelect();
     if (sel) sel.value = c.id;
+    // notify app components
+    window.dispatchEvent(new CustomEvent('app:data:updated'));
   }
 
   // wire up
@@ -232,15 +237,27 @@
     const addCatBtn = addCategoryBtn();
     if (addCatBtn) addCatBtn.addEventListener('click', addCategory);
 
-    // bind quick category UI (Tasks page)
+    // replace quick category toggle with modal open
     const qToggle = quickCatToggleBtn();
     if (qToggle) qToggle.addEventListener('click', () => {
-      const panel = quickCatPanel();
-      if (!panel) return;
-      panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'flex' : 'none';
+      const m = catModal();
+      if (!m) return;
+      m.classList.remove('hidden');
+      // focus name input
+      setTimeout(() => { const i = catNameInput(); if (i && i.focus) i.focus(); }, 0);
     });
-    const qAdd = quickCatAddBtn();
-    if (qAdd) qAdd.addEventListener('click', addCategoryFromTasks);
+
+    // modal buttons
+    const cAdd = catAddBtn();
+    if (cAdd) cAdd.addEventListener('click', addCategoryFromModal);
+    const cCancel = catCancelBtn();
+    if (cCancel) cCancel.addEventListener('click', () => { const m = catModal(); if (m) m.classList.add('hidden'); });
+
+    // click outside modal closes it
+    const m = catModal();
+    if (m) {
+      m.addEventListener('click', (e) => { if (e.target === m) m.classList.add('hidden'); });
+    }
 
     // bind show/hide for task inputs
     const tToggle = toggleTaskInputsBtn();
