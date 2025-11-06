@@ -115,6 +115,23 @@
       </div>
       <p id="mapsKeyNotice" style="margin-top:8px;color:#666;font-size:0.95rem">Saved key: <span id="mapsKeyDisplay">none</span></p>
     </section>
+
+    <!-- Push notifications settings -->
+    <section id="pushSettings" style="margin-top:18px">
+      <h3>Push notifications</h3>
+      <label for="pushVapidKey" style="display:block;font-weight:600;margin-top:8px">VAPID Public Key (base64)</label>
+      <input id="pushVapidKey" type="text" placeholder="BEl... (optional for testing)" />
+
+      <label for="pushServerUrl" style="display:block;font-weight:600;margin-top:8px">Push server URL (optional)</label>
+      <input id="pushServerUrl" type="text" placeholder="https://example.com/save-subscription" />
+
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+        <button id="subscribePushBtn" class="small-btn" style="background:#4a90e2;color:#fff">Subscribe</button>
+        <button id="unsubscribePushBtn" class="small-btn">Unsubscribe</button>
+        <div id="pushStatus" style="margin-left:8px;color:#666">Not subscribed</div>
+      </div>
+      <div style="margin-top:8px;color:#666;font-size:0.9rem">Tip: supply a public VAPID key if you use a push server that requires VAPID.</div>
+    </section>
   </main>
 
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
@@ -144,8 +161,8 @@
   </script>
 
   <script src="./app.js"></script>
-  <!-- ADDED: same wiring used in index to keep header/profile status in sync -->
   <script src="./events-view.js"></script>
+  <script src="./push.js"></script>
   <!-- ADDED: tasks manager (handles categories too) -->
   <script src="./tasks.js"></script>
 </body>

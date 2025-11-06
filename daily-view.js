@@ -219,6 +219,12 @@
     renderDailyView(dateStr);
   }
 
+  // Re-render when navigating to the Calendar view
+  window.addEventListener('view:show', (e) => {
+    const v = (e && e.detail && e.detail.view) || '';
+    if (v === 'calendar') refreshForSelectedDate();
+  });
+
   // wire day part selector
   if (dayPartSelect) {
     dayPartSelect.addEventListener('change', refreshForSelectedDate);

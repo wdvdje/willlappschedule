@@ -493,6 +493,8 @@
       document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
         a.classList.toggle('active', a.dataset.view === view);
       });
+      // notify view scripts to (re)render for the active view
+      window.dispatchEvent(new CustomEvent('view:show', { detail: { view } }));
     }
 
     function navTo(view) {
@@ -540,14 +542,8 @@
   })();
   </script>
 
-  <!-- ADDED: shared utilities used by view scripts -->
-  <script src="./utils.js"></script>
-
-  <!-- ADDED: events renderer and header/profile wiring -->
-  <script src="./events-view.js"></script>
-
-  <!-- ADDED: daily view renderer -->
-  <script src="./daily-view.js"></script>
+  <!-- ADDED: push notifications client -->
+  <script src="./push.js"></script>
 
   <!-- ADDED: PouchDB sync support (loads PouchDB and provides simple sync helpers) -->
   <script src="https://unpkg.com/pouchdb@7.3.0/dist/pouchdb.min.js"></script>

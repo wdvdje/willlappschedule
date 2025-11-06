@@ -200,6 +200,12 @@
     renderEventsList();
   });
 
+  // Re-render when navigating to the Events view
+  window.addEventListener('view:show', (e) => {
+    const v = (e && e.detail && e.detail.view) || '';
+    if (v === 'events') renderEventsList();
+  });
+
   document.addEventListener('DOMContentLoaded', () => {
     wireProfileButtons();
     updateHeaderAndProfileStatus();
