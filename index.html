@@ -58,6 +58,10 @@
 
     /* ADDED: center only the User Profile and Jobs headings on settings page */
     #userProfile h3, #userJobs h3 { text-align: center; }
+
+    /* cat modal: keep hidden by default; show only when .hidden removed */
+    #catModal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; z-index: 9999; display: none; }
+    #catModal:not(.hidden) { display: flex; }
   </style>
 </head>
 <body>
@@ -289,7 +293,7 @@
     </section>
 
     <!-- Category modal (used by Tasks page) -->
-    <div id="catModal" class="hidden" role="dialog" aria-modal="true" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.35);z-index:9999">
+    <div id="catModal" class="hidden" role="dialog" aria-modal="true">
       <div style="background:#fff;padding:12px;border-radius:8px;width:320px;box-shadow:0 8px 30px rgba(0,0,0,0.15)">
         <h3 style="margin:0 0 8px 0">Add category</h3>
         <div style="display:flex;flex-direction:column;gap:8px">
@@ -896,4 +900,3 @@
   <script src="./tasks.js"></script>
 </body>
 </html>
-``` 

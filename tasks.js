@@ -222,8 +222,8 @@
     window.dispatchEvent(new CustomEvent('app:data:updated'));
   }
 
-  // wire up
-  document.addEventListener('DOMContentLoaded', () => {
+  // wire up (ensure runs even if DOMContentLoaded already fired)
+  function init() {
     // populate categories and tasks
     renderCategoryOptions();
     renderCategoriesList();
@@ -233,9 +233,9 @@
     const form = document.getElementById('taskForm');
     if (form) form.addEventListener('submit', addTaskFromForm);
 
-    // bind category add
-    const addCatBtn = addCategoryBtn();
-    if (addCatBtn) addCatBtn.addEventListener('click', addCategory);
+    // bind category add (settings page small add)
+    const addCatBtnEl = addCategoryBtn();
+    if (addCatBtnEl) addCatBtnEl.addEventListener('click', addCategory);
 
     // replace quick category toggle with modal open
     const qToggle = quickCatToggleBtn();
@@ -279,7 +279,14 @@
         renderCategoryOptions(); renderCategoriesList(); renderTasksList();
       }
     });
-  });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    // already ready
+    setTimeout(init, 0);
+  }
 
   // expose for debugging
   window.appTasks = {
