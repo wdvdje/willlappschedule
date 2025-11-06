@@ -165,6 +165,8 @@
             const newRem = { id: 'rem:' + Date.now().toString(36), date: dateISO, time: time, text: text, notify: offsetVal || 'none' };
             reminders.push(newRem);
             localStorage.setItem('reminders', JSON.stringify(reminders));
+            // also notify listeners that watch storage (some modules rely on storage event)
+            try { window.dispatchEvent(new Event('storage')); } catch (e) { /* ignore */ }
             // schedule immediate notification (if offset set)
             if (offsetMin != null) {
               const when = dateFromParts(dateISO, time);

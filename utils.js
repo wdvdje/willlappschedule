@@ -60,6 +60,32 @@
     setIf('editTime', ev.startTime || '');
     setIf('editEndTime', ev.endTime || '');
     setIf('editEmoji', ev.emoji || '');
+    // --- copy job/category info (if present) into the main event form so it is visible/editable ---
+    try {
+      const mainCat = document.getElementById('eventCategory');
+      const mainJobId = document.getElementById('eventJobId');
+      const mainJobName = document.getElementById('eventJobName');
+      const mainJobRate = document.getElementById('eventJobRate');
+      const mainJobUnit = document.getElementById('eventJobUnit');
+      const mainJobEmoji = document.getElementById('eventJobEmoji');
+      const mainJobLocation = document.getElementById('eventJobLocation');
+      if (mainCat) {
+        const catVal = ev.eventCategory || ev.category || '';
+        if (catVal) mainCat.value = catVal;
+      }
+      if (mainJobId) {
+        const jid = ev.eventJobId || ev.jobId || ev.job || '';
+        if (jid) mainJobId.value = jid;
+      }
+      // snapshot fields copied if present on the event object
+      if (mainJobName && (ev.eventJobName || ev.jobName || ev.job_name)) mainJobName.value = ev.eventJobName || ev.jobName || ev.job_name || '';
+      if (mainJobRate && (ev.eventJobRate || ev.jobRate || ev.job_rate)) mainJobRate.value = ev.eventJobRate || ev.jobRate || ev.job_rate || '';
+      if (mainJobUnit && (ev.eventJobUnit || ev.jobUnit || ev.job_unit)) mainJobUnit.value = ev.eventJobUnit || ev.jobUnit || ev.job_unit || '';
+      if (mainJobEmoji && (ev.eventJobEmoji || ev.jobEmoji || ev.job_emoji)) mainJobEmoji.value = ev.eventJobEmoji || ev.jobEmoji || ev.job_emoji || '';
+      if (mainJobLocation && (ev.eventJobLocation || ev.jobLocation || ev.job_location)) mainJobLocation.value = ev.eventJobLocation || ev.jobLocation || ev.job_location || '';
+      // ensure events-view job selector updates UI (if its script is loaded)
+      if (window && window.dispatchEvent) window.dispatchEvent(new CustomEvent('app:data:updated'));
+    } catch (e) { /* ignore */ }
     showEditModal();
   }
 

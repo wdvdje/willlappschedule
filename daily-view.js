@@ -1,8 +1,10 @@
 (function () {
   // ...existing app scripts may run before this file ...
-  const dailyView = document.getElementById('dailyView');
-  const dayPartSelect = document.getElementById('dayPartSelect');
-  const calendarEl = document.getElementById('calendar');
+  // avoid grabbing DOM elements at module-eval time (they may not exist yet)
+  function getDailyView() { return document.getElementById('dailyView'); }
+  function getDayPartSelect() { return document.getElementById('dayPartSelect'); }
+  function getCalendarEl() { return document.getElementById('calendar'); }
+
   const PRIMARY_COLOR = '#4a90e2'; // kept in sync with CSS
   const REMINDER_COLOR = '#e67e22';
   const TASK_DEFAULT_COLOR = '#2ecc71';
@@ -180,140 +182,143 @@
   }
 
   function clearDailyView() {
-    dailyView.innerHTML = '';
+    const dv = getDailyView();
+    if (!dv) return;
+    dv.innerHTML = '';
   }
 
   function renderDailyView(dateStr) {
-    if (!dailyView) return;
-    clearDailyView();
+    try {
+      const dailyView = getDailyView();
+      if (!dailyView) return;
+      clearDailyView();
 
-    const part = (dayPartSelect && dayPartSelect.value) || 'day';
-    const hours = hoursForPart(part);
-    // build unified items for this date
-    const items = getDayItems(dateStr);
+      // rest of render continues...
+      const part = (getDayPartSelect() && getDayPartSelect().value) || 'day';
+      const hours = hoursForPart(part);
+      const items = getDayItems(dateStr);
 
-    const rows = {}; // map hour->row element
-    hours.forEach(h => {
-      const row = document.createElement('div');
-      row.className = 'hour-row';
-      row.dataset.hour = String(h);
-      row.style.display = 'flex';
-      row.style.alignItems = 'center';
-      row.style.gap = '8px';
-      row.style.borderBottom = '1px solid #f0f0f0';
-      row.style.padding = '8px 6px';
-
-      const label = document.createElement('div');
-      label.style.width = '72px';
-      label.style.flex = '0 0 72px';
-      label.style.fontSize = '0.95rem';
-      label.style.color = '#666';
-      label.textContent = formatHourLabel(h);
-
-      // timeline container: relative so we can absolutely position span-boxes
-      const timeline = document.createElement('div');
-      timeline.className = 'hour-squares';
-      timeline.style.flex = '1';
-      timeline.style.position = 'relative';
-      timeline.style.height = '44px';
-      timeline.style.background = 'linear-gradient(to right, rgba(0,0,0,0.03) 0%, transparent 0%), transparent';
-      timeline.style.borderRadius = '8px';
-
-      row.appendChild(label);
-      row.appendChild(timeline);
-      dailyView.appendChild(row);
-      rows[String(h)] = timeline;
-    });
-
-    // For each item, split across rows by overlap and draw time-span blocks
-    items.forEach(item => {
+      const rows = {}; // map hour->row element
       hours.forEach(h => {
-        const hourStart = h * 60;
-        const hourEnd = hourStart + 60;
-        // normalize end to allow overnight spans (end might be > 1440)
-        let s = item.startMin;
-        let e = item.endMin;
-        if (e <= s) e += 24 * 60; // overnight item
-        // test overlap candidates for base hour and hour+1440 (to handle 00..01 after midnight segment)
-        const spans = [
-          { s, e, hS: hourStart, hE: hourEnd },
-          { s: s + 1440, e: e + 1440, hS: hourStart + 1440, hE: hourEnd + 1440 }
-        ];
-        for (const seg of spans) {
-          const overlapS = Math.max(seg.s, seg.hS);
-          const overlapE = Math.min(seg.e, seg.hE);
-          const dur = overlapE - overlapS;
-          if (dur > 0) {
-            const leftPct = ((overlapS - seg.hS) / 60) * 100;
-            const widthPct = (dur / 60) * 100;
-            const el = createTimeBlock(item, leftPct, widthPct);
-            rows[String(h)].appendChild(el);
-            break; // draw only once per actual hour
+        const row = document.createElement('div');
+        row.className = 'hour-row';
+        row.dataset.hour = String(h);
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.gap = '8px';
+        row.style.borderBottom = '1px solid #f0f0f0';
+        row.style.padding = '8px 6px';
+
+        const label = document.createElement('div');
+        label.style.width = '72px';
+        label.style.flex = '0 0 72px';
+        label.style.fontSize = '0.95rem';
+        label.style.color = '#666';
+        label.textContent = formatHourLabel(h);
+
+        const timeline = document.createElement('div');
+        timeline.className = 'hour-squares';
+        timeline.style.flex = '1';
+        timeline.style.position = 'relative';
+        timeline.style.height = '44px';
+        timeline.style.background = 'linear-gradient(to right, rgba(0,0,0,0.03) 0%, transparent 0%), transparent';
+        timeline.style.borderRadius = '8px';
+
+        row.appendChild(label);
+        row.appendChild(timeline);
+        dailyView.appendChild(row);
+        rows[String(h)] = timeline;
+      });
+
+      // For each item, split across rows by overlap and draw time-span blocks
+      items.forEach(item => {
+        hours.forEach(h => {
+          const hourStart = h * 60;
+          const hourEnd = hourStart + 60;
+          let s = item.startMin;
+          let e = item.endMin;
+          if (s == null) return; // skip malformed items
+          if (e == null) e = s + 5;
+          if (e <= s) e += 24 * 60;
+          const spans = [
+            { s, e, hS: hourStart, hE: hourEnd },
+            { s: s + 1440, e: e + 1440, hS: hourStart + 1440, hE: hourEnd + 1440 }
+          ];
+          for (const seg of spans) {
+            const overlapS = Math.max(seg.s, seg.hS);
+            const overlapE = Math.min(seg.e, seg.hE);
+            const dur = overlapE - overlapS;
+            if (dur > 0) {
+              const leftPct = ((overlapS - seg.hS) / 60) * 100;
+              const widthPct = (dur / 60) * 100;
+              const el = createTimeBlock(item, leftPct, widthPct);
+              rows[String(h)].appendChild(el);
+              break;
+            }
           }
-        }
+        });
       });
-    });
 
-    // helper: create a time-span block positioned within an hour row
-    function createTimeBlock(item, leftPct, widthPct) {
-      const box = document.createElement('button');
-      box.type = 'button';
-      box.style.position = 'absolute';
-      box.style.left = `${Math.max(0, Math.min(100, leftPct))}%`;
-      box.style.width = `${Math.max(4, Math.min(100 - leftPct, widthPct))}%`;
-      box.style.top = '6px';
-      box.style.bottom = '6px';
-      box.style.borderRadius = '8px';
-      box.style.border = '1px solid rgba(0,0,0,0.06)';
-      box.style.background = lightenBg(item.color || PRIMARY_COLOR, 0.22);
-      box.style.display = 'inline-flex';
-      box.style.alignItems = 'center';
-      box.style.justifyContent = 'flex-start';
-      box.style.gap = '6px';
-      box.style.padding = '0 8px';
-      box.style.cursor = 'pointer';
-      box.style.overflow = 'hidden';
-      box.title = item.title || '';
-      // inner content
-      const em = document.createElement('span');
-      em.style.fontSize = '16px';
-      em.textContent = item.emoji ? item.emoji : (item.kind === 'event' ? '•' : item.kind === 'reminder' ? '🔔' : '✅');
-      const tt = document.createElement('span');
-      tt.style.fontSize = '12px';
-      tt.style.whiteSpace = 'nowrap';
-      tt.style.textOverflow = 'ellipsis';
-      tt.style.overflow = 'hidden';
-      tt.textContent = item.title || '';
-      box.appendChild(em); box.appendChild(tt);
-      // click -> open appropriate editor (events already supported)
-      box.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (item.kind === 'event') {
-          openEditModal ? openEditModal(item.raw) : console.log('Edit event:', item.raw);
-        } else {
-          const modal = document.getElementById('editModal');
-          if (!modal) return;
-          const setIf = (id, value) => { const el = document.getElementById(id); if (el) el.value = value || ''; };
-          setIf('editKind', item.kind);
-          setIf('editText', item.title || '');
-          // infer date/time from mins
-          const hh = String(Math.floor(item.startMin % (24*60) / 60)).padStart(2,'0');
-          const mm = String(Math.floor(item.startMin % 60)).padStart(2,'0');
-          setIf('editDate', getSelectedDate());
-          setIf('editTime', `${hh}:${mm}`);
-          modal.classList.remove('hidden');
-        }
-      });
-      return box;
-    }
+      function createTimeBlock(item, leftPct, widthPct) {
+        const box = document.createElement('button');
+        box.type = 'button';
+        box.style.position = 'absolute';
+        box.style.left = `${Math.max(0, Math.min(100, leftPct))}%`;
+        box.style.width = `${Math.max(4, Math.min(100 - leftPct, widthPct))}%`;
+        box.style.top = '6px';
+        box.style.bottom = '6px';
+        box.style.borderRadius = '8px';
+        box.style.border = '1px solid rgba(0,0,0,0.06)';
+        box.style.background = lightenBg(item.color || PRIMARY_COLOR, 0.22);
+        box.style.display = 'inline-flex';
+        box.style.alignItems = 'center';
+        box.style.justifyContent = 'flex-start';
+        box.style.gap = '6px';
+        box.style.padding = '0 8px';
+        box.style.cursor = 'pointer';
+        box.style.overflow = 'hidden';
+        box.title = item.title || '';
+        const em = document.createElement('span');
+        em.style.fontSize = '16px';
+        em.textContent = item.emoji ? item.emoji : (item.kind === 'event' ? '•' : item.kind === 'reminder' ? '🔔' : '✅');
+        const tt = document.createElement('span');
+        tt.style.fontSize = '12px';
+        tt.style.whiteSpace = 'nowrap';
+        tt.style.textOverflow = 'ellipsis';
+        tt.style.overflow = 'hidden';
+        tt.textContent = item.title || '';
+        box.appendChild(em); box.appendChild(tt);
+        box.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (item.kind === 'event') {
+            openEditModal ? openEditModal(item.raw) : console.log('Edit event:', item.raw);
+          } else {
+            const modal = document.getElementById('editModal');
+            if (!modal) return;
+            const setIf = (id, value) => { const el = document.getElementById(id); if (el) el.value = value || ''; };
+            setIf('editKind', item.kind);
+            setIf('editText', item.title || '');
+            const hh = String(Math.floor(item.startMin % (24*60) / 60)).padStart(2,'0');
+            const mm = String(Math.floor(item.startMin % 60)).padStart(2,'0');
+            setIf('editDate', getSelectedDate());
+            setIf('editTime', `${hh}:${mm}`);
+            modal.classList.remove('hidden');
+          }
+        });
+        return box;
+      }
 
-    // If no items, show placeholder
-    if (items.length === 0) {
-      const empty = document.createElement('div');
-      empty.style.padding = '12px';
-      empty.style.color = '#666';
-      empty.textContent = 'No items for this day.';
-      dailyView.appendChild(empty);
+      if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.padding = '12px';
+        empty.style.color = '#666';
+        empty.textContent = 'No items for this day.';
+        dailyView.appendChild(empty);
+      }
+    } catch (err) {
+      // log error but avoid breaking the rest of the app
+      console.error('daily-view render error', err);
+      return;
     }
   }
 
@@ -335,17 +340,19 @@
   });
 
   // wire day part selector
-  if (dayPartSelect) {
-    dayPartSelect.addEventListener('change', refreshForSelectedDate);
+  const dp = getDayPartSelect();
+  if (dp) {
+    dp.addEventListener('change', refreshForSelectedDate);
   }
 
   // delegated click on calendar to set selection (non-destructive: will add .selected)
-  if (calendarEl) {
-    calendarEl.addEventListener('click', (ev) => {
+  const calEl = getCalendarEl();
+  if (calEl) {
+    calEl.addEventListener('click', (ev) => {
       const dayEl = ev.target.closest('.day');
       if (!dayEl) return;
       // toggle .selected among siblings
-      const prev = calendarEl.querySelector('.day.selected');
+      const prev = calEl.querySelector('.day.selected');
       if (prev) prev.classList.remove('selected');
       dayEl.classList.add('selected');
 
