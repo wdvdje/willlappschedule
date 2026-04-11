@@ -104,6 +104,35 @@
       <div id="categoriesList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
     </section>
 
+    <!-- Token sync settings -->
+    <section id="tokenSyncSettings" style="margin-top:18px">
+      <h3>Sync via Token</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Generate a token on one device, paste it on another — both stay in sync every 30 s.</p>
+
+      <div style="background:#f0f4fb;border-radius:8px;padding:10px 12px;margin-bottom:10px">
+        <div style="font-weight:600;font-size:0.9rem;margin-bottom:6px">Your current token</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <code id="tokenSyncDisplay" style="flex:1;font-size:1.05rem;letter-spacing:0.12em;background:#e8edf7;padding:6px 10px;border-radius:6px;min-width:140px;word-break:break-all">none</code>
+          <button id="tokenSyncCopyBtn" class="small-btn" style="display:none">Copy</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <button id="tokenSyncGenerateBtn" class="small-btn" style="background:#4a90e2;color:#fff">Generate new token</button>
+        <button id="tokenSyncStopBtn" class="small-btn" style="display:none">Stop syncing</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <label for="tokenSyncInput" style="display:block;font-weight:600">Paste token from another device</label>
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+          <input id="tokenSyncInput" type="text" placeholder="e.g. 3a9f2c..." style="flex:1;letter-spacing:0.08em" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          <button id="tokenSyncStartBtn" class="small-btn" style="background:#4a90e2;color:#fff">Start syncing</button>
+        </div>
+      </div>
+
+      <div id="tokenSyncStatus" style="margin-top:8px;color:#666;font-size:0.95rem">Not syncing</div>
+    </section>
+
     <!-- Push notifications settings -->
     <section id="pushSettings" style="margin-top:18px">
       <h3>Push notifications</h3>
@@ -164,11 +193,85 @@
   </script>
 
   <script src="./sync.js"></script>
+  <script src="./token-sync.js"></script>
   <script src="./assets/app.js"></script>
   <script src="./events-view.js"></script>
   <script src="./push.js"></script>
   <script src="./notifications.js"></script>
   <!-- ADDED: tasks manager (handles categories too) -->
   <script src="./tasks.js"></script>
+  <script>
+    // Wire token-sync settings UI (settings.html)
+    (function () {
+      var displayEl   = document.getElementById('tokenSyncDisplay');
+      var copyBtn     = document.getElementById('tokenSyncCopyBtn');
+      var generateBtn = document.getElementById('tokenSyncGenerateBtn');
+      var stopBtn     = document.getElementById('tokenSyncStopBtn');
+      var inputEl     = document.getElementById('tokenSyncInput');
+      var startBtn    = document.getElementById('tokenSyncStartBtn');
+      var statusEl    = document.getElementById('tokenSyncStatus');
+
+      function setStatus(msg) { if (statusEl) statusEl.textContent = msg; }
+
+      function refreshDisplay() {
+        var token = localStorage.getItem('tokenSyncKey') || '';
+        if (displayEl) displayEl.textContent = token || 'none';
+        if (copyBtn)   copyBtn.style.display  = token ? 'inline-block' : 'none';
+        if (stopBtn)   stopBtn.style.display   = token ? 'inline-block' : 'none';
+      }
+
+      refreshDisplay();
+
+      generateBtn && generateBtn.addEventListener('click', function () {
+        fetch('/api/token-sync/new', { method: 'POST' })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data.token) throw new Error('No token returned');
+            window.tokenSync && window.tokenSync.setToken(data.token);
+            refreshDisplay();
+            setStatus('Token generated — share it with your other device.');
+          })
+          .catch(function (e) {
+            setStatus('Error: ' + (e && e.message ? e.message : String(e)));
+          });
+      });
+
+      startBtn && startBtn.addEventListener('click', function () {
+        var token = (inputEl && inputEl.value || '').trim().toLowerCase();
+        if (!token) return setStatus('Paste a token first.');
+        if (!/^[a-f0-9]{12}$/.test(token)) return setStatus('Invalid token format — should be 12 hex characters.');
+        window.tokenSync && window.tokenSync.setToken(token);
+        if (inputEl) inputEl.value = '';
+        refreshDisplay();
+        setStatus('Syncing…');
+      });
+
+      stopBtn && stopBtn.addEventListener('click', function () {
+        window.tokenSync && window.tokenSync.stop();
+        localStorage.removeItem('tokenSyncKey');
+        refreshDisplay();
+        setStatus('Sync stopped.');
+      });
+
+      copyBtn && copyBtn.addEventListener('click', function () {
+        var token = localStorage.getItem('tokenSyncKey') || '';
+        if (!token) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(token).then(function () {
+            setStatus('Token copied to clipboard.');
+          }).catch(function () {
+            setStatus('Copy failed — please copy manually: ' + token);
+          });
+        } else {
+          setStatus('Copy not available — token: ' + token);
+        }
+      });
+
+      window.addEventListener('token-sync:started',  function () { setStatus('🔄 Syncing…'); refreshDisplay(); });
+      window.addEventListener('token-sync:done',     function () { setStatus('✅ Synced'); });
+      window.addEventListener('token-sync:stopped',  function () { setStatus('Sync stopped.'); refreshDisplay(); });
+      window.addEventListener('token-sync:updated',  function () { setStatus('✅ Data updated from other device'); });
+    })();
+  </script>
 </body>
 </html>
