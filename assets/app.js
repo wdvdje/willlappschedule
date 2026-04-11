@@ -1184,22 +1184,22 @@ function updateCompletionRing(){
   });
   const total = tasks.length + todayReminders.length + todayEvents.length;
   const done = tasksDone + remDone + eventsDone;
-  const pct = total ? Math.round((done / total) * 100) : 0;
+  const pct = total ? Math.round((done / total) * 100) : 100;
   const color = pct === 100 ? '#27ae60' : '#4a90e2';
   setRing('completionRingFg', 'completionRingPct', pct, color);
   const wrap = document.getElementById('completionRingWrap');
   if (wrap) wrap.title = done + '/' + total + ' items done today';
 }
 
-/* Ring 2: percent of day elapsed */
+/* Ring 2: percent of day elapsed (current time as decimal hours / 24) */
 function updateDayElapsedRing(){
   const now = new Date();
-  const minutesPassed = now.getHours() * 60 + now.getMinutes();
-  const pct = Math.round((minutesPassed / 1440) * 100);
+  const decimalHours = now.getHours() + now.getMinutes() / 60;
+  const pct = Math.round((decimalHours / 24) * 100);
   const color = pct >= 75 ? '#e74c3c' : pct >= 50 ? '#e67e22' : '#f1c40f';
   setRing('dayElapsedRingFg', 'dayElapsedRingPct', pct, color);
   const wrap = document.getElementById('dayElapsedRingWrap');
-  if (wrap) wrap.title = Math.floor(minutesPassed/60) + 'h ' + (minutesPassed%60) + 'm elapsed';
+  if (wrap) wrap.title = now.getHours() + 'h ' + now.getMinutes() + 'm elapsed';
 }
 
 /* Weekly salary calculation based on jobs */
