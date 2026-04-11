@@ -69,6 +69,21 @@
       <ul id="offDaysList" style="list-style:none;padding:0;margin:8px 0;"></ul>
     </section>
 
+    <!-- Active Hours -->
+    <section id="activeHoursSection" style="margin-top:18px">
+      <h3 style="text-align:center">Active Hours</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Set your productive day window. The "Day Elapsed" ring on the dashboard will track progress within these hours instead of the full 24-hour day.</p>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <label style="font-weight:600">Start</label>
+        <select id="dayStartHour" style="width:110px"></select>
+        <label style="font-weight:600">End</label>
+        <select id="dayEndHour" style="width:110px"></select>
+        <button id="saveActiveHoursBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save</button>
+        <button id="resetActiveHoursBtn" class="small-btn">Reset</button>
+      </div>
+      <div id="activeHoursStatus" style="margin-top:6px;color:#666;font-size:0.9rem"></div>
+    </section>
+
     <!-- Task categories -->
     <section id="taskCategories" style="margin-top:18px">
       <h3 style="text-align:center">Task categories</h3>
@@ -254,6 +269,65 @@
         });
       }
       renderOffDays();
+    })();
+
+    // Active Hours management
+    (function () {
+      function populateHourSelect(id, minVal, maxVal, savedVal) {
+        var sel = document.getElementById(id);
+        if (!sel) return;
+        sel.innerHTML = '';
+        for (var h = minVal; h <= maxVal; h++) {
+          var opt = document.createElement('option');
+          opt.value = h;
+          var label = (h === 0 ? '12:00 AM' : h < 12 ? h + ':00 AM' : h === 12 ? '12:00 PM' : h === 24 ? '12:00 AM (next day)' : (h - 12) + ':00 PM');
+          opt.textContent = label;
+          if (h === savedVal) opt.selected = true;
+          sel.appendChild(opt);
+        }
+      }
+      var savedStart = parseInt(localStorage.getItem('dayStartHour') || '', 10);
+      var savedEnd = parseInt(localStorage.getItem('dayEndHour') || '', 10);
+      if (isNaN(savedStart) || savedStart < 0 || savedStart > 23) savedStart = 0;
+      if (isNaN(savedEnd) || savedEnd < 1 || savedEnd > 24) savedEnd = 24;
+      if (savedEnd <= savedStart) { savedStart = 0; savedEnd = 24; }
+      populateHourSelect('dayStartHour', 0, 23, savedStart);
+      populateHourSelect('dayEndHour', 1, 24, savedEnd);
+      var statusEl = document.getElementById('activeHoursStatus');
+      function showStatus() {
+        var s = parseInt(document.getElementById('dayStartHour').value, 10);
+        var e = parseInt(document.getElementById('dayEndHour').value, 10);
+        if (statusEl) {
+          if (s === 0 && e === 24) {
+            statusEl.textContent = 'Using full 24-hour day (default).';
+          } else {
+            statusEl.textContent = 'Active window: ' + (e - s) + ' hours.';
+          }
+        }
+      }
+      showStatus();
+      var saveBtn = document.getElementById('saveActiveHoursBtn');
+      if (saveBtn) saveBtn.addEventListener('click', function() {
+        var s = parseInt(document.getElementById('dayStartHour').value, 10);
+        var e = parseInt(document.getElementById('dayEndHour').value, 10);
+        if (e <= s) {
+          if (statusEl) { statusEl.textContent = 'End hour must be after start hour.'; statusEl.style.color = '#e74c3c'; }
+          return;
+        }
+        localStorage.setItem('dayStartHour', s);
+        localStorage.setItem('dayEndHour', e);
+        if (statusEl) { statusEl.textContent = 'Active hours saved!'; statusEl.style.color = '#27ae60'; }
+        setTimeout(function(){ showStatus(); if(statusEl) statusEl.style.color='#666'; }, 2000);
+      });
+      var resetBtn = document.getElementById('resetActiveHoursBtn');
+      if (resetBtn) resetBtn.addEventListener('click', function() {
+        localStorage.removeItem('dayStartHour');
+        localStorage.removeItem('dayEndHour');
+        populateHourSelect('dayStartHour', 0, 23, 0);
+        populateHourSelect('dayEndHour', 1, 24, 24);
+        if (statusEl) { statusEl.textContent = 'Reset to full 24-hour day.'; statusEl.style.color = '#27ae60'; }
+        setTimeout(function(){ showStatus(); if(statusEl) statusEl.style.color='#666'; }, 2000);
+      });
     })();
   </script>
 </body>
