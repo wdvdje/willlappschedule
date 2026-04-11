@@ -1,4 +1,5 @@
-body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+body { font-family: 'Source Sans 3', Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
 header { background:#4a90e2; color:#fff; padding:1rem; font-size:1.25rem; display:flex; align-items:center; justify-content:space-between; }
 header .header-btn { background:none; border:none; color:#fff; font-size:1.25rem; cursor:pointer; padding:4px 8px; text-decoration:none; display:flex; align-items:center; gap:4px; }
 header .header-btn .header-btn-label { font-size:0.75rem; }
@@ -12,6 +13,8 @@ header .header-btn .header-btn-label { font-size:0.75rem; }
 .day .day-number{font-weight:700;display:flex;gap:6px;align-items:center;justify-content:flex-start}
 .emoji-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding-top:6px;flex:1 1 auto;min-height:18px;max-height:48px;box-sizing:border-box}
 .event-preview{display:inline-flex;align-items:center;justify-content:center;line-height:1;border-radius:6px;padding:2px;background:transparent;user-select:none}
+.event-preview .ep-label{display:none}
+.event-preview .ep-emoji{display:inline}
 .reminder-dot{width:8px;height:8px;border-radius:50%;background:#e67e22;display:inline-block;margin-left:6px}
 .reminder-bar{background:#fbeee6;border-left:4px solid #e67e22;color:#9a6b16;margin:8px 0;padding:8px;border-radius:6px;font-size:0.95rem;text-align:left}
 .reminder-bar .events-list{ margin:6px 0 0 0; padding:0; }
@@ -199,7 +202,38 @@ kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc; border-ra
   #syncStatusBar { padding-left: 216px; }
   .page { max-width: none; }
   .day { min-height: 90px; }
-  .emoji-row { max-height: 64px; }
+  .emoji-row { max-height: none; gap: 3px; flex-direction: column; align-items: stretch; overflow-y: auto; }
+  .event-preview {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-size: 0.72rem !important;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-left: 3px solid var(--domain-color, #9b59b6);
+    background: var(--domain-bg, rgba(155,89,182,0.10));
+  }
+  .event-preview[data-domain="work"] { --domain-color: #4a90e2; --domain-bg: rgba(74,144,226,0.10); }
+  .event-preview[data-domain="home"] { --domain-color: #27ae60; --domain-bg: rgba(39,174,96,0.10); }
+  .event-preview[data-domain="personal"] { --domain-color: #9b59b6; --domain-bg: rgba(155,89,182,0.10); }
+  .event-preview[data-domain="holiday"] { --domain-color: #e74c3c; --domain-bg: rgba(231,76,60,0.10); }
+  .event-preview .ep-label {
+    display: inline;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80px;
+  }
+  .event-preview .ep-emoji { flex-shrink: 0; }
+  .event-preview.reminder { --domain-color: #e67e22; --domain-bg: rgba(230,126,34,0.10); }
+  .event-preview.task { --domain-color: #27ae60; --domain-bg: rgba(39,174,96,0.10); }
   .event-block { white-space: normal; overflow: visible; text-overflow: clip; }
   #undoToast { bottom: 20px; }
   #shortcutHints { bottom: 20px; }

@@ -10,10 +10,13 @@
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMzYiIHk9IjUyIiB3aWR0aD0iMTIwIiBoZWlnaHQ9Ijk2IiByeD0iOCIgZmlsbD0id2hpdGUiLz48cmVjdCB4PSIzNiIgeT0iNTIiIHdpZHRoPSIxMjAiIGhlaWdodD0iMjgiIHJ4PSI4IiBmaWxsPSIjMjU2OGMzIi8+PHJlY3QgeD0iNjQiIHk9IjQwIiB3aWR0aD0iMTIiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIvPjxyZWN0IHg9IjExNiIgeT0iNDAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9IndoaXRlIi8+PHJlY3QgeD0iNTAiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iODYiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMTIyIiB5PSI5NiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iIzRhOTBlMiIvPjxyZWN0IHg9IjUwIiB5PSIxMjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIGZpbGw9IiM0YTkwZTIiLz48cmVjdCB4PSI4NiIgeT0iMTI0IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PC9zdmc+" />
   <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <title>TimeScape Planner</title>
   <style>
     /* filepath: /Users/williamjoyce/Documents/GitHub/willlappschedule/assets/app.css (inlined) */
-    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
+    body { font-family: 'Source Sans 3', Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
     header { background:#4a90e2; color:#fff; padding:1rem; font-size:1.25rem; position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; }
     header .header-btn { background:none; border:none; color:#fff; font-size:1.25rem; cursor:pointer; padding:4px 8px; text-decoration:none; display:flex; align-items:center; gap:4px; }
     header .header-btn .header-btn-label { font-size:0.75rem; }
@@ -31,6 +34,8 @@
     .day .day-number{font-weight:700;display:flex;gap:6px;align-items:center;justify-content:flex-start}
     .emoji-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding-top:6px;flex:1 1 auto;min-height:18px;max-height:48px;box-sizing:border-box}
     .event-preview{display:inline-flex;align-items:center;justify-content:center;line-height:1;border-radius:6px;padding:2px;background:transparent;user-select:none}
+    .event-preview .ep-label{display:none}
+    .event-preview .ep-emoji{display:inline}
     .reminder-dot{width:8px;height:8px;border-radius:50%;background:#e67e22;display:inline-block;margin-left:6px}
     .reminder-bar{background:#fbeee6;border-left:4px solid #e67e22;color:#9a6b16;margin:8px 0;padding:8px;border-radius:6px;font-size:0.95rem;text-align:left}
     .reminder-bar .events-list{ margin:6px 0 0 0; padding:0; }
@@ -82,6 +87,43 @@
     .cal-domain-pill { padding:3px 10px; border-radius:16px; border:1.5px solid #ddd; background:#fff; cursor:pointer; font-size:0.8rem; }
     .cal-domain-pill.active { background:#4a90e2; color:#fff; border-color:#4a90e2; }
     .cal-domain-pill:hover:not(.active) { border-color:#4a90e2; }
+
+    /* ===== Desktop: domain-colored event banners in calendar ===== */
+    @media (min-width: 901px) {
+      .day { min-height: 90px; }
+      .emoji-row { max-height: none; gap: 3px; flex-direction: column; align-items: stretch; overflow-y: auto; }
+      .event-preview {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 6px;
+        border-radius: 5px;
+        font-size: 0.72rem !important;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        border-left: 3px solid var(--domain-color, #9b59b6);
+        background: var(--domain-bg, rgba(155,89,182,0.10));
+      }
+      .event-preview[data-domain="work"] { --domain-color: #4a90e2; --domain-bg: rgba(74,144,226,0.10); }
+      .event-preview[data-domain="home"] { --domain-color: #27ae60; --domain-bg: rgba(39,174,96,0.10); }
+      .event-preview[data-domain="personal"] { --domain-color: #9b59b6; --domain-bg: rgba(155,89,182,0.10); }
+      .event-preview[data-domain="holiday"] { --domain-color: #e74c3c; --domain-bg: rgba(231,76,60,0.10); }
+      .event-preview .ep-label {
+        display: inline;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #333;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 80px;
+      }
+      .event-preview .ep-emoji { flex-shrink: 0; }
+      .event-preview.reminder { --domain-color: #e67e22; --domain-bg: rgba(230,126,34,0.10); }
+      .event-preview.task { --domain-color: #27ae60; --domain-bg: rgba(39,174,96,0.10); }
+    }
   </style>
 </head>
 <body>

@@ -539,21 +539,41 @@ function generateCalendar(){
     else if (dayEvents.length) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
 
     const indicators = [];
-    dayEvents.forEach(ev => indicators.push({kind:'event', emoji: ev.emoji || '📌', title: (ev.time?`[${ev.time}] `:'') + (ev.title||''), id: ev.id}));
-    if (h) indicators.push({kind:'holiday', emoji: h.emoji || '🏳️', title: h.name});
-    if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
-    if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
+    dayEvents.forEach(ev => {
+      const domain = (typeof getDomainOfItem === 'function') ? getDomainOfItem(ev) : 'personal';
+      indicators.push({kind:'event', emoji: ev.emoji || '📌', title: (ev.time?`[${ev.time}] `:'') + (ev.title||''), id: ev.id, domain: domain, shortTitle: ev.title || ''});
+    });
+    if (h) indicators.push({kind:'holiday', emoji: h.emoji || '🏳️', title: h.name, domain: 'holiday', shortTitle: h.name});
+    if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
+    if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
 
     const emojiRow = cell.querySelector('.emoji-row');
     const count = Math.max(1, indicators.length);
     const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
+    const _domainColors = {work:'#4a90e2', home:'#27ae60', personal:'#9b59b6', holiday:'#e74c3c'};
     indicators.forEach(ind=>{
       const sp = document.createElement('span');
       sp.className = 'event-preview ' + (ind.kind || '');
-      sp.textContent = ind.emoji || '';
+      sp.dataset.domain = ind.domain || 'personal';
+      sp.dataset.shortTitle = ind.shortTitle || '';
       sp.title = ind.title || '';
-      sp.style.fontSize = size + 'px';
       if (ind.kind === 'event' && ind.id) sp.dataset.eventId = ind.id;
+
+      /* Mobile: emoji only (default) */
+      const emojiSpan = document.createElement('span');
+      emojiSpan.className = 'ep-emoji';
+      emojiSpan.textContent = ind.emoji || '';
+      sp.appendChild(emojiSpan);
+
+      /* Desktop: title label (hidden on mobile via CSS) */
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'ep-label';
+      labelSpan.textContent = ind.shortTitle || '';
+      sp.appendChild(labelSpan);
+
+      sp.style.fontSize = size + 'px';
+      const domColor = _domainColors[ind.domain] || '#9b59b6';
+      sp.dataset.domainColor = domColor;
       emojiRow.appendChild(sp);
     });
 
