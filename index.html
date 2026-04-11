@@ -742,12 +742,24 @@
       </div>
     </section>
 
-    <!-- Inbox (unsorted) page -->
+    <!-- Inbox page -->
     <section id="page-inbox" class="page hidden">
       <h2 style="text-align:center">📥 Inbox</h2>
-      <p style="text-align:center;color:#666;font-size:0.9rem;margin:0 16px 12px">Items added via Quick Add that need sorting. Classify each as an event, task, or reminder.</p>
-      <div id="inboxList" style="max-width:640px;margin:0 auto;padding:0 12px"></div>
-      <p id="inboxEmpty" style="text-align:center;color:#aaa;display:none">🎉 Inbox is empty — everything is sorted!</p>
+
+      <!-- Daily Items: tasks + reminders for the viewed day -->
+      <div style="max-width:640px;margin:0 auto;padding:0 12px">
+        <h3 id="inboxDailyHeading" style="margin:8px 0 6px;font-size:1rem;color:#333">📋 Today's Items</h3>
+        <div id="inboxDailyList"></div>
+        <p id="inboxDailyEmpty" style="text-align:center;color:#aaa;display:none;font-size:0.9rem">No tasks or reminders for this day.</p>
+      </div>
+
+      <!-- Unsorted items (existing inbox) -->
+      <div style="max-width:640px;margin:16px auto 0;padding:0 12px">
+        <h3 style="margin:8px 0 6px;font-size:1rem;color:#333">📥 Unsorted Items</h3>
+        <p style="text-align:center;color:#666;font-size:0.85rem;margin:0 0 8px">Items added via Quick Add that need sorting.</p>
+        <div id="inboxList"></div>
+        <p id="inboxEmpty" style="text-align:center;color:#aaa;display:none">🎉 No unsorted items — everything is classified!</p>
+      </div>
     </section>
 
     <!-- Settings page -->

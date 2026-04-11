@@ -2648,11 +2648,118 @@ function wireQuickAdd(){
 function updateInboxBadge(){
   const label=document.getElementById('inboxNavLabel');
   if(!label) return;
-  const count=getInbox().length;
-  label.textContent=count>0?'Inbox ('+count+')':'Inbox';
+  const viewDate = getViewedDateISO();
+  const tasks = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) === viewDate; });
+  const rems = getReminders()[viewDate] || [];
+  const dailyCount = tasks.length + rems.length;
+  const unsortedCount = getInbox().length;
+  const total = dailyCount + unsortedCount;
+  label.textContent = total > 0 ? 'Inbox (' + total + ')' : 'Inbox';
 }
 
+/* Render daily items (tasks + reminders for viewed day) in the inbox */
+function renderInboxDailyItems(){
+  const list = document.getElementById('inboxDailyList');
+  const empty = document.getElementById('inboxDailyEmpty');
+  const heading = document.getElementById('inboxDailyHeading');
+  if (!list) return;
+
+  const viewDate = getViewedDateISO();
+  const todayStr = getTodayISO();
+
+  // Update heading to reflect the viewed date
+  if (heading) {
+    if (viewDate === todayStr) {
+      heading.textContent = '\uD83D\uDCCB Today\u2019s Items';
+    } else {
+      var d = new Date(viewDate + 'T12:00:00');
+      heading.textContent = '\uD83D\uDCCB Items for ' + d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  }
+
+  // Get tasks for this date
+  const tasks = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) === viewDate; });
+  // Get reminders for this date
+  const allRems = getReminders();
+  const dateReminders = allRems[viewDate] || [];
+
+  if (tasks.length === 0 && dateReminders.length === 0) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  var html = '';
+
+  // Render tasks
+  tasks.forEach(function(t, idx){
+    var checked = t.done ? 'checked' : '';
+    var doneStyle = t.done ? 'text-decoration:line-through;opacity:0.6' : '';
+    var timePart = t.time ? ' <span style="color:#888;font-size:0.85rem">[' + escapeHTML(t.time) + ']</span>' : '';
+    var priorityMap = {'1':'!','2':'!!','3':'!!!'};
+    var prioLabel = t.priority ? ' <span style="color:#e74c3c;font-size:0.8rem">' + (priorityMap[t.priority] || '') + '</span>' : '';
+    html += '<div style="background:#e8f8ef;border:1px solid #27ae60;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+      + '<input type="checkbox" ' + checked + ' onchange="toggleInboxTaskDone(\'' + escapeHTML(t.id) + '\',this.checked)" style="width:18px;height:18px;cursor:pointer;flex-shrink:0">'
+      + '<div style="flex:1;' + doneStyle + '">'
+      + '<span style="font-weight:600">\u2705 ' + escapeHTML(t.title || '') + '</span>' + timePart + prioLabel
+      + '</div></div>';
+  });
+
+  // Render reminders
+  dateReminders.forEach(function(r, idx){
+    var checked = r.done ? 'checked' : '';
+    var doneStyle = r.done ? 'text-decoration:line-through;opacity:0.6' : '';
+    var timePart = r.time ? ' <span style="color:#888;font-size:0.85rem">[' + escapeHTML(r.time) + ']</span>' : '';
+    html += '<div style="background:#fef5e8;border:1px solid #e67e22;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+      + '<input type="checkbox" ' + checked + ' onchange="toggleInboxReminderDone(\'' + escapeHTML(viewDate) + '\',' + idx + ',this.checked)" style="width:18px;height:18px;cursor:pointer;flex-shrink:0">'
+      + '<div style="flex:1;' + doneStyle + '">'
+      + '<span style="font-weight:600">\uD83D\uDD14 ' + escapeHTML(r.text || r.title || '') + '</span>' + timePart
+      + '</div></div>';
+  });
+
+  list.innerHTML = html;
+}
+
+/* Toggle task done state from inbox */
+function toggleInboxTaskDone(taskId, done){
+  const tasks = getTasks();
+  for (var i = 0; i < tasks.length; i++){
+    if (tasks[i] && String(tasks[i].id) === String(taskId)){
+      tasks[i].done = !!done;
+      break;
+    }
+  }
+  setTasks(tasks);
+  renderInboxDailyItems();
+  updateInboxBadge();
+  updateCompletionRing();
+  // Re-render daily view and task list if visible
+  if (typeof window.dailyViewRefresh === 'function') try { window.dailyViewRefresh(); } catch(_){}
+  if (typeof loadTasks === 'function') try { loadTasks(); } catch(_){}
+}
+window.toggleInboxTaskDone = toggleInboxTaskDone;
+
+/* Toggle reminder done state from inbox */
+function toggleInboxReminderDone(dateKey, index, done){
+  const r = getReminders();
+  if (r[dateKey] && r[dateKey][index]){
+    r[dateKey][index].done = !!done;
+    setReminders(r);
+  }
+  renderInboxDailyItems();
+  updateInboxBadge();
+  updateCompletionRing();
+  // Re-render daily view and reminder bar if visible
+  if (typeof window.dailyViewRefresh === 'function') try { window.dailyViewRefresh(); } catch(_){}
+  if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined') try { showReminders(selectedDay); } catch(_){}
+}
+window.toggleInboxReminderDone = toggleInboxReminderDone;
+
+/* Render unsorted inbox items */
 function renderInbox(){
+  renderInboxDailyItems();
+
   const list=document.getElementById('inboxList');
   const empty=document.getElementById('inboxEmpty');
   if(!list) return;
