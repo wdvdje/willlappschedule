@@ -57,6 +57,24 @@
 
   let _merging = false;
 
+  // Detect whether we are running with a backend server (server.js).
+  // On static hosts (e.g. GitHub Pages) the /api/* paths return 404 HTML.
+  let _hasServer = null; // null = unknown, true/false after first check
+
+  async function hasServer() {
+    if (_hasServer !== null) return _hasServer;
+    try {
+      const token = getToken();
+      if (!token) { _hasServer = false; return false; }
+      const resp = await fetch(`/api/token-sync/${encodeURIComponent(token)}/${COLLECTIONS[0]}`);
+      const ct = (resp.headers.get('content-type') || '');
+      _hasServer = ct.includes('application/json');
+    } catch (_) {
+      _hasServer = false;
+    }
+    return _hasServer;
+  }
+
   // -------------------------------------------------------------------------
   // Core sync
   // -------------------------------------------------------------------------
@@ -64,6 +82,9 @@
   async function syncCollection(name) {
     const token = getToken();
     if (!token) return;
+
+    // Skip if no backend server is available (static hosting)
+    if (!(await hasServer())) return;
 
     // 1. Fetch remote value
     let remote;
@@ -136,6 +157,7 @@
   async function pushCollection(name) {
     const token = getToken();
     if (!token || !COLLECTIONS.includes(name)) return;
+    if (_hasServer === false) return; // skip on static hosts
     const value = safeParse(name);
     if (value === null) return;
     try {

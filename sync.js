@@ -33,11 +33,27 @@
     return { merged: Object.values(byId), changed };
   }
 
-  // -------------------------------------------------------------------------
-  // Sync one collection
-  // -------------------------------------------------------------------------
+  // Detect whether we are running with a backend server (server.js).
+  // On static hosts (e.g. GitHub Pages) the /api/* paths return 404 HTML.
+  let _hasServer = null; // null = unknown, true/false after first check
+
+  async function hasServer() {
+    if (_hasServer !== null) return _hasServer;
+    try {
+      const resp = await fetch('/api/sync/' + COLLECTIONS[0]);
+      // server.js always returns JSON; a static host returns HTML 404
+      const ct = (resp.headers.get('content-type') || '');
+      _hasServer = ct.includes('application/json');
+    } catch (_) {
+      _hasServer = false;
+    }
+    return _hasServer;
+  }
 
   async function syncCollection(name) {
+    // Skip if no backend server is available (static hosting)
+    if (!(await hasServer())) return;
+
     // 1. Fetch remote items
     let remote = [];
     try {
@@ -91,6 +107,7 @@
 
   async function pushCollection(name) {
     if (!COLLECTIONS.includes(name)) return;
+    if (_hasServer === false) return; // skip on static hosts
     const items = safeParse(name);
     try {
       await fetch(`/api/sync/${name}`, {
