@@ -166,11 +166,14 @@
   function applyHeatmap() {
     var cal = document.getElementById('calendar');
     if (!cal) return;
-    var events = ev();
-    var tasks = tk();
-    var reminders = rem();
     var selY = window.selectedYear;
     var selM = window.selectedMonth;
+    var dim = new Date(selY, selM + 1, 0).getDate();
+    var mStart = selY + '-' + p2(selM + 1) + '-01';
+    var mEnd   = selY + '-' + p2(selM + 1) + '-' + p2(dim);
+    var events = (typeof getExpandedEvents === 'function') ? getExpandedEvents(mStart, mEnd) : ev();
+    var tasks = tk();
+    var reminders = rem();
 
     cal.querySelectorAll('.day[data-day]').forEach(function (cell) {
       var day = parseInt(cell.dataset.day, 10);
@@ -209,9 +212,12 @@
   function detectConflicts() {
     var cal = document.getElementById('calendar');
     if (!cal) return;
-    var events = ev();
     var selY = window.selectedYear;
     var selM = window.selectedMonth;
+    var dim = new Date(selY, selM + 1, 0).getDate();
+    var mStart = selY + '-' + p2(selM + 1) + '-01';
+    var mEnd   = selY + '-' + p2(selM + 1) + '-' + p2(dim);
+    var events = (typeof getExpandedEvents === 'function') ? getExpandedEvents(mStart, mEnd) : ev();
 
     cal.querySelectorAll('.day[data-day]').forEach(function (cell) {
       var day = parseInt(cell.dataset.day, 10);
