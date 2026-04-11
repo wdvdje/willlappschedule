@@ -1753,4 +1753,162 @@
     window.showReminders._dcfWrapped = true;
   }
 
+  /* ══════════════════════════════════════════════════════
+     21. SCHOOL A/B DAY LABELS
+     Shows an "A" or "B" badge on each school weekday cell,
+     using a user-configured anchor date and respecting the
+     same holiday / off-day rules as the A/B repeat pattern.
+  ══════════════════════════════════════════════════════ */
+  (function initSchoolABLabels() {
+    /* CSS for A/B badges */
+    var abStyle = document.createElement('style');
+    abStyle.id = 'dcf-ab-label-css';
+    abStyle.textContent = [
+      '.dcf-ab-badge { position:absolute;top:2px;left:4px;font-size:0.6rem;font-weight:900;',
+      '  border-radius:5px;padding:1px 5px;line-height:1.4;pointer-events:none;z-index:6;letter-spacing:0.04em; }',
+      '.dcf-ab-badge.ab-a { background:rgba(74,144,226,0.14);color:#1a5fa8;border:1px solid rgba(74,144,226,0.35); }',
+      '.dcf-ab-badge.ab-b { background:rgba(231,76,60,0.11);color:#b03020;border:1px solid rgba(231,76,60,0.32); }',
+      'body.dark-mode .dcf-ab-badge.ab-a { background:rgba(74,144,226,0.28);color:#7ab3f5;border-color:rgba(74,144,226,0.5); }',
+      'body.dark-mode .dcf-ab-badge.ab-b { background:rgba(231,76,60,0.22);color:#e88;border-color:rgba(231,76,60,0.45); }'
+    ].join('\n');
+    document.head.appendChild(abStyle);
+
+    /* Read school A/B config from localStorage */
+    function getABConfig() {
+      try { return JSON.parse(localStorage.getItem('schoolABSchedule') || '{}'); } catch (_) { return {}; }
+    }
+
+    /* Build the set of dates that are NOT school days (weekends excluded separately) */
+    function buildSkipSet(year) {
+      var skip = {};
+      function nthWd(yr, mi, wd, n) {
+        var f = new Date(yr, mi, 1).getDay();
+        return 1 + ((7 + wd - f) % 7) + (n - 1) * 7;
+      }
+      function lastWd(yr, mi, wd) {
+        var last = new Date(yr, mi + 1, 0);
+        return last.getDate() - ((7 + last.getDay() - wd) % 7);
+      }
+      /* Cover previous and next year too so anchor dates near year-end work */
+      for (var yr = year - 1; yr <= year + 1; yr++) {
+        [yr+'-01-01', yr+'-06-19', yr+'-07-04', yr+'-11-11', yr+'-12-25'].forEach(function (d) { skip[d] = true; });
+        skip[yr+'-01-'+p2(nthWd(yr, 0, 1, 3))] = true;   // MLK Day
+        skip[yr+'-02-'+p2(nthWd(yr, 1, 1, 3))] = true;   // Presidents' Day
+        skip[yr+'-05-'+p2(lastWd(yr, 4, 1))]   = true;   // Memorial Day
+        skip[yr+'-09-'+p2(nthWd(yr, 8, 1, 1))] = true;   // Labor Day
+        skip[yr+'-10-'+p2(nthWd(yr, 9, 1, 2))] = true;   // Columbus Day
+        skip[yr+'-11-'+p2(nthWd(yr, 10, 4, 4))] = true;  // Thanksgiving
+      }
+      try {
+        var userOff = JSON.parse(localStorage.getItem('userOffDays') || '[]');
+        if (Array.isArray(userOff)) {
+          userOff.forEach(function (d) {
+            var ds = typeof d === 'string' ? d : (d && d.date ? d.date : '');
+            if (ds) skip[ds] = true;
+          });
+        }
+      } catch (_) {}
+      return skip;
+    }
+
+    /* Add one calendar day (positive or negative n) to an ISO date string */
+    function addDay(iso, n) {
+      var d = new Date(iso + 'T00:00:00');
+      d.setDate(d.getDate() + n);
+      return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+    }
+
+    /* Return 'A', 'B', or null (non-school day) for a given calendar date.
+       anchorLabel is 'A' or 'B' — what the anchor date itself is called. */
+    function getABLabel(targetISO, anchorISO, anchorLabel, skipSet) {
+      /* Weekends and off-days are not school days */
+      var dow = new Date(targetISO + 'T00:00:00').getDay();
+      if (dow === 0 || dow === 6) return null;
+      if (skipSet[targetISO]) return null;
+
+      /* Count school days walked between anchor (exclusive) and target (inclusive) */
+      var count = 0;
+      var d = anchorISO;
+      var dir = anchorISO <= targetISO ? 1 : -1;
+      /* Safety cap: ~240 school days/yr × 2.5 years = 600 calendar-day iterations max */
+      var MAX_SCHOOL_DAYS_SEARCH = 600;
+      var safety = MAX_SCHOOL_DAYS_SEARCH;
+      while (d !== targetISO && safety-- > 0) {
+        d = addDay(d, dir);
+        var ddow = new Date(d + 'T00:00:00').getDay();
+        if (ddow !== 0 && ddow !== 6 && !skipSet[d]) count++;
+      }
+      /* Determine label: anchor=0 (same as anchorLabel), each step flips */
+      var anchorIsA = (anchorLabel || 'A').toUpperCase() !== 'B';
+      var targetIsA = (count % 2 === 0) ? anchorIsA : !anchorIsA;
+      return targetIsA ? 'A' : 'B';
+    }
+
+    /* Inject A/B badges into the currently rendered calendar grid */
+    function patchABBadges() {
+      var cfg = getABConfig();
+      if (!cfg.enabled || !cfg.anchorDate) return;
+
+      var calendarEl = document.getElementById('calendar');
+      if (!calendarEl) return;
+
+      var yr = (typeof selectedYear !== 'undefined') ? selectedYear : new Date().getFullYear();
+      var mo = (typeof selectedMonth !== 'undefined') ? selectedMonth : new Date().getMonth();
+      var skipSet = buildSkipSet(yr);
+
+      calendarEl.querySelectorAll('.day[data-day]').forEach(function (cell) {
+        /* Remove any existing badge */
+        var old = cell.querySelector('.dcf-ab-badge');
+        if (old) old.remove();
+
+        var day = parseInt(cell.dataset.day, 10);
+        if (!day) return;
+        var dateISO = yr + '-' + p2(mo + 1) + '-' + p2(day);
+        var label = getABLabel(dateISO, cfg.anchorDate, cfg.anchorLabel || 'A', skipSet);
+        if (!label) return;
+
+        var badge = document.createElement('span');
+        badge.className = 'dcf-ab-badge ab-' + label.toLowerCase();
+        badge.textContent = label;
+        badge.title = 'School day ' + label;
+        cell.appendChild(badge);
+      });
+    }
+
+    /* Patch generateCalendar so badges are applied after every calendar render */
+    if (typeof generateCalendar === 'function' && !generateCalendar._abPatched) {
+      var _origGenCal = generateCalendar;
+      window.generateCalendar = generateCalendar = function () {
+        _origGenCal.apply(this, arguments);
+        try { patchABBadges(); } catch (_) {}
+      };
+      generateCalendar._abPatched = true;
+    }
+
+    /* Also patch on first DOMContentLoaded in case generateCalendar wasn't ready yet */
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof generateCalendar === 'function' && !generateCalendar._abPatched) {
+        var _orig = generateCalendar;
+        window.generateCalendar = generateCalendar = function () {
+          _orig.apply(this, arguments);
+          try { patchABBadges(); } catch (_) {}
+        };
+        generateCalendar._abPatched = true;
+      }
+      try { patchABBadges(); } catch (_) {}
+    });
+
+    /* Re-apply when settings or off-days change (e.g. from settings.html) */
+    window.addEventListener('storage', function (e) {
+      if (e.key === 'schoolABSchedule' || e.key === 'userOffDays') {
+        try { patchABBadges(); } catch (_) {}
+      }
+    });
+
+    /* Re-apply on generic data updates */
+    window.addEventListener('app:data:updated', function () {
+      try { patchABBadges(); } catch (_) {}
+    });
+  })();
+
 })();

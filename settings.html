@@ -56,6 +56,42 @@
       <p style="color:#666;font-size:0.9rem">Jobs are now managed on the <a href="index.html#work" style="color:#4a90e2">💼 Work</a> page.</p>
     </section>
 
+    <!-- School A/B Schedule -->
+    <section id="schoolABSection" style="margin-top:18px">
+      <h3 style="text-align:center">🏫 School A/B Schedule</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Enable A/B day labels on the calendar. Set any date you know is an A or B day — the calendar will automatically label every other school day going forward and backward.</p>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <label style="font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="abEnabled" />
+          Show A/B labels on calendar
+        </label>
+      </div>
+
+      <div id="abConfigFields" style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px">
+            <label for="abAnchorDate" style="display:block;font-weight:600;margin-bottom:2px">Anchor date</label>
+            <input id="abAnchorDate" type="date" />
+          </div>
+          <div style="width:110px">
+            <label for="abAnchorLabel" style="display:block;font-weight:600;margin-bottom:2px">This date is…</label>
+            <select id="abAnchorLabel" style="width:100%">
+              <option value="A">Day A</option>
+              <option value="B">Day B</option>
+            </select>
+          </div>
+        </div>
+        <p style="color:#888;font-size:0.82rem;margin:0">Federal holidays and any custom off-days you add below are automatically skipped when computing the A/B sequence.</p>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <button id="saveABBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save</button>
+        <button id="clearABBtn" class="small-btn">Clear</button>
+        <span id="abStatus" style="font-size:0.9rem;color:#27ae60;margin-left:6px"></span>
+      </div>
+    </section>
+
     <!-- Off-Days / Holidays -->
     <section id="userOffDays" style="margin-top:18px">
       <h3 style="text-align:center">Off-Days / Holidays</h3>
@@ -193,6 +229,65 @@
   <!-- ADDED: tasks manager (handles categories too) -->
   <script src="./tasks.js"></script>
   <script>
+    // School A/B Schedule settings
+    (function () {
+      function getABCfg() {
+        try { return JSON.parse(localStorage.getItem('schoolABSchedule') || '{}'); } catch (_) { return {}; }
+      }
+      function setABCfg(cfg) {
+        localStorage.setItem('schoolABSchedule', JSON.stringify(cfg));
+      }
+
+      var enabledChk  = document.getElementById('abEnabled');
+      var anchorDate  = document.getElementById('abAnchorDate');
+      var anchorLabel = document.getElementById('abAnchorLabel');
+      var configFields = document.getElementById('abConfigFields');
+      var statusEl    = document.getElementById('abStatus');
+
+      function loadUI() {
+        var cfg = getABCfg();
+        if (enabledChk)  enabledChk.checked  = !!cfg.enabled;
+        if (anchorDate)  anchorDate.value     = cfg.anchorDate  || '';
+        if (anchorLabel) anchorLabel.value    = cfg.anchorLabel || 'A';
+        toggleFields();
+      }
+
+      function toggleFields() {
+        if (configFields) configFields.style.opacity = (enabledChk && enabledChk.checked) ? '1' : '0.45';
+      }
+
+      if (enabledChk) enabledChk.addEventListener('change', toggleFields);
+
+      var saveBtn = document.getElementById('saveABBtn');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function () {
+          var enabled = enabledChk ? enabledChk.checked : false;
+          var anchor  = anchorDate  ? anchorDate.value.trim()   : '';
+          var label   = anchorLabel ? anchorLabel.value         : 'A';
+          if (enabled && !anchor) {
+            if (statusEl) { statusEl.textContent = 'Please choose an anchor date.'; statusEl.style.color = '#e74c3c'; }
+            if (anchorDate) anchorDate.focus();
+            return;
+          }
+          setABCfg({ enabled: enabled, anchorDate: anchor, anchorLabel: label });
+          if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.style.color = '#27ae60'; }
+          setTimeout(function () { if (statusEl) statusEl.textContent = ''; }, 2000);
+        });
+      }
+
+      var clearBtn = document.getElementById('clearABBtn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+          localStorage.removeItem('schoolABSchedule');
+          loadUI();
+          if (statusEl) { statusEl.textContent = 'Cleared.'; statusEl.style.color = '#666'; }
+          setTimeout(function () { if (statusEl) statusEl.textContent = ''; }, 2000);
+        });
+      }
+
+      loadUI();
+    })();
+
     // Off-Days management
     (function () {
       function getOffDays() {
