@@ -693,6 +693,11 @@ function showReminders(day){
 
   updateDayProgress(day);
 
+  /* Refresh weather widget for new selected week */
+  if (typeof renderDashboardWeather === 'function') {
+    try { renderDashboardWeather(); } catch(_){}
+  }
+
   if (selectedYear != null && selectedMonth != null && day){
     renderDailyViewForDay(selectedYear, selectedMonth, day);
     const container = document.getElementById('dailyView');
@@ -1460,6 +1465,129 @@ function updateWeeklySalary(){
       el.onclick = null;
     }
   } catch(e) { el.innerHTML = ''; console.warn('weeklySalary error', e); }
+}
+
+/* ── Dashboard Weather Widget (Open-Meteo, no API key) ─────── */
+var _dashWeatherCache = null;
+var _dashWeatherCacheDate = null;
+var _DASH_WMO_EMOJI = {
+  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+  45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌦️',55:'🌦️',
+  61:'🌧️',63:'🌧️',65:'🌧️',
+  71:'🌨️',73:'🌨️',75:'🌨️',77:'🌨️',
+  80:'🌦️',81:'🌦️',82:'⛈️',
+  85:'🌨️',86:'🌨️',
+  95:'⛈️',96:'⛈️',99:'⛈️'
+};
+var _DASH_WMO_DESC = {
+  0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',
+  45:'Fog',48:'Depositing fog',
+  51:'Light drizzle',53:'Moderate drizzle',55:'Dense drizzle',
+  61:'Light rain',63:'Moderate rain',65:'Heavy rain',
+  71:'Light snow',73:'Moderate snow',75:'Heavy snow',77:'Snow grains',
+  80:'Light showers',81:'Moderate showers',82:'Violent showers',
+  85:'Light snow showers',86:'Heavy snow showers',
+  95:'Thunderstorm',96:'Thunderstorm w/ hail',99:'Severe thunderstorm'
+};
+
+function renderDashboardWeather(){
+  var section = document.getElementById('weatherWidgetSection');
+  var container = document.getElementById('weatherWidgetContent');
+  if (!section || !container) return;
+
+  /* Determine the week of the selected day (Sun–Sat) */
+  var selY = selectedYear != null ? selectedYear : new Date().getFullYear();
+  var selM = selectedMonth != null ? selectedMonth : new Date().getMonth();
+  var selD = selectedDay || new Date().getDate();
+  var selDate = new Date(selY, selM, selD);
+  var selISO = selY + '-' + pad2(selM + 1) + '-' + pad2(selD);
+
+  /* If we have cached data, render immediately */
+  if (_dashWeatherCache) {
+    _renderWeatherCards(container, section, selDate, selISO);
+  }
+
+  /* Fetch fresh data if needed */
+  var today = getTodayISO();
+  if (_dashWeatherCacheDate === today && _dashWeatherCache) return;
+  if (!navigator.geolocation) {
+    container.innerHTML = '<p class="weather-widget-note">Location access is needed for weather data.</p>';
+    section.style.display = '';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat = pos.coords.latitude.toFixed(4);
+    var lon = pos.coords.longitude.toFixed(4);
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+      '&daily=weathercode,temperature_2m_max,temperature_2m_min&forecast_days=16&timezone=auto';
+    fetch(url).then(function(r){ return r.json(); }).then(function(data){
+      if (!data.daily) return;
+      _dashWeatherCache = {};
+      _dashWeatherCacheDate = today;
+      var dates = data.daily.time || [];
+      var codes = data.daily.weathercode || [];
+      var highs = data.daily.temperature_2m_max || [];
+      var lows  = data.daily.temperature_2m_min || [];
+      for (var i = 0; i < dates.length; i++){
+        _dashWeatherCache[dates[i]] = {
+          emoji: _DASH_WMO_EMOJI[codes[i]] || '🌡️',
+          desc:  _DASH_WMO_DESC[codes[i]] || '',
+          high:  Math.round(highs[i]),
+          low:   Math.round(lows[i])
+        };
+      }
+      _renderWeatherCards(container, section, selDate, selISO);
+    }).catch(function(){ /* silent fail */ });
+  }, function(){
+    container.innerHTML = '<p class="weather-widget-note">Enable location access to see weather.</p>';
+    section.style.display = '';
+  }, { timeout: 8000 });
+}
+
+function _renderWeatherCards(container, section, selDate, selISO){
+  if (!_dashWeatherCache) return;
+  var dow = selDate.getDay();
+  var weekStart = new Date(selDate);
+  weekStart.setDate(selDate.getDate() - dow);
+
+  var todayISO = getTodayISO();
+  var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var html = '<div class="weather-week-grid">';
+  var hasAny = false;
+
+  for (var i = 0; i < 7; i++){
+    var d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    var iso = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    var w = _dashWeatherCache[iso];
+    var cls = 'weather-day-card';
+    if (iso === selISO) cls += ' wdc-selected';
+    if (iso === todayISO) cls += ' wdc-today';
+
+    html += '<div class="' + cls + '">';
+    html += '<div class="weather-day-name">' + dayNames[d.getDay()] + '</div>';
+    html += '<div class="weather-day-date">' + (d.getMonth()+1) + '/' + d.getDate() + '</div>';
+    if (w){
+      hasAny = true;
+      html += '<div class="weather-day-icon">' + w.emoji + '</div>';
+      html += '<div class="weather-day-high">' + w.high + '°</div>';
+      html += '<div class="weather-day-low">' + w.low + '°</div>';
+      html += '<div class="weather-day-desc">' + escapeHTML(w.desc) + '</div>';
+    } else {
+      html += '<div class="weather-day-icon">—</div>';
+      html += '<div class="weather-day-high">—</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '<p class="weather-widget-note">Powered by Open-Meteo · Temperatures in °C</p>';
+
+  if (hasAny){
+    container.innerHTML = html;
+    section.style.display = '';
+  }
 }
 
 /* ── Work Page Earnings – state ──────────────────────────────── */
@@ -4922,11 +5050,13 @@ document.addEventListener('DOMContentLoaded',function(){
   updateDayElapsedRing();
   updateCompletionRing();
   updateWeeklySalary();
+  renderDashboardWeather();
   setInterval(function(){ updateDayElapsedRing(); updateCompletionRing(); }, 60000);
 
   /* Re-update rings when the daily-view date changes */
   window.addEventListener('dailyview:datechange', function(){
     updateCompletionRing();
     updateDayElapsedRing();
+    renderDashboardWeather();
   });
 });

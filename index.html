@@ -98,6 +98,27 @@
     .we-settings-btn:hover { color:#555; }
     .we-comparison { font-size:0.83rem;text-align:center;margin:2px 0 8px; }
     .we-comparison.up   { color:#27ae60; }
+    /* ── Weather Widget on Dashboard ─────────────────────── */
+    .weather-widget-section { background:#fff;border-radius:10px;padding:16px;margin-top:14px;box-shadow:0 1px 8px rgba(0,0,0,0.07); }
+    .weather-widget-heading { margin:0 0 12px;font-size:1.15rem; }
+    .weather-week-grid { display:flex;gap:4px;overflow-x:auto;padding-bottom:4px; }
+    .weather-day-card { flex:1;min-width:72px;background:#f9fafb;border-radius:8px;padding:10px 6px;text-align:center;border:1px solid #eee;transition:background 0.15s,border-color 0.15s; }
+    .weather-day-card.wdc-selected { border-color:#4a90e2;background:#eaf4ff; }
+    .weather-day-card.wdc-today { outline:2px solid #4a90e2; }
+    .weather-day-name { font-size:0.78rem;color:#888;font-weight:600;text-transform:uppercase; }
+    .weather-day-date { font-size:0.75rem;color:#aaa;margin-top:2px; }
+    .weather-day-icon { font-size:1.6rem;margin:6px 0; }
+    .weather-day-high { font-size:0.92rem;font-weight:700;color:#333; }
+    .weather-day-low { font-size:0.82rem;color:#888; }
+    .weather-day-desc { font-size:0.7rem;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .weather-widget-note { text-align:center;color:#aaa;font-size:0.78rem;margin-top:8px; }
+    body.dark-mode .weather-widget-section { background:#16213e;box-shadow:none; }
+    body.dark-mode .weather-day-card { background:#1e2d45;border-color:#2a2a4a; }
+    body.dark-mode .weather-day-card.wdc-selected { background:#1e3a6e;border-color:#4a90e2; }
+    body.dark-mode .weather-day-name { color:#aaa; }
+    body.dark-mode .weather-day-high { color:#e0e0e0; }
+    body.dark-mode .weather-day-low { color:#888; }
+    body.dark-mode .weather-day-desc { color:#888; }
     .we-comparison.down { color:#e74c3c; }
     .we-comparison.same { color:#888; }
     .we-tax-line { font-size:0.88rem;text-align:center;color:#666;margin-bottom:10px; }
@@ -464,6 +485,12 @@
           </div>
         </div>
         <div class="weekly-salary" id="weeklySalaryDisplay"></div>
+
+        <!-- Weather Summary Widget -->
+        <div id="weatherWidgetSection" class="weather-widget-section" style="display:none">
+          <h3 class="weather-widget-heading">🌤️ Weekly Weather</h3>
+          <div id="weatherWidgetContent"></div>
+        </div>
       </section>
 
         <!-- Daily view controls -->
