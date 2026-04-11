@@ -851,10 +851,17 @@
     endDate.setDate(endDate.getDate() + 7);
     var endStr = endDate.getFullYear() + '-' + p2(endDate.getMonth() + 1) + '-' + p2(endDate.getDate());
 
-    var events = getEv().filter(function (e) {
-      var d = nd(e.date);
-      return d >= todayStr && d <= endStr;
-    }).sort(function (a, b) {
+    // Use getExpandedEvents (recurring-aware) when available, fall back to raw getEv()
+    var rawEvents;
+    if (typeof getExpandedEvents === 'function') {
+      rawEvents = getExpandedEvents(todayStr, endStr);
+    } else {
+      rawEvents = getEv().filter(function (e) {
+        var d = nd(e.date);
+        return d >= todayStr && d <= endStr;
+      });
+    }
+    var events = rawEvents.sort(function (a, b) {
       var cmp = (nd(a.date) || '').localeCompare(nd(b.date) || '');
       if (cmp !== 0) return cmp;
       return (a.time || '').localeCompare(b.time || '');
