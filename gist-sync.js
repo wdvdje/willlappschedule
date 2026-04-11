@@ -19,6 +19,7 @@
     'events', 'tasks', 'taskCategories',
     'reminders', 'jobs', 'inbox',
     'USER_PROFILE', 'userName', 'userHome',
+    'personalBuckets', 'homeBuckets',
   ];
   const GIST_FILENAME  = 'timescape-data.json';
   const SYNC_INTERVAL_MS = 5 * 60 * 1000; // background poll every 5 minutes
@@ -60,19 +61,29 @@
 
   // Merge two arrays whose items have an 'id' field.
   // The item with the newer 'updated'/'created' timestamp wins; remote wins on tie.
+  // Items without an id are preserved (appended) so they are not silently dropped.
   function mergeArrayById(local, remote) {
     if (!Array.isArray(remote)) return Array.isArray(local) ? local : [];
     if (!Array.isArray(local))  return remote;
     var map = {};
+    var localNoId = [];
+    var remoteNoId = [];
     local.forEach(function (item) {
-      if (item && (item.id || item._id)) {
-        map[item.id || item._id] = item;
+      if (!item) return;
+      var id = item.id || item._id;
+      if (id) {
+        map[id] = item;
+      } else {
+        localNoId.push(item);
       }
     });
     remote.forEach(function (item) {
       if (!item) return;
       var id = item.id || item._id;
-      if (!id) return;
+      if (!id) {
+        remoteNoId.push(item);
+        return;
+      }
       if (!map[id]) {
         map[id] = item;
       } else {
@@ -81,7 +92,15 @@
         if (remoteTs >= localTs) map[id] = item; // remote wins on tie
       }
     });
-    return Object.values(map);
+    // Preserve items without IDs from both sides (legacy items created before IDs were added).
+    // Deduplicate by JSON content to avoid duplicating the same item.
+    var noIdSeen = {};
+    var noIdItems = [];
+    localNoId.concat(remoteNoId).forEach(function (item) {
+      var key = JSON.stringify(item);
+      if (!noIdSeen[key]) { noIdSeen[key] = true; noIdItems.push(item); }
+    });
+    return Object.values(map).concat(noIdItems);
   }
 
   // Apply a remote data snapshot into localStorage, merging where appropriate.
@@ -94,7 +113,7 @@
     _applying = true;
     try {
       // Array collections – merge by id
-      ['events', 'tasks', 'taskCategories', 'jobs', 'inbox'].forEach(function (key) {
+      ['events', 'tasks', 'taskCategories', 'jobs', 'inbox', 'personalBuckets', 'homeBuckets'].forEach(function (key) {
         if (!(key in remote)) return;
         var localRaw = localStorage.getItem(key);
         var localArr = localRaw ? (safeParse(localRaw) || []) : [];
