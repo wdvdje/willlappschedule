@@ -2048,7 +2048,8 @@ function applyImportData(importData, mode){
       var seenIds = {};
       var merged = [];
       local.concat(importData[key]).forEach(function(b) {
-        var bid = b && b.id != null ? b.id : b.name;
+        if (!b) return;
+        var bid = b.id != null ? b.id : b.name;
         if (!seenIds[bid]) { seenIds[bid] = true; merged.push(b); }
       });
       localStorage.setItem(key, JSON.stringify(merged));
