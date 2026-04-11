@@ -157,7 +157,7 @@
   async function pushCollection(name) {
     const token = getToken();
     if (!token || !COLLECTIONS.includes(name)) return;
-    if (_hasServer === false) return; // skip on static hosts
+    if (!(await hasServer())) return; // skip on static hosts
     const value = safeParse(name);
     if (value === null) return;
     try {

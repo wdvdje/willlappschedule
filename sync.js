@@ -107,7 +107,7 @@
 
   async function pushCollection(name) {
     if (!COLLECTIONS.includes(name)) return;
-    if (_hasServer === false) return; // skip on static hosts
+    if (!(await hasServer())) return; // skip on static hosts
     const items = safeParse(name);
     try {
       await fetch(`/api/sync/${name}`, {
