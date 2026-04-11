@@ -53,6 +53,18 @@ function getTasks(){ return safeParseStorage('tasks', []); }
 function setTasks(v){ localStorage.setItem('tasks', JSON.stringify(v)); }
 function getEvents(){ return safeParseStorage('events', []); }
 function setEvents(v){ localStorage.setItem('events', JSON.stringify(v)); }
+/* Return expanded (recurring-aware) events for the given date range.
+   Falls back to getEvents() if expandEvents is not available yet. */
+function getExpandedEvents(startISO, endISO){
+  if (window.appUtils && typeof window.appUtils.expandEvents === 'function'){
+    return window.appUtils.expandEvents(startISO, endISO);
+  }
+  // fallback: return raw events filtered to the range
+  return getEvents().filter(function(e){
+    var d = normalizeDate(e.date);
+    return d >= startISO && d <= endISO;
+  });
+}
 function getJobs(){ return safeParseStorage('jobs', []); }
 function setJobs(v){ localStorage.setItem('jobs', JSON.stringify(v)); }
 function getInbox(){ return safeParseStorage('inbox', []); }
@@ -279,8 +291,8 @@ function hourToLabel(h){
 }
 
 function getEventsForDateKey(dateKey){
-  // returns events (with normalized times) for the given YYYY-MM-DD
-  return getEvents().filter(ev => normalizeDate(ev.date) === dateKey && (ev.time || ev.endTime));
+  // returns expanded events (with normalized times) for the given YYYY-MM-DD
+  return getExpandedEvents(dateKey, dateKey).filter(ev => ev.time || ev.endTime);
 }
 
 /* Updated renderDailyViewForDay:
@@ -544,7 +556,9 @@ function generateCalendar(){
   const today = new Date();
   const isCurMonth = today.getFullYear()===selectedYear && today.getMonth()===selectedMonth;
   const reminders = getReminders();
-  const events = getEvents();
+  const monthStart = selectedYear+'-'+pad2(selectedMonth+1)+'-01';
+  const monthEnd   = selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(daysInMonth);
+  const events = getExpandedEvents(monthStart, monthEnd);
 
   for (let i=0;i<start;i++) calendarEl.appendChild(document.createElement('div'));
 
@@ -631,7 +645,7 @@ function showReminders(day){
   const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
   const reminders = getReminders();
   const items = reminders[key] || [];
-  const events = getEvents().filter(e=>normalizeDate(e.date)===key);
+  const events = getExpandedEvents(key, key);
 
   const untimed = events.filter(e=>!e.time).slice().sort((a,b)=> (a.title||'').localeCompare(b.title||''));
   const timed = events.filter(e=>e.time).slice().sort((a,b)=>{
@@ -1893,7 +1907,10 @@ function wireCategoryFilters(){
     orig();
     const calendarEl = document.getElementById('calendar');
     if (!calendarEl) return;
-    const events = getEvents();
+    const daysInMonth = new Date(selectedYear, selectedMonth+1, 0).getDate();
+    const monthStart = selectedYear+'-'+pad2(selectedMonth+1)+'-01';
+    const monthEnd   = selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(daysInMonth);
+    const events = getExpandedEvents(monthStart, monthEnd);
     calendarEl.querySelectorAll('.day[data-day]').forEach(cell => {
       const day = parseInt(cell.dataset.day, 10);
       const ymd = selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(day);
@@ -1924,10 +1941,10 @@ function wireCategoryFilters(){
     orig(tasks);
     try{
       const todayStr = new Date().toISOString().slice(0,10);
-      const todayEvents = getEvents().filter(e => normalizeDate(e.date) === todayStr);
+      const todayEvents = getExpandedEvents(todayStr, todayStr);
       const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate()+7);
       const weekEndStr = weekEnd.toISOString().slice(0,10);
-      const weekEvents = getEvents().filter(e => { const d = normalizeDate(e.date); return d >= todayStr && d <= weekEndStr; });
+      const weekEvents = getExpandedEvents(todayStr, weekEndStr);
       const pending = tasks.filter(t => !t.done).length;
       const catMap = {};
       todayEvents.forEach(e => { const c = e.category||'event'; catMap[c]=(catMap[c]||0)+1; });
@@ -1961,7 +1978,10 @@ function renderWeekView(){
   grid.className = 'week-grid';
   const today = new Date();
   const todayStr = today.getFullYear()+'-'+pad2(today.getMonth()+1)+'-'+pad2(today.getDate());
-  const allEvents = getEvents();
+  const we = new Date(ws); we.setDate(ws.getDate()+6);
+  const weekStartISO = ws.getFullYear()+'-'+pad2(ws.getMonth()+1)+'-'+pad2(ws.getDate());
+  const weekEndISO   = we.getFullYear()+'-'+pad2(we.getMonth()+1)+'-'+pad2(we.getDate());
+  const allEvents = getExpandedEvents(weekStartISO, weekEndISO);
   const allTasks = getTasks();
   const allReminders = getReminders();
 
@@ -2483,7 +2503,7 @@ function scheduleMorningBriefing(){
   window._morningBriefingTimer=setTimeout(function(){
     try{
       const ts=new Date().toISOString().slice(0,10);
-      const evCount=getEvents().filter(function(e){ return normalizeDate(e.date)===ts; }).length;
+      const evCount=getExpandedEvents(ts,ts).length;
       const tkCount=getTasks().filter(function(t){ return !t.done&&normalizeDate(t.date)===ts; }).length;
       const body=evCount+' event'+(evCount!==1?'s':'')+', '+tkCount+' task'+(tkCount!==1?'s':'')+' today';
       if('Notification' in window&&Notification.permission==='granted'){
@@ -3357,7 +3377,7 @@ function renderCalendarSummary() {
 
   const items = [];
 
-  getEvents().forEach(function(ev) {
+  getExpandedEvents(todayStr, endStr).forEach(function(ev) {
     const d = normalizeDate(ev.date);
     if (!d || d < todayStr || d > endStr) return;
     const domain = getDomainOfItem(ev);
