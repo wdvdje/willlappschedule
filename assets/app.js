@@ -890,11 +890,24 @@ function addEvent(e){
     return;
   }
 
+  const category = document.getElementById('eventCategory') ? document.getElementById('eventCategory').value || 'event' : 'event';
+  const jobId = document.getElementById('eventJobId') ? document.getElementById('eventJobId').value || '' : '';
+  const jobName = document.getElementById('eventJobName') ? document.getElementById('eventJobName').value || '' : '';
+  const jobRate = document.getElementById('eventJobRate') ? document.getElementById('eventJobRate').value || '' : '';
+  const jobUnit = document.getElementById('eventJobUnit') ? document.getElementById('eventJobUnit').value || '' : '';
+
   const evs = getEvents();
   const id = evs.length ? Math.max(...evs.map(e=>e.id))+1 : 1;
-  evs.push(Object.assign({
-    id,title,date,time,startTime:time,endTime,endDate,location,emoji,preBuffer:pre,postBuffer:post
-  }, repeatPayload));
+  const newEvent = Object.assign({
+    id,title,date,time,startTime:time,endTime,endDate,location,emoji,category,preBuffer:pre,postBuffer:post
+  }, repeatPayload);
+  if (category === 'job') {
+    if (jobId) newEvent.jobId = jobId;
+    if (jobName) newEvent.jobName = jobName;
+    if (jobRate) newEvent.jobRate = jobRate;
+    if (jobUnit) newEvent.jobUnit = jobUnit;
+  }
+  evs.push(newEvent);
   setEvents(evs);
   if (document.getElementById('eventTitle')) document.getElementById('eventTitle').value='';
   if (document.getElementById('eventDate')) document.getElementById('eventDate').value='';
@@ -903,6 +916,12 @@ function addEvent(e){
   if (document.getElementById('eventEndDate')) document.getElementById('eventEndDate').value='';
   if (document.getElementById('eventLocation')) document.getElementById('eventLocation').value='';
   if (document.getElementById('eventEmoji')) document.getElementById('eventEmoji').value='';
+  if (document.getElementById('eventCategory')) document.getElementById('eventCategory').value='event';
+  if (document.getElementById('eventJobId')) document.getElementById('eventJobId').value='';
+  if (document.getElementById('eventJobName')) document.getElementById('eventJobName').value='';
+  if (document.getElementById('eventJobRate')) document.getElementById('eventJobRate').value='';
+  if (document.getElementById('eventJobUnit')) document.getElementById('eventJobUnit').value='';
+  if (document.getElementById('eventJobRow')) document.getElementById('eventJobRow').style.display='none';
   if (document.getElementById('eventRepeat')) document.getElementById('eventRepeat').value='none';
   if (document.getElementById('eventRepeatUntil')) document.getElementById('eventRepeatUntil').value='';
   if (document.getElementById('eventRepeatInterval')) document.getElementById('eventRepeatInterval').value='1';
@@ -927,6 +946,7 @@ function editEvent(id){
   if (document.getElementById('editEndDate')) document.getElementById('editEndDate').value = e.endDate || '';
   document.getElementById('editLocation').value = e.location || '';
   document.getElementById('editEmoji').value = e.emoji || '';
+  if (document.getElementById('editCategory')) document.getElementById('editCategory').value = e.category || 'event';
   document.getElementById('editPreBuffer').value = parseBufferMinutes(e.preBuffer || 5);
   document.getElementById('editPostBuffer').value = parseBufferMinutes(e.postBuffer || 5);
   document.getElementById('editRepeat').value = e.repeat || 'none';
@@ -952,7 +972,7 @@ function closeEditModal(){ const m = document.getElementById('editModal'); if (m
 function showModalFieldsFor(kind){
   const loc = document.getElementById('editLocation'), emoji = document.getElementById('editEmoji'), category = document.getElementById('editCategory'), priority = document.getElementById('editPriority');
   if (!loc || !emoji || !category || !priority) return;
-  if (kind==='event'){ loc.parentElement.style.display='block'; emoji.parentElement.style.display='block'; category.parentElement.style.display='none'; priority.parentElement.style.display='none'; }
+  if (kind==='event'){ loc.parentElement.style.display='block'; emoji.parentElement.style.display='block'; category.parentElement.style.display='block'; priority.parentElement.style.display='none'; }
   else if (kind==='task'){ loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='block'; priority.parentElement.style.display='block'; }
   else { loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='none'; priority.parentElement.style.display='none'; }
 }
@@ -978,6 +998,8 @@ function saveEditHandler(e){
       return;
     }
     evs[idx].title = text; evs[idx].date = date; evs[idx].time = time; evs[idx].startTime = time; evs[idx].endTime = endTime; evs[idx].location = document.getElementById('editLocation').value.trim(); evs[idx].emoji = document.getElementById('editEmoji').value.trim();
+    var editCatEl = document.getElementById('editCategory');
+    if (editCatEl) evs[idx].category = editCatEl.value || 'event';
     evs[idx].endDate = normalizeDate(document.getElementById('editEndDate') ? document.getElementById('editEndDate').value : '') || '';
     evs[idx].preBuffer = parseBufferMinutes(document.getElementById('editPreBuffer').value);
     evs[idx].postBuffer = parseBufferMinutes(document.getElementById('editPostBuffer').value);
