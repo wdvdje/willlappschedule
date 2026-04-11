@@ -4853,9 +4853,19 @@ function injectCalendarAddItemFAB() {
     var time = timeInp ? timeInp.value : '';
 
     if (domain === 'inbox') {
-      /* Send to inbox */
+      /* Send to inbox — capture type-specific fields for later assignment */
+      var inboxItem = { title: title, emoji: emoji, type: type, date: date, time: time, created: new Date().toISOString() };
+      if (type === 'event') {
+        var eti = document.getElementById('calAddEndTime');
+        var eli = document.getElementById('calAddLocation');
+        if (eti && eti.value) inboxItem.endTime = eti.value;
+        if (eli && eli.value.trim()) inboxItem.location = eli.value.trim();
+      } else if (type === 'task') {
+        var epi = document.getElementById('calAddPriority');
+        if (epi) inboxItem.priority = epi.value;
+      }
       var inbox = getInbox();
-      inbox.push({ title: title, emoji: emoji, type: type, date: date, time: time, created: new Date().toISOString() });
+      inbox.push(inboxItem);
       setInbox(inbox);
       updateInboxBadge();
       closeModal();
