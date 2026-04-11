@@ -1135,12 +1135,149 @@ function saveEditHandler(e){
 }
 
 /* progress & dashboard */
+const RING_CIRCUMFERENCE = 2 * Math.PI * 18; // ~113.1
+
+function setRing(fgId, pctId, percent, color){
+  const fg = document.getElementById(fgId);
+  const pctEl = document.getElementById(pctId);
+  if (fg) {
+    const offset = RING_CIRCUMFERENCE - (percent / 100) * RING_CIRCUMFERENCE;
+    fg.style.strokeDashoffset = offset;
+    fg.style.stroke = color;
+  }
+  if (pctEl) pctEl.textContent = Math.round(percent) + '%';
+}
+
+function getTodayISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+}
+
+/* Ring 1: tasks + reminders + events completion for today */
+function updateCompletionRing(){
+  const todayStr = getTodayISO();
+  // Tasks for today
+  const tasks = getTasks().filter(t => t.date && normalizeDate(t.date) === todayStr);
+  const tasksDone = tasks.filter(t => t.done).length;
+  // Reminders for today
+  const rems = getReminders();
+  const todayReminders = rems[todayStr] || [];
+  const remDone = todayReminders.filter(r => r.done).length;
+  // Events for today
+  const todayEvents = getExpandedEvents(todayStr, todayStr);
+  // Events count as "done" if their end time has passed
+  const now = new Date();
+  const nowMins = now.getHours() * 60 + now.getMinutes();
+  let eventsDone = 0;
+  todayEvents.forEach(ev => {
+    const endStr = ev.endTime || '';
+    if (endStr) {
+      const parts = endStr.match(/(\d{1,2}):(\d{2})/);
+      if (parts) {
+        const endMins = parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+        if (nowMins >= endMins) eventsDone++;
+        return;
+      }
+    }
+    // No end time: treat as done only at end of day (23:59)
+    if (nowMins >= 1439) eventsDone++;
+  });
+  const total = tasks.length + todayReminders.length + todayEvents.length;
+  const done = tasksDone + remDone + eventsDone;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  const color = pct === 100 ? '#27ae60' : '#4a90e2';
+  setRing('completionRingFg', 'completionRingPct', pct, color);
+  const wrap = document.getElementById('completionRingWrap');
+  if (wrap) wrap.title = done + '/' + total + ' items done today';
+}
+
+/* Ring 2: percent of day elapsed */
+function updateDayElapsedRing(){
+  const now = new Date();
+  const minutesPassed = now.getHours() * 60 + now.getMinutes();
+  const pct = Math.round((minutesPassed / 1440) * 100);
+  const color = pct >= 75 ? '#e74c3c' : pct >= 50 ? '#e67e22' : '#f1c40f';
+  setRing('dayElapsedRingFg', 'dayElapsedRingPct', pct, color);
+  const wrap = document.getElementById('dayElapsedRingWrap');
+  if (wrap) wrap.title = Math.floor(minutesPassed/60) + 'h ' + (minutesPassed%60) + 'm elapsed';
+}
+
+/* Weekly salary calculation based on jobs */
+function updateWeeklySalary(){
+  const el = document.getElementById('weeklySalaryDisplay');
+  if (!el) return;
+  try {
+    const todayStr = getTodayISO();
+    // Determine week range (Sunday–Saturday)
+    const todayDate = new Date(todayStr + 'T12:00:00');
+    const dow = todayDate.getDay();
+    const weekStartDate = new Date(todayDate);
+    weekStartDate.setDate(todayDate.getDate() - dow);
+    const weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekStartDate.getDate() + 6);
+    const weekStartISO = weekStartDate.getFullYear()+'-'+pad2(weekStartDate.getMonth()+1)+'-'+pad2(weekStartDate.getDate());
+    const weekEndISO = weekEndDate.getFullYear()+'-'+pad2(weekEndDate.getMonth()+1)+'-'+pad2(weekEndDate.getDate());
+
+    const weekEvents = getExpandedEvents(weekStartISO, weekEndISO);
+    const jobs = getJobs();
+    if (!jobs.length) { el.innerHTML = ''; return; }
+
+    // Build a lookup for jobs by id
+    const jobMap = {};
+    jobs.forEach(j => { jobMap[j.id] = j; });
+
+    let totalSalary = 0;
+    // Count occurrences per job this week
+    const jobOccurrences = {};
+    weekEvents.forEach(ev => {
+      const jid = ev.jobId || ev.eventJobId || '';
+      if (!jid) return;
+      const id = typeof jid === 'number' ? jid : parseInt(jid, 10);
+      if (!jobMap[id]) return;
+      jobOccurrences[id] = (jobOccurrences[id] || 0) + 1;
+
+      // If event has its own rate snapshot, use it; otherwise use job master rate
+      const job = jobMap[id];
+      const rate = parseFloat(ev.jobRate || ev.eventJobRate || job.rate) || 0;
+      const unit = ev.jobUnit || ev.eventJobUnit || job.unit || 'hour';
+
+      if (unit === 'job') {
+        // flat rate per occurrence
+        totalSalary += rate;
+      } else if (unit === 'day') {
+        totalSalary += rate;
+      } else {
+        // hourly: calculate hours from start/end time
+        let hours = 0;
+        const startStr = ev.startTime || ev.time || '';
+        const endStr = ev.endTime || '';
+        if (startStr && endStr) {
+          const sp = startStr.match(/(\d{1,2}):(\d{2})/);
+          const ep = endStr.match(/(\d{1,2}):(\d{2})/);
+          if (sp && ep) {
+            const sm = parseInt(sp[1],10)*60+parseInt(sp[2],10);
+            const em = parseInt(ep[1],10)*60+parseInt(ep[2],10);
+            hours = Math.max(0, (em - sm) / 60);
+          }
+        }
+        // fallback: if no times, assume default work hours
+        var DEFAULT_WORK_HOURS = 8;
+        if (!hours) hours = DEFAULT_WORK_HOURS;
+        totalSalary += rate * hours;
+      }
+    });
+
+    if (totalSalary > 0) {
+      el.innerHTML = '💰 Est. weekly salary: <strong>$' + totalSalary.toFixed(2) + '</strong>';
+    } else {
+      el.innerHTML = '';
+    }
+  } catch(e) { el.innerHTML = ''; console.warn('weeklySalary error', e); }
+}
+
+/* Legacy wrappers: updateProgress / updateDashboard / updateDayProgress still called from other code */
 function updateProgress(tasks){
-  const total = tasks.length;
-  const done = tasks.filter(t=>t.done).length;
-  const percent = total ? Math.round((done/total)*100) : 0;
-  const ring = document.getElementById('progressRing');
-  if (ring) { ring.style.borderTopColor = percent===100 ? 'limegreen' : '#4a90e2'; ring.title = percent + '% complete'; ring.style.transform = `rotate(${percent*3.6}deg)`; }
+  updateCompletionRing();
 }
 function updateDashboard(tasks){
   const total = tasks.length;
@@ -1148,24 +1285,13 @@ function updateDashboard(tasks){
   const categories = tasks.reduce((acc,t)=>{ acc[t.category]= (acc[t.category]||0)+1; return acc; },{});
   const summary = document.getElementById('summaryStats');
   if (summary) summary.innerHTML = `Total tasks: ${total}<br>Completed: ${done}<br>Work: ${categories.work||0}, Personal: ${categories.personal||0}, Errands: ${categories.errands||0}`;
+  updateCompletionRing();
+  updateDayElapsedRing();
+  updateWeeklySalary();
 }
 function updateDayProgress(day){
-  const ring = document.getElementById('dayProgressRing');
-  if (!ring) return;
-  if (!day){
-    ring.style.borderTopColor = '#ccc';
-    ring.title = 'No day selected';
-    ring.style.transform = 'rotate(0deg)';
-    return;
-  }
-  const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-  const tasks = getTasks().filter(t => t.date && normalizeDate(t.date) === key );
-  const total = tasks.length;
-  const done = tasks.filter(t=>t.done).length;
-  const percent = total ? Math.round((done/total)*100) : 0;
-  ring.style.borderTopColor = percent===100 ? 'limegreen' : '#4a90e2';
-  ring.title = percent + '% complete (' + (total) + ' task' + (total!==1 ? 's' : '') + ') on ' + key;
-  ring.style.transform = `rotate(${percent * 3.6}deg)`;
+  updateCompletionRing();
+  updateDayElapsedRing();
 }
 
 /* Keyless autocomplete via OpenStreetMap Nominatim */
@@ -3577,4 +3703,9 @@ document.addEventListener('DOMContentLoaded',function(){
   wireDomainForms();
   wireCalendarSummary();
   wireBucketPages();
+  /* Refresh day-elapsed ring every 60s */
+  updateDayElapsedRing();
+  updateCompletionRing();
+  updateWeeklySalary();
+  setInterval(function(){ updateDayElapsedRing(); updateCompletionRing(); }, 60000);
 });
