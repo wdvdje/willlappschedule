@@ -963,7 +963,13 @@
     if (view === 'settings') { injectCsvButtons(); }
     if (view === 'calendar' || view === 'today') {
       injectEarningsPanel(); refreshEarnings();
-      injectAgendaSidebar(); refreshAgenda();
+      /* Only show the fixed agenda sidebar if the integrated upcoming panel is NOT present */
+      if (!document.getElementById('calUpcomingPanel')) {
+        injectAgendaSidebar(); refreshAgenda();
+      } else {
+        var agendaSidebar = document.getElementById('dtAgendaSidebar');
+        if (agendaSidebar) agendaSidebar.style.display = 'none';
+      }
       setTimeout(wireCalendarTooltips, 100);
     } else {
       // Hide agenda sidebar on non-calendar pages
