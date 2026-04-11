@@ -1142,7 +1142,7 @@
         if (elSave) elSave.checked = localStorage.getItem('pouchSyncSaveCreds') === '1';
 
         startBtn && startBtn.addEventListener('click', async () => {
-          const host = (elHost && elHost.value || '').trim();
+          const host = (elHost && elHost.value || '').trim().replace(/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//, '');
           if (!host) return setStatus('Enter CouchDB host first');
           const port = (elPort && elPort.value || '').trim();
           const https = !!(elHttps && elHttps.checked);
@@ -1233,7 +1233,7 @@
 
         // try to auto-start if the user saved a URL
         (async function autoStartSaved() {
-          const host = localStorage.getItem('pouchSyncHost');
+          const host = (localStorage.getItem('pouchSyncHost') || '').replace(/^[a-zA-Z][a-zA-Z0-9+\-.]*:\/\//, '');
           if (host) {
             try {
               const port = localStorage.getItem('pouchSyncPort') || '';
