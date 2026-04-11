@@ -245,31 +245,49 @@
           } catch(_) {}
         }
 
+        // Build the full list of canonical A/B slot dates (ignoring off-days).
+        const canonicalSlots = [];
         let weekIndex = 0;
         while (weekIndex < 200) {
           const weekStart = addDaysISO(mondays, weekIndex * 7);
           if (weekStart > effectiveEnd) break;
           const useA = (firstPattern === 'a') ? (weekIndex % 2 === 0) : (weekIndex % 2 !== 0);
           const dayList = useA ? aDays : bDays;
-          let shift = 0;
-          dayList.forEach((weekdayNum) => {
-            let dayOffset = weekdayNum - 1 + shift;
-            let occ = addDaysISO(weekStart, dayOffset);
-            // When an off-day is encountered, shift to the next weekday;
-            // subsequent events in the week also shift forward.
-            while (skipDates && skipDates[occ] && dayOffset < 5) {
-              shift += 1;
-              dayOffset = weekdayNum - 1 + shift;
-              occ = addDaysISO(weekStart, dayOffset);
-            }
-            // If shifted beyond Friday (end of work week), skip this occurrence
-            if (dayOffset >= 5) return;
-            if (occ < baseDate) return;
-            if (occ > effectiveEnd) return;
-            pushIfInRange(occ);
+          dayList.forEach(function(weekdayNum) {
+            canonicalSlots.push(addDaysISO(weekStart, weekdayNum - 1));
           });
           weekIndex += 1;
         }
+
+        // Walk canonical slots with a persistent cumulative shift so that any
+        // day-off skip carries forward permanently to every subsequent occurrence.
+        // Slots before baseDate are skipped without affecting the shift: off-days
+        // before the event's own start date should not displace its schedule.
+        let cumulativeShift = 0;
+        canonicalSlots.forEach(function(canonical) {
+          if (canonical < baseDate) return;
+          let candidate = addDaysISO(canonical, cumulativeShift);
+          // Advance past weekends and off-days, growing the cumulative shift each
+          // time. Cap at 60 iterations to cover any extended holiday block (e.g.
+          // a month of consecutive off-days bridging weekends).
+          let safety = 0;
+          while (safety++ < 60) {
+            const dow = parseISO(candidate).getDay();
+            if (dow === 0 || dow === 6) {
+              cumulativeShift++;
+              candidate = addDaysISO(canonical, cumulativeShift);
+              continue;
+            }
+            if (skipDates && skipDates[candidate]) {
+              cumulativeShift++;
+              candidate = addDaysISO(canonical, cumulativeShift);
+              continue;
+            }
+            break;
+          }
+          if (candidate > effectiveEnd) return;
+          pushIfInRange(candidate);
+        });
         return;
       }
 
