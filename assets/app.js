@@ -539,21 +539,41 @@ function generateCalendar(){
     else if (dayEvents.length) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
 
     const indicators = [];
-    dayEvents.forEach(ev => indicators.push({kind:'event', emoji: ev.emoji || '📌', title: (ev.time?`[${ev.time}] `:'') + (ev.title||''), id: ev.id}));
-    if (h) indicators.push({kind:'holiday', emoji: h.emoji || '🏳️', title: h.name});
-    if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
-    if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
+    dayEvents.forEach(ev => {
+      const domain = (typeof getDomainOfItem === 'function') ? getDomainOfItem(ev) : 'personal';
+      indicators.push({kind:'event', emoji: ev.emoji || '📌', title: (ev.time?`[${ev.time}] `:'') + (ev.title||''), id: ev.id, domain: domain, shortTitle: ev.title || ''});
+    });
+    if (h) indicators.push({kind:'holiday', emoji: h.emoji || '🏳️', title: h.name, domain: 'holiday', shortTitle: h.name});
+    if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
+    if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
 
     const emojiRow = cell.querySelector('.emoji-row');
     const count = Math.max(1, indicators.length);
     const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
+    const _domainColors = {work:'#4a90e2', home:'#27ae60', personal:'#9b59b6', holiday:'#e74c3c'};
     indicators.forEach(ind=>{
       const sp = document.createElement('span');
       sp.className = 'event-preview ' + (ind.kind || '');
-      sp.textContent = ind.emoji || '';
+      sp.dataset.domain = ind.domain || 'personal';
+      sp.dataset.shortTitle = ind.shortTitle || '';
       sp.title = ind.title || '';
-      sp.style.fontSize = size + 'px';
       if (ind.kind === 'event' && ind.id) sp.dataset.eventId = ind.id;
+
+      /* Mobile: emoji only (default) */
+      const emojiSpan = document.createElement('span');
+      emojiSpan.className = 'ep-emoji';
+      emojiSpan.textContent = ind.emoji || '';
+      sp.appendChild(emojiSpan);
+
+      /* Desktop: title label (hidden on mobile via CSS) */
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'ep-label';
+      labelSpan.textContent = ind.shortTitle || '';
+      sp.appendChild(labelSpan);
+
+      sp.style.fontSize = size + 'px';
+      const domColor = _domainColors[ind.domain] || '#9b59b6';
+      sp.dataset.domainColor = domColor;
       emojiRow.appendChild(sp);
     });
 
@@ -873,6 +893,7 @@ function addEvent(e){
   if (!title || !date) { alert('Event needs a title and date'); return; }
   const time = document.getElementById('eventTime') ? document.getElementById('eventTime').value || '' : '';
   const endTime = document.getElementById('eventEndTime') ? document.getElementById('eventEndTime').value || '' : '';
+  const endDate = normalizeDate(document.getElementById('eventEndDate') ? document.getElementById('eventEndDate').value : '');
   const location = document.getElementById('eventLocation') ? document.getElementById('eventLocation').value.trim() : '';
   const emoji = document.getElementById('eventEmoji') ? document.getElementById('eventEmoji').value.trim() : '';
   const pre = parseBufferMinutes(document.getElementById('eventPreBuffer') ? document.getElementById('eventPreBuffer').value : 0);
@@ -889,13 +910,14 @@ function addEvent(e){
   const evs = getEvents();
   const id = evs.length ? Math.max(...evs.map(e=>e.id))+1 : 1;
   evs.push(Object.assign({
-    id,title,date,time,startTime:time,endTime,location,emoji,preBuffer:pre,postBuffer:post
+    id,title,date,time,startTime:time,endTime,endDate,location,emoji,preBuffer:pre,postBuffer:post
   }, repeatPayload));
   setEvents(evs);
   if (document.getElementById('eventTitle')) document.getElementById('eventTitle').value='';
   if (document.getElementById('eventDate')) document.getElementById('eventDate').value='';
   if (document.getElementById('eventTime')) document.getElementById('eventTime').value='';
   if (document.getElementById('eventEndTime')) document.getElementById('eventEndTime').value='';
+  if (document.getElementById('eventEndDate')) document.getElementById('eventEndDate').value='';
   if (document.getElementById('eventLocation')) document.getElementById('eventLocation').value='';
   if (document.getElementById('eventEmoji')) document.getElementById('eventEmoji').value='';
   if (document.getElementById('eventRepeat')) document.getElementById('eventRepeat').value='none';
@@ -918,6 +940,7 @@ function editEvent(id){
   document.getElementById('editDate').value = e.date || '';
   document.getElementById('editTime').value = e.time || '';
   document.getElementById('editEndTime').value = e.endTime || '';
+  if (document.getElementById('editEndDate')) document.getElementById('editEndDate').value = e.endDate || '';
   document.getElementById('editLocation').value = e.location || '';
   document.getElementById('editEmoji').value = e.emoji || '';
   document.getElementById('editPreBuffer').value = parseBufferMinutes(e.preBuffer || 5);
@@ -963,6 +986,7 @@ function saveEditHandler(e){
       return;
     }
     evs[idx].title = text; evs[idx].date = date; evs[idx].time = time; evs[idx].startTime = time; evs[idx].endTime = endTime; evs[idx].location = document.getElementById('editLocation').value.trim(); evs[idx].emoji = document.getElementById('editEmoji').value.trim();
+    evs[idx].endDate = normalizeDate(document.getElementById('editEndDate') ? document.getElementById('editEndDate').value : '') || '';
     evs[idx].preBuffer = parseBufferMinutes(document.getElementById('editPreBuffer').value);
     evs[idx].postBuffer = parseBufferMinutes(document.getElementById('editPostBuffer').value);
     evs[idx].repeat = repeatPayload.repeat;
@@ -1156,6 +1180,7 @@ function showView(view, updateHash = true){
   else if (view === 'inbox'){ try{ renderInbox(); updateInboxBadge(); }catch(e){ console.warn(e); } }
   else if (view === 'personal' || view === 'home' || view === 'work'){ try{ renderDomainPage(view); }catch(e){ console.warn(e); } }
   if (updateHash){ const newHash = '#'+view; if (location.hash !== newHash) location.hash = newHash; }
+  try { window.dispatchEvent(new CustomEvent('view:show', { detail: { view: view } })); } catch(_) {}
 }
 window.addEventListener('hashchange', ()=> {
   const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'today';

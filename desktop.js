@@ -670,10 +670,11 @@
   // ---------------------------------------------------------------------------
 
   var DESKTOP_ELEMENTS = {
-    'dtCsvBtns':      'flex',
-    'dtEarningsPanel':'block',
-    'dtTaskBar':      'flex',
-    'dtBulkToggle':   'inline-block',
+    'dtCsvBtns':       'flex',
+    'dtEarningsPanel': 'block',
+    'dtTaskBar':       'flex',
+    'dtBulkToggle':    'inline-block',
+    'dtAgendaSidebar': 'block',
   };
 
   function hideDesktopFeatures() {
@@ -694,6 +695,189 @@
   }
 
   // ---------------------------------------------------------------------------
+  // 6. Event tooltip popover on hover (desktop calendar)
+  // ---------------------------------------------------------------------------
+
+  var _tooltipEl = null;
+
+  function ensureTooltip() {
+    if (_tooltipEl) return _tooltipEl;
+    _tooltipEl = document.createElement('div');
+    _tooltipEl.id = 'dtEventTooltip';
+    _tooltipEl.style.cssText = 'position:fixed;z-index:10000;background:#fff;border:1px solid #ddd;' +
+      'border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.15);padding:10px 14px;' +
+      'max-width:280px;font-size:0.85rem;pointer-events:none;display:none;text-align:left;' +
+      "font-family:'Source Sans 3',Arial,sans-serif;line-height:1.4";
+    document.body.appendChild(_tooltipEl);
+    return _tooltipEl;
+  }
+
+  function showTooltip(chip, ev) {
+    if (!isDesktop()) return;
+    var tip = ensureTooltip();
+    var domainColors = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6' };
+    var domainLabels = { work: '💼 Work', home: '🏡 Home', personal: '👤 Personal' };
+    var domain = ev.domain || 'personal';
+    var color = domainColors[domain] || '#9b59b6';
+
+    var html = '<div style="border-left:4px solid ' + color + ';padding-left:8px;margin-bottom:6px">';
+    html += '<div style="font-weight:700;font-size:0.95rem;color:#222">' + (ev.emoji ? ev.emoji + ' ' : '') + esc(ev.title || '') + '</div>';
+    html += '<div style="font-size:0.75rem;color:' + color + ';font-weight:600">' + (domainLabels[domain] || domain) + '</div>';
+    html += '</div>';
+    if (ev.time) html += '<div style="color:#555">🕐 ' + esc(ev.time) + (ev.endTime ? ' – ' + esc(ev.endTime) : '') + '</div>';
+    if (ev.location) html += '<div style="color:#555">📍 ' + esc(ev.location) + '</div>';
+    if (ev.category) html += '<div style="color:#888;font-size:0.78rem;margin-top:2px">Category: ' + esc(ev.category) + '</div>';
+    tip.innerHTML = html;
+    tip.style.display = 'block';
+
+    var rect = chip.getBoundingClientRect();
+    var tipW = tip.offsetWidth, tipH = tip.offsetHeight;
+    var left = rect.right + 8;
+    var top = rect.top;
+    if (left + tipW > window.innerWidth - 12) left = rect.left - tipW - 8;
+    if (top + tipH > window.innerHeight - 12) top = window.innerHeight - tipH - 12;
+    if (top < 4) top = 4;
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  function hideTooltip() {
+    if (_tooltipEl) _tooltipEl.style.display = 'none';
+  }
+
+  function wireCalendarTooltips() {
+    var cal = document.getElementById('calendar');
+    if (!cal || !isDesktop()) return;
+    var events = getEv();
+    cal.querySelectorAll('.event-preview[data-event-id]').forEach(function (chip) {
+      var evId = chip.dataset.eventId;
+      var ev = null;
+      for (var i = 0; i < events.length; i++) {
+        if (String(events[i].id) === String(evId)) { ev = events[i]; break; }
+      }
+      if (!ev) return;
+      chip.style.cursor = 'pointer';
+      chip.addEventListener('mouseenter', function () { showTooltip(chip, ev); });
+      chip.addEventListener('mouseleave', hideTooltip);
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // 7. Agenda sidebar (desktop calendar — upcoming events list)
+  // ---------------------------------------------------------------------------
+
+  function injectAgendaSidebar() {
+    var calPage = document.getElementById('page-calendar');
+    if (!calPage || !isDesktop() || document.getElementById('dtAgendaSidebar')) return;
+
+    var sidebar = document.createElement('div');
+    sidebar.id = 'dtAgendaSidebar';
+    sidebar.style.cssText = 'position:fixed;right:16px;top:72px;width:260px;max-height:calc(100vh - 100px);' +
+      'overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.08);' +
+      'padding:14px 16px;z-index:50;font-size:0.88rem;display:none';
+    sidebar.innerHTML = '<h4 style="margin:0 0 10px;color:#333;font-size:0.95rem">📋 Upcoming</h4>' +
+      '<div id="dtAgendaBody"></div>';
+    document.body.appendChild(sidebar);
+    refreshAgenda();
+  }
+
+  function refreshAgenda() {
+    var body = document.getElementById('dtAgendaBody');
+    var sidebar = document.getElementById('dtAgendaSidebar');
+    if (!body || !sidebar) return;
+
+    var calPage = document.getElementById('page-calendar');
+    if (!calPage || calPage.classList.contains('hidden')) { sidebar.style.display = 'none'; return; }
+    sidebar.style.display = 'block';
+
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' + p2(today.getMonth() + 1) + '-' + p2(today.getDate());
+    var endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + 7);
+    var endStr = endDate.getFullYear() + '-' + p2(endDate.getMonth() + 1) + '-' + p2(endDate.getDate());
+
+    var events = getEv().filter(function (e) {
+      var d = nd(e.date);
+      return d >= todayStr && d <= endStr;
+    }).sort(function (a, b) {
+      var cmp = (nd(a.date) || '').localeCompare(nd(b.date) || '');
+      if (cmp !== 0) return cmp;
+      return (a.time || '').localeCompare(b.time || '');
+    });
+
+    var domainColors = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6' };
+    var DOMAIN_LABELS = { work: 'Work', home: 'Home', personal: 'Personal' };
+
+    if (!events.length) {
+      body.innerHTML = '<div style="color:#aaa;padding:8px 0">No upcoming events this week.</div>';
+      return;
+    }
+
+    var html = '';
+    var lastDate = '';
+    events.forEach(function (ev) {
+      var d = nd(ev.date);
+      if (d !== lastDate) {
+        var dateObj = new Date(d + 'T12:00:00');
+        var dateLabel = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        html += '<div style="font-weight:700;font-size:0.78rem;color:#888;margin-top:8px;text-transform:uppercase;letter-spacing:0.03em">' + esc(dateLabel) + '</div>';
+        lastDate = d;
+      }
+      var domain = ev.domain || 'personal';
+      var color = domainColors[domain] || '#9b59b6';
+      html += '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f5f5f5">';
+      html += '<div style="width:4px;height:28px;border-radius:2px;background:' + color + ';flex-shrink:0"></div>';
+      html += '<div style="flex:1;overflow:hidden">';
+      html += '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (ev.emoji ? ev.emoji + ' ' : '') + esc(ev.title || '') + '</div>';
+      html += '<div style="font-size:0.75rem;color:#888">' + (ev.time || 'All day') +
+        ' · <span style="color:' + color + '">' + esc(DOMAIN_LABELS[domain] || domain) + '</span></div>';
+      html += '</div></div>';
+    });
+
+    body.innerHTML = html;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 8. Keyboard navigation for calendar days (desktop)
+  // ---------------------------------------------------------------------------
+
+  function wireCalendarKeyNav() {
+    if (!isDesktop()) return;
+    document.addEventListener('keydown', function (e) {
+      var calPage = document.getElementById('page-calendar');
+      if (!calPage || calPage.classList.contains('hidden')) return;
+      // Only handle arrow keys and Enter when not in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      var sel = window.selectedDay;
+      var mo = window.selectedMonth;
+      var yr = window.selectedYear;
+      if (sel == null || mo == null || yr == null) return;
+
+      var daysInMonth = new Date(yr, mo + 1, 0).getDate();
+      var handled = false;
+
+      if (e.key === 'ArrowRight') {
+        if (sel < daysInMonth) { sel++; handled = true; }
+      } else if (e.key === 'ArrowLeft') {
+        if (sel > 1) { sel--; handled = true; }
+      } else if (e.key === 'ArrowDown') {
+        if (sel + 7 <= daysInMonth) { sel += 7; handled = true; }
+      } else if (e.key === 'ArrowUp') {
+        if (sel - 7 >= 1) { sel -= 7; handled = true; }
+      }
+
+      if (handled) {
+        e.preventDefault();
+        window.selectedDay = sel;
+        try { if (typeof window.showReminders === 'function') window.showReminders(sel); } catch (_) {}
+        try { if (typeof window.generateCalendar === 'function') window.generateCalendar(); } catch (_) {}
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Initialisation
   // ---------------------------------------------------------------------------
 
@@ -704,6 +888,9 @@
     injectTaskBar();
     injectBulkTaskBar();
     initWeekViewDnd();
+    injectAgendaSidebar();
+    wireCalendarKeyNav();
+    wireCalendarTooltips();
   }
 
   // Re-inject when the user navigates to a view (sections may be hidden at init)
@@ -712,15 +899,26 @@
     var view = e.detail && e.detail.view;
     if (view === 'tasks')    { injectTaskBar(); injectBulkTaskBar(); if (_bulkMode) schedApply(); }
     if (view === 'settings') { injectCsvButtons(); }
-    if (view === 'calendar' || view === 'today') { injectEarningsPanel(); refreshEarnings(); }
+    if (view === 'calendar' || view === 'today') {
+      injectEarningsPanel(); refreshEarnings();
+      injectAgendaSidebar(); refreshAgenda();
+      setTimeout(wireCalendarTooltips, 100);
+    }
   });
 
-  // Refresh earnings and bulk checkboxes after any data change
+  // Refresh earnings, agenda and tooltips after any data change
   window.addEventListener('app:data:updated', function () {
     refreshEarnings();
+    if (isDesktop()) {
+      refreshAgenda();
+      setTimeout(wireCalendarTooltips, 100);
+    }
   });
   window.addEventListener('storage', function (e) {
-    if (!e.key || e.key === 'events' || e.key === 'jobs') refreshEarnings();
+    if (!e.key || e.key === 'events' || e.key === 'jobs') {
+      refreshEarnings();
+      if (isDesktop()) refreshAgenda();
+    }
   });
 
   // Respond to viewport changes
