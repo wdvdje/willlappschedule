@@ -2565,7 +2565,7 @@ function applyDomainColorCSS() {
 
 /* Wire the domain-color editor UI (settings page) */
 function wireDomainColorEditor() {
-  var DEFAULTS = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c' };
+  var DEFAULTS = DOMAIN_COLOR_DEFAULTS;
 
   function updateHexLabels() {
     var ids = { work: 'dcWork', home: 'dcHome', personal: 'dcPersonal', holiday: 'dcHoliday' };
