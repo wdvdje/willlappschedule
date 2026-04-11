@@ -6,8 +6,8 @@
 //   1. Go to https://github.com/settings/tokens/new
 //   2. Name it, check the 'gist' scope, click Generate token
 //   3. Paste the token in Settings → GitHub Sync on this page
-//   4. Click "Save & Sync" — a private Gist is created automatically
-//   5. On your second device: paste the SAME token (the same Gist ID is stored inside it)
+//   4. Click "Save & Sync" — a private Gist is created automatically (or found if one already exists)
+//   5. On your second device: paste the SAME token and click "Save & Sync" — it will find the same Gist
 //
 // API: window.gistSync.sync()   – full push+pull cycle
 //      window.gistSync.push()   – push local data to Gist only
@@ -159,6 +159,21 @@
     return resp.json();
   }
 
+  // Search the authenticated user's Gists for one that contains GIST_FILENAME.
+  // Returns the Gist ID string, or null if not found.
+  async function findExistingGist() {
+    var page = 1;
+    while (true) {
+      var list = await apiRequest('GET', '/gists?per_page=100&page=' + page);
+      if (!Array.isArray(list) || list.length === 0) return null;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].files && list[i].files[GIST_FILENAME]) return list[i].id;
+      }
+      if (list.length < 100) return null; // no more pages
+      page++;
+    }
+  }
+
   async function createGist(data) {
     var result = await apiRequest('POST', '/gists', {
       description: 'TimeScape Planner sync data',
@@ -202,10 +217,22 @@
     try {
       var gistId = getGistId();
       if (!gistId) {
-        // First time on this device: create a new private Gist
-        gistId = await createGist(collectLocal());
-        localStorage.setItem('gistSyncId', gistId);
-        setStatus('Gist created – sync complete ✓  ' + new Date().toLocaleTimeString());
+        // First time on this device: look for an existing Gist before creating a new one
+        setStatus('Looking for existing sync data…');
+        gistId = await findExistingGist();
+        if (gistId) {
+          localStorage.setItem('gistSyncId', gistId);
+          setStatus('Found existing Gist – syncing…');
+          var remote = await fetchGist(gistId);
+          if (remote) applyRemote(remote);
+          await updateGist(gistId, collectLocal());
+          setStatus('Synced ✓  ' + new Date().toLocaleTimeString());
+        } else {
+          // Truly the first device – create a brand-new Gist
+          gistId = await createGist(collectLocal());
+          localStorage.setItem('gistSyncId', gistId);
+          setStatus('Gist created – sync complete ✓  ' + new Date().toLocaleTimeString());
+        }
       } else {
         var remote = await fetchGist(gistId);
         if (remote) applyRemote(remote);
