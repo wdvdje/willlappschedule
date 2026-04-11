@@ -163,10 +163,16 @@
     events.forEach(function (ev) {
       var d = new Date((nd(ev.date) || '') + 'T00:00:00');
       if (isNaN(d.getTime()) || d < range.start || d > range.end) return;
-      if ((ev.category || 'event') !== 'job') return;
+
+      var cat = (ev.category || 'event').toLowerCase();
+      // Include events with category 'job', or work-domain events linked to a job via bucketId
+      var isJobCategory = (cat === 'job');
+      var isWorkWithBucket = ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
+      if (!isJobCategory && !isWorkWithBucket) return;
 
       var job = null;
       if (ev.jobId) job = byId[ev.jobId];
+      if (!job && ev.bucketId != null) job = byId[ev.bucketId];
       if (!job && ev.jobName) job = byName[(ev.jobName || '').toLowerCase()];
       if (!job && ev.jobRate)  job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour' };
 
@@ -199,7 +205,7 @@
     if (!result.items.length) {
       body.innerHTML = '<span style="color:#aaa">No job events this week (' +
         fmt(result.range.start) + '–' + fmt(result.range.end) +
-        '). Add events with <b>job</b> category to track earnings.</span>';
+        '). Add events on the <b>Work</b> page or with <b>job</b> category to track earnings.</span>';
       return;
     }
 
