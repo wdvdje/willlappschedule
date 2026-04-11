@@ -1934,7 +1934,7 @@ function parseQuickAdd(text){
       const days={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
       const target=days[wd.slice(0,3).toLowerCase()];
       let diff=target-now2.getDay(); if(diff<=0) diff+=7;
-      date=addDays2(diff+7); return '';
+      date=addDays2(diff); return '';
     }).trim();
   }
   else if(/\b(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i.test(s)){
@@ -1969,7 +1969,7 @@ function wireQuickAdd(){
     if(!parsed||!input.value.trim()){ prev.style.display='none'; return; }
     prev.style.display='block';
     const icon=parsed.kind==='event'?'\uD83D\uDCC5':'\u2705';
-    const catHtml=parsed.category?'<span style="background:'+(CAT_COLORS[parsed.category]||'#ccc')+';color:#fff;padding:1px 6px;border-radius:10px;font-size:0.8rem">'+parsed.category+'</span>':'';
+    const catHtml=parsed.category?'<span style="background:'+(CAT_COLORS[parsed.category]||'#ccc')+';color:#fff;padding:1px 6px;border-radius:10px;font-size:0.8rem">'+escapeHTML(parsed.category)+'</span>':'';
     prev.innerHTML=icon+' <b>'+escapeHTML(parsed.title)+'</b>'+(parsed.date?' '+parsed.date:'')+(parsed.time?' '+parsed.time:'')+(catHtml?' '+catHtml:'')+' \u2192 will create '+parsed.kind;
   }
 
@@ -2015,39 +2015,53 @@ function renderSearchResults(q){
   const rmap=getReminders();
   Object.keys(rmap).forEach(function(dk){ (rmap[dk]||[]).forEach(function(r){ if((r.text||'').toLowerCase().includes(term)||dk.includes(term)) remArr.push(Object.assign({},r,{date:dk})); }); });
   if(!events.length&&!tasks.length&&!remArr.length){ container.innerHTML='<div class="empty-msg">No results found.</div>'; return; }
-  let html='';
+
+  // Build results using DOM to avoid inline onclick (security best practice)
+  container.innerHTML='';
+
+  function makeItem(titleHtml, subText, kindLabel){ // returns element
+    const row=document.createElement('div'); row.className='search-result-item';
+    const body=document.createElement('div');
+    const t=document.createElement('div'); t.className='search-result-title'; t.innerHTML=titleHtml;
+    const s=document.createElement('div'); s.className='search-result-sub'; s.textContent=subText;
+    body.appendChild(t); body.appendChild(s);
+    const badge=document.createElement('span'); badge.className='search-result-kind'; badge.textContent=kindLabel;
+    row.appendChild(body); row.appendChild(badge);
+    return row;
+  }
+
   if(events.length){
-    html+='<div class="search-section-header">Events ('+events.length+')</div>';
+    const hdr=document.createElement('div'); hdr.className='search-section-header'; hdr.textContent='Events ('+events.length+')'; container.appendChild(hdr);
     events.slice(0,10).forEach(function(ev){
       const col=CAT_COLORS[ev.category||'event']||'#4a90e2';
+      const titleHtml='<span style="color:'+col+'">'+(ev.emoji||'\uD83D\uDCCC')+'</span> '+escapeHTML(ev.title||'');
+      const sub=[(ev.date||''),(ev.time||''),(ev.location?'@ '+ev.location:'')].filter(Boolean).join(' ');
+      const row=makeItem(titleHtml,sub,'event');
       const yr=parseInt((ev.date||'').slice(0,4),10)||selectedYear;
       const mo=parseInt((ev.date||'').slice(5,7),10)-1;
       const dy=parseInt((ev.date||'').slice(8,10),10)||1;
-      html+='<div class="search-result-item" onclick="closeSearch();selectedYear='+yr+';selectedMonth='+mo+';selectedDay='+dy+';showView(\'calendar\');generateCalendar();showReminders('+dy+')">'+
-        '<div><div class="search-result-title"><span style="color:'+col+'">'+(ev.emoji||'\uD83D\uDCCC')+'</span> '+escapeHTML(ev.title||'')+'</div>'+
-        '<div class="search-result-sub">'+(ev.date||'')+' '+(ev.time||'')+' '+(ev.location?'@ '+escapeHTML(ev.location):'')+'</div></div>'+
-        '<span class="search-result-kind">event</span></div>';
+      row.addEventListener('click',function(){ closeSearch(); selectedYear=yr; selectedMonth=mo; selectedDay=dy; showView('calendar'); generateCalendar(); showReminders(dy); });
+      container.appendChild(row);
     });
   }
   if(tasks.length){
-    html+='<div class="search-section-header">Tasks ('+tasks.length+')</div>';
+    const hdr=document.createElement('div'); hdr.className='search-section-header'; hdr.textContent='Tasks ('+tasks.length+')'; container.appendChild(hdr);
     tasks.slice(0,10).forEach(function(t){
-      html+='<div class="search-result-item" onclick="closeSearch();showView(\'tasks\')">'+
-        '<div><div class="search-result-title">'+(t.done?'\u2705':'\u2B1C')+' '+escapeHTML(t.title||t.text||'')+'</div>'+
-        '<div class="search-result-sub">'+(t.date||'')+' '+(t.category?'\u00b7 '+t.category:'')+'</div></div>'+
-        '<span class="search-result-kind">task</span></div>';
+      const titleHtml=(t.done?'\u2705':'\u2B1C')+' '+escapeHTML(t.title||t.text||'');
+      const sub=[(t.date||''),(t.category?'\u00b7 '+t.category:'')].filter(Boolean).join(' ');
+      const row=makeItem(titleHtml,sub,'task');
+      row.addEventListener('click',function(){ closeSearch(); showView('tasks'); });
+      container.appendChild(row);
     });
   }
   if(remArr.length){
-    html+='<div class="search-section-header">Reminders ('+remArr.length+')</div>';
+    const hdr=document.createElement('div'); hdr.className='search-section-header'; hdr.textContent='Reminders ('+remArr.length+')'; container.appendChild(hdr);
     remArr.slice(0,10).forEach(function(r){
-      html+='<div class="search-result-item" onclick="closeSearch();showView(\'reminders\')">'+
-        '<div><div class="search-result-title">\uD83D\uDD14 '+escapeHTML(r.text||'')+'</div>'+
-        '<div class="search-result-sub">'+(r.date||'')+' '+(r.time||'')+'</div></div>'+
-        '<span class="search-result-kind">reminder</span></div>';
+      const row=makeItem('\uD83D\uDD14 '+escapeHTML(r.text||''),[(r.date||''),(r.time||'')].filter(Boolean).join(' '),'reminder');
+      row.addEventListener('click',function(){ closeSearch(); showView('reminders'); });
+      container.appendChild(row);
     });
   }
-  container.innerHTML=html;
 }
 
 function wireSearch(){
@@ -2108,7 +2122,8 @@ function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) bt
     if(!confirm('Delete this task?')) return;
     setTasks(tasks.filter(function(_,idx){ return idx!==i; }));
     try{ loadTasks(); }catch(_){}
-    pushUndo({ label:'Task "'+(item.title||item.text)+'" deleted.', undo:function(){ const cur=getTasks(); cur.splice(i,0,item); setTasks(cur); } });
+    const capturedIdx=i;
+    pushUndo({ label:'Task "'+(item.title||item.text)+'" deleted.', undo:function(){ const cur=getTasks(); cur.splice(capturedIdx,0,item); setTasks(cur); } });
   };
   window.deleteTask=deleteTask;
 
@@ -2195,7 +2210,7 @@ function scheduleMorningBriefing(){
   const target=new Date(now4.getFullYear(),now4.getMonth(),now4.getDate(),hh,mm,0,0);
   if(target<=now4) target.setDate(target.getDate()+1);
   const delay=target.getTime()-now4.getTime();
-  if(delay>0x7FFFFFFF) return;
+  if(delay>0x7FFFFFFF) return; // setTimeout max delay (~24.8 days); will reschedule on next app open
   clearTimeout(window._morningBriefingTimer);
   window._morningBriefingTimer=setTimeout(function(){
     try{

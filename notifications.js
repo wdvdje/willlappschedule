@@ -136,7 +136,7 @@
     let base = null;
     if (cat === 'work' || cat === 'job' || cat === 'appointment') base = 30;
     else if (cat === 'personal' || cat === 'home' || cat === 'errands') base = 15;
-    if (base == null) return null; // 'none' — no notification
+    if (base === null) return null; // 'none' — no notification
     // Add 15 min travel buffer when event has a location
     if (ev.location || ev.place) base += 15;
     return base;
