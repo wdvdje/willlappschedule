@@ -3,7 +3,13 @@
     try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (e) { return []; }
   };
 
-  const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
+  // Dynamic lookup so that expandEvents is available even if utils.js loads after this script
+  function expandEvents(startISO, endISO) {
+    if (window.appUtils && typeof window.appUtils.expandEvents === 'function') {
+      return window.appUtils.expandEvents(startISO, endISO);
+    }
+    return null;
+  }
 
   function getTodayDateStr() {
     const d = new Date();
@@ -145,7 +151,7 @@
     const today = getTodayDateStr();
     const past30 = (new Date(new Date(today + 'T00:00:00').getTime() - (30*24*60*60*1000))).toISOString().slice(0,10);
     const future365 = (new Date(new Date(today + 'T00:00:00').getTime() + (365*24*60*60*1000))).toISOString().slice(0,10);
-    const events = expandEvents ? expandEvents(past30, future365) : loadEvents().slice();
+    const events = expandEvents(past30, future365) ?? loadEvents().slice();
 
     // events already sorted by expandEvents, but ensure stable sort
     events.sort((a,b) => {

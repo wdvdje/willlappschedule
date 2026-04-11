@@ -24,7 +24,13 @@
   const loadEvents = (window.appUtils && window.appUtils.loadEvents) ? window.appUtils.loadEvents : function () {
     try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (_) { return []; }
   };
-  const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
+  // Dynamic lookup so that expandEvents is available even if utils.js loads after this script
+  function expandEvents(startISO, endISO) {
+    if (window.appUtils && typeof window.appUtils.expandEvents === 'function') {
+      return window.appUtils.expandEvents(startISO, endISO);
+    }
+    return null;
+  }
   const openEditModal = (window.appUtils && window.appUtils.openEditModalFill) ? window.appUtils.openEditModalFill : null;
 
   // ── Date the daily-view is currently showing ──
@@ -134,7 +140,7 @@
     var cats = loadTaskCategories();
 
     // events
-    var evs = expandEvents ? expandEvents(dateStr, dateStr) : loadEvents().filter(function(e) { return e && e.date === dateStr; });
+    var evs = expandEvents(dateStr, dateStr) ?? loadEvents().filter(function(e) { return e && e.date === dateStr; });
     evs.forEach(function(e) {
       var s = toMinutes(e.startTime, null);
       var eMin = toMinutes(e.endTime, null);
