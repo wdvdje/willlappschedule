@@ -2435,16 +2435,6 @@ function wireKeyboardShortcuts(){
 
 /* ----- Sync status bar ----- */
 function wireSyncStatusBar(){
-  const bar=document.getElementById('syncStatusBar'); if(!bar) return;
-  let hideTimer=null;
-  function show(msg,autohide){ bar.textContent=msg; bar.style.display='block'; if(hideTimer) clearTimeout(hideTimer); if(autohide) hideTimer=setTimeout(function(){ bar.style.display='none'; },4000); }
-  window.addEventListener('pouch-sync:active',function(){ show('\uD83D\uDD04 Syncing\u2026',false); });
-  window.addEventListener('pouch-sync:paused',function(){ show('\u2705 Synced',true); });
-  window.addEventListener('pouch-sync:import',function(){ show('\u2705 Data imported from cloud',true); });
-  window.addEventListener('pouch-sync:error', function(e){ show('\u26A0\uFE0F Sync error: '+(e.detail&&e.detail.message?e.detail.message:'unknown'),true); });
-  window.addEventListener('token-sync:started',function(){ show('\uD83D\uDD04 Token sync active',true); });
-  window.addEventListener('token-sync:updated',function(){ show('\u2705 Data updated from other device',true); });
-  window.addEventListener('token-sync:stopped',function(){ show('Token sync stopped',true); });
 }
 
 /* ----- Swipe to navigate months ----- */
