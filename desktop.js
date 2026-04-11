@@ -715,7 +715,7 @@
   function showTooltip(chip, ev) {
     if (!isDesktop()) return;
     var tip = ensureTooltip();
-    var domainColors = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6' };
+    var domainColors = (typeof getDomainColors === 'function') ? getDomainColors() : { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6' };
     var domainLabels = { work: '💼 Work', home: '🏡 Home', personal: '👤 Personal' };
     var domain = ev.domain || 'personal';
     var color = domainColors[domain] || '#9b59b6';
@@ -805,7 +805,7 @@
       return (a.time || '').localeCompare(b.time || '');
     });
 
-    var domainColors = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6' };
+    var domainColors = (typeof getDomainColors === 'function') ? getDomainColors() : { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6' };
     var DOMAIN_LABELS = { work: 'Work', home: 'Home', personal: 'Personal' };
 
     if (!events.length) {

@@ -7,6 +7,22 @@ function safeParseStorage(key, fallback){
   try{ const raw = localStorage.getItem(key); if (!raw) return fallback; return JSON.parse(raw); }
   catch(e){ console.warn('LocalStorage parse failed for', key, e); try{ localStorage.removeItem(key); }catch(_){} return fallback; }
 }
+
+/* ----- Domain color preferences ----- */
+const DOMAIN_COLOR_DEFAULTS = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c' };
+
+function getDomainColors() {
+  const stored = safeParseStorage('domainColors', {});
+  return Object.assign({}, DOMAIN_COLOR_DEFAULTS, stored);
+}
+
+function hexToRgba(hex, alpha) {
+  if (!hex || hex[0] !== '#' || hex.length < 7) return 'rgba(0,0,0,' + alpha + ')';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+}
 function remindersToMap(input){
   const map = {};
   if (!input) return map;
@@ -518,7 +534,7 @@ function generateCalendar(){
     const emojiRow = cell.querySelector('.emoji-row');
     const count = Math.max(1, indicators.length);
     const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
-    const _domainColors = {work:'#4a90e2', home:'#27ae60', personal:'#9b59b6', holiday:'#e74c3c'};
+    const _domainColors = getDomainColors();
     indicators.forEach(ind=>{
       const sp = document.createElement('span');
       sp.className = 'event-preview ' + (ind.kind || '');
@@ -1263,6 +1279,7 @@ window.showView = showView;
 /* startup after DOM ready */
 document.addEventListener('DOMContentLoaded', function(){
   try{
+    applyDomainColorCSS();
     migrateConsistencyData();
     const now = new Date();
     selectedMonth = now.getMonth();
@@ -2447,6 +2464,25 @@ const DOMAIN_META = {
   home:     { label: 'Home',     emoji: '🏡', color: '#27ae60' },
   work:     { label: 'Work',     emoji: '💼', color: '#4a90e2' }
 };
+
+/* Inject/update a <style> element to apply stored domain color preferences */
+function applyDomainColorCSS() {
+  const c = getDomainColors();
+  const css = [
+    '.event-preview[data-domain="work"]{--domain-color:' + c.work + ';--domain-bg:' + hexToRgba(c.work, 0.10) + '}',
+    '.event-preview[data-domain="home"]{--domain-color:' + c.home + ';--domain-bg:' + hexToRgba(c.home, 0.10) + '}',
+    '.event-preview[data-domain="personal"]{--domain-color:' + c.personal + ';--domain-bg:' + hexToRgba(c.personal, 0.10) + '}',
+    '.event-preview[data-domain="holiday"]{--domain-color:' + c.holiday + ';--domain-bg:' + hexToRgba(c.holiday, 0.10) + '}',
+    '.event-preview.reminder{--domain-color:' + c.personal + ';--domain-bg:' + hexToRgba(c.personal, 0.10) + '}',
+    '.event-preview.task{--domain-color:' + c.home + ';--domain-bg:' + hexToRgba(c.home, 0.10) + '}'
+  ].join('\n');
+  let el = document.getElementById('domainColorStyle');
+  if (!el) { el = document.createElement('style'); el.id = 'domainColorStyle'; document.head.appendChild(el); }
+  el.textContent = css;
+  // Sync mutable runtime objects so inline-styled JS also picks up the custom colors
+  CAT_COLORS.work = c.work; CAT_COLORS.home = c.home; CAT_COLORS.personal = c.personal; CAT_COLORS.holiday = c.holiday;
+  DOMAIN_META.work.color = c.work; DOMAIN_META.home.color = c.home; DOMAIN_META.personal.color = c.personal;
+}
 
 /* Infer domain from item category (for items without explicit domain field) */
 function inferDomainFromItem(item) {
