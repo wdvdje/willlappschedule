@@ -3,6 +3,7 @@ const monthNames = ["January","February","March","April","May","June","July","Au
 const weekdayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function pad2(n){ return n<10 ? '0'+n : ''+n; }
+function generateTaskId(){ return 'task:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
 function safeParseStorage(key, fallback){
   try{ const raw = localStorage.getItem(key); if (!raw) return fallback; return JSON.parse(raw); }
   catch(e){ console.warn('LocalStorage parse failed for', key, e); try{ localStorage.removeItem(key); }catch(_){} return fallback; }
@@ -794,7 +795,7 @@ function addTask(e){
   const date = normalizeDate(document.getElementById('taskDate') ? document.getElementById('taskDate').value : '');
   const time = document.getElementById('taskTime') ? document.getElementById('taskTime').value : '';
   const priority = document.getElementById('taskPriority') ? document.getElementById('taskPriority').value : '2';
-  const tasks = getTasks(); tasks.push({title:text,category,done:false,date,time,priority}); setTasks(tasks);
+  const tasks = getTasks(); tasks.push({id:generateTaskId(),title:text,category,done:false,date,time,priority}); setTasks(tasks);
   if (textEl) textEl.value=''; if (document.getElementById('taskDate')) document.getElementById('taskDate').value=''; if (document.getElementById('taskTime')) document.getElementById('taskTime').value='';
   loadTasks();
 }
@@ -2627,7 +2628,7 @@ function wireQuickAdd(){
       addedLabel='\uD83D\uDD14 Reminder added for '+dateKey+'!';
     } else if(effectiveKind==='task'){
       const tasks=getTasks();
-      tasks.push({ title:parsed.title, category:parsed.category||'', domain:parsed.domain||'personal', done:false, date:parsed.date||'', time:parsed.time||'', priority:'2' });
+      tasks.push({ id:generateTaskId(), title:parsed.title, category:parsed.category||'', domain:parsed.domain||'personal', done:false, date:parsed.date||'', time:parsed.time||'', priority:'2' });
       setTasks(tasks); try{ loadTasks(); }catch(_){}
       addedLabel='\u2705 Task added!';
     } else {
@@ -3391,7 +3392,7 @@ function addDomainTask(domain) {
   const date     = normalizeDate(dateEl ? dateEl.value : '') || '';
   const priority = priorityEl ? priorityEl.value : '2';
   const tasks = getTasks();
-  tasks.push({ title, category: '', domain: domain, done: false, date, time: '', priority });
+  tasks.push({ id: generateTaskId(), title, category: '', domain: domain, done: false, date, time: '', priority });
   setTasks(tasks);
   if (titleEl) titleEl.value = '';
   if (dateEl)  dateEl.value  = '';
@@ -3692,7 +3693,7 @@ function addItemToBucket(domain, bucketId, type, formEl) {
     const priorityEl = formEl.querySelector('.bi-priority');
     const priority = priorityEl ? priorityEl.value : '2';
     const tasks = getTasks();
-    const t = { title, category: domain, domain: domain, done: false, date, time, priority, emoji: jobDefaults.emoji };
+    const t = { id: generateTaskId(), title, category: domain, domain: domain, done: false, date, time, priority, emoji: jobDefaults.emoji };
     if (bId !== undefined) t.bucketId = bId;
     tasks.push(t);
     setTasks(tasks);
