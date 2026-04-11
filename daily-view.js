@@ -493,16 +493,22 @@
     }
   }
 
+  function notifyDateChange() {
+    window.dispatchEvent(new CustomEvent('dailyview:datechange', { detail: { date: currentViewDate } }));
+  }
+
   function navigateDay(offset) {
     currentViewDate = addDays(currentViewDate, offset);
     updateDateDisplay();
     renderDailyView(currentViewDate);
+    notifyDateChange();
   }
 
   function goToToday() {
     currentViewDate = todayISO();
     updateDateDisplay();
     renderDailyView(currentViewDate);
+    notifyDateChange();
   }
 
   function getSelectedDate() {
@@ -514,6 +520,7 @@
     if (isoDate && typeof isoDate === 'string') {
       currentViewDate = isoDate;
       renderDailyView(currentViewDate);
+      notifyDateChange();
     }
   };
   window.dailyViewRefresh = function() {
@@ -523,6 +530,7 @@
   function refreshForSelectedDate() {
     updateDateDisplay();
     renderDailyView(currentViewDate);
+    notifyDateChange();
   }
 
   // ── Wire up day nav buttons ──
