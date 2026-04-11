@@ -260,7 +260,7 @@ function getHoliday(mmdd, year){
 }
 
 /* app state */
-let selectedMonth, selectedYear, selectedDay;
+var selectedMonth, selectedYear, selectedDay;
 
 /* UI helpers */
 function escapeHTML(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
