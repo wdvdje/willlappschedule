@@ -263,6 +263,12 @@
           <span class="overlay-label">End time</span>
         </div>
 
+        <!-- End date for multi-day events -->
+        <div class="overlay-input" style="margin-top:8px;display:inline-block;width:48%;box-sizing:border-box">
+          <input id="eventEndDate" type="date" class="overlay-field" />
+          <span class="overlay-label">End date (multi-day)</span>
+        </div>
+
         <div class="places-suggestions" style="margin-top:8px">
           <input id="eventLocation" type="text" placeholder="Location" autocomplete="off" autocorrect="off" autocapitalize="off" />
           <div id="eventLocationList" class="suggestions-list" style="display:none"></div>
@@ -765,10 +771,13 @@
           <label for="editText">Text / Title</label>
           <input id="editText" type="text" />
         </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <div style="flex:1"><label for="editDate">Start date</label><input id="editDate" type="date" /></div>
+          <div style="flex:1"><label for="editEndDate">End date <small style="color:#888">(multi-day)</small></label><input id="editEndDate" type="date" /></div>
+        </div>
         <div style="display:flex;gap:8px;margin-top:8px;">
-          <div style="flex:1"><label for="editDate">Date</label><input id="editDate" type="date" /></div>
-          <div style="width:140px"><label for="editTime">Time</label><input id="editTime" type="time" /></div>
-          <div style="width:140px"><label for="editEndTime">End</label><input id="editEndTime" type="time" /></div>
+          <div style="flex:1"><label for="editTime">Time</label><input id="editTime" type="time" /></div>
+          <div style="width:140px"><label for="editEndTime">End time</label><input id="editEndTime" type="time" /></div>
         </div>
 
         <!-- Repeat controls in edit modal -->
@@ -1376,6 +1385,8 @@
       window.addEventListener('token-sync:updated',  function () { setStatus('✅ Data updated from other device'); });
     })();
   </script>
+  <!-- advanced calendar features: ICS export, heatmap, multi-day spans, drag-to-create, conflict detection, mini-month nav, NLP recurrence, Pomodoro timer, timezone -->
+  <script src="./calendar-advanced.js"></script>
   <!-- desktop-specific advanced features (CSV export, earnings panel, task filter/sort, DnD week view, bulk operations) -->
   <script src="./desktop.js"></script>
 </body>
