@@ -90,7 +90,7 @@
       <!-- Quick-add bar -->
       <div id="quickAddBar" style="max-width:720px;margin:0 auto 10px;padding:0 12px;box-sizing:border-box">
         <div style="display:flex;gap:8px;align-items:center">
-          <input id="quickAddInput" type="text" placeholder="Quick add… e.g. 'Meeting tomorrow at 3pm #work'"
+          <input id="quickAddInput" type="text" placeholder="Quick add… e.g. 'Meeting tomorrow at 3pm #work' or 'Remind me to call dentist'"
                  style="flex:1;border-radius:24px;border:1.5px solid #ddd;padding:10px 16px;font-size:0.93rem;outline:none;margin:0"
                  autocomplete="off" />
           <button id="quickAddBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:24px;padding:10px 16px;cursor:pointer;font-size:0.93rem;white-space:nowrap;flex-shrink:0">+ Add</button>
@@ -341,6 +341,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Inbox (unsorted) page -->
+    <section id="page-inbox" class="page hidden">
+      <h2 style="text-align:center">📥 Inbox</h2>
+      <p style="text-align:center;color:#666;font-size:0.9rem;margin:0 16px 12px">Items added via Quick Add that need sorting. Classify each as an event, task, or reminder.</p>
+      <div id="inboxList" style="max-width:640px;margin:0 auto;padding:0 12px"></div>
+      <p id="inboxEmpty" style="text-align:center;color:#aaa;display:none">🎉 Inbox is empty — everything is sorted!</p>
+    </section>
 
     <!-- Settings page -->
     <section id="page-settings" class="page hidden">
@@ -599,6 +607,7 @@
     <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
     <a href="#calendar" class="r-item r-center" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
     <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
+    <a href="#inbox" class="r-item" data-view="inbox"><span>📥</span><span class="r-label" id="inboxNavLabel">Inbox</span></a>
     <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
 
