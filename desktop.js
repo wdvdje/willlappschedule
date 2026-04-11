@@ -171,8 +171,8 @@
       if (!isJobCategory && !isWorkWithBucket) return;
 
       var job = null;
-      if (ev.bucketId != null) job = byId[ev.bucketId];
-      if (!job && ev.jobId) job = byId[ev.jobId];
+      if (ev.jobId) job = byId[ev.jobId];
+      if (!job && ev.bucketId != null) job = byId[ev.bucketId];
       if (!job && ev.jobName) job = byName[(ev.jobName || '').toLowerCase()];
       if (!job && ev.jobRate)  job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour' };
 
