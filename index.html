@@ -986,7 +986,7 @@
           }
         }
         // otherwise allow default navigation to cache-busted index.html target
-      }, { passive: true });
+      }, false);
     });
   })();
   </script>
@@ -1050,7 +1050,7 @@
           e.preventDefault();
           const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
           navTo(view || 'today');
-        }, { passive: true });
+        });
       });
     }
 

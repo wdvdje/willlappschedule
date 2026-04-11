@@ -773,6 +773,8 @@
   // 7. Agenda sidebar (desktop calendar — upcoming events list)
   // ---------------------------------------------------------------------------
 
+  var _agendaMinimized = false;
+
   function injectAgendaSidebar() {
     var calPage = document.getElementById('page-calendar');
     if (!calPage || !isDesktop() || document.getElementById('dtAgendaSidebar')) return;
@@ -782,8 +784,35 @@
     sidebar.style.cssText = 'position:fixed;right:16px;top:72px;width:260px;max-height:calc(100vh - 100px);' +
       'overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.08);' +
       'padding:14px 16px;z-index:50;font-size:0.88rem;display:none';
-    sidebar.innerHTML = '<h4 style="margin:0 0 10px;color:#333;font-size:0.95rem">📋 Upcoming</h4>' +
-      '<div id="dtAgendaBody"></div>';
+
+    var headerDiv = document.createElement('div');
+    headerDiv.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;cursor:pointer';
+    var title = document.createElement('h4');
+    title.style.cssText = 'margin:0;color:#333;font-size:0.95rem';
+    title.textContent = '📋 Upcoming';
+    var toggleBtn = document.createElement('button');
+    toggleBtn.id = 'dtAgendaToggle';
+    toggleBtn.type = 'button';
+    toggleBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:1rem;padding:0 2px;color:#888;line-height:1';
+    toggleBtn.title = 'Minimize';
+    toggleBtn.textContent = '▾';
+    toggleBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      _agendaMinimized = !_agendaMinimized;
+      var bodyEl = document.getElementById('dtAgendaBody');
+      if (bodyEl) bodyEl.style.display = _agendaMinimized ? 'none' : '';
+      toggleBtn.textContent = _agendaMinimized ? '▸' : '▾';
+      toggleBtn.title = _agendaMinimized ? 'Expand' : 'Minimize';
+    });
+    headerDiv.appendChild(title);
+    headerDiv.appendChild(toggleBtn);
+    headerDiv.addEventListener('click', function() { toggleBtn.click(); });
+
+    var bodyDiv = document.createElement('div');
+    bodyDiv.id = 'dtAgendaBody';
+
+    sidebar.appendChild(headerDiv);
+    sidebar.appendChild(bodyDiv);
     document.body.appendChild(sidebar);
     refreshAgenda();
   }
@@ -796,6 +825,7 @@
     var calPage = document.getElementById('page-calendar');
     if (!calPage || calPage.classList.contains('hidden')) { sidebar.style.display = 'none'; return; }
     sidebar.style.display = 'block';
+    body.style.display = _agendaMinimized ? 'none' : '';
 
     var today = new Date();
     var todayStr = today.getFullYear() + '-' + p2(today.getMonth() + 1) + '-' + p2(today.getDate());
@@ -910,6 +940,9 @@
       injectEarningsPanel(); refreshEarnings();
       injectAgendaSidebar(); refreshAgenda();
       setTimeout(wireCalendarTooltips, 100);
+    } else {
+      // Hide agenda sidebar on non-calendar pages
+      refreshAgenda();
     }
   });
 
