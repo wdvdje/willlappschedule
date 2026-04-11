@@ -2831,8 +2831,12 @@ function populateBucketSelect(selectEl, domain, currentBucketId) {
 function addBucket(domain) {
   const name = (prompt('Category name:') || '').trim();
   if (!name) return;
-  const emoji = (prompt('Emoji (optional, e.g. 🏃):') || '').trim();
   const buckets = getBuckets(domain);
+  if (buckets.some(function(b) { return b.name.toLowerCase() === name.toLowerCase(); })) {
+    alert('A category named "' + name + '" already exists.');
+    return;
+  }
+  const emoji = (prompt('Emoji (optional, e.g. 🏃):') || '').trim();
   buckets.push({ id: nextBucketId(domain), name: name, emoji: emoji || '', collapsed: false });
   setBuckets(domain, buckets);
   renderBucketPage(domain);
