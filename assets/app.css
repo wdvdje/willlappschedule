@@ -128,3 +128,77 @@ body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
 .job-bullet { width:34px; flex:0 0 34px; font-size:1.25rem; text-align:center; line-height:1; }
 .job-content { flex:1; text-align:left; }
 .job-controls { margin-left:12px; display:flex; gap:6px; align-items:center; }
+
+/* ===== NEW: category filter buttons ===== */
+.cat-filter-btn { padding:4px 10px; border-radius:20px; border:1.5px solid #ddd; background:#fff; cursor:pointer; font-size:0.8rem; transition:all 0.15s; white-space:nowrap; }
+.cat-filter-btn:hover { border-color:#4a90e2; }
+.cat-filter-btn.active { background:#4a90e2; color:#fff; border-color:#4a90e2; }
+
+/* ===== NEW: view toggle buttons ===== */
+.view-toggle-btn { padding:4px 10px; border:1.5px solid #4a90e2; background:#fff; color:#4a90e2; border-radius:6px; cursor:pointer; font-size:0.82rem; }
+.view-toggle-btn.active { background:#4a90e2; color:#fff; }
+
+/* ===== NEW: week view grid ===== */
+.week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; min-width:560px; background:#fff; border-radius:10px; box-shadow:0 1px 8px rgba(0,0,0,0.07); padding:8px; box-sizing:border-box; }
+.week-col { display:flex; flex-direction:column; min-height:120px; }
+.week-col-header { font-weight:700; font-size:0.82rem; text-align:center; padding:4px 2px; border-radius:6px; margin-bottom:4px; }
+.week-col-header.today { background:#4a90e2; color:#fff; }
+.week-col-header.selected { outline:2px solid #4a90e2; }
+.week-chip { font-size:0.75rem; padding:3px 5px; border-radius:4px; margin-bottom:2px; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+.week-chip.event { background:#e6f0ff; border-left:3px solid #4a90e2; }
+.week-chip.task { background:#e6f7e6; border-left:3px solid #27ae60; }
+.week-chip.reminder { background:#fff3e0; border-left:3px solid #e67e22; }
+
+/* ===== NEW: undo toast visible state ===== */
+#undoToast.visible { opacity:1 !important; pointer-events:auto !important; }
+
+/* ===== NEW: search result items ===== */
+.search-result-item { display:flex; align-items:flex-start; gap:8px; padding:10px 16px; cursor:pointer; border-bottom:1px solid #f5f5f5; }
+.search-result-item:hover { background:#f5f9ff; }
+.search-result-item:last-child { border-bottom:0; }
+.search-result-kind { font-size:0.75rem; color:#888; background:#f0f0f0; border-radius:4px; padding:1px 5px; flex-shrink:0; margin-top:2px; }
+.search-result-title { font-weight:600; font-size:0.9rem; }
+.search-result-sub { font-size:0.8rem; color:#666; }
+.search-section-header { padding:6px 16px 2px; font-size:0.75rem; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:0.05em; }
+#searchResults .empty-msg { padding:20px 16px; text-align:center; color:#888; font-size:0.9rem; }
+
+/* ===== NEW: keyboard hint kbd tag ===== */
+kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc; border-radius:4px; padding:1px 6px; font-size:0.8rem; font-family:monospace; }
+
+/* ===== NEW: desktop sidebar layout (>900px) ===== */
+@media (min-width: 901px) {
+  .bottom-ribbon {
+    left: 0; right: auto; bottom: 0; top: 0;
+    width: 200px; height: 100vh;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: 72px;
+    border-top: none;
+    border-right: 1px solid #e6e6e6;
+    box-shadow: 4px 0 18px rgba(0,0,0,0.05);
+    gap: 4px;
+    align-items: stretch;
+  }
+  .bottom-ribbon .r-item {
+    flex-direction: row;
+    justify-content: flex-start;
+    padding: 12px 20px;
+    font-size: 1rem;
+    border-radius: 8px;
+    margin: 0 8px;
+    flex: none;
+  }
+  .bottom-ribbon .r-item span:first-child { font-size: 1.3rem; margin-right: 10px; }
+  .bottom-ribbon .r-item .r-label { font-size: 0.92rem; display:block; }
+  .bottom-ribbon .r-item.active { background: #e8f0fb; color: #4a90e2; }
+  .bottom-ribbon .r-item.r-center { background: none; margin: 0 8px; }
+  body { padding-bottom: 0 !important; padding-left: 216px; }
+  header { padding-left: 16px; }
+  #syncStatusBar { padding-left: 216px; }
+  .page { max-width: none; }
+  .day { min-height: 90px; }
+  .emoji-row { max-height: 64px; }
+  .event-block { white-space: normal; overflow: visible; text-overflow: clip; }
+  #undoToast { bottom: 20px; }
+  #shortcutHints { bottom: 20px; }
+}

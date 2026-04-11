@@ -1724,3 +1724,520 @@ function summarizeImportResult(stats){
     console.warn('wireDataBackupUI failed', e);
   }
 })();
+
+/* ============================================================
+   NEW FEATURES: Category Colours, Filter Bar, Week View,
+   Quick-Add NLP, Search, Undo, Keyboard Shortcuts,
+   Sync Status, Swipe Gestures, Enhanced Dashboard
+   ============================================================ */
+
+/* ----- Category colour map ----- */
+const CAT_COLORS = {
+  work:        '#4a90e2',
+  personal:    '#9b59b6',
+  home:        '#27ae60',
+  errands:     '#e67e22',
+  job:         '#f39c12',
+  appointment: '#16a085',
+  holiday:     '#e74c3c',
+  commitment:  '#8e44ad',
+  event:       '#4a90e2'
+};
+
+/* ----- Active category filter state ----- */
+let activeFilter = 'all';
+
+function wireCategoryFilters(){
+  document.querySelectorAll('.cat-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.cat-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.cat || 'all';
+      generateCalendar();
+      if (selectedDay) showReminders(selectedDay);
+    });
+  });
+}
+
+/* Patch generateCalendar to add colour strip and respect activeFilter */
+(function patchGenerateCalendar(){
+  const orig = generateCalendar;
+  generateCalendar = function(){
+    orig();
+    const calendarEl = document.getElementById('calendar');
+    if (!calendarEl) return;
+    const events = getEvents();
+    calendarEl.querySelectorAll('.day[data-day]').forEach(cell => {
+      const day = parseInt(cell.dataset.day, 10);
+      const ymd = selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(day);
+      const dayEvents = events.filter(e => normalizeDate(e.date) === ymd);
+
+      if (activeFilter !== 'all') {
+        const hasMatch = dayEvents.some(e => (e.category || 'event') === activeFilter)
+          || (activeFilter === 'holiday' && !!getHoliday(pad2(selectedMonth+1)+'-'+pad2(day), selectedYear));
+        cell.style.opacity = hasMatch ? '1' : '0.35';
+      } else {
+        cell.style.opacity = '1';
+      }
+
+      if (!dayEvents.length) return;
+      const catCounts = {};
+      dayEvents.forEach(e => { const c = e.category || 'event'; catCounts[c] = (catCounts[c]||0)+1; });
+      const dom = Object.keys(catCounts).sort((a,b)=>catCounts[b]-catCounts[a])[0];
+      const color = CAT_COLORS[dom] || '#4a90e2';
+      cell.style.borderBottom = '3px solid '+color;
+    });
+  };
+})();
+
+/* ----- Enhanced dashboard ----- */
+(function patchUpdateDashboard(){
+  const orig = updateDashboard;
+  updateDashboard = function(tasks){
+    orig(tasks);
+    try{
+      const todayStr = new Date().toISOString().slice(0,10);
+      const todayEvents = getEvents().filter(e => normalizeDate(e.date) === todayStr);
+      const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate()+7);
+      const weekEndStr = weekEnd.toISOString().slice(0,10);
+      const weekEvents = getEvents().filter(e => { const d = normalizeDate(e.date); return d >= todayStr && d <= weekEndStr; });
+      const pending = tasks.filter(t => !t.done).length;
+      const catMap = {};
+      todayEvents.forEach(e => { const c = e.category||'event'; catMap[c]=(catMap[c]||0)+1; });
+      const catStr = Object.keys(catMap).map(c=>c+':'+catMap[c]).join(', ');
+      const summary = document.getElementById('summaryStats');
+      if (summary){
+        const extra = '<br><span style="color:#4a90e2">Today: '+todayEvents.length+' event'+(todayEvents.length!==1?'s':'')+
+          (catStr ? ' ('+catStr+')' : '')+
+          '</span><br><span style="color:#666">Next 7 days: '+weekEvents.length+' events \u00b7 '+pending+' task'+(pending!==1?'s':'')+' pending</span>';
+        summary.innerHTML += extra;
+      }
+    }catch(e){ /* ignore */ }
+  };
+})();
+
+/* ----- Week view ----- */
+let currentCalView = 'month';
+
+function getWeekStart(year, month, day){
+  const d = new Date(year, month, day);
+  const dow = d.getDay();
+  d.setDate(d.getDate() - dow);
+  return d;
+}
+
+function renderWeekView(){
+  const container = document.getElementById('weekView');
+  if (!container) return;
+  const ws = getWeekStart(selectedYear, selectedMonth, selectedDay || 1);
+  const grid = document.createElement('div');
+  grid.className = 'week-grid';
+  const today = new Date();
+  const todayStr = today.getFullYear()+'-'+pad2(today.getMonth()+1)+'-'+pad2(today.getDate());
+  const allEvents = getEvents();
+  const allTasks = getTasks();
+  const allReminders = getReminders();
+
+  for (let i=0; i<7; i++){
+    const d = new Date(ws); d.setDate(ws.getDate()+i);
+    const ymd = d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+    const isToday = ymd === todayStr;
+    const isSelected = d.getFullYear()===selectedYear && d.getMonth()===selectedMonth && d.getDate()===(selectedDay||0);
+    const theme = themes[d.getMonth()] || themes[0];
+    const isWknd = d.getDay()===0||d.getDay()===6;
+
+    const col = document.createElement('div');
+    col.className = 'week-col';
+    col.style.background = isWknd ? theme.weekend : theme.weekday;
+    col.style.borderRadius = '8px'; col.style.padding = '4px';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'week-col-header'+(isToday?' today':'')+(isSelected?' selected':'');
+    hdr.textContent = weekdayNames[d.getDay()]+' '+d.getDate();
+    hdr.style.cursor = 'pointer';
+    (function(dd){ hdr.addEventListener('click', () => {
+      selectedYear=dd.getFullYear(); selectedMonth=dd.getMonth(); selectedDay=dd.getDate();
+      renderWeekView(); showReminders(selectedDay);
+    }); })(d);
+    col.appendChild(hdr);
+
+    allEvents.filter(e=>normalizeDate(e.date)===ymd).forEach(ev=>{
+      const chip=document.createElement('div'); chip.className='week-chip event';
+      chip.style.borderLeftColor=CAT_COLORS[ev.category||'event']||'#4a90e2';
+      chip.textContent=(ev.emoji||'')+' '+(ev.time?ev.time+' ':'')+( ev.title||'');
+      chip.title=ev.title||'';
+      (function(id){ chip.addEventListener('click',e=>{ e.stopPropagation(); editEvent(id); }); })(ev.id);
+      col.appendChild(chip);
+    });
+    allTasks.filter(t=>normalizeDate(t.date)===ymd).forEach(t=>{
+      const chip=document.createElement('div'); chip.className='week-chip task';
+      chip.textContent='\u2705 '+(t.title||t.text||'');
+      col.appendChild(chip);
+    });
+    const rems=allReminders[ymd]||[];
+    if(rems.length){ const chip=document.createElement('div'); chip.className='week-chip reminder'; chip.textContent='\uD83D\uDD14 '+rems.length+' reminder'+(rems.length>1?'s':''); col.appendChild(chip); }
+
+    grid.appendChild(col);
+  }
+
+  container.innerHTML=''; container.appendChild(grid);
+  const ws2=new Date(ws); ws2.setDate(ws2.getDate()+6);
+  const ml=document.getElementById('monthLabel');
+  if(ml) ml.textContent=monthNames[ws.getMonth()]+' '+ws.getDate()+' \u2013 '+monthNames[ws2.getMonth()]+' '+ws2.getDate()+', '+ws2.getFullYear();
+}
+
+function wireViewToggle(){
+  const monthBtn=document.getElementById('viewMonthBtn');
+  const weekBtn=document.getElementById('viewWeekBtn');
+  const calEl=document.getElementById('calendar');
+  const weekEl=document.getElementById('weekView');
+  if(!monthBtn||!weekBtn) return;
+
+  function setView(v){
+    currentCalView=v;
+    monthBtn.classList.toggle('active',v==='month');
+    weekBtn.classList.toggle('active',v==='week');
+    if(calEl) calEl.style.display=v==='month'?'':'none';
+    if(weekEl) weekEl.style.display=v==='week'?'':'none';
+    if(v==='month') generateCalendar(); else renderWeekView();
+  }
+
+  monthBtn.addEventListener('click',()=>setView('month'));
+  weekBtn.addEventListener('click',()=>setView('week'));
+}
+
+/* ----- Quick-add NLP ----- */
+function parseQuickAdd(text){
+  if(!text||!text.trim()) return null;
+  let s=text.trim();
+
+  let category='';
+  s=s.replace(/[#@](work|personal|home|errands|appointment|job|holiday|event|commitment)\b/gi,(m,c)=>{ category=c.toLowerCase(); return ''; }).trim();
+
+  let time='';
+  s=s.replace(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i,(m,hh,mm,ap)=>{
+    let h=parseInt(hh,10); const min=parseInt(mm||'0',10);
+    if(ap&&ap.toLowerCase()==='pm'&&h<12) h+=12;
+    if(ap&&ap.toLowerCase()==='am'&&h===12) h=0;
+    time=pad2(h)+':'+pad2(min); return '';
+  }).trim();
+
+  const now2=new Date();
+  let date='';
+  const todayStr2=now2.getFullYear()+'-'+pad2(now2.getMonth()+1)+'-'+pad2(now2.getDate());
+  function addDays2(n){ const d=new Date(now2); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+
+  if(/\btoday\b/i.test(s)){ date=todayStr2; s=s.replace(/\btoday\b/i,'').trim(); }
+  else if(/\btomorrow\b/i.test(s)){ date=addDays2(1); s=s.replace(/\btomorrow\b/i,'').trim(); }
+  else if(/\bnext\s+(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i.test(s)){
+    s=s.replace(/\bnext\s+(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i,(m,wd)=>{
+      const days={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+      const target=days[wd.slice(0,3).toLowerCase()];
+      let diff=target-now2.getDay(); if(diff<=0) diff+=7;
+      date=addDays2(diff); return '';
+    }).trim();
+  }
+  else if(/\b(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i.test(s)){
+    s=s.replace(/\b(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i,(m,wd)=>{
+      const days={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+      const target=days[wd.slice(0,3).toLowerCase()];
+      let diff=target-now2.getDay(); if(diff<=0) diff+=7;
+      date=addDays2(diff); return '';
+    }).trim();
+  } else {
+    const mNames=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const mMatch=s.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\b/i);
+    if(mMatch){ const mo=mNames.indexOf(mMatch[1].toLowerCase())+1; date=now2.getFullYear()+'-'+pad2(mo)+'-'+pad2(parseInt(mMatch[2],10)); s=s.replace(mMatch[0],'').trim(); }
+    else{
+      const slashMatch=s.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+      if(slashMatch){ date=now2.getFullYear()+'-'+pad2(parseInt(slashMatch[1],10))+'-'+pad2(parseInt(slashMatch[2],10)); s=s.replace(slashMatch[0],'').trim(); }
+    }
+  }
+
+  const title=s.replace(/\s+/g,' ').trim()||text.trim();
+  return { title, date:date||'', time, category, kind: date?'event':'task' };
+}
+
+function wireQuickAdd(){
+  const input=document.getElementById('quickAddInput');
+  const btn=document.getElementById('quickAddBtn');
+  const prev=document.getElementById('quickAddPreview');
+  if(!input) return;
+
+  function showPreview(){
+    const parsed=parseQuickAdd(input.value);
+    if(!parsed||!input.value.trim()){ prev.style.display='none'; return; }
+    prev.style.display='block';
+    const icon=parsed.kind==='event'?'\uD83D\uDCC5':'\u2705';
+    const catHtml=parsed.category?'<span style="background:'+(CAT_COLORS[parsed.category]||'#ccc')+';color:#fff;padding:1px 6px;border-radius:10px;font-size:0.8rem">'+escapeHTML(parsed.category)+'</span>':'';
+    prev.innerHTML=icon+' <b>'+escapeHTML(parsed.title)+'</b>'+(parsed.date?' '+parsed.date:'')+(parsed.time?' '+parsed.time:'')+(catHtml?' '+catHtml:'')+' \u2192 will create '+parsed.kind;
+  }
+
+  input.addEventListener('input',showPreview);
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); doQuickAdd(); } });
+  if(btn) btn.addEventListener('click',doQuickAdd);
+
+  function doQuickAdd(){
+    const parsed=parseQuickAdd(input.value);
+    if(!parsed||!parsed.title) return;
+    if(parsed.kind==='event'){
+      const evs=getEvents();
+      const id=evs.length?Math.max.apply(null,evs.map(function(e){return e.id;}))+1:1;
+      evs.push({ id, title:parsed.title, date:parsed.date||new Date().toISOString().slice(0,10), time:parsed.time, endTime:'', location:'', emoji:'', category:parsed.category||'event', repeat:'none', repeatUntil:'', preBuffer:0, postBuffer:0 });
+      setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+    } else {
+      const tasks=getTasks();
+      tasks.push({ title:parsed.title, category:parsed.category||'', done:false, date:'', time:parsed.time||'', priority:'2' });
+      setTasks(tasks); try{ loadTasks(); }catch(_){}
+    }
+    input.value=''; prev.style.display='none';
+  }
+}
+
+window._focusQuickAdd=function(){ const i=document.getElementById('quickAddInput'); if(i){ showView('calendar'); i.focus(); i.select(); } };
+
+/* ----- Search modal ----- */
+function openSearch(){
+  const modal=document.getElementById('searchModal'); if(!modal) return;
+  modal.style.display='flex';
+  const inp=document.getElementById('searchInput'); if(inp){ inp.value=''; inp.focus(); }
+  renderSearchResults('');
+}
+function closeSearch(){ const modal=document.getElementById('searchModal'); if(modal) modal.style.display='none'; }
+
+function renderSearchResults(q){
+  const container=document.getElementById('searchResults'); if(!container) return;
+  const term=(q||'').toLowerCase().trim();
+  if(!term){ container.innerHTML='<div class="empty-msg">Start typing to search\u2026</div>'; return; }
+  const events=getEvents().filter(e=>(e.title||'').toLowerCase().includes(term)||(e.location||'').toLowerCase().includes(term)||(e.date||'').includes(term));
+  const tasks=getTasks().filter(t=>(t.title||t.text||'').toLowerCase().includes(term)||(t.date||'').includes(term));
+  const remArr=[];
+  const rmap=getReminders();
+  Object.keys(rmap).forEach(function(dk){ (rmap[dk]||[]).forEach(function(r){ if((r.text||'').toLowerCase().includes(term)||dk.includes(term)) remArr.push(Object.assign({},r,{date:dk})); }); });
+  if(!events.length&&!tasks.length&&!remArr.length){ container.innerHTML='<div class="empty-msg">No results found.</div>'; return; }
+
+  // Build results using DOM to avoid inline onclick (security best practice)
+  container.innerHTML='';
+
+  function makeItem(titleHtml, subText, kindLabel){ // returns element
+    const row=document.createElement('div'); row.className='search-result-item';
+    const body=document.createElement('div');
+    const t=document.createElement('div'); t.className='search-result-title'; t.innerHTML=titleHtml;
+    const s=document.createElement('div'); s.className='search-result-sub'; s.textContent=subText;
+    body.appendChild(t); body.appendChild(s);
+    const badge=document.createElement('span'); badge.className='search-result-kind'; badge.textContent=kindLabel;
+    row.appendChild(body); row.appendChild(badge);
+    return row;
+  }
+
+  if(events.length){
+    const hdr=document.createElement('div'); hdr.className='search-section-header'; hdr.textContent='Events ('+events.length+')'; container.appendChild(hdr);
+    events.slice(0,10).forEach(function(ev){
+      const col=CAT_COLORS[ev.category||'event']||'#4a90e2';
+      const titleHtml='<span style="color:'+col+'">'+(ev.emoji||'\uD83D\uDCCC')+'</span> '+escapeHTML(ev.title||'');
+      const sub=[(ev.date||''),(ev.time||''),(ev.location?'@ '+ev.location:'')].filter(Boolean).join(' ');
+      const row=makeItem(titleHtml,sub,'event');
+      const yr=parseInt((ev.date||'').slice(0,4),10)||selectedYear;
+      const mo=parseInt((ev.date||'').slice(5,7),10)-1;
+      const dy=parseInt((ev.date||'').slice(8,10),10)||1;
+      row.addEventListener('click',function(){ closeSearch(); selectedYear=yr; selectedMonth=mo; selectedDay=dy; showView('calendar'); generateCalendar(); showReminders(dy); });
+      container.appendChild(row);
+    });
+  }
+  if(tasks.length){
+    const hdr=document.createElement('div'); hdr.className='search-section-header'; hdr.textContent='Tasks ('+tasks.length+')'; container.appendChild(hdr);
+    tasks.slice(0,10).forEach(function(t){
+      const titleHtml=(t.done?'\u2705':'\u2B1C')+' '+escapeHTML(t.title||t.text||'');
+      const sub=[(t.date||''),(t.category?'\u00b7 '+t.category:'')].filter(Boolean).join(' ');
+      const row=makeItem(titleHtml,sub,'task');
+      row.addEventListener('click',function(){ closeSearch(); showView('tasks'); });
+      container.appendChild(row);
+    });
+  }
+  if(remArr.length){
+    const hdr=document.createElement('div'); hdr.className='search-section-header'; hdr.textContent='Reminders ('+remArr.length+')'; container.appendChild(hdr);
+    remArr.slice(0,10).forEach(function(r){
+      const row=makeItem('\uD83D\uDD14 '+escapeHTML(r.text||''),[(r.date||''),(r.time||'')].filter(Boolean).join(' '),'reminder');
+      row.addEventListener('click',function(){ closeSearch(); showView('reminders'); });
+      container.appendChild(row);
+    });
+  }
+}
+
+function wireSearch(){
+  const inp=document.getElementById('searchInput');
+  const closeBtn=document.getElementById('closeSearchBtn');
+  const modal=document.getElementById('searchModal');
+  if(!inp) return;
+  inp.addEventListener('input',function(){ renderSearchResults(inp.value); });
+  if(closeBtn) closeBtn.addEventListener('click',closeSearch);
+  if(modal) modal.addEventListener('click',function(e){ if(e.target===modal) closeSearch(); });
+}
+
+window.openSearch=openSearch; window.closeSearch=closeSearch;
+
+/* ----- Undo toast ----- */
+const UNDO_TIMEOUT_MS=6000;
+const undoStack=[];
+let _undoTimer=null;
+
+function pushUndo(action){
+  undoStack.push(action);
+  showUndoToast(action.label||'Item deleted.');
+}
+function showUndoToast(msg){
+  const toast=document.getElementById('undoToast'); const msgEl=document.getElementById('undoMessage');
+  if(!toast) return;
+  if(_undoTimer) clearTimeout(_undoTimer);
+  if(msgEl) msgEl.textContent=msg;
+  toast.classList.add('visible'); toast.style.opacity='1'; toast.style.pointerEvents='auto';
+  _undoTimer=setTimeout(hideUndoToast,UNDO_TIMEOUT_MS);
+}
+function hideUndoToast(){ const t=document.getElementById('undoToast'); if(t){ t.classList.remove('visible'); t.style.opacity='0'; t.style.pointerEvents='none'; } }
+function doUndo(){
+  const action=undoStack.pop(); if(!action){ hideUndoToast(); return; }
+  try{ action.undo(); }catch(e){ console.warn('Undo failed',e); }
+  try{ generateCalendar(); }catch(_){} try{ if(selectedDay) showReminders(selectedDay); }catch(_){}
+  try{ renderEvents(); }catch(_){} try{ loadTasks(); }catch(_){} hideUndoToast();
+}
+function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) btn.addEventListener('click',doUndo); }
+
+/* Patch delete functions for undo support */
+(function patchDeleteFunctions(){
+  const origDE=deleteEvent;
+  deleteEvent=function(id){
+    const item=getEvents().find(function(e){ return e.id===id; });
+    if(!item){ origDE(id); return; }
+    if(!confirm('Delete this event?')) return;
+    setEvents(getEvents().filter(function(e){ return e.id!==id; }));
+    renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+    pushUndo({ label:'Event "'+item.title+'" deleted.', undo:function(){ const cur=getEvents(); cur.push(item); setEvents(cur); } });
+  };
+  window.deleteEvent=deleteEvent;
+
+  const origDT=deleteTask;
+  deleteTask=function(i){
+    const tasks=getTasks(); const item=tasks[i];
+    if(!item){ origDT(i); return; }
+    if(!confirm('Delete this task?')) return;
+    setTasks(tasks.filter(function(_,idx){ return idx!==i; }));
+    try{ loadTasks(); }catch(_){}
+    const capturedIdx=i;
+    pushUndo({ label:'Task "'+(item.title||item.text)+'" deleted.', undo:function(){ const cur=getTasks(); cur.splice(capturedIdx,0,item); setTasks(cur); } });
+  };
+  window.deleteTask=deleteTask;
+
+  const origDR=deleteReminder;
+  deleteReminder=function(day,index){
+    const key=selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(day);
+    const r=getReminders(); const item=r[key]&&r[key][index];
+    if(!item){ origDR(day,index); return; }
+    if(!confirm('Delete this reminder?')) return;
+    r[key].splice(index,1); if(!r[key].length) delete r[key];
+    setReminders(r); showReminders(day); generateCalendar();
+    pushUndo({ label:'Reminder "'+item.text+'" deleted.', undo:function(){ const cur=getReminders(); if(!cur[key]) cur[key]=[]; cur[key].splice(index,0,item); setReminders(cur); } });
+  };
+  window.deleteReminder=deleteReminder;
+})();
+
+/* ----- Keyboard shortcuts ----- */
+function wireKeyboardShortcuts(){
+  var VIEWS=['events','reminders','calendar','tasks','settings'];
+  document.addEventListener('keydown',function(e){
+    const tag=document.activeElement&&document.activeElement.tagName;
+    const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(); return; }
+    if(e.key==='Escape'){ closeSearch(); closeEditModal(); hideUndoToast(); const sh=document.getElementById('shortcutHints'); if(sh) sh.style.display='none'; return; }
+    if(inInput) return;
+    if(e.key==='?'){ const sh=document.getElementById('shortcutHints'); if(sh) sh.style.display=sh.style.display==='none'?'block':'none'; return; }
+    if(e.key==='n'||e.key==='N'||e.key==='/'){ e.preventDefault(); window._focusQuickAdd&&window._focusQuickAdd(); return; }
+    if(e.key==='t'||e.key==='T'){ const now3=new Date(); selectedYear=now3.getFullYear(); selectedMonth=now3.getMonth(); selectedDay=now3.getDate(); generateCalendar(); showReminders(selectedDay); return; }
+    if(e.key==='ArrowLeft'){ const b=document.getElementById('prevBtn'); if(b) b.click(); return; }
+    if(e.key==='ArrowRight'){ const b=document.getElementById('nextBtn'); if(b) b.click(); return; }
+    const n=parseInt(e.key,10); if(n>=1&&n<=5){ showView(VIEWS[n-1]); return; }
+  });
+}
+
+/* ----- Sync status bar ----- */
+function wireSyncStatusBar(){
+  const bar=document.getElementById('syncStatusBar'); if(!bar) return;
+  let hideTimer=null;
+  function show(msg,autohide){ bar.textContent=msg; bar.style.display='block'; if(hideTimer) clearTimeout(hideTimer); if(autohide) hideTimer=setTimeout(function(){ bar.style.display='none'; },4000); }
+  window.addEventListener('pouch-sync:active',function(){ show('\uD83D\uDD04 Syncing\u2026',false); });
+  window.addEventListener('pouch-sync:paused',function(){ show('\u2705 Synced',true); });
+  window.addEventListener('pouch-sync:import',function(){ show('\u2705 Data imported from cloud',true); });
+  window.addEventListener('pouch-sync:error', function(e){ show('\u26A0\uFE0F Sync error: '+(e.detail&&e.detail.message?e.detail.message:'unknown'),true); });
+}
+
+/* ----- Swipe to navigate months ----- */
+function wireCalendarSwipe(){
+  const page=document.getElementById('page-calendar'); if(!page) return;
+  let startX=null;
+  page.addEventListener('touchstart',function(e){ startX=e.touches[0].clientX; },{passive:true});
+  page.addEventListener('touchend',function(e){
+    if(startX==null) return;
+    const dx=e.changedTouches[0].clientX-startX; startX=null;
+    if(Math.abs(dx)<50) return;
+    const btn=dx<0?document.getElementById('nextBtn'):document.getElementById('prevBtn');
+    if(btn) btn.click();
+  },{passive:true});
+}
+
+/* ----- Morning Briefing ----- */
+function wireMorningBriefing(){
+  const enableEl=document.getElementById('morningBriefingEnabled');
+  const timeEl=document.getElementById('morningBriefingTime');
+  const saveBtn=document.getElementById('saveMorningBriefingBtn');
+  const statusEl=document.getElementById('morningBriefingStatus');
+  if(enableEl) enableEl.checked=localStorage.getItem('morningBriefingEnabled')==='1';
+  if(timeEl&&localStorage.getItem('morningBriefingTime')) timeEl.value=localStorage.getItem('morningBriefingTime');
+  if(saveBtn) saveBtn.addEventListener('click',function(){
+    const enabled=!!(enableEl&&enableEl.checked);
+    const bt=(timeEl&&timeEl.value)||'08:00';
+    localStorage.setItem('morningBriefingEnabled',enabled?'1':'0');
+    localStorage.setItem('morningBriefingTime',bt);
+    scheduleMorningBriefing();
+    if(statusEl) statusEl.textContent=enabled?'Briefing set for '+bt+' daily.':'Morning briefing disabled.';
+  });
+  scheduleMorningBriefing();
+}
+
+function scheduleMorningBriefing(){
+  if(localStorage.getItem('morningBriefingEnabled')!=='1') return;
+  const bt=localStorage.getItem('morningBriefingTime')||'08:00';
+  const parts=bt.split(':'); const hh=parseInt(parts[0],10)||8; const mm=parseInt(parts[1],10)||0;
+  const now4=new Date();
+  const target=new Date(now4.getFullYear(),now4.getMonth(),now4.getDate(),hh,mm,0,0);
+  if(target<=now4) target.setDate(target.getDate()+1);
+  const delay=target.getTime()-now4.getTime();
+  if(delay>0x7FFFFFFF) return; // setTimeout max delay (~24.8 days); will reschedule on next app open
+  clearTimeout(window._morningBriefingTimer);
+  window._morningBriefingTimer=setTimeout(function(){
+    try{
+      const ts=new Date().toISOString().slice(0,10);
+      const evCount=getEvents().filter(function(e){ return normalizeDate(e.date)===ts; }).length;
+      const tkCount=getTasks().filter(function(t){ return !t.done&&normalizeDate(t.date)===ts; }).length;
+      const body=evCount+' event'+(evCount!==1?'s':'')+', '+tkCount+' task'+(tkCount!==1?'s':'')+' today';
+      if('Notification' in window&&Notification.permission==='granted'){
+        navigator.serviceWorker.getRegistration().then(function(reg){
+          if(reg&&reg.showNotification) reg.showNotification('\u2600\uFE0F Good morning! TimeScape',{body:body,tag:'morning-briefing'});
+          else try{ new Notification('\u2600\uFE0F Good morning! TimeScape',{body:body}); }catch(_){}
+        }).catch(function(){ try{ new Notification('\u2600\uFE0F Good morning! TimeScape',{body:body}); }catch(_){} });
+      }
+    }catch(_){}
+    setTimeout(scheduleMorningBriefing,60000);
+  },delay);
+}
+
+/* ----- Init all new features on DOMContentLoaded ----- */
+document.addEventListener('DOMContentLoaded',function(){
+  wireCategoryFilters();
+  wireViewToggle();
+  wireQuickAdd();
+  wireSearch();
+  wireUndoBtn();
+  wireKeyboardShortcuts();
+  wireSyncStatusBar();
+  wireCalendarSwipe();
+  wireMorningBriefing();
+});
