@@ -83,20 +83,31 @@
     return sel && sel.value ? sel.value : fallback;
   }
 
-  // ensure value is an array (coerce objects/maps or single item into array)
-  function ensureArray(v) {
-    if (Array.isArray(v)) return v;
-    if (v == null) return [];
-    if (typeof v === 'object') return Object.values(v);
-    return [v];
+  // normalize reminders from either [{date,text,...}] or {date:[{text,...}]}
+  function normalizeReminders(v) {
+    if (!v) return [];
+    if (Array.isArray(v)) {
+      return v.filter(x => x && typeof x === 'object' && x.date);
+    }
+    if (typeof v === 'object') {
+      const out = [];
+      Object.keys(v).forEach((dateKey) => {
+        const arr = Array.isArray(v[dateKey]) ? v[dateKey] : [];
+        arr.forEach((r) => {
+          if (!r || typeof r !== 'object') return;
+          out.push(Object.assign({}, r, { date: dateKey }));
+        });
+      });
+      return out;
+    }
+    return [];
   }
 
   // schedule reminders
   function scheduleReminders() {
     let list = [];
-    try { list = JSON.parse(localStorage.getItem('reminders') || '[]'); } catch(_) { list = []; }
-    list = ensureArray(list);
-    if (!Array.isArray(list)) { try { list = ensureArray(list); } catch(_) { list = []; } }
+    try { list = JSON.parse(localStorage.getItem('reminders') || '{}'); } catch(_) { list = []; }
+    list = normalizeReminders(list);
     const offsetSel = readOffsetFromSelect('reminderNotify', 'none');
     list.forEach((r, idx) => {
       if (!r || !r.date) return;

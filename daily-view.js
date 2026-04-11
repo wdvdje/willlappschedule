@@ -16,18 +16,28 @@
   const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
   const openEditModal = (window.appUtils && window.appUtils.openEditModalFill) ? window.appUtils.openEditModalFill : null;
 
-  // helper to coerce parsed localStorage values into arrays
-  function ensureArray(v) {
-    if (Array.isArray(v)) return v;
-    if (v == null) return [];
-    if (typeof v === 'object') return Object.values(v);
-    return [v];
+  // normalize reminders from either [{date,text,...}] or {date:[{text,...}]}
+  function normalizeReminders(v) {
+    if (!v) return [];
+    if (Array.isArray(v)) return v.filter(x => x && typeof x === 'object' && x.date);
+    if (typeof v === 'object') {
+      const out = [];
+      Object.keys(v).forEach((dateKey) => {
+        const arr = Array.isArray(v[dateKey]) ? v[dateKey] : [];
+        arr.forEach((r) => {
+          if (!r || typeof r !== 'object') return;
+          out.push(Object.assign({}, r, { date: dateKey }));
+        });
+      });
+      return out;
+    }
+    return [];
   }
   // local loaders for reminders and tasks
   function loadReminders() {
     try {
-      const parsed = JSON.parse(localStorage.getItem('reminders') || '[]') || [];
-      return ensureArray(parsed);
+      const parsed = JSON.parse(localStorage.getItem('reminders') || '{}') || {};
+      return normalizeReminders(parsed);
     } catch (_) { return []; }
   }
   function loadTasksLS() {

@@ -6,6 +6,7 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="theme-color" content="#4a90e2" />
+  <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
   <title>TimeScape Planner</title>
   <style>
@@ -346,19 +347,6 @@
           </div>
         </section>
 
-        <!-- Maps API Key settings (kept) -->
-        <section id="mapsSettings" style="margin-top:18px">
-          <h3>Google Maps</h3>
-          <label for="mapsKeyInput" style="display:block;font-weight:600">Google Maps API Key</label>
-          <input id="mapsKeyInput" type="text" placeholder="Enter Maps API key (stored in localStorage)" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button id="saveMapsKeyBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save key</button>
-            <button id="clearMapsKeyBtn" class="small-btn">Clear key</button>
-            <button id="testMapsKeyBtn" class="small-btn">Load Maps Now</button>
-          </div>
-          <p id="mapsKeyNotice" style="margin-top:8px;color:#666;font-size:0.95rem">Saved key: <span id="mapsKeyDisplay">none</span></p>
-        </section>
-
         <!-- ADDED: PouchDB sync settings -->
         <section id="pouchSyncSettings" style="margin-top:18px">
           <h3>Sync (PouchDB)</h3>
@@ -380,6 +368,20 @@
             <button id="importNowBtn" class="small-btn">Import now</button>
           </div>
           <div id="pouchSyncStatus" style="margin-top:8px;color:#666;font-size:0.95rem">Not syncing</div>
+        </section>
+
+        <section id="dataBackupSettings" style="margin-top:18px">
+          <h3>Data Backup</h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+            <button id="exportDataBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export JSON</button>
+            <select id="dataImportMode" style="width:180px">
+              <option value="overwrite">Import mode: Overwrite</option>
+              <option value="merge">Import mode: Merge</option>
+            </select>
+            <button id="importDataBtn" class="small-btn">Import JSON</button>
+            <input id="importDataFile" type="file" accept="application/json,.json" style="display:none" />
+          </div>
+          <div id="dataBackupStatus" style="margin-top:8px;color:#666;font-size:0.95rem">No backup action yet</div>
         </section>
       </main>
     </section>
@@ -494,7 +496,7 @@
   </script>
 
   <!-- load canonical app script -->
-  <script src="./app.js"></script>
+  <script src="./assets/app.js"></script>
 
   <!-- ADDED: ensure latest view scripts load and SPA routing (cache-bust + client router) -->
   <script>
@@ -578,19 +580,6 @@
 
   <!-- ADDED: push notifications client -->
   <script src="./push.js"></script>
-  <!-- ADDED: normalize legacy reminders structure to array before notifications init -->
-  <script>
-    (function migrateRemindersToArray(){
-      try {
-        const raw = localStorage.getItem('reminders');
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return;
-        const arr = (parsed && typeof parsed === 'object') ? Object.values(parsed) : (parsed ? [parsed] : []);
-        localStorage.setItem('reminders', JSON.stringify(arr));
-      } catch (e) { /* ignore */ }
-    })();
-  </script>
   <!-- ADDED: local notifications scheduler (events + reminders) -->
   <script src="./notifications.js"></script>
   <!-- ADDED: PouchDB sync support (loads PouchDB and provides simple sync helpers) -->

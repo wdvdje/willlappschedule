@@ -109,6 +109,18 @@ let selectedMonth, selectedYear, selectedDay;
 /* UI helpers */
 function escapeHTML(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+function osmSearchUrl(query){
+  return `https://www.openstreetmap.org/search?query=${encodeURIComponent(query || '')}`;
+}
+
+function osmDirectionsUrl(place){
+  const hasCoords = place && typeof place.lat === 'number' && typeof place.lng === 'number';
+  if (hasCoords) {
+    return `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=%3B${encodeURIComponent(place.lat + ',' + place.lng)}`;
+  }
+  return osmSearchUrl(place && place.address ? place.address : '');
+}
+
 /* ---------- DAILY VIEW: hourly rendering and part selection ---------- */
 const DAY_PARTS = {
   morning: { start: 1, end: 9 },  // 01:00 - 09:00 (end exclusive)
@@ -267,7 +279,7 @@ function renderJobs(){
 
       const content = document.createElement('div');
       content.className = 'job-content';
-      const locHtml = job.location ? ` — <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.location)}" target="_blank">${escapeHTML(job.location)}</a>` : '';
+      const locHtml = job.location ? ` — <a href="${osmSearchUrl(job.location)}" target="_blank">${escapeHTML(job.location)}</a>` : '';
       content.innerHTML = `<b>${escapeHTML(job.name)}</b> <small style="color:#666">(${escapeHTML(job.rate||'')}${job.unit?(' /'+escapeHTML(job.unit)):""})</small>${locHtml}`;
 
       const controls = document.createElement('span');
@@ -477,7 +489,7 @@ function showReminders(day){
   const eventsHTML = eventsSorted.length ? `<div class="reminder-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234"><b>Events:</b><div class="events-list">${eventsSorted.map(ev=>{
     const timePart = ev.time ? `[${escapeHTML(ev.time)}] ` : '';
     const emojiPart = ev.emoji ? `${ev.emoji} ` : '';
-    const locationPart = ev.location ? ` @ <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ev.location)}" target="_blank">${escapeHTML(ev.location)}</a>` : '';
+    const locationPart = ev.location ? ` @ <a href="${osmSearchUrl(ev.location)}" target="_blank">${escapeHTML(ev.location)}</a>` : '';
     const bufferPart = (ev.preBuffer||0) || (ev.postBuffer||0) ? ` <small style="color:#555">(${ev.preBuffer||0}m pre / ${ev.postBuffer||0}m post)</small>` : '';
     return `<div class="r-event">${timePart}${emojiPart}<b>${escapeHTML(ev.title)}</b>${locationPart}${bufferPart}<span class="r-actions"><button class="small-btn" onclick="editEvent(${ev.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${ev.id})">Delete</button></span></div>`;
   }).join('')}</div></div>` : '';
@@ -661,7 +673,7 @@ function renderEvents(){
 
     const content = document.createElement('div');
     content.className = 'event-content';
-    const locHtml = e.location ? ` @ <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(e.location)}" target="_blank">${escapeHTML(e.location)}</a>` : '';
+    const locHtml = e.location ? ` @ <a href="${osmSearchUrl(e.location)}" target="_blank">${escapeHTML(e.location)}</a>` : '';
     const timeHtml = e.time ? (e.endTime ? `[${escapeHTML(e.time)}–${escapeHTML(e.endTime)}] ` : `[${escapeHTML(e.time)}] `) : '';
     const bufferHtml = ((e.preBuffer||0) || (e.postBuffer||0)) ? ` <small style="color:#555">(${e.preBuffer||0}m pre / ${e.postBuffer||0}m post)</small>` : '';
     content.innerHTML = `<b>${escapeHTML(e.title)}</b> — ${escapeHTML(e.date)} ${timeHtml}${locHtml}${bufferHtml}`;
@@ -807,53 +819,62 @@ function updateDayProgress(day){
   ring.style.transform = `rotate(${percent * 3.6}deg)`;
 }
 
-/* Places autocomplete init (keeps original approach) */
+/* Keyless autocomplete via OpenStreetMap Nominatim */
 function initPlaces(){
-  if (!window.google || !google.maps || !google.maps.places){
-    console.warn('Google Maps Places library not available.');
-    return;
-  }
   try{
-    const acService = new google.maps.places.AutocompleteService();
-    const placesSvc = new google.maps.places.PlacesService(document.createElement('div'));
+    function fetchPlaceSuggestions(query, signal){
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=6&q=${encodeURIComponent(query)}`;
+      return fetch(url, {
+        signal,
+        headers: { 'Accept': 'application/json' }
+      }).then(r => {
+        if (!r.ok) throw new Error('Nominatim lookup failed');
+        return r.json();
+      });
+    }
 
     function attachAutocompleteUI(input, listEl){
-      let currentRequestId = 0;
+      let abortController = null;
+      let debounceTimer = null;
       input.dataset.place = '';
       function hideList(){ listEl.style.display = 'none'; listEl.innerHTML = ''; }
       input.addEventListener('input', function(){
         const q = input.value.trim();
-        if (!q){ hideList(); return; }
-        const reqId = ++currentRequestId;
-        acService.getPlacePredictions({ input: q, types: ['geocode'] }, (preds, status)=>{
-          if (reqId !== currentRequestId) return;
-          if (!preds || !preds.length){ hideList(); return; }
-          listEl.innerHTML = '';
-          preds.forEach(p=>{
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = p.description;
-            btn.addEventListener('click', ()=>{
-              input.value = p.description;
-              hideList();
-              input.dataset.place = JSON.stringify({description: p.description, placeId: p.place_id});
-              placesSvc.getDetails({ placeId: p.place_id, fields: ['formatted_address','geometry','place_id'] }, (detail, st)=>{
-                if (st === google.maps.places.PlacesServiceStatus.OK && detail){
-                  input.value = detail.formatted_address || input.value;
-                  input.dataset.place = JSON.stringify({
-                    address: detail.formatted_address || p.description,
-                    lat: detail.geometry && detail.geometry.location ? detail.geometry.location.lat() : null,
-                    lng: detail.geometry && detail.geometry.location ? detail.geometry.location.lng() : null,
-                    placeId: detail.place_id || p.place_id
-                  });
-                }
+        if (debounceTimer) clearTimeout(debounceTimer);
+        if (abortController) abortController.abort();
+        if (!q || q.length < 3){ hideList(); return; }
+
+        debounceTimer = setTimeout(() => {
+          abortController = new AbortController();
+          fetchPlaceSuggestions(q, abortController.signal).then(preds => {
+            if (!Array.isArray(preds) || !preds.length){ hideList(); return; }
+            listEl.innerHTML = '';
+            preds.forEach(p=>{
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.textContent = p.display_name || p.name || q;
+              btn.addEventListener('click', ()=>{
+                const lat = p.lat != null ? Number(p.lat) : null;
+                const lng = p.lon != null ? Number(p.lon) : null;
+                const address = p.display_name || input.value;
+                input.value = address;
+                hideList();
+                input.dataset.place = JSON.stringify({
+                  address,
+                  lat: Number.isFinite(lat) ? lat : null,
+                  lng: Number.isFinite(lng) ? lng : null,
+                  placeId: p.place_id || null
+                });
+                input.dispatchEvent(new Event('change'));
               });
-              input.dispatchEvent(new Event('change'));
+              listEl.appendChild(btn);
             });
-            listEl.appendChild(btn);
+            listEl.style.display = 'block';
+          }).catch(err => {
+            if (err && err.name === 'AbortError') return;
+            hideList();
           });
-          listEl.style.display = 'block';
-        });
+        }, 250);
       });
       input.addEventListener('blur', ()=> setTimeout(hideList, 200));
       input.addEventListener('focus', ()=> { if (input.value && listEl.children.length) listEl.style.display = 'block'; });
@@ -880,76 +901,6 @@ function initPlaces(){
 
   }catch(err){ console.warn('initPlaces error', err); }
 }
-
-/* ---------------- Settings: Maps API key management ----------------
-   Adds simple UI handlers that read/write localStorage 'MAPS_API_KEY',
-   update the settings form, and attempt to load the Maps script immediately.
-*/
-
-/* read saved key (returns string or empty) */
-function readSavedMapsKey(){
-  try{ return (localStorage.getItem('MAPS_API_KEY')||'').trim(); }catch(e){ return ''; }
-}
-
-/* update settings UI (if present) */
-function updateMapsSettingsUI(){
-  try{
-    const el = document.getElementById('mapsKeyInput');
-    const disp = document.getElementById('mapsKeyDisplay');
-    const k = readSavedMapsKey();
-    if (el) el.value = k;
-    if (disp) disp.textContent = k ? 'configured' : 'none';
-  }catch(e){ /* ignore */ }
-}
-
-/* save key from input to localStorage and attempt to load maps */
-function saveMapsKeyFromUI(){
-  try{
-    const el = document.getElementById('mapsKeyInput');
-    if (!el) return;
-    const k = (el.value||'').trim();
-    if (!k){ alert('Enter a non-empty API key or use Clear.'); return; }
-    localStorage.setItem('MAPS_API_KEY', k);
-    // update runtime var used by loader
-    try{ window.MAPS_API_KEY = k; }catch(e){}
-    updateMapsSettingsUI();
-    // attempt to load maps now
-    loadMapsScript(k).then((s)=>{ if (s) alert('Maps script loaded'); else alert('Maps script not loaded (check key)'); }).catch(err=>{ alert('Maps load failed: '+err.message); });
-  }catch(err){ console.warn('saveMapsKeyFromUI failed', err); }
-}
-
-/* clear saved key */
-function clearMapsKey(){
-  try{ localStorage.removeItem('MAPS_API_KEY'); window.MAPS_API_KEY = ''; updateMapsSettingsUI(); alert('Maps API key cleared.'); }catch(e){ console.warn('clearMapsKey failed',e); }
-}
-
-/* attempt to load maps using current saved key (for test button) */
-function loadMapsNow(){
-  const k = readSavedMapsKey();
-  if (!k){ alert('No Maps API key configured.'); return; }
-  loadMapsScript(k).then((s)=>{ if (s) alert('Maps script loaded'); else alert('Maps not loaded'); }).catch(err=>{ alert('Maps load failed: '+err.message); });
-}
-
-/* expose for debugging/calls from HTML buttons */
-window.saveMapsKeyFromUI = saveMapsKeyFromUI;
-window.clearMapsKey = clearMapsKey;
-window.loadMapsNow = loadMapsNow;
-
-/* Wire settings UI after DOM ready — add into attachPageListeners so we don't duplicate handlers */
-(function wireSettingsUI(){
-  try{
-    // if attachPageListeners runs after DOM ready it will set these; this is safe to call early
-    document.addEventListener('DOMContentLoaded', function(){
-      updateMapsSettingsUI();
-      const saveBtn = document.getElementById('saveMapsKeyBtn');
-      const clearBtn = document.getElementById('clearMapsKeyBtn');
-      const testBtn = document.getElementById('testMapsKeyBtn');
-      if (saveBtn) saveBtn.addEventListener('click', function(e){ e.preventDefault(); saveMapsKeyFromUI(); });
-      if (clearBtn) clearBtn.addEventListener('click', function(e){ e.preventDefault(); if (confirm('Clear stored Maps API key?')) clearMapsKey(); });
-      if (testBtn) testBtn.addEventListener('click', function(e){ e.preventDefault(); loadMapsNow(); });
-    });
-  }catch(e){ console.warn('wireSettingsUI failed', e); }
-})();
 
 /* UI: overlay inputs */
 function initOverlayInputs(){
@@ -1051,23 +1002,6 @@ window.editReminder = editReminder;
 window.deleteReminder = deleteReminder;
 window.showView = showView;
 
-/* maps loader */
-const MAPS_API_KEY = (window.MAPS_API_KEY || localStorage.getItem('MAPS_API_KEY') || 'YOUR_API_KEY').trim();
-function loadMapsScript(key){
-  return new Promise((resolve, reject)=>{
-    if (!key || key === 'YOUR_API_KEY') {
-      console.warn('Google Maps API key not configured — skipping Maps load.');
-      return resolve(null);
-    }
-    const s = document.createElement('script');
-    s.async = true; s.defer = true;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(key)}&libraries=places`;
-    s.onload = ()=> { try{ if (typeof initPlaces === 'function') initPlaces(); }catch(err){ console.warn('initPlaces failed after maps load', err); } resolve(s); };
-    s.onerror = ()=> reject(new Error('Failed to load Google Maps script'));
-    document.head.appendChild(s);
-  });
-}
-
 /* startup after DOM ready */
 document.addEventListener('DOMContentLoaded', function(){
   try{
@@ -1084,8 +1018,7 @@ document.addEventListener('DOMContentLoaded', function(){
     try{ if (document.getElementById('taskList')) loadTasks(); }catch(e){ console.warn('loadTasks failed', e); }
     try{ if (document.getElementById('eventList')) renderEvents(); }catch(e){ console.warn('renderEvents failed', e); }
     try{ if (document.getElementById('jobList')) renderJobs(); }catch(e){ console.warn('renderJobs failed', e); }
-    if (window.google && google.maps && google.maps.places){ try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); } }
-    else { loadMapsScript(MAPS_API_KEY).then((el)=>{ if (el) console.info('Google Maps script loaded.'); }).catch(err=>{ console.warn('Maps script load failed:', err); }); }
+    try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); }
     try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }
 
     // set dayPartSelect default to current part if present
@@ -1139,8 +1072,7 @@ function updateProfileUI(){
     const homeLink = document.getElementById('homeDirections');
     if (homeLink){
       if (p.home && p.home.address){
-        const q = encodeURIComponent(p.home.address);
-        homeLink.href = `https://www.google.com/maps/dir/?api=1&destination=${q}`;
+        homeLink.href = osmDirectionsUrl(p.home);
         homeLink.textContent = p.home.address;
       } else {
         homeLink.href = '#';
@@ -1181,7 +1113,7 @@ function saveProfileFromUI(){
   }catch(e){ console.warn('saveProfileFromUI failed', e); alert('Save failed'); }
 }
 
-/* Clear user profile (keeps maps key separate) */
+/* Clear user profile */
 function clearUserProfile(){
   try{
     localStorage.removeItem('USER_PROFILE');
@@ -1214,4 +1146,365 @@ window.clearUserProfile = clearUserProfile;
       }
     });
   }catch(e){ console.warn('wireProfileUI failed', e); }
+})();
+
+/* ---------- Data backup: export/import JSON ---------- */
+function getTaskCategories(){ return safeParseStorage('taskCategories', []); }
+
+function normalizeRemindersToArray(input){
+  const out = [];
+  if (!input) return out;
+  if (Array.isArray(input)) {
+    input.forEach((r)=>{
+      if (!r || typeof r !== 'object') return;
+      const date = normalizeDate(r.date || r.reminderDate || '');
+      if (!date) return;
+      const text = (r.text || r.title || '').toString();
+      out.push({ id: r.id || null, date, text, time: r.time || r.reminderTime || '', notify: r.notify || r.reminderNotify || 'none' });
+    });
+    return out;
+  }
+  if (typeof input === 'object') {
+    Object.keys(input).forEach((dateKey)=>{
+      const date = normalizeDate(dateKey);
+      if (!date) return;
+      const list = Array.isArray(input[dateKey]) ? input[dateKey] : [];
+      list.forEach((r)=>{
+        if (!r || typeof r !== 'object') return;
+        const text = (r.text || r.title || '').toString();
+        out.push({ id: r.id || null, date, text, time: r.time || r.reminderTime || '', notify: r.notify || r.reminderNotify || 'none' });
+      });
+    });
+  }
+  return out;
+}
+
+function remindersArrayToMap(remindersArray){
+  const map = {};
+  (remindersArray || []).forEach((r)=>{
+    const date = normalizeDate(r && r.date);
+    if (!date) return;
+    if (!map[date]) map[date] = [];
+    map[date].push({
+      id: r.id || null,
+      text: (r.text || r.title || '').toString(),
+      time: r.time || '',
+      notify: r.notify || 'none'
+    });
+  });
+  return map;
+}
+
+function getRemindersRaw(){
+  return safeParseStorage('reminders', {});
+}
+
+function getRemindersForExport(){
+  return normalizeRemindersToArray(getRemindersRaw());
+}
+
+function setRemindersFromArray(arr){
+  setReminders(remindersArrayToMap(arr));
+}
+
+function buildExportPayload(){
+  return {
+    meta: {
+      schemaVersion: 1,
+      appVersion: 'unknown',
+      exportedAt: new Date().toISOString()
+    },
+    data: {
+      events: getEvents(),
+      tasks: getTasks(),
+      reminders: getRemindersForExport(),
+      jobs: getJobs(),
+      taskCategories: getTaskCategories(),
+      userProfile: readUserProfile()
+    }
+  };
+}
+
+function setBackupStatus(msg, isError){
+  const el = document.getElementById('dataBackupStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? '#b00020' : '#666';
+}
+
+function downloadJson(filename, data){
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function parseImportPayload(parsed){
+  if (!parsed || typeof parsed !== 'object') throw new Error('Invalid JSON payload');
+  const data = parsed.data && typeof parsed.data === 'object' ? parsed.data : parsed;
+
+  const events = Array.isArray(data.events) ? data.events : [];
+  const tasks = Array.isArray(data.tasks) ? data.tasks : [];
+  const reminders = normalizeRemindersToArray(data.reminders || []);
+  const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+  const taskCategories = Array.isArray(data.taskCategories) ? data.taskCategories : [];
+  const userProfile = (data.userProfile && typeof data.userProfile === 'object') ? data.userProfile : readUserProfile();
+
+  return { events, tasks, reminders, jobs, taskCategories, userProfile };
+}
+
+function eventKey(x){
+  const title = (x && x.title ? x.title : '').toString().trim().toLowerCase();
+  const date = normalizeDate(x && x.date ? x.date : '');
+  const time = (x && (x.time || x.startTime) ? (x.time || x.startTime) : '').toString();
+  return ['event', title, date, time].join('|');
+}
+function taskKey(x){
+  const title = (x && (x.title || x.text) ? (x.title || x.text) : '').toString().trim().toLowerCase();
+  const date = normalizeDate(x && x.date ? x.date : '');
+  const time = (x && x.time ? x.time : '').toString();
+  return ['task', title, date, time].join('|');
+}
+function reminderKey(x){
+  const text = (x && (x.text || x.title) ? (x.text || x.title) : '').toString().trim().toLowerCase();
+  const date = normalizeDate(x && x.date ? x.date : '');
+  const time = (x && x.time ? x.time : '').toString();
+  return ['reminder', text, date, time].join('|');
+}
+function jobKey(x){
+  const name = (x && x.name ? x.name : '').toString().trim().toLowerCase();
+  const location = (x && x.location ? x.location : '').toString().trim().toLowerCase();
+  const rate = (x && x.rate ? x.rate : '').toString();
+  const unit = (x && x.unit ? x.unit : '').toString();
+  return ['job', name, location, rate, unit].join('|');
+}
+function categoryKey(x){
+  const name = (x && x.name ? x.name : '').toString().trim().toLowerCase();
+  return ['cat', name].join('|');
+}
+
+function mergeCollection(localList, importList, opts){
+  const local = Array.isArray(localList) ? localList.slice() : [];
+  const incoming = Array.isArray(importList) ? importList : [];
+  const getId = opts.getId;
+  const keyOf = opts.keyOf;
+  const label = opts.label;
+
+  const localById = new Map();
+  const localByKey = new Map();
+  local.forEach((item, idx)=>{
+    const id = getId(item);
+    if (id) localById.set(String(id), idx);
+    localByKey.set(keyOf(item), idx);
+  });
+
+  const stats = { added: 0, updated: 0, skipped: 0, conflicts: 0 };
+
+  incoming.forEach((item)=>{
+    const id = getId(item);
+    const byIdIdx = id ? localById.get(String(id)) : undefined;
+    const byKeyIdx = localByKey.get(keyOf(item));
+    const idx = (typeof byIdIdx === 'number') ? byIdIdx : byKeyIdx;
+
+    if (typeof idx !== 'number') {
+      local.push(item);
+      const newIdx = local.length - 1;
+      const newId = getId(item);
+      if (newId) localById.set(String(newId), newIdx);
+      localByKey.set(keyOf(item), newIdx);
+      stats.added += 1;
+      return;
+    }
+
+    const existing = local[idx];
+    const same = JSON.stringify(existing) === JSON.stringify(item);
+    if (same) {
+      stats.skipped += 1;
+      return;
+    }
+
+    stats.conflicts += 1;
+    const keepImported = confirm(
+      'Merge conflict in ' + label + '.\n\n' +
+      'Incoming: ' + JSON.stringify(item) + '\n\n' +
+      'Local: ' + JSON.stringify(existing) + '\n\n' +
+      'Press OK to keep Imported, Cancel to keep Local.'
+    );
+    if (keepImported) {
+      local[idx] = item;
+      stats.updated += 1;
+    } else {
+      stats.skipped += 1;
+    }
+  });
+
+  return { list: local, stats };
+}
+
+function refreshAfterImport(){
+  try { generateCalendar(); } catch(_) {}
+  try { if (selectedDay) showReminders(selectedDay); } catch(_) {}
+  try { renderEvents(); } catch(_) {}
+  try { loadTasks(); } catch(_) {}
+  try { renderJobs(); } catch(_) {}
+  try { updateProfileUI(); } catch(_) {}
+  try { window.dispatchEvent(new CustomEvent('app:data:updated')); } catch(_) {}
+  try { window.dispatchEvent(new Event('storage')); } catch(_) {}
+}
+
+function applyImportData(importData, mode){
+  if (mode === 'overwrite') {
+    if (!confirm('Overwrite existing app data with imported data?')) return null;
+    setEvents(importData.events);
+    setTasks(importData.tasks);
+    setRemindersFromArray(importData.reminders);
+    setJobs(importData.jobs);
+    localStorage.setItem('taskCategories', JSON.stringify(importData.taskCategories));
+    writeUserProfile(importData.userProfile || readUserProfile());
+    refreshAfterImport();
+    return {
+      events: { added: importData.events.length, updated: 0, skipped: 0, conflicts: 0 },
+      tasks: { added: importData.tasks.length, updated: 0, skipped: 0, conflicts: 0 },
+      reminders: { added: importData.reminders.length, updated: 0, skipped: 0, conflicts: 0 },
+      jobs: { added: importData.jobs.length, updated: 0, skipped: 0, conflicts: 0 },
+      taskCategories: { added: importData.taskCategories.length, updated: 0, skipped: 0, conflicts: 0 },
+      userProfile: { added: 1, updated: 0, skipped: 0, conflicts: 0 }
+    };
+  }
+
+  const mergedEvents = mergeCollection(getEvents(), importData.events, {
+    label: 'events',
+    getId: (x)=>x && x.id,
+    keyOf: eventKey
+  });
+  const mergedTasks = mergeCollection(getTasks(), importData.tasks, {
+    label: 'tasks',
+    getId: (x)=>x && x.id,
+    keyOf: taskKey
+  });
+  const mergedReminders = mergeCollection(getRemindersForExport(), importData.reminders, {
+    label: 'reminders',
+    getId: (x)=>x && x.id,
+    keyOf: reminderKey
+  });
+  const mergedJobs = mergeCollection(getJobs(), importData.jobs, {
+    label: 'jobs',
+    getId: (x)=>x && x.id,
+    keyOf: jobKey
+  });
+  const mergedCategories = mergeCollection(getTaskCategories(), importData.taskCategories, {
+    label: 'task categories',
+    getId: (x)=>x && x.id,
+    keyOf: categoryKey
+  });
+
+  let profileStats = { added: 0, updated: 0, skipped: 1, conflicts: 0 };
+  const localProfile = readUserProfile();
+  const incomingProfile = importData.userProfile || localProfile;
+  if (JSON.stringify(localProfile) !== JSON.stringify(incomingProfile)) {
+    profileStats = { added: 0, updated: 0, skipped: 0, conflicts: 1 };
+    const keepImportedProfile = confirm('Merge conflict in user profile. Press OK to keep Imported, Cancel to keep Local.');
+    if (keepImportedProfile) {
+      writeUserProfile(incomingProfile);
+      profileStats.updated = 1;
+    } else {
+      profileStats.skipped = 1;
+    }
+  }
+
+  setEvents(mergedEvents.list);
+  setTasks(mergedTasks.list);
+  setRemindersFromArray(mergedReminders.list);
+  setJobs(mergedJobs.list);
+  localStorage.setItem('taskCategories', JSON.stringify(mergedCategories.list));
+  refreshAfterImport();
+
+  return {
+    events: mergedEvents.stats,
+    tasks: mergedTasks.stats,
+    reminders: mergedReminders.stats,
+    jobs: mergedJobs.stats,
+    taskCategories: mergedCategories.stats,
+    userProfile: profileStats
+  };
+}
+
+function summarizeImportResult(stats){
+  const keys = ['events','tasks','reminders','jobs','taskCategories','userProfile'];
+  const parts = [];
+  keys.forEach((k)=>{
+    const s = stats[k];
+    if (!s) return;
+    parts.push(k + ': +' + s.added + ' ~' + s.updated + ' =' + s.skipped + ' !' + s.conflicts);
+  });
+  return parts.join(' | ');
+}
+
+(function wireDataBackupUI(){
+  try{
+    document.addEventListener('DOMContentLoaded', function(){
+      const exportBtn = document.getElementById('exportDataBtn');
+      const importBtn = document.getElementById('importDataBtn');
+      const importFile = document.getElementById('importDataFile');
+      const modeEl = document.getElementById('dataImportMode');
+
+      if (exportBtn) {
+        exportBtn.addEventListener('click', function(e){
+          e.preventDefault();
+          try{
+            const payload = buildExportPayload();
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+            downloadJson('timescape-backup-' + stamp + '.json', payload);
+            setBackupStatus('Export complete at ' + new Date().toLocaleString(), false);
+          }catch(err){
+            console.warn('Export failed', err);
+            setBackupStatus('Export failed: ' + (err && err.message ? err.message : err), true);
+          }
+        });
+      }
+
+      if (importBtn && importFile) {
+        importBtn.addEventListener('click', function(e){
+          e.preventDefault();
+          importFile.value = '';
+          importFile.click();
+        });
+
+        importFile.addEventListener('change', function(){
+          const file = importFile.files && importFile.files[0];
+          if (!file) return;
+          const reader = new FileReader();
+          reader.onload = function(){
+            try{
+              const parsed = JSON.parse(String(reader.result || '{}'));
+              const importData = parseImportPayload(parsed);
+              const mode = modeEl && modeEl.value === 'merge' ? 'merge' : 'overwrite';
+              const stats = applyImportData(importData, mode);
+              if (!stats) {
+                setBackupStatus('Import cancelled', false);
+                return;
+              }
+              const summary = summarizeImportResult(stats);
+              console.info('Import summary:', summary);
+              setBackupStatus('Import complete at ' + new Date().toLocaleString(), false);
+            }catch(err){
+              console.warn('Import failed', err);
+              setBackupStatus('Import failed: ' + (err && err.message ? err.message : err), true);
+            }
+          };
+          reader.onerror = function(){
+            setBackupStatus('Import failed: could not read file', true);
+          };
+          reader.readAsText(file);
+        });
+      }
+    });
+  }catch(e){
+    console.warn('wireDataBackupUI failed', e);
+  }
 })();

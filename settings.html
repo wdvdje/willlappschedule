@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./app.css" />
+  <link rel="stylesheet" href="./assets/app.css" />
   <style>
     /* ADDED: center only the User Profile and Jobs headings on settings page */
     #userProfile h3, #userJobs h3 { text-align: center; }
@@ -103,19 +104,6 @@
       <div id="categoriesList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
     </section>
 
-    <!-- Maps API Key settings (kept) -->
-    <section id="mapsSettings" style="margin-top:18px">
-      <h3>Google Maps</h3>
-      <label for="mapsKeyInput" style="display:block;font-weight:600">Google Maps API Key</label>
-      <input id="mapsKeyInput" type="text" placeholder="Enter Maps API key (stored in localStorage)" />
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <button id="saveMapsKeyBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save key</button>
-        <button id="clearMapsKeyBtn" class="small-btn">Clear key</button>
-        <button id="testMapsKeyBtn" class="small-btn">Load Maps Now</button>
-      </div>
-      <p id="mapsKeyNotice" style="margin-top:8px;color:#666;font-size:0.95rem">Saved key: <span id="mapsKeyDisplay">none</span></p>
-    </section>
-
     <!-- Push notifications settings -->
     <section id="pushSettings" style="margin-top:18px">
       <h3>Push notifications</h3>
@@ -131,6 +119,20 @@
         <div id="pushStatus" style="margin-left:8px;color:#666">Not subscribed</div>
       </div>
       <div style="margin-top:8px;color:#666;font-size:0.9rem">Tip: supply a public VAPID key if you use a push server that requires VAPID.</div>
+    </section>
+
+    <section id="dataBackupSettings" style="margin-top:18px">
+      <h3>Data Backup</h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <button id="exportDataBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export JSON</button>
+        <select id="dataImportMode" style="width:180px">
+          <option value="overwrite">Import mode: Overwrite</option>
+          <option value="merge">Import mode: Merge</option>
+        </select>
+        <button id="importDataBtn" class="small-btn">Import JSON</button>
+        <input id="importDataFile" type="file" accept="application/json,.json" style="display:none" />
+      </div>
+      <div id="dataBackupStatus" style="margin-top:8px;color:#666;font-size:0.95rem">No backup action yet</div>
     </section>
   </main>
 
@@ -160,7 +162,7 @@
     })();
   </script>
 
-  <script src="./app.js"></script>
+  <script src="./assets/app.js"></script>
   <script src="./events-view.js"></script>
   <script src="./push.js"></script>
   <script src="./notifications.js"></script>
