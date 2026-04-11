@@ -4625,6 +4625,285 @@ function wireCalendarSummary() {
   if (daysEl) daysEl.addEventListener('change', renderCalendarSummary);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   Calendar "Add Item" FAB — lets users add Event / Task / Reminder
+   with domain + bucket selection (or Unassigned → Inbox)
+   ═══════════════════════════════════════════════════════════════ */
+function injectCalendarAddItemFAB() {
+  var calPage = document.getElementById('page-calendar');
+  if (!calPage || document.getElementById('calAddItemFAB')) return;
+
+  /* --- FAB button (appended to body so fixed positioning works) --- */
+  var fab = document.createElement('button');
+  fab.id = 'calAddItemFAB';
+  fab.type = 'button';
+  fab.className = 'cal-fab-hidden';
+  fab.textContent = '＋ Add Item';
+  fab.setAttribute('aria-label', 'Add Item');
+  document.body.appendChild(fab);
+
+  /* --- Overlay backdrop --- */
+  var overlay = document.createElement('div');
+  overlay.id = 'calAddItemOverlay';
+  document.body.appendChild(overlay);
+
+  /* --- Modal panel --- */
+  var modal = document.createElement('div');
+  modal.id = 'calAddItemModal';
+
+  /* Step 1 — choose type */
+  var step1 = document.createElement('div');
+  step1.id = 'calAddStep1';
+  step1.innerHTML =
+    '<h3 style="margin:0 0 10px;font-size:1rem;text-align:center">Add Item</h3>' +
+    '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
+      '<button type="button" class="cal-add-type-btn" data-item-type="event">📅 Add Event</button>' +
+      '<button type="button" class="cal-add-type-btn" data-item-type="task">✅ Add Task</button>' +
+      '<button type="button" class="cal-add-type-btn" data-item-type="reminder">🔔 Add Reminder</button>' +
+    '</div>';
+
+  /* Step 2 — form */
+  var step2 = document.createElement('div');
+  step2.id = 'calAddStep2';
+  step2.style.display = 'none';
+
+  modal.appendChild(step1);
+  modal.appendChild(step2);
+  document.body.appendChild(modal);
+
+  /* State */
+  var chosenType = '';
+
+  /* Show/hide FAB based on current view */
+  function updateFABVisibility(view) {
+    if (view === 'calendar') {
+      fab.classList.remove('cal-fab-hidden');
+    } else {
+      fab.classList.add('cal-fab-hidden');
+    }
+  }
+  window.addEventListener('view:show', function(e) {
+    updateFABVisibility(e.detail && e.detail.view);
+  });
+  /* Check initial view */
+  var initHash = (location.hash && location.hash.length > 1) ? location.hash.slice(1) : 'today';
+  updateFABVisibility(initHash);
+
+  /* Open / close */
+  function openModal() {
+    overlay.classList.add('open');
+    modal.classList.add('open');
+    step1.style.display = '';
+    step2.style.display = 'none';
+    chosenType = '';
+  }
+  function closeModal() {
+    overlay.classList.remove('open');
+    modal.classList.remove('open');
+  }
+
+  fab.addEventListener('click', openModal);
+  overlay.addEventListener('click', closeModal);
+
+  /* Step 1 → Step 2 */
+  step1.querySelectorAll('.cal-add-type-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      chosenType = btn.dataset.itemType;
+      step1.style.display = 'none';
+      step2.style.display = '';
+      buildStep2(chosenType);
+    });
+  });
+
+  function buildStep2(type) {
+    var typeLabel = { event: '📅 Event', task: '✅ Task', reminder: '🔔 Reminder' }[type] || type;
+    var domains = ['personal', 'home', 'work'];
+
+    /* Build domain + bucket options */
+    var domainOptions = '';
+    domainOptions += '<option value="inbox">📥 Unassigned (Inbox)</option>';
+    domains.forEach(function(d) {
+      var meta = DOMAIN_META[d];
+      if (!meta) return;
+      domainOptions += '<option value="' + d + '">' + meta.emoji + ' ' + meta.label + '</option>';
+    });
+
+    var html = '<h3 style="margin:0 0 10px;font-size:1rem;text-align:center">' + typeLabel + '</h3>';
+
+    /* Domain selector */
+    html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Domain</label>' +
+      '<select id="calAddDomain" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px">' + domainOptions + '</select></div>';
+
+    /* Bucket selector (populated dynamically) */
+    html += '<div id="calAddBucketRow" style="margin-bottom:8px;display:none"><label style="font-size:0.82rem;font-weight:600">Bucket</label>' +
+      '<select id="calAddBucket" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px"></select></div>';
+
+    /* Title */
+    html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Title</label>' +
+      '<input id="calAddTitle" type="text" placeholder="Title" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>';
+
+    /* Emoji */
+    html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Emoji</label>' +
+      '<input id="calAddEmoji" type="text" placeholder="🎉" style="width:70px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>';
+
+    /* Type-specific fields */
+    if (type === 'event') {
+      html += '<div style="display:flex;gap:6px;margin-bottom:8px">' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Date</label><input id="calAddDate" type="date" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Start</label><input id="calAddTime" type="time" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">End</label><input id="calAddEndTime" type="time" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '</div>';
+      html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Location</label>' +
+        '<input id="calAddLocation" type="text" placeholder="Location (optional)" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>';
+    } else if (type === 'task') {
+      html += '<div style="display:flex;gap:6px;margin-bottom:8px">' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Date</label><input id="calAddDate" type="date" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '<div style="width:130px"><label style="font-size:0.82rem;font-weight:600">Priority</label><select id="calAddPriority" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px"><option value="1">! Low</option><option value="2" selected>!! Med</option><option value="3">!!! High</option></select></div>' +
+        '</div>';
+    } else {
+      html += '<div style="display:flex;gap:6px;margin-bottom:8px">' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Date</label><input id="calAddDate" type="date" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Time</label><input id="calAddTime" type="time" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '</div>';
+    }
+
+    /* Buttons */
+    html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">' +
+      '<button type="button" id="calAddBack" style="padding:7px 14px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;cursor:pointer;font-size:0.88rem">Back</button>' +
+      '<button type="button" id="calAddSave" style="padding:7px 14px;border:none;border-radius:8px;background:#4a90e2;color:#fff;cursor:pointer;font-size:0.88rem;font-weight:600">Save</button>' +
+      '</div>';
+
+    step2.innerHTML = html;
+
+    /* Pre-fill date with selected day if available */
+    var dateInp = document.getElementById('calAddDate');
+    if (dateInp && window.selectedYear != null && window.selectedMonth != null && window.selectedDay) {
+      dateInp.value = window.selectedYear + '-' + pad2(window.selectedMonth + 1) + '-' + pad2(window.selectedDay);
+    }
+
+    /* Wire domain change to update buckets */
+    var domSel = document.getElementById('calAddDomain');
+    if (domSel) domSel.addEventListener('change', function() { updateBucketOptions(domSel.value); });
+    updateBucketOptions(domSel ? domSel.value : 'inbox');
+
+    /* Wire Back */
+    var backBtn = document.getElementById('calAddBack');
+    if (backBtn) backBtn.addEventListener('click', function() {
+      step2.style.display = 'none';
+      step1.style.display = '';
+    });
+
+    /* Wire Save */
+    var saveBtn = document.getElementById('calAddSave');
+    if (saveBtn) saveBtn.addEventListener('click', function() { saveCalendarItem(type); });
+
+    /* Wire Enter key on title */
+    var titleInp = document.getElementById('calAddTitle');
+    if (titleInp) {
+      titleInp.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveCalendarItem(type); }
+      });
+      setTimeout(function() { titleInp.focus(); }, 80);
+    }
+  }
+
+  function updateBucketOptions(domain) {
+    var row = document.getElementById('calAddBucketRow');
+    var sel = document.getElementById('calAddBucket');
+    if (!row || !sel) return;
+
+    if (domain === 'inbox') {
+      row.style.display = 'none';
+      return;
+    }
+
+    var buckets = getBuckets(domain);
+    if (!buckets.length) {
+      row.style.display = 'none';
+      return;
+    }
+
+    row.style.display = '';
+    sel.innerHTML = '<option value="">— No bucket —</option>';
+    buckets.forEach(function(b) {
+      var opt = document.createElement('option');
+      opt.value = String(b.id);
+      opt.textContent = (b.emoji || '') + ' ' + (b.name || 'Bucket ' + b.id);
+      sel.appendChild(opt);
+    });
+  }
+
+  function saveCalendarItem(type) {
+    var titleInp = document.getElementById('calAddTitle');
+    var title = titleInp ? titleInp.value.trim() : '';
+    if (!title) {
+      if (titleInp) { titleInp.focus(); titleInp.style.outline = '2px solid #e74c3c'; setTimeout(function() { titleInp.style.outline = ''; }, 1200); }
+      return;
+    }
+
+    var domSel = document.getElementById('calAddDomain');
+    var domain = domSel ? domSel.value : 'inbox';
+    var bucketSel = document.getElementById('calAddBucket');
+    var bucketId = (bucketSel && bucketSel.value) ? parseInt(bucketSel.value, 10) : undefined;
+    var emojiInp = document.getElementById('calAddEmoji');
+    var emoji = emojiInp ? emojiInp.value.trim() : '';
+    var dateInp = document.getElementById('calAddDate');
+    var date = normalizeDate(dateInp ? dateInp.value : '') || '';
+    var timeInp = document.getElementById('calAddTime');
+    var time = timeInp ? timeInp.value : '';
+
+    if (domain === 'inbox') {
+      /* Send to inbox */
+      var inbox = getInbox();
+      inbox.push({ title: title, emoji: emoji, type: type, date: date, time: time, created: new Date().toISOString() });
+      setInbox(inbox);
+      updateInboxBadge();
+      closeModal();
+      showUndoToast('📥 Item added to Inbox!');
+      try { generateCalendar(); } catch(_) {}
+      return;
+    }
+
+    if (type === 'event') {
+      var endTimeInp = document.getElementById('calAddEndTime');
+      var endTime = endTimeInp ? endTimeInp.value : '';
+      var locationInp = document.getElementById('calAddLocation');
+      var location = locationInp ? locationInp.value.trim() : '';
+      var evDate = date || new Date().toISOString().slice(0, 10);
+      var evs = getEvents();
+      var id = evs.length ? Math.max.apply(null, evs.map(function(x) { return x.id; })) + 1 : 1;
+      var ev = { id: id, title: title, date: evDate, time: time, startTime: time, endTime: endTime, location: location, emoji: emoji, category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
+      if (bucketId !== undefined && !isNaN(bucketId)) ev.bucketId = bucketId;
+      evs.push(ev);
+      setEvents(evs);
+      showUndoToast('📅 Event added!');
+    } else if (type === 'task') {
+      var priorityEl = document.getElementById('calAddPriority');
+      var priority = priorityEl ? priorityEl.value : '2';
+      var tasks = getTasks();
+      var t = { id: generateTaskId(), title: title, category: domain, domain: domain, done: false, date: date, time: time, priority: priority, emoji: emoji };
+      if (bucketId !== undefined && !isNaN(bucketId)) t.bucketId = bucketId;
+      tasks.push(t);
+      setTasks(tasks);
+      showUndoToast('✅ Task added!');
+    } else if (type === 'reminder') {
+      var rDate = date || new Date().toISOString().slice(0, 10);
+      var rmap = getReminders();
+      if (!rmap[rDate]) rmap[rDate] = [];
+      var rObj = { text: title, time: time, notify: 'none', domain: domain, emoji: emoji };
+      if (bucketId !== undefined && !isNaN(bucketId)) rObj.bucketId = bucketId;
+      rmap[rDate].push(rObj);
+      setReminders(rmap);
+      showUndoToast('🔔 Reminder added!');
+    }
+
+    closeModal();
+    try { generateCalendar(); } catch(_) {}
+    try { renderCalendarSummary(); } catch(_) {}
+    if (window.selectedDay) { try { showReminders(window.selectedDay); } catch(_) {} }
+  }
+}
+
 /* ----- Init all new features on DOMContentLoaded ----- */
 document.addEventListener('DOMContentLoaded',function(){
   try {
@@ -4642,6 +4921,7 @@ document.addEventListener('DOMContentLoaded',function(){
     wireDomainForms();
     wireCalendarSummary();
     wireBucketPages();
+    injectCalendarAddItemFAB();
   } catch(e) { console.warn('Feature wiring error', e); }
   /* Refresh rings immediately and every 60s */
   updateDayElapsedRing();
