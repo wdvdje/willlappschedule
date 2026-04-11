@@ -37,13 +37,29 @@
   <section class="dashboard">
     <h2>📊 Dashboard</h2>
     <p id="summaryStats"></p>
-    <div style="display:flex;align-items:center;gap:12px">
-      <div class="progress" id="progressRing" title="Overall progress"></div>
-      <div style="display:flex;flex-direction:column;align-items:flex-start">
-        <div style="font-size:0.95rem;color:#444;">Selected day</div>
-        <div class="progress" id="dayProgressRing" title="Selected-day progress"></div>
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:8px">
+      <div class="progress-ring-wrap" id="completionRingWrap" title="Today's completion">
+        <svg viewBox="0 0 44 44">
+          <circle class="ring-bg" cx="22" cy="22" r="18"/>
+          <circle class="ring-fg" id="completionRingFg" cx="22" cy="22" r="18"
+                  stroke="#4a90e2" stroke-dasharray="113.1" stroke-dashoffset="113.1"
+                  transform="rotate(-90 22 22)"/>
+          <text class="ring-pct" id="completionRingPct" x="22" y="22">0%</text>
+        </svg>
+        <span class="ring-label">Completed</span>
+      </div>
+      <div class="progress-ring-wrap" id="dayElapsedRingWrap" title="Day elapsed">
+        <svg viewBox="0 0 44 44">
+          <circle class="ring-bg" cx="22" cy="22" r="18"/>
+          <circle class="ring-fg" id="dayElapsedRingFg" cx="22" cy="22" r="18"
+                  stroke="#e67e22" stroke-dasharray="113.1" stroke-dashoffset="113.1"
+                  transform="rotate(-90 22 22)"/>
+          <text class="ring-pct" id="dayElapsedRingPct" x="22" y="22">0%</text>
+        </svg>
+        <span class="ring-label">Day Elapsed</span>
       </div>
     </div>
+    <div class="weekly-salary" id="weeklySalaryDisplay"></div>
   </section>
 
   <div id="reminderBar" aria-live="polite" style="max-width:540px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>

@@ -50,19 +50,14 @@ input[type="text"],input[type="date"],input[type="time"],select{padding:8px;bord
 }
 .places-suggestions .suggestions-list button:hover{ background:#f2f6fb; }
 
-.progress {
-  width:64px;
-  height:64px;
-  border-radius:50%;
-  border:8px solid #eee;
-  border-top:8px solid #4a90e2;
-  display:inline-block;
-  margin-top:8px;
-  transition: transform 0.4s linear;
-  box-sizing:border-box;
-}
-#dayProgressRing { border-top-color: #4a90e2; }
-#progressRing { border-top-color: #4a90e2; }
+.progress-ring-wrap { display:flex;flex-direction:column;align-items:center;gap:4px; }
+.progress-ring-wrap svg { width:80px;height:80px; }
+.progress-ring-wrap .ring-bg { fill:none;stroke:#eee;stroke-width:7; }
+.progress-ring-wrap .ring-fg { fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 0.5s ease, stroke 0.3s; }
+.progress-ring-wrap .ring-pct { font-size:14px;font-weight:700;fill:#333;text-anchor:middle;dominant-baseline:central; }
+.progress-ring-wrap .ring-label { font-size:0.8rem;color:#666;text-align:center; }
+.weekly-salary { margin-top:10px;font-size:1rem;color:#333; }
+.weekly-salary strong { color:#27ae60; }
 
 /* bottom ribbon nav */
 .bottom-ribbon{
