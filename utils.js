@@ -229,12 +229,12 @@
         }
 
         // Per-job/bucket off-days: if event is linked to a job (work domain), add job-specific off-days
-        var jobLinkId = (ev.bucketId !== undefined && ev.bucketId !== null) ? ev.bucketId : (ev.jobId ? ev.jobId : null);
-        if (jobLinkId !== null) {
+        var bucketOrJobId = (ev.bucketId !== undefined && ev.bucketId !== null) ? ev.bucketId : (ev.jobId ? ev.jobId : null);
+        if (bucketOrJobId !== null) {
           try {
             var jobs = JSON.parse(localStorage.getItem('jobs') || '[]');
-            var parsedId = (typeof jobLinkId === 'string') ? parseInt(jobLinkId, 10) : jobLinkId;
-            var linkedJob = jobs.find(function(j) { return j.id === parsedId || j.id === jobLinkId; });
+            var normalizedId = (typeof bucketOrJobId === 'string') ? parseInt(bucketOrJobId, 10) : bucketOrJobId;
+            var linkedJob = jobs.find(function(j) { return j.id === normalizedId; });
             if (linkedJob && Array.isArray(linkedJob.offDays) && linkedJob.offDays.length) {
               if (!skipDates) skipDates = {};
               linkedJob.offDays.forEach(function(d) {

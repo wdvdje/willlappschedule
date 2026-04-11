@@ -473,7 +473,7 @@ function editJob(id){
 /* delete job */
 function deleteJob(id){
   try{
-    if (!confirm('Delete this job? Its items will become Uncategorized.')) return;
+    if (!confirm('Delete this job? Its items will be moved to Uncategorized.')) return;
     // Move items referencing this job to uncategorized
     var evs = getEvents();
     evs.forEach(function(ev) { if (ev.bucketId === id && getDomainOfItem(ev) === 'work') delete ev.bucketId; });
