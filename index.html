@@ -908,6 +908,9 @@
       const initial = location.hash.replace('#', '') || 'today';
       showView(initial);
       updateHeaderFromProfile();
+      // Re-render calendar and day details now that utils.js (expandEvents) is loaded
+      try { if (typeof generateCalendar === 'function') generateCalendar(); } catch(_) {}
+      try { if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined' && selectedDay) showReminders(selectedDay); } catch(_) {}
     });
 
   })();
