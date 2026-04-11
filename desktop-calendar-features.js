@@ -1557,48 +1557,9 @@
   /* ══════════════════════════════════════════════════════
      9. TIME-SLOT QUICK-CREATE  (click empty hour to pre-fill)
   ══════════════════════════════════════════════════════ */
+  /* Time-slot quick-create disabled — clicking a day now only selects it */
   function wireTimeSlotCreate() {
-    var dailyView = document.getElementById('dailyView');
-    if (!dailyView || dailyView._dcfSlotWired) return;
-    dailyView._dcfSlotWired = true;
-    dailyView.addEventListener('click', function (e) {
-      var slot = e.target.closest('.dv-hour-slot');
-      if (!slot) return;
-      /* Don't fire if clicking inside an event block */
-      if (e.target.closest('.dv-event-block')) return;
-      var body = slot.closest('.dv-body');
-      if (!body) return;
-      var rect = body.getBoundingClientRect();
-      var HOUR_HEIGHT = 60;
-      var bodyH = body.offsetHeight;
-      var rangeHours = bodyH / HOUR_HEIGHT;
-      var rangeStartH = 7;
-      var relY = e.clientY - rect.top;
-      var clickMin = rangeStartH * 60 + (relY / HOUR_HEIGHT) * 60;
-      var snapped = Math.round(clickMin / 30) * 30;
-      var timeStr = minutesToTimeStr(Math.min(snapped, 23 * 60));
-      /* Navigate to events page and pre-fill time */
-      var dateStr = (typeof window.dailyViewGetDate === 'function') ? window.dailyViewGetDate() : todayISO();
-      try { if (typeof showView === 'function') showView('events'); } catch (_) {}
-      setTimeout(function () {
-        var timeEl = document.getElementById('eventTime');
-        var dateEl = document.getElementById('eventDate');
-        var titleEl = document.getElementById('eventTitle');
-        if (timeEl) timeEl.value = timeStr;
-        if (dateEl) dateEl.value = dateStr;
-        if (titleEl) { titleEl.focus(); titleEl.select(); }
-      }, 50);
-    });
-
-    /* Hover highlight */
-    dailyView.addEventListener('mouseover', function (e) {
-      var slot = e.target.closest('.dv-hour-slot');
-      if (slot && !e.target.closest('.dv-event-block')) slot.classList.add('dcf-slot-hover');
-    });
-    dailyView.addEventListener('mouseout', function (e) {
-      var slot = e.target.closest('.dv-hour-slot');
-      if (slot) slot.classList.remove('dcf-slot-hover');
-    });
+    /* intentionally empty */
   }
 
   /* ══════════════════════════════════════════════════════

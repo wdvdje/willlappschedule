@@ -297,39 +297,9 @@
   ══════════════════════════════════════════════════════════ */
   var _drag = { on: false, start: 0, end: 0 };
 
+  /* Drag-to-create disabled — clicking/dragging days now only selects them */
   function wireDragCreate() {
-    var cal = document.getElementById('calendar');
-    if (!cal || cal.dataset.dragWired) return;
-    cal.dataset.dragWired = '1';
-
-    function dayOf(el) {
-      var c = el && el.closest ? el.closest('.day[data-day]') : null;
-      return c ? parseInt(c.dataset.day, 10) : 0;
-    }
-
-    cal.addEventListener('mousedown', function (e) {
-      if (e.button !== 0) return;
-      if (e.target.closest('.event-preview') || e.target.closest('button')) return;
-      var d = dayOf(e.target);
-      if (!d) return;
-      _drag.on = true; _drag.start = d; _drag.end = d;
-      highlightDrag();
-    });
-
-    cal.addEventListener('mouseover', function (e) {
-      if (!_drag.on) return;
-      var d = dayOf(e.target);
-      if (d && d !== _drag.end) { _drag.end = d; highlightDrag(); }
-    });
-
-    document.addEventListener('mouseup', function () {
-      if (!_drag.on) return;
-      _drag.on = false;
-      clearDrag();
-      var s = Math.min(_drag.start, _drag.end);
-      var en = Math.max(_drag.start, _drag.end);
-      if (s) openDragCreateForm(s, en);
-    });
+    /* intentionally empty */
   }
 
   function highlightDrag() {
