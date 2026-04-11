@@ -143,7 +143,14 @@
 
   function calcEarnings() {
     var range   = weekRange();
-    var events  = getEv();
+    var startISO = range.start.toISOString().slice(0, 10);
+    var endISO   = range.end.toISOString().slice(0, 10);
+    var events;
+    if (window.appUtils && typeof window.appUtils.expandEvents === 'function') {
+      events = window.appUtils.expandEvents(startISO, endISO);
+    } else {
+      events = getEv();
+    }
     var jobs    = getJb();
     var byId    = {}, byName = {};
     jobs.forEach(function (j) {
