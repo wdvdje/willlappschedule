@@ -305,6 +305,7 @@
       function setOffDays(list) {
         localStorage.setItem('userOffDays', JSON.stringify(list));
       }
+      function escapeText(s) { var d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
       function renderOffDays() {
         var ul = document.getElementById('offDaysList');
         if (!ul) return;
@@ -316,9 +317,26 @@
           li.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #eee';
           var dateStr = typeof entry === 'string' ? entry : (entry.date || '');
           var label = (typeof entry === 'object' && entry.label) ? entry.label : '';
-          li.innerHTML = '<span style="font-weight:600">' + dateStr + '</span>' +
-            (label ? '<span style="color:#666">' + label + '</span>' : '') +
-            '<button class="small-btn" data-idx="' + i + '" style="margin-left:auto;background:#e74c3c;color:#fff;padding:2px 8px;font-size:0.8rem">Remove</button>';
+
+          var dateSpan = document.createElement('span');
+          dateSpan.style.fontWeight = '600';
+          dateSpan.textContent = dateStr;
+          li.appendChild(dateSpan);
+
+          if (label) {
+            var labelSpan = document.createElement('span');
+            labelSpan.style.color = '#666';
+            labelSpan.textContent = label;
+            li.appendChild(labelSpan);
+          }
+
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'small-btn';
+          removeBtn.dataset.idx = i;
+          removeBtn.style.cssText = 'margin-left:auto;background:#e74c3c;color:#fff;padding:2px 8px;font-size:0.8rem';
+          removeBtn.textContent = 'Remove';
+          li.appendChild(removeBtn);
+
           ul.appendChild(li);
         });
         ul.querySelectorAll('button[data-idx]').forEach(function(btn) {
