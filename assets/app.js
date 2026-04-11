@@ -1961,7 +1961,7 @@ function parseQuickAdd(text){
 
   /* Smart auto-sort: detect kind as event, task, reminder, or unsorted */
   const lower=text.toLowerCase();
-  const reminderKeywords=/\b(remind\s*(me)?|don'?t\s+forget|remember\s+to|note\s+to\s+self|reminder)\b/i;
+  const reminderKeywords=/\b(remind\s*(me)?|don'?t\s+forget|do\s+not\s+forget|remember\s+to|note\s+to\s+self|reminder)\b/i;
   const eventKeywords=/\b(meeting|appointment|dinner|lunch|breakfast|party|conference|call|interview|date night|flight|reservation|game|concert|class|lecture|webinar|session|check-?in|stand-?up|sync)\b/i;
   const taskKeywords=/\b(buy|fix|clean|finish|complete|submit|send|write|prepare|review|update|organize|schedule|book|cancel|pay|return|pick\s+up|drop\s+off|do|make|create|build|install|setup|set\s+up)\b/i;
 
@@ -2138,7 +2138,7 @@ function deleteInboxItem(index){
   const removed=inbox.splice(index,1)[0];
   setInbox(inbox);
   updateInboxBadge(); renderInbox();
-  pushUndo({ label:'Inbox item "'+removed.title+'" deleted.', undo:function(){ const cur=getInbox(); cur.splice(index,0,removed); setInbox(cur); updateInboxBadge(); renderInbox(); } });
+  pushUndo({ label:'Inbox item "'+removed.title+'" deleted.', undo:function(){ const cur=getInbox(); cur.push(removed); setInbox(cur); updateInboxBadge(); renderInbox(); } });
 }
 window.deleteInboxItem=deleteInboxItem;
 
