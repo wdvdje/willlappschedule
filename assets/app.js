@@ -1170,7 +1170,7 @@ function updateCompletionRing(){
   const nowMins = now.getHours() * 60 + now.getMinutes();
   let eventsDone = 0;
   todayEvents.forEach(ev => {
-    const endStr = ev.endTime || ev.time || ev.startTime || '';
+    const endStr = ev.endTime || '';
     if (endStr) {
       const parts = endStr.match(/(\d{1,2}):(\d{2})/);
       if (parts) {
@@ -1179,8 +1179,8 @@ function updateCompletionRing(){
         return;
       }
     }
-    // No time info: count as done if any time has passed
-    eventsDone++;
+    // No end time: treat as done only at end of day (23:59)
+    if (nowMins >= 1439) eventsDone++;
   });
   const total = tasks.length + todayReminders.length + todayEvents.length;
   const done = tasksDone + remDone + eventsDone;
@@ -1260,8 +1260,9 @@ function updateWeeklySalary(){
             hours = Math.max(0, (em - sm) / 60);
           }
         }
-        // fallback: if no times, assume 8 hours
-        if (!hours) hours = 8;
+        // fallback: if no times, assume default work hours
+        var DEFAULT_WORK_HOURS = 8;
+        if (!hours) hours = DEFAULT_WORK_HOURS;
         totalSalary += rate * hours;
       }
     });
