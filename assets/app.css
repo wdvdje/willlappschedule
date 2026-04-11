@@ -451,6 +451,7 @@ kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc; border-ra
   .event-block { white-space: normal; overflow: visible; text-overflow: clip; }
   #undoToast { bottom: 20px; }
   #shortcutHints { bottom: 20px; }
+  .dashboard { max-width: none; }
 }
 
 /* ════════════════════════════════════════════════════════
