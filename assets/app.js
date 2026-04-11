@@ -2565,6 +2565,69 @@ function applyDomainColorCSS() {
   DOMAIN_META.work.color = c.work; DOMAIN_META.home.color = c.home; DOMAIN_META.personal.color = c.personal;
 }
 
+/* Wire the domain-color editor UI (settings page) */
+function wireDomainColorEditor() {
+  var DEFAULTS = DOMAIN_COLOR_DEFAULTS;
+
+  function updateHexLabels() {
+    var ids = { work: 'dcWork', home: 'dcHome', personal: 'dcPersonal', holiday: 'dcHoliday' };
+    Object.keys(ids).forEach(function (key) {
+      var inp = document.getElementById(ids[key]);
+      var lbl = document.getElementById(ids[key] + 'Hex');
+      if (inp && lbl) lbl.textContent = inp.value.toUpperCase();
+    });
+  }
+
+  function populateInputs(colors) {
+    var inp;
+    if ((inp = document.getElementById('dcWork')))     inp.value = colors.work;
+    if ((inp = document.getElementById('dcHome')))     inp.value = colors.home;
+    if ((inp = document.getElementById('dcPersonal'))) inp.value = colors.personal;
+    if ((inp = document.getElementById('dcHoliday')))  inp.value = colors.holiday;
+    updateHexLabels();
+  }
+
+  ['dcWork', 'dcHome', 'dcPersonal', 'dcHoliday'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', updateHexLabels);
+  });
+
+  var saveBtn  = document.getElementById('saveDomainColorsBtn');
+  var resetBtn = document.getElementById('resetDomainColorsBtn');
+  var status   = document.getElementById('domainColorStatus');
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function () {
+      var colors = {
+        work:     (document.getElementById('dcWork')     || {}).value || DEFAULTS.work,
+        home:     (document.getElementById('dcHome')     || {}).value || DEFAULTS.home,
+        personal: (document.getElementById('dcPersonal') || {}).value || DEFAULTS.personal,
+        holiday:  (document.getElementById('dcHoliday')  || {}).value || DEFAULTS.holiday
+      };
+      localStorage.setItem('domainColors', JSON.stringify(colors));
+      applyDomainColorCSS();
+      if (status) {
+        status.textContent = '\u2713 Saved!';
+        setTimeout(function () { status.textContent = ''; }, 2500);
+      }
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      localStorage.removeItem('domainColors');
+      populateInputs(DEFAULTS);
+      applyDomainColorCSS();
+      if (status) {
+        status.textContent = '\u2713 Reset to defaults';
+        setTimeout(function () { status.textContent = ''; }, 2500);
+      }
+    });
+  }
+
+  populateInputs(getDomainColors());
+}
+
 /* Infer domain from item category (for items without explicit domain field) */
 function inferDomainFromItem(item) {
   const cat = item && item.category ? String(item.category).toLowerCase() : '';
@@ -3509,6 +3572,7 @@ document.addEventListener('DOMContentLoaded',function(){
   wireSyncStatusBar();
   wireCalendarSwipe();
   wireMorningBriefing();
+  wireDomainColorEditor();
   updateInboxBadge();
   wireDomainForms();
   wireCalendarSummary();
