@@ -510,8 +510,10 @@ body.dark-mode kbd { background: #2a2a4a; border-color: #4a4a7a; color: #ccc; }
     display: flex;
     gap: 14px;
     align-items: flex-start;
-    max-width: 1200px;
+    max-width: 100%;
     margin: 0 auto;
+    padding: 0 24px;
+    box-sizing: border-box;
   }
   #calCenterPanel { flex: 1; min-width: 0; }
   .cal-side-panel {
@@ -609,8 +611,8 @@ body.dark-mode .dcf-streak-badge { background: #2a1800; color: #ffa; border-colo
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 14px;
-  padding: 10px 12px;
-  max-width: 900px;
+  padding: 10px 24px;
+  max-width: 100%;
   margin: 0 auto;
 }
 .dcf-year-month {
@@ -660,7 +662,7 @@ body.dark-mode .dcf-2week-grid { background: #16213e; }
   border-radius: 10px;
   box-shadow: 0 1px 6px rgba(0,0,0,0.07);
   padding: 12px 16px;
-  max-width: 900px;
+  max-width: 100%;
   margin: 0 auto 12px;
   box-sizing: border-box;
   display: flex;
@@ -683,9 +685,9 @@ body.dark-mode .dcf-chart-title { color: #aaa; }
   gap: 5px;
   flex-wrap: wrap;
   align-items: center;
-  max-width: 720px;
-  margin: 0 auto 6px;
-  padding: 0 12px;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
   box-sizing: border-box;
 }
 .dcf-layer-btn {
