@@ -49,6 +49,8 @@ function getEvents(){ return safeParseStorage('events', []); }
 function setEvents(v){ localStorage.setItem('events', JSON.stringify(v)); }
 function getJobs(){ return safeParseStorage('jobs', []); }
 function setJobs(v){ localStorage.setItem('jobs', JSON.stringify(v)); }
+function getInbox(){ return safeParseStorage('inbox', []); }
+function setInbox(v){ localStorage.setItem('inbox', JSON.stringify(v)); }
 
 function showAppError(msg){
   try{
@@ -1147,6 +1149,7 @@ function showView(view, updateHash = true){
   else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
   else if (view === 'jobs'){ try{ renderJobs(); }catch(e){ console.warn(e); } }
+  else if (view === 'inbox'){ try{ renderInbox(); updateInboxBadge(); }catch(e){ console.warn(e); } }
   if (updateHash){ const newHash = '#'+view; if (location.hash !== newHash) location.hash = newHash; }
 }
 window.addEventListener('hashchange', ()=> {
@@ -1955,7 +1958,33 @@ function parseQuickAdd(text){
   }
 
   const title=s.replace(/\s+/g,' ').trim()||text.trim();
-  return { title, date:date||'', time, category, kind: date?'event':'task' };
+
+  /* Smart auto-sort: detect kind as event, task, reminder, or unsorted */
+  const lower=text.toLowerCase();
+  const reminderKeywords=/\b(remind\s*(me)?|don'?t\s+forget|do\s+not\s+forget|remember\s+to|note\s+to\s+self|reminder)\b/i;
+  const eventKeywords=/\b(meeting|appointment|dinner|lunch|breakfast|party|conference|call|interview|date night|flight|reservation|game|concert|class|lecture|webinar|session|check-?in|stand-?up|sync)\b/i;
+  const taskKeywords=/\b(buy|fix|clean|finish|complete|submit|send|write|prepare|review|update|organize|schedule|book|cancel|pay|return|pick\s+up|drop\s+off|do|make|create|build|install|setup|set\s+up)\b/i;
+
+  let kind;
+  if(reminderKeywords.test(lower)){
+    kind='reminder';
+  } else if(date && time){
+    kind='event';
+  } else if(date && eventKeywords.test(lower)){
+    kind='event';
+  } else if(date){
+    kind='event';
+  } else if(!date && time && eventKeywords.test(lower)){
+    kind='event';
+  } else if(!date && taskKeywords.test(lower)){
+    kind='task';
+  } else if(!date && eventKeywords.test(lower)){
+    kind='event';
+  } else {
+    kind='unsorted';
+  }
+
+  return { title, date:date||'', time, category, kind };
 }
 
 function wireQuickAdd(){
@@ -1964,35 +1993,154 @@ function wireQuickAdd(){
   const prev=document.getElementById('quickAddPreview');
   if(!input) return;
 
+  let _quickAddKindOverride='';
+
+  function kindIcon(k){ return {event:'\uD83D\uDCC5',task:'\u2705',reminder:'\uD83D\uDD14',unsorted:'\uD83D\uDCE5'}[k]||'\u2753'; }
+  function kindLabel(k){ return {event:'Event',task:'Task',reminder:'Reminder',unsorted:'Inbox (unsorted)'}[k]||k; }
+
   function showPreview(){
     const parsed=parseQuickAdd(input.value);
-    if(!parsed||!input.value.trim()){ prev.style.display='none'; return; }
+    if(!parsed||!input.value.trim()){ prev.style.display='none'; _quickAddKindOverride=''; return; }
+    const effectiveKind=_quickAddKindOverride||parsed.kind;
     prev.style.display='block';
-    const icon=parsed.kind==='event'?'\uD83D\uDCC5':'\u2705';
+    const icon=kindIcon(effectiveKind);
     const catHtml=parsed.category?'<span style="background:'+(CAT_COLORS[parsed.category]||'#ccc')+';color:#fff;padding:1px 6px;border-radius:10px;font-size:0.8rem">'+escapeHTML(parsed.category)+'</span>':'';
-    prev.innerHTML=icon+' <b>'+escapeHTML(parsed.title)+'</b>'+(parsed.date?' '+parsed.date:'')+(parsed.time?' '+parsed.time:'')+(catHtml?' '+catHtml:'')+' \u2192 will create '+parsed.kind;
+
+    const kinds=['event','task','reminder','unsorted'];
+    const kindBtns=kinds.map(function(k){
+      const active=k===effectiveKind;
+      return '<button data-qakind="'+k+'" style="border:'+(active?'2px solid #4a90e2':'1px solid #ccc')+';background:'+(active?'#e8f2fe':'#fff')+';border-radius:12px;padding:2px 8px;font-size:0.78rem;cursor:pointer;margin:0 2px">'+kindIcon(k)+' '+kindLabel(k)+'</button>';
+    }).join('');
+
+    prev.innerHTML=icon+' <b>'+escapeHTML(parsed.title)+'</b>'+(parsed.date?' '+parsed.date:'')+(parsed.time?' '+parsed.time:'')+(catHtml?' '+catHtml:'')+
+      '<div style="margin-top:4px;font-size:0.8rem;color:#555">Sort as: '+kindBtns+'</div>';
+
+    prev.querySelectorAll('[data-qakind]').forEach(function(b){
+      b.addEventListener('click',function(e){
+        e.preventDefault();
+        _quickAddKindOverride=b.dataset.qakind;
+        showPreview();
+      });
+    });
   }
 
-  input.addEventListener('input',showPreview);
+  input.addEventListener('input',function(){ _quickAddKindOverride=''; showPreview(); });
   input.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); doQuickAdd(); } });
   if(btn) btn.addEventListener('click',doQuickAdd);
 
   function doQuickAdd(){
     const parsed=parseQuickAdd(input.value);
     if(!parsed||!parsed.title) return;
-    if(parsed.kind==='event'){
+    const effectiveKind=_quickAddKindOverride||parsed.kind;
+    let addedLabel='';
+
+    if(effectiveKind==='event'){
       const evs=getEvents();
       const id=evs.length?Math.max.apply(null,evs.map(function(e){return e.id;}))+1:1;
       evs.push({ id, title:parsed.title, date:parsed.date||new Date().toISOString().slice(0,10), time:parsed.time, endTime:'', location:'', emoji:'', category:parsed.category||'event', repeat:'none', repeatUntil:'', preBuffer:0, postBuffer:0 });
       setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
-    } else {
+      addedLabel='\uD83D\uDCC5 Event added!';
+    } else if(effectiveKind==='reminder'){
+      const dateKey=parsed.date||new Date().toISOString().slice(0,10);
+      const rems=getReminders();
+      if(!rems[dateKey]) rems[dateKey]=[];
+      rems[dateKey].push({ text:parsed.title, time:parsed.time||'', notify:'none' });
+      setReminders(rems); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+      addedLabel='\uD83D\uDD14 Reminder added for '+dateKey+'!';
+    } else if(effectiveKind==='task'){
       const tasks=getTasks();
-      tasks.push({ title:parsed.title, category:parsed.category||'', done:false, date:'', time:parsed.time||'', priority:'2' });
+      tasks.push({ title:parsed.title, category:parsed.category||'', done:false, date:parsed.date||'', time:parsed.time||'', priority:'2' });
       setTasks(tasks); try{ loadTasks(); }catch(_){}
+      addedLabel='\u2705 Task added!';
+    } else {
+      /* unsorted → inbox */
+      const inbox=getInbox();
+      inbox.push({ title:parsed.title, date:parsed.date||'', time:parsed.time||'', category:parsed.category||'', created:new Date().toISOString() });
+      setInbox(inbox);
+      updateInboxBadge();
+      addedLabel='\uD83D\uDCE5 Added to Inbox — sort it when you\'re ready!';
     }
-    input.value=''; prev.style.display='none';
+
+    input.value=''; prev.style.display='none'; _quickAddKindOverride='';
+    showUndoToast(addedLabel);
   }
 }
+
+/* ----- Inbox badge & rendering ----- */
+function updateInboxBadge(){
+  const label=document.getElementById('inboxNavLabel');
+  if(!label) return;
+  const count=getInbox().length;
+  label.textContent=count>0?'Inbox ('+count+')':'Inbox';
+}
+
+function renderInbox(){
+  const list=document.getElementById('inboxList');
+  const empty=document.getElementById('inboxEmpty');
+  if(!list) return;
+  const inbox=getInbox();
+  if(!inbox.length){ list.innerHTML=''; if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+
+  list.innerHTML=inbox.map(function(item,i){
+    const datePart=item.date?' <span style="color:#888;font-size:0.85rem">'+escapeHTML(item.date)+'</span>':'';
+    const timePart=item.time?' <span style="color:#888;font-size:0.85rem">'+escapeHTML(item.time)+'</span>':'';
+    const catPart=item.category?'<span style="background:'+(CAT_COLORS[item.category]||'#ccc')+';color:#fff;padding:1px 6px;border-radius:10px;font-size:0.75rem;margin-left:4px">'+escapeHTML(item.category)+'</span>':'';
+    return '<div style="background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">'
+      +'<div style="margin-bottom:6px"><b>'+escapeHTML(item.title)+'</b>'+datePart+timePart+catPart+'</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      +'<button onclick="sortInboxItem('+i+',\'event\')" style="border:1px solid #4a90e2;background:#e8f2fe;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\uD83D\uDCC5 Event</button>'
+      +'<button onclick="sortInboxItem('+i+',\'task\')" style="border:1px solid #27ae60;background:#e8f8ef;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\u2705 Task</button>'
+      +'<button onclick="sortInboxItem('+i+',\'reminder\')" style="border:1px solid #e67e22;background:#fef5e8;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\uD83D\uDD14 Reminder</button>'
+      +'<button onclick="deleteInboxItem('+i+')" style="border:1px solid #e74c3c;background:#fde8e8;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\u274C Delete</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function sortInboxItem(index,kind){
+  const inbox=getInbox();
+  if(index<0||index>=inbox.length) return;
+  const item=inbox[index];
+  inbox.splice(index,1);
+  setInbox(inbox);
+
+  if(kind==='event'){
+    const evs=getEvents();
+    const id=evs.length?Math.max.apply(null,evs.map(function(e){return e.id;}))+1:1;
+    evs.push({ id, title:item.title, date:item.date||new Date().toISOString().slice(0,10), time:item.time||'', endTime:'', location:'', emoji:'', category:item.category||'event', repeat:'none', repeatUntil:'', preBuffer:0, postBuffer:0 });
+    setEvents(evs);
+    showUndoToast('\uD83D\uDCC5 Sorted as Event!');
+  } else if(kind==='reminder'){
+    const dateKey=item.date||new Date().toISOString().slice(0,10);
+    const rems=getReminders();
+    if(!rems[dateKey]) rems[dateKey]=[];
+    rems[dateKey].push({ text:item.title, time:item.time||'', notify:'none' });
+    setReminders(rems);
+    showUndoToast('\uD83D\uDD14 Sorted as Reminder!');
+  } else {
+    const tasks=getTasks();
+    tasks.push({ title:item.title, category:item.category||'', done:false, date:item.date||'', time:item.time||'', priority:'2' });
+    setTasks(tasks);
+    showUndoToast('\u2705 Sorted as Task!');
+  }
+
+  updateInboxBadge(); renderInbox();
+  try{ generateCalendar(); }catch(_){}
+  try{ if(selectedDay) showReminders(selectedDay); }catch(_){}
+  try{ renderEvents(); }catch(_){}
+  try{ loadTasks(); }catch(_){}
+}
+window.sortInboxItem=sortInboxItem;
+
+function deleteInboxItem(index){
+  const inbox=getInbox();
+  if(index<0||index>=inbox.length) return;
+  const removed=inbox.splice(index,1)[0];
+  setInbox(inbox);
+  updateInboxBadge(); renderInbox();
+  pushUndo({ label:'Inbox item "'+removed.title+'" deleted.', undo:function(){ const cur=getInbox(); cur.push(removed); setInbox(cur); updateInboxBadge(); renderInbox(); } });
+}
+window.deleteInboxItem=deleteInboxItem;
 
 window._focusQuickAdd=function(){ const i=document.getElementById('quickAddInput'); if(i){ showView('calendar'); i.focus(); i.select(); } };
 
@@ -2240,4 +2388,5 @@ document.addEventListener('DOMContentLoaded',function(){
   wireSyncStatusBar();
   wireCalendarSwipe();
   wireMorningBriefing();
+  updateInboxBadge();
 });
