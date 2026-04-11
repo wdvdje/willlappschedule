@@ -227,7 +227,11 @@
 
       generateBtn && generateBtn.addEventListener('click', function () {
         fetch('/api/token-sync/new', { method: 'POST' })
-          .then(function (r) { return r.json(); })
+          .then(function (r) {
+            var ct = (r.headers.get('content-type') || '');
+            if (!ct.includes('application/json')) throw new Error('Token sync server not available — run server.js locally');
+            return r.json();
+          })
           .then(function (data) {
             if (!data.token) throw new Error('No token returned');
             window.tokenSync && window.tokenSync.setToken(data.token);

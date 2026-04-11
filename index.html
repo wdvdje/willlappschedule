@@ -1137,7 +1137,7 @@
         // populate saved parts if present
         if (elHost) elHost.value = localStorage.getItem('pouchSyncHost') || '';
         if (elPort) elPort.value = localStorage.getItem('pouchSyncPort') || '5984';
-        if (elHttps) elHttps.checked = localStorage.getItem('pouchSyncHttps') === '1';
+        if (elHttps) elHttps.checked = localStorage.getItem('pouchSyncHttps') === '1' || location.protocol === 'https:';
         if (elUser) elUser.value = localStorage.getItem('pouchSyncUser') || '';
         if (elSave) elSave.checked = localStorage.getItem('pouchSyncSaveCreds') === '1';
 
@@ -1150,8 +1150,8 @@
           const pass = (elPass && elPass.value || '').trim();
           const saveCreds = !!(elSave && elSave.checked);
 
-          // assemble base URL
-          const proto = https ? 'https://' : 'http://';
+          // assemble base URL (force HTTPS when page is served over HTTPS to avoid mixed content)
+          const proto = (https || location.protocol === 'https:') ? 'https://' : 'http://';
           const hostPort = port ? (host + ':' + port) : host;
           let baseUrl = proto + hostPort;
           if (user) {
@@ -1240,7 +1240,7 @@
               const https = localStorage.getItem('pouchSyncHttps') === '1';
               const user = localStorage.getItem('pouchSyncUser') || '';
               const pass = localStorage.getItem('pouchSyncPass') || '';
-              const proto = https ? 'https://' : 'http://';
+              const proto = (https || location.protocol === 'https:') ? 'https://' : 'http://';
               const hostPort = port ? (host + ':' + port) : host;
               let base = proto + hostPort;
               if (user) base = proto + encodeURIComponent(user) + (pass ? ':' + encodeURIComponent(pass) : '') + '@' + hostPort;
@@ -1281,7 +1281,11 @@
 
       generateBtn && generateBtn.addEventListener('click', function () {
         fetch('/api/token-sync/new', { method: 'POST' })
-          .then(function (r) { return r.json(); })
+          .then(function (r) {
+            var ct = (r.headers.get('content-type') || '');
+            if (!ct.includes('application/json')) throw new Error('Token sync server not available — run server.js locally');
+            return r.json();
+          })
           .then(function (data) {
             if (!data.token) throw new Error('No token returned');
             window.tokenSync && window.tokenSync.setToken(data.token);
