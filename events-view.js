@@ -151,8 +151,7 @@
     const today = getTodayDateStr();
     const past30 = (new Date(new Date(today + 'T00:00:00').getTime() - (30*24*60*60*1000))).toISOString().slice(0,10);
     const future365 = (new Date(new Date(today + 'T00:00:00').getTime() + (365*24*60*60*1000))).toISOString().slice(0,10);
-    const expanded = expandEvents(past30, future365);
-    const events = expanded ? expanded : loadEvents().slice();
+    const events = expandEvents(past30, future365) ?? loadEvents().slice();
 
     // events already sorted by expandEvents, but ensure stable sort
     events.sort((a,b) => {

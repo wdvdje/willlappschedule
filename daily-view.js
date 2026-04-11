@@ -140,8 +140,7 @@
     var cats = loadTaskCategories();
 
     // events
-    var expanded = expandEvents(dateStr, dateStr);
-    var evs = expanded ? expanded : loadEvents().filter(function(e) { return e && e.date === dateStr; });
+    var evs = expandEvents(dateStr, dateStr) ?? loadEvents().filter(function(e) { return e && e.date === dateStr; });
     evs.forEach(function(e) {
       var s = toMinutes(e.startTime, null);
       var eMin = toMinutes(e.endTime, null);
