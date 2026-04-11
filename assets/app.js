@@ -7,8 +7,42 @@ function safeParseStorage(key, fallback){
   try{ const raw = localStorage.getItem(key); if (!raw) return fallback; return JSON.parse(raw); }
   catch(e){ console.warn('LocalStorage parse failed for', key, e); try{ localStorage.removeItem(key); }catch(_){} return fallback; }
 }
-function getReminders(){ return safeParseStorage('reminders', {}); }
-function setReminders(v){ localStorage.setItem('reminders', JSON.stringify(v)); }
+function remindersToMap(input){
+  const map = {};
+  if (!input) return map;
+  if (Array.isArray(input)) {
+    input.forEach((r)=>{
+      if (!r || typeof r !== 'object') return;
+      const date = normalizeDate(r.date || r.reminderDate || '');
+      if (!date) { console.warn('Skipping malformed reminder (missing date)', r); return; }
+      if (!map[date]) map[date] = [];
+      map[date].push({ text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' });
+    });
+    return map;
+  }
+  if (typeof input === 'object') {
+    Object.keys(input).forEach((dateKey)=>{
+      const date = normalizeDate(dateKey);
+      if (!date) return;
+      const arr = Array.isArray(input[dateKey]) ? input[dateKey] : [];
+      map[date] = [];
+      arr.forEach((r)=>{
+        if (!r || typeof r !== 'object') return;
+        map[date].push({ text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' });
+      });
+    });
+  }
+  return map;
+}
+function getReminders(){
+  const parsed = safeParseStorage('reminders', {});
+  const mapped = remindersToMap(parsed);
+  if (JSON.stringify(parsed) !== JSON.stringify(mapped)) {
+    try { localStorage.setItem('reminders', JSON.stringify(mapped)); } catch (_) {}
+  }
+  return mapped;
+}
+function setReminders(v){ localStorage.setItem('reminders', JSON.stringify(remindersToMap(v))); }
 function getTasks(){ return safeParseStorage('tasks', []); }
 function setTasks(v){ localStorage.setItem('tasks', JSON.stringify(v)); }
 function getEvents(){ return safeParseStorage('events', []); }
@@ -49,6 +83,11 @@ function migrateNormalizeTasks(){
     const tasks = getTasks();
     let changed = false;
     for (let i=0;i<tasks.length;i++){
+      if (!tasks[i] || typeof tasks[i] !== 'object') { changed = true; continue; }
+      if (tasks[i].title == null && tasks[i].text != null) {
+        tasks[i].title = String(tasks[i].text);
+        changed = true;
+      }
       const nd = normalizeDate(tasks[i].date);
       if (tasks[i].date !== nd){
         tasks[i].date = nd;
@@ -57,6 +96,73 @@ function migrateNormalizeTasks(){
     }
     if (changed) setTasks(tasks);
   }catch(e){ console.warn('Task migration failed', e); }
+}
+
+function migrateConsistencyData(){
+  try {
+    migrateNormalizeTasks();
+
+    // Canonicalize reminders to date-keyed map.
+    const remRaw = safeParseStorage('reminders', {});
+    const remMap = remindersToMap(remRaw);
+    if (JSON.stringify(remRaw) !== JSON.stringify(remMap)) {
+      localStorage.setItem('reminders', JSON.stringify(remMap));
+    }
+
+    // Normalize events for buffers, recurrence, and time aliases.
+    const events = getEvents();
+    let eventChanged = false;
+    for (let i = 0; i < events.length; i++) {
+      const ev = events[i];
+      if (!ev || typeof ev !== 'object') { eventChanged = true; continue; }
+
+      const normDate = normalizeDate(ev.date);
+      if (!normDate) {
+        console.warn('Skipping malformed event (missing/invalid date)', ev);
+        continue;
+      }
+      if (ev.date !== normDate) { ev.date = normDate; eventChanged = true; }
+
+      if (ev.title == null && ev.text != null) { ev.title = String(ev.text); eventChanged = true; }
+
+      // Keep both aliases while canonicalizing to time/endTime used by app.js.
+      if (!ev.time && ev.startTime) { ev.time = ev.startTime; eventChanged = true; }
+      if (!ev.startTime && ev.time) { ev.startTime = ev.time; eventChanged = true; }
+      if (!ev.endTime && ev.end_time) { ev.endTime = ev.end_time; eventChanged = true; }
+
+      const pre = parseInt(ev.preBuffer, 10);
+      const post = parseInt(ev.postBuffer, 10);
+      const normPre = Number.isFinite(pre) ? pre : 0;
+      const normPost = Number.isFinite(post) ? post : 0;
+      if (ev.preBuffer !== normPre) { ev.preBuffer = normPre; eventChanged = true; }
+      if (ev.postBuffer !== normPost) { ev.postBuffer = normPost; eventChanged = true; }
+
+      const repeat = (ev.repeat || 'none').toString();
+      if (!['none','daily','2day','weekly','monthly','custom','weekday_ab'].includes(repeat)) {
+        ev.repeat = 'none';
+        eventChanged = true;
+      }
+      const rptUntil = ev.repeatUntil ? normalizeDate(ev.repeatUntil) : '';
+      if ((ev.repeatUntil || '') !== rptUntil) { ev.repeatUntil = rptUntil; eventChanged = true; }
+
+      if (ev.repeat === 'custom') {
+        const n = parseInt(ev.repeatInterval, 10);
+        const unit = (ev.repeatUnit || 'days').toString();
+        const validUnit = ['days','weeks','months','years'].includes(unit) ? unit : 'days';
+        const validN = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1;
+        if (ev.repeatUnit !== validUnit) { ev.repeatUnit = validUnit; eventChanged = true; }
+        if (ev.repeatInterval !== validN) { ev.repeatInterval = validN; eventChanged = true; }
+      }
+
+      if (ev.repeat === 'weekday_ab') {
+        const ab = (ev.abWeek || 'a').toString().toLowerCase() === 'b' ? 'b' : 'a';
+        if (ev.abWeek !== ab) { ev.abWeek = ab; eventChanged = true; }
+      }
+    }
+    if (eventChanged) setEvents(events);
+  } catch (e) {
+    console.warn('Consistency migration failed', e);
+  }
 }
 
 /* holidays and themes (kept small) */
@@ -590,7 +696,8 @@ function loadTasks(){
     const li = document.createElement('li');
     const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = !!t.done;
     cb.addEventListener('change', ()=>{ const all=getTasks(); all[i].done = cb.checked; setTasks(all); updateProgress(all); updateDashboard(all); updateDayProgress(selectedDay); loadTasks(); });
-    const span = document.createElement('span'); span.innerHTML = ` ${escapeHTML(t.text)} ${t.date?`[${t.date}]`:''} ${t.time?`[${t.time}]`:''} Priority:${pmap[t.priority]||t.priority}`; span.className = `category-${t.category||''}`;
+    const taskTitle = t.title || t.text || '';
+    const span = document.createElement('span'); span.innerHTML = ` ${escapeHTML(taskTitle)} ${t.date?`[${t.date}]`:''} ${t.time?`[${t.time}]`:''} Priority:${pmap[t.priority]||t.priority}`; span.className = `category-${t.category||''}`;
     const editBtn = document.createElement('button'); editBtn.className='small-btn'; editBtn.textContent='Edit'; editBtn.addEventListener('click', ()=> editTask(i));
     const delBtn = document.createElement('button'); delBtn.className='small-btn'; delBtn.textContent='Delete'; delBtn.addEventListener('click', ()=> deleteTask(i));
     li.appendChild(cb); li.appendChild(span); li.appendChild(editBtn); li.appendChild(delBtn);
@@ -608,7 +715,7 @@ function addTask(e){
   const date = normalizeDate(document.getElementById('taskDate') ? document.getElementById('taskDate').value : '');
   const time = document.getElementById('taskTime') ? document.getElementById('taskTime').value : '';
   const priority = document.getElementById('taskPriority') ? document.getElementById('taskPriority').value : '2';
-  const tasks = getTasks(); tasks.push({text,category,done:false,date,time,priority}); setTasks(tasks);
+  const tasks = getTasks(); tasks.push({title:text,category,done:false,date,time,priority}); setTasks(tasks);
   if (textEl) textEl.value=''; if (document.getElementById('taskDate')) document.getElementById('taskDate').value=''; if (document.getElementById('taskTime')) document.getElementById('taskTime').value='';
   loadTasks();
 }
@@ -619,7 +726,7 @@ function editTask(i){
   const tasks=getTasks(); const t=tasks[i]; if(!t) return;
   document.getElementById('editKind').value='task';
   document.getElementById('editTaskIndex').value = i;
-  document.getElementById('editText').value = t.text||'';
+  document.getElementById('editText').value = t.title || t.text || '';
   document.getElementById('editDate').value = t.date||'';
   document.getElementById('editTime').value = t.time||'';
   document.getElementById('editCategory').value = t.category||'work';
@@ -691,6 +798,69 @@ function renderEvents(){
   });
 }
 
+function isWeekendISO(dateStr){
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d.getTime())) return false;
+  const dow = d.getDay();
+  return dow === 0 || dow === 6;
+}
+
+function parseBufferMinutes(value){
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function syncRepeatUI(prefix){
+  const repeatEl = document.getElementById(prefix + 'Repeat');
+  const customRow = document.getElementById(prefix + 'RepeatCustomRow');
+  const abRow = document.getElementById(prefix + 'RepeatABRow');
+  if (!repeatEl) return;
+  const mode = repeatEl.value || 'none';
+  if (customRow) customRow.style.display = mode === 'custom' ? 'flex' : 'none';
+  if (abRow) abRow.style.display = mode === 'weekday_ab' ? 'flex' : 'none';
+}
+
+function readRepeatPayload(prefix, eventDate){
+  const repeatEl = document.getElementById(prefix + 'Repeat');
+  const untilEl = document.getElementById(prefix + 'RepeatUntil');
+  const intervalEl = document.getElementById(prefix + 'RepeatInterval');
+  const unitEl = document.getElementById(prefix + 'RepeatUnit');
+  const abEl = document.getElementById(prefix + 'ABWeek');
+
+  const repeat = repeatEl ? (repeatEl.value || 'none') : 'none';
+  const repeatUntil = untilEl ? normalizeDate(untilEl.value || '') : '';
+  const payload = { repeat, repeatUntil };
+
+  if (repeat === 'custom') {
+    const n = parseInt(intervalEl ? intervalEl.value : '1', 10);
+    const unit = (unitEl ? unitEl.value : 'days') || 'days';
+    payload.repeatInterval = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1;
+    payload.repeatUnit = ['days','weeks','months','years'].includes(unit) ? unit : 'days';
+  }
+
+  if (repeat === 'weekday_ab') {
+    if (isWeekendISO(eventDate)) {
+      throw new Error('A/B weekday pattern requires a weekday start date.');
+    }
+    payload.abWeek = (abEl && (abEl.value || '').toLowerCase() === 'b') ? 'b' : 'a';
+  }
+
+  return payload;
+}
+
+function wireRepeatControls(){
+  const eventRepeat = document.getElementById('eventRepeat');
+  const editRepeat = document.getElementById('editRepeat');
+  if (eventRepeat) {
+    eventRepeat.addEventListener('change', function(){ syncRepeatUI('event'); });
+    syncRepeatUI('event');
+  }
+  if (editRepeat) {
+    editRepeat.addEventListener('change', function(){ syncRepeatUI('edit'); });
+    syncRepeatUI('edit');
+  }
+}
+
 /* Add event */
 function addEvent(e){
   if (e && e.preventDefault) e.preventDefault();
@@ -701,11 +871,22 @@ function addEvent(e){
   const endTime = document.getElementById('eventEndTime') ? document.getElementById('eventEndTime').value || '' : '';
   const location = document.getElementById('eventLocation') ? document.getElementById('eventLocation').value.trim() : '';
   const emoji = document.getElementById('eventEmoji') ? document.getElementById('eventEmoji').value.trim() : '';
-  const pre = parseInt(document.getElementById('eventPreBuffer') ? document.getElementById('eventPreBuffer').value : 0,10) || 0;
-  const post = parseInt(document.getElementById('eventPostBuffer') ? document.getElementById('eventPostBuffer').value : 0,10) || 0;
+  const pre = parseBufferMinutes(document.getElementById('eventPreBuffer') ? document.getElementById('eventPreBuffer').value : 0);
+  const post = parseBufferMinutes(document.getElementById('eventPostBuffer') ? document.getElementById('eventPostBuffer').value : 0);
+
+  let repeatPayload;
+  try {
+    repeatPayload = readRepeatPayload('event', date);
+  } catch (err) {
+    alert(err && err.message ? err.message : 'Invalid recurrence settings');
+    return;
+  }
+
   const evs = getEvents();
   const id = evs.length ? Math.max(...evs.map(e=>e.id))+1 : 1;
-  evs.push({id,title,date,time,endTime,location,emoji,preBuffer:pre,postBuffer:post});
+  evs.push(Object.assign({
+    id,title,date,time,startTime:time,endTime,location,emoji,preBuffer:pre,postBuffer:post
+  }, repeatPayload));
   setEvents(evs);
   if (document.getElementById('eventTitle')) document.getElementById('eventTitle').value='';
   if (document.getElementById('eventDate')) document.getElementById('eventDate').value='';
@@ -713,6 +894,12 @@ function addEvent(e){
   if (document.getElementById('eventEndTime')) document.getElementById('eventEndTime').value='';
   if (document.getElementById('eventLocation')) document.getElementById('eventLocation').value='';
   if (document.getElementById('eventEmoji')) document.getElementById('eventEmoji').value='';
+  if (document.getElementById('eventRepeat')) document.getElementById('eventRepeat').value='none';
+  if (document.getElementById('eventRepeatUntil')) document.getElementById('eventRepeatUntil').value='';
+  if (document.getElementById('eventRepeatInterval')) document.getElementById('eventRepeatInterval').value='1';
+  if (document.getElementById('eventRepeatUnit')) document.getElementById('eventRepeatUnit').value='days';
+  if (document.getElementById('eventABWeek')) document.getElementById('eventABWeek').value='a';
+  syncRepeatUI('event');
   renderEvents(); generateCalendar();
 }
 
@@ -729,8 +916,14 @@ function editEvent(id){
   document.getElementById('editEndTime').value = e.endTime || '';
   document.getElementById('editLocation').value = e.location || '';
   document.getElementById('editEmoji').value = e.emoji || '';
-  document.getElementById('editPreBuffer').value = (e.preBuffer || 5);
-  document.getElementById('editPostBuffer').value = (e.postBuffer || 5);
+  document.getElementById('editPreBuffer').value = parseBufferMinutes(e.preBuffer || 5);
+  document.getElementById('editPostBuffer').value = parseBufferMinutes(e.postBuffer || 5);
+  document.getElementById('editRepeat').value = e.repeat || 'none';
+  document.getElementById('editRepeatUntil').value = e.repeatUntil || '';
+  document.getElementById('editRepeatInterval').value = e.repeatInterval || 1;
+  document.getElementById('editRepeatUnit').value = e.repeatUnit || 'days';
+  document.getElementById('editABWeek').value = e.abWeek || 'a';
+  syncRepeatUI('edit');
   showModalFieldsFor('event'); openEditModal('Edit Event');
 }
 
@@ -758,16 +951,38 @@ function saveEditHandler(e){
   if (kind === 'event'){
     const id = parseInt(document.getElementById('editEventId').value,10);
     const evs = getEvents(); const idx = evs.findIndex(x=>x.id===id); if (idx===-1){ closeEditModal(); return; }
-    evs[idx].title = text; evs[idx].date = date; evs[idx].time = time; evs[idx].endTime = endTime; evs[idx].location = document.getElementById('editLocation').value.trim(); evs[idx].emoji = document.getElementById('editEmoji').value.trim();
-    evs[idx].preBuffer = parseInt(document.getElementById('editPreBuffer').value,10) || 0;
-    evs[idx].postBuffer = parseInt(document.getElementById('editPostBuffer').value,10) || 0;
+    let repeatPayload;
+    try {
+      repeatPayload = readRepeatPayload('edit', date);
+    } catch (err) {
+      alert(err && err.message ? err.message : 'Invalid recurrence settings');
+      return;
+    }
+    evs[idx].title = text; evs[idx].date = date; evs[idx].time = time; evs[idx].startTime = time; evs[idx].endTime = endTime; evs[idx].location = document.getElementById('editLocation').value.trim(); evs[idx].emoji = document.getElementById('editEmoji').value.trim();
+    evs[idx].preBuffer = parseBufferMinutes(document.getElementById('editPreBuffer').value);
+    evs[idx].postBuffer = parseBufferMinutes(document.getElementById('editPostBuffer').value);
+    evs[idx].repeat = repeatPayload.repeat;
+    evs[idx].repeatUntil = repeatPayload.repeatUntil || '';
+    if (repeatPayload.repeat === 'custom') {
+      evs[idx].repeatInterval = repeatPayload.repeatInterval;
+      evs[idx].repeatUnit = repeatPayload.repeatUnit;
+      delete evs[idx].abWeek;
+    } else if (repeatPayload.repeat === 'weekday_ab') {
+      evs[idx].abWeek = repeatPayload.abWeek;
+      delete evs[idx].repeatInterval;
+      delete evs[idx].repeatUnit;
+    } else {
+      delete evs[idx].repeatInterval;
+      delete evs[idx].repeatUnit;
+      delete evs[idx].abWeek;
+    }
     setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
     closeEditModal();
     return;
   } else if (kind==='task'){
     const idx = parseInt(document.getElementById('editTaskIndex').value,10);
     const tasks = getTasks(); if (!tasks[idx]) { closeEditModal(); return; }
-    tasks[idx].text = text; tasks[idx].date = date; tasks[idx].time = time; tasks[idx].category = document.getElementById('editCategory').value; tasks[idx].priority = document.getElementById('editPriority').value;
+    tasks[idx].title = text; tasks[idx].date = date; tasks[idx].time = time; tasks[idx].category = document.getElementById('editCategory').value; tasks[idx].priority = document.getElementById('editPriority').value;
     setTasks(tasks); loadTasks();
   } else if (kind==='reminder'){
     const origKey = document.getElementById('editReminderKey').value;
@@ -1005,7 +1220,7 @@ window.showView = showView;
 /* startup after DOM ready */
 document.addEventListener('DOMContentLoaded', function(){
   try{
-    migrateNormalizeTasks();
+    migrateConsistencyData();
     const now = new Date();
     selectedMonth = now.getMonth();
     selectedYear = now.getFullYear();
@@ -1020,6 +1235,7 @@ document.addEventListener('DOMContentLoaded', function(){
     try{ if (document.getElementById('jobList')) renderJobs(); }catch(e){ console.warn('renderJobs failed', e); }
     try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); }
     try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }
+    try{ wireRepeatControls(); }catch(e){ console.warn('wireRepeatControls failed', e); }
 
     // set dayPartSelect default to current part if present
     const sel = document.getElementById('dayPartSelect');
