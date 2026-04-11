@@ -85,6 +85,45 @@
     .earnings-job-meta { font-size:0.82rem;color:#888;margin-top:2px; }
     .earnings-job-total { font-weight:700;font-size:1.05rem;color:#27ae60;flex-shrink:0; }
     .earnings-empty { color:#aaa;text-align:center;padding:18px 0;font-size:0.95rem; }
+    /* ── Work Earnings Advanced Controls ───────────────────── */
+    .we-controls { display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap; }
+    .we-nav-btn { background:none;border:1.5px solid #d0d0d0;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:0.85rem;color:#555;transition:border-color 0.15s,background 0.15s; }
+    .we-nav-btn:hover { border-color:#4a90e2;background:#f0f6ff;color:#4a90e2; }
+    .we-mode-toggle { display:flex;border:1.5px solid #d0d0d0;border-radius:8px;overflow:hidden; }
+    .we-mode-btn { background:#fff;border:none;padding:4px 12px;cursor:pointer;font-size:0.85rem;color:#555;transition:background 0.15s,color 0.15s; }
+    .we-mode-btn.active { background:#4a90e2;color:#fff; }
+    .we-export-btn { background:none;border:1.5px solid #d0d0d0;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:0.82rem;color:#555;margin-left:auto;transition:border-color 0.15s,color 0.15s; }
+    .we-export-btn:hover { border-color:#27ae60;color:#27ae60; }
+    .we-settings-btn { background:none;border:none;cursor:pointer;font-size:1rem;color:#aaa;padding:2px 4px;transition:color 0.15s; }
+    .we-settings-btn:hover { color:#555; }
+    .we-comparison { font-size:0.83rem;text-align:center;margin:2px 0 8px; }
+    .we-comparison.up   { color:#27ae60; }
+    .we-comparison.down { color:#e74c3c; }
+    .we-comparison.same { color:#888; }
+    .we-tax-line { font-size:0.88rem;text-align:center;color:#666;margin-bottom:10px; }
+    .we-goal-bar-wrap { margin-bottom:12px; }
+    .we-goal-bar-label { display:flex;justify-content:space-between;font-size:0.82rem;color:#888;margin-bottom:4px; }
+    .we-goal-bar-outer { height:8px;background:#eee;border-radius:4px;overflow:hidden; }
+    .we-goal-bar-inner { height:100%;border-radius:4px;background:#27ae60;transition:width 0.3s; }
+    .we-goal-bar-inner.over { background:#e67e22; }
+    .we-chart-wrap { margin-bottom:14px;overflow:hidden; }
+    .we-settings-panel { background:#f7f9fc;border:1px solid #e0e8f0;border-radius:8px;padding:12px;margin-bottom:12px; }
+    .we-settings-panel label { font-size:0.88rem;font-weight:600;display:block;margin-top:8px; }
+    .we-settings-row { display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap; }
+    .we-settings-row > div { flex:1;min-width:120px; }
+    .earnings-job-card { cursor:pointer;flex-wrap:wrap; }
+    .earnings-job-card:hover { border-color:#4a90e2;background:#f0f6ff; }
+    .earnings-job-shifts { display:none;width:100%;flex-basis:100%;margin-top:8px;border-top:1px solid #eee;padding-top:8px; }
+    .earnings-job-shifts.open { display:block; }
+    .earnings-job-shift-row { display:flex;gap:8px;align-items:center;font-size:0.82rem;padding:3px 0;border-bottom:1px solid #f5f5f5;flex-wrap:wrap; }
+    .earnings-job-shift-row:last-child { border-bottom:none; }
+    .earnings-ot-badge { font-size:0.72rem;background:#fff3cd;color:#856404;border-radius:4px;padding:1px 5px;font-weight:600; }
+    .we-location-section { margin-top:12px; }
+    .we-location-group { display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #f0f0f0;font-size:0.88rem; }
+    .we-location-group:last-child { border-bottom:none; }
+    .we-location-name { flex:1;color:#555; }
+    .we-location-jobs { font-size:0.78rem;color:#aaa; }
+    .we-location-amount { font-weight:700;color:#27ae60; }
     .bottom-ribbon{ position:fixed;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid #e6e6e6;display:flex;align-items:center;justify-content:space-around; box-shadow:0 -4px 18px rgba(0,0,0,0.06);z-index:999;padding:4px 6px;gap:4px; }
     .bottom-ribbon .r-item{ text-decoration:none;color:#333;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:6px 4px;border:1.5px solid #e0e0e0;border-radius:10px;transition:background 0.15s, border-color 0.15s, color 0.15s;}
     .bottom-ribbon .r-item:hover{ border-color:#4a90e2;background:rgba(74,144,226,0.05); }
@@ -747,6 +786,21 @@
                 <option value="day">day</option>
               </select>
             </div>
+          </div>
+
+          <!-- Overtime settings -->
+          <div style="margin-top:10px">
+            <div style="display:flex;gap:8px">
+              <div style="flex:1">
+                <label for="jobOvertimeHours" style="display:block;font-weight:600">Overtime after (hrs/period)</label>
+                <input id="jobOvertimeHours" type="number" min="0" step="0.5" placeholder="e.g. 40" />
+              </div>
+              <div style="width:150px">
+                <label for="jobOvertimeMultiplier" style="display:block;font-weight:600">OT multiplier</label>
+                <input id="jobOvertimeMultiplier" type="number" min="1" step="0.25" placeholder="e.g. 1.5" />
+              </div>
+            </div>
+            <p style="color:#888;font-size:0.82rem;margin:3px 0 0">Leave blank to disable overtime tracking.</p>
           </div>
 
           <!-- Per-Job Off-Days -->

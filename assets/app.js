@@ -367,6 +367,10 @@ function showJobModal(jobId) {
         document.getElementById('jobLocation').value = job.location || '';
         document.getElementById('jobRate').value = job.rate || '';
         document.getElementById('jobUnit').value = job.unit || 'hour';
+        var otHoursEl = document.getElementById('jobOvertimeHours');
+        var otMultEl  = document.getElementById('jobOvertimeMultiplier');
+        if (otHoursEl) otHoursEl.value = job.overtimeHours != null ? job.overtimeHours : '';
+        if (otMultEl)  otMultEl.value  = job.overtimeMultiplier != null ? job.overtimeMultiplier : '';
         _jobModalOffDays = Array.isArray(job.offDays) ? job.offDays.slice() : [];
         var heading = document.getElementById('jobModalHeading');
         if (heading) heading.textContent = 'Edit Job';
@@ -442,17 +446,21 @@ function saveJobFromUI(){
     var rate = (document.getElementById('jobRate')||{}).value.trim();
     var unit = (document.getElementById('jobUnit')||{}).value;
     var offDays = _jobModalOffDays.slice();
+    var overtimeHoursRaw = (document.getElementById('jobOvertimeHours')||{}).value;
+    var overtimeMultRaw  = (document.getElementById('jobOvertimeMultiplier')||{}).value;
+    var overtimeHours      = overtimeHoursRaw      ? parseFloat(overtimeHoursRaw)      : null;
+    var overtimeMultiplier = overtimeMultRaw  ? parseFloat(overtimeMultRaw)  : null;
 
     var jobs = getJobs();
     if (idField && idField.value){
       var id = parseInt(idField.value,10);
       var idx = jobs.findIndex(function(j){ return j.id===id; });
       if (idx!==-1){
-        jobs[idx] = Object.assign({}, jobs[idx], {name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays});
+        jobs[idx] = Object.assign({}, jobs[idx], {name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier});
       }
     } else {
       var nid = jobs.length ? Math.max.apply(null, jobs.map(function(j){ return j.id; }))+1 : 1;
-      jobs.push({ id: nid, name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays });
+      jobs.push({ id: nid, name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier });
     }
     setJobs(jobs);
     hideJobModal();
@@ -499,6 +507,10 @@ function clearJobForm(){
     document.getElementById('jobLocation').value = '';
     document.getElementById('jobRate').value = '';
     document.getElementById('jobUnit').value = 'hour';
+    var otHours = document.getElementById('jobOvertimeHours');
+    var otMult  = document.getElementById('jobOvertimeMultiplier');
+    if (otHours) otHours.value = '';
+    if (otMult)  otMult.value  = '';
     _jobModalOffDays = [];
     renderJobOffDaysList();
   }catch(e){ /* ignore */ }
@@ -1450,185 +1462,525 @@ function updateWeeklySalary(){
   } catch(e) { el.innerHTML = ''; console.warn('weeklySalary error', e); }
 }
 
-/* ── Expanded Job Earnings Analytics (Work page) ──────────────── */
+/* ── Work Page Earnings – state ──────────────────────────────── */
+var _workEarningsMode = 'week';   // 'week' | 'month'
+var _workEarningsOffset = 0;      // 0=current, -1=prev, +1=next
+var _workEarningsExpanded = {};   // { [jobKey]: bool }
+var _workEarningsSettingsOpen = false;
+var DEFAULT_OT_MULTIPLIER = 1.5;
+
+function getEarningsSettings(){
+  return safeParseStorage('earningsSettings', { weeklyGoal: 0, monthlyGoal: 0, taxRate: 0 });
+}
+function setEarningsSettings(v){ localStorage.setItem('earningsSettings', JSON.stringify(v)); }
+
+/* ── HTML escape helper ─────────────────────────────────────── */
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── Core earnings computation for any date range ────────────── */
+function computeEarningsForRange(startISO, endISO){
+  var jobs = getJobs();
+  var jobById = {}, jobByName = {};
+  jobs.forEach(function(j){
+    if (j.id != null) jobById[j.id] = j;
+    if (j.name) jobByName[j.name.toLowerCase()] = j;
+  });
+
+  var events = getExpandedEvents(startISO, endISO);
+
+  // Pass 1: collect per-job raw events
+  var rawByJob = {};
+  events.forEach(function(ev){
+    var cat = (ev.category || 'event').toLowerCase();
+    var isJobCat  = (cat === 'job');
+    var isWorkBkt = ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
+    if (!isJobCat && !isWorkBkt) return;
+
+    var job = null;
+    var jid = ev.jobId || ev.eventJobId;
+    if (jid != null){
+      var id = typeof jid === 'number' ? jid : parseInt(jid, 10);
+      job = jobById[id] || null;
+    }
+    if (!job && ev.bucketId != null) job = jobById[ev.bucketId] || null;
+    if (!job && ev.jobName)          job = jobByName[(ev.jobName||'').toLowerCase()] || null;
+    if (!job && ev.jobRate)          job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour', name: ev.title || 'Unknown', emoji: '' };
+    if (!job) return;
+
+    var rate = parseFloat(ev.jobRate || ev.eventJobRate || job.rate) || 0;
+    var unit = ev.jobUnit || ev.eventJobUnit || job.unit || 'hour';
+    var evHours = 0, flatEarnings = 0;
+
+    if (unit === 'job' || unit === 'day'){
+      flatEarnings = rate;
+    } else {
+      var sStr = ev.startTime || ev.time || '';
+      var eStr = ev.endTime || '';
+      if (sStr && eStr){
+        var sp = sStr.match(/(\d{1,2}):(\d{2})/);
+        var ep = eStr.match(/(\d{1,2}):(\d{2})/);
+        if (sp && ep){
+          var sm = parseInt(sp[1],10)*60+parseInt(sp[2],10);
+          var em = parseInt(ep[1],10)*60+parseInt(ep[2],10);
+          if (em <= sm) em += 1440;
+          evHours = (em - sm) / 60;
+          flatEarnings = rate * evHours;
+        }
+      }
+    }
+    if (flatEarnings <= 0 && evHours <= 0) return;
+
+    var jobKey = (job.id != null) ? 'id_'+job.id : 'name_'+(job.name||'').toLowerCase();
+    if (!rawByJob[jobKey]) rawByJob[jobKey] = { job: job, rate: rate, unit: unit, items: [] };
+    rawByJob[jobKey].items.push({ ev: ev, hours: evHours, flatEarnings: flatEarnings, rate: rate });
+  });
+
+  // Build day map
+  var DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var startDate = new Date(startISO + 'T12:00:00');
+  var endDate   = new Date(endISO   + 'T12:00:00');
+  var dayMap = {};
+  for (var d = new Date(startDate); d <= endDate; d.setDate(d.getDate()+1)){
+    var iso = d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+    dayMap[iso] = { iso: iso, label: DAY_NAMES[d.getDay()]+' '+(d.getMonth()+1)+'/'+d.getDate(), earnings: 0, hours: 0 };
+  }
+
+  var totalGross = 0, totalHours = 0;
+  var jobEarnings = {};
+
+  // Pass 2: apply overtime per job and accumulate
+  Object.keys(rawByJob).forEach(function(jobKey){
+    var raw = rawByJob[jobKey];
+    var job = raw.job;
+    var unit = raw.unit;
+    var otThreshold  = parseFloat(job.overtimeHours)      || 0;
+    var otMultiplier = parseFloat(job.overtimeMultiplier) || DEFAULT_OT_MULTIPLIER;
+
+    var je = {
+      name: job.name || 'Unknown', emoji: job.emoji || '💼',
+      location: job.location || '', rate: raw.rate, unit: unit,
+      overtimeMultiplier: otMultiplier,
+      totalEarnings: 0, totalHours: 0,
+      regularHours: 0, overtimeHours: 0,
+      regularEarnings: 0, overtimeEarnings: 0,
+      shifts: 0, shifts_detail: []
+    };
+    jobEarnings[jobKey] = je;
+
+    var accHours = 0;
+    // Sort items by date for correct OT accumulation
+    raw.items.sort(function(a,b){
+      return (normalizeDate(a.ev.date)||'') < (normalizeDate(b.ev.date)||'') ? -1 : 1;
+    });
+
+    raw.items.forEach(function(item){
+      var h = item.hours, r = item.rate;
+      var evEarnings, regH = 0, otH = 0, isOT = false;
+
+      if (unit === 'job' || unit === 'day'){
+        evEarnings = item.flatEarnings;
+        je.regularEarnings += evEarnings;
+      } else if (otThreshold > 0 && h > 0){
+        if (accHours >= otThreshold){
+          otH = h; regH = 0;
+          evEarnings = r * otMultiplier * otH;
+          isOT = true;
+        } else if (accHours + h > otThreshold){
+          regH = otThreshold - accHours; otH = h - regH;
+          evEarnings = r * regH + r * otMultiplier * otH;
+          isOT = (otH > 0);
+        } else {
+          regH = h; otH = 0; evEarnings = r * regH;
+        }
+        je.regularHours    += regH; je.overtimeHours    += otH;
+        je.regularEarnings += r * regH; je.overtimeEarnings += r * otMultiplier * otH;
+      } else {
+        evEarnings = item.flatEarnings;
+        regH = h; je.regularHours += regH; je.regularEarnings += evEarnings;
+      }
+
+      accHours          += h;
+      je.totalEarnings  += evEarnings;
+      je.totalHours     += h;
+      je.shifts         += 1;
+
+      // Assign to day
+      var evDate = normalizeDate(item.ev.date);
+      if (dayMap[evDate]){
+        dayMap[evDate].earnings += evEarnings;
+        dayMap[evDate].hours    += h;
+      }
+
+      var sStr = item.ev.startTime || item.ev.time || '';
+      var eStr = item.ev.endTime || '';
+      var timeRange = (sStr && eStr) ? sStr+'–'+eStr : (sStr||'');
+      je.shifts_detail.push({
+        date: evDate, title: item.ev.title || '',
+        timeRange: timeRange, hours: h, earnings: evEarnings,
+        regularHours: regH, overtimeHours: otH, isOT: isOT
+      });
+
+      totalGross += evEarnings;
+      totalHours += h;
+    });
+  });
+
+  var dayData = Object.keys(dayMap).sort().map(function(k){ return dayMap[k]; });
+  return { totalGross: totalGross, totalHours: totalHours, dayData: dayData, jobEarnings: jobEarnings };
+}
+
+/* ── SVG bar chart ───────────────────────────────────────────── */
+function buildEarningsChart(earningsData, mode, todayStr){
+  var bars;
+  if (mode === 'week'){
+    bars = earningsData.dayData.map(function(d){
+      return { label: d.label.slice(0,3), value: d.earnings, iso: d.iso };
+    });
+  } else {
+    var weekMap = {};
+    earningsData.dayData.forEach(function(d){
+      var dt = new Date(d.iso + 'T12:00:00');
+      var ws = new Date(dt); ws.setDate(dt.getDate() - dt.getDay());
+      var wKey = ws.getFullYear()+'-'+pad2(ws.getMonth()+1)+'-'+pad2(ws.getDate());
+      if (!weekMap[wKey]) weekMap[wKey] = { label: (ws.getMonth()+1)+'/'+ws.getDate(), value: 0, iso: wKey };
+      weekMap[wKey].value += d.earnings;
+    });
+    bars = Object.keys(weekMap).sort().map(function(k){ return weekMap[k]; });
+  }
+
+  var maxVal = 0;
+  bars.forEach(function(b){ if (b.value > maxVal) maxVal = b.value; });
+  if (!bars.length || maxVal <= 0) return '';
+
+  var W = 280, H = 72, PAD_L = 4, PAD_R = 4, PAD_T = 16, PAD_B = 20;
+  var chartH = H - PAD_T - PAD_B;
+  var n = bars.length;
+  var barW = Math.max(4, Math.floor((W - PAD_L - PAD_R) / n) - 3);
+  var gap  = Math.floor((W - PAD_L - PAD_R - n * barW) / (n + 1));
+
+  var svg = '<div class="we-chart-wrap"><svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">';
+  bars.forEach(function(b, i){
+    var x = PAD_L + gap + i * (barW + gap);
+    var barH = Math.max(2, Math.round(chartH * (b.value / maxVal)));
+    var y = PAD_T + chartH - barH;
+    var isToday = (b.iso === todayStr);
+    var fill = isToday ? '#4a90e2' : '#a0c4ef';
+    svg += '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+barH+'" fill="'+fill+'" rx="2"/>';
+    svg += '<text x="'+(x+barW/2)+'" y="'+(H-5)+'" text-anchor="middle" font-size="8" fill="#999">'+escHtml(b.label)+'</text>';
+    if (barH >= 12 && b.value > 0){
+      svg += '<text x="'+(x+barW/2)+'" y="'+(y-3)+'" text-anchor="middle" font-size="8" fill="#27ae60">$'+Math.round(b.value)+'</text>';
+    }
+  });
+  svg += '</svg></div>';
+  return svg;
+}
+
+/* ── CSV export ──────────────────────────────────────────────── */
+function exportEarningsCSV(){
+  try {
+    var todayStr = getTodayISO();
+    var todayDate = new Date(todayStr + 'T12:00:00');
+    var startDate, endDate;
+    if (_workEarningsMode === 'week'){
+      var dow = todayDate.getDay();
+      startDate = new Date(todayDate);
+      startDate.setDate(todayDate.getDate() - dow + (_workEarningsOffset * 7));
+      endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 6);
+    } else {
+      var y = todayDate.getFullYear(), m = todayDate.getMonth() + _workEarningsOffset;
+      while (m < 0){ m += 12; y--; } while (m > 11){ m -= 12; y++; }
+      startDate = new Date(y, m, 1); endDate = new Date(y, m+1, 0);
+    }
+    var sISO = startDate.getFullYear()+'-'+pad2(startDate.getMonth()+1)+'-'+pad2(startDate.getDate());
+    var eISO = endDate.getFullYear()+'-'+pad2(endDate.getMonth()+1)+'-'+pad2(endDate.getDate());
+    var data = computeEarningsForRange(sISO, eISO);
+
+    var rows = ['Date,Job,Location,Time,Hours,Rate,Unit,Regular Hours,Regular Earnings,Overtime Hours,Overtime Earnings,Total Earnings'];
+    Object.keys(data.jobEarnings).forEach(function(key){
+      var je = data.jobEarnings[key];
+      je.shifts_detail.forEach(function(s){
+        rows.push([
+          s.date,
+          '"'+je.name.replace(/"/g,'""')+'"',
+          '"'+(je.location||'').replace(/"/g,'""')+'"',
+          '"'+s.timeRange+'"',
+          s.hours.toFixed(2),
+          je.rate.toFixed(2), je.unit,
+          s.regularHours.toFixed(2), (je.rate * s.regularHours).toFixed(2),
+          s.overtimeHours.toFixed(2), (je.rate * je.overtimeMultiplier * s.overtimeHours).toFixed(2),
+          s.earnings.toFixed(2)
+        ].join(','));
+      });
+    });
+
+    var blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    var url  = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'earnings-'+sISO+'--'+eISO+'.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch(e){ console.warn('exportEarningsCSV error', e); }
+}
+
+/* ── Save inline earnings settings ──────────────────────────── */
+function saveEarningsSettingsFromUI(){
+  var wg = parseFloat((document.getElementById('we-weekly-goal')||{}).value)  || 0;
+  var mg = parseFloat((document.getElementById('we-monthly-goal')||{}).value) || 0;
+  var tr = parseFloat((document.getElementById('we-tax-rate')||{}).value)     || 0;
+  setEarningsSettings({ weeklyGoal: wg, monthlyGoal: mg, taxRate: tr });
+  _workEarningsSettingsOpen = false;
+  renderWorkEarnings();
+}
+
+/* ── Delegated event handler (attached once) ─────────────────── */
+function wireWorkEarningsHandlers(){
+  var section = document.getElementById('workEarningsSection');
+  if (!section || section._weWired) return;
+  section._weWired = true;
+  section.addEventListener('click', function(e){
+    if (e.target.tagName === 'INPUT') return; // let inputs receive focus normally
+
+    var actionBtn = e.target.closest('[data-we-action]');
+    if (actionBtn){
+      var action = actionBtn.dataset.weAction;
+      if      (action === 'prev')            { _workEarningsOffset--; renderWorkEarnings(); }
+      else if (action === 'next')            { _workEarningsOffset++; renderWorkEarnings(); }
+      else if (action === 'today')           { _workEarningsOffset = 0; renderWorkEarnings(); }
+      else if (action === 'mode-week')       { _workEarningsMode = 'week';  _workEarningsOffset = 0; renderWorkEarnings(); }
+      else if (action === 'mode-month')      { _workEarningsMode = 'month'; _workEarningsOffset = 0; renderWorkEarnings(); }
+      else if (action === 'export')          { exportEarningsCSV(); }
+      else if (action === 'toggle-settings') { _workEarningsSettingsOpen = !_workEarningsSettingsOpen; renderWorkEarnings(); }
+      else if (action === 'save-settings')   { saveEarningsSettingsFromUI(); }
+      return;
+    }
+
+    var card = e.target.closest('[data-we-job]');
+    if (card){
+      var key = card.dataset.weJob;
+      _workEarningsExpanded[key] = !_workEarningsExpanded[key];
+      var shifts  = card.querySelector('.earnings-job-shifts');
+      var chevron = card.querySelector('.we-card-chevron');
+      if (shifts)  shifts.classList.toggle('open', !!_workEarningsExpanded[key]);
+      if (chevron) chevron.textContent = _workEarningsExpanded[key] ? '▾' : '▸';
+    }
+  });
+}
+
+/* ── Expanded Job Earnings Analytics (Work page) ─────────────── */
 function renderWorkEarnings(){
   var container = document.getElementById('workEarningsContent');
   if (!container) return;
   try {
-    var todayStr = getTodayISO();
+    var todayStr  = getTodayISO();
     var todayDate = new Date(todayStr + 'T12:00:00');
-    var dow = todayDate.getDay();
+    var settings  = getEarningsSettings();
+    var taxRate   = parseFloat(settings.taxRate)  || 0;
+    var goalAmt   = _workEarningsMode === 'week'
+                    ? (parseFloat(settings.weeklyGoal)  || 0)
+                    : (parseFloat(settings.monthlyGoal) || 0);
 
-    // Current week Sun–Sat
-    var weekStartDate = new Date(todayDate);
-    weekStartDate.setDate(todayDate.getDate() - dow);
-    var weekEndDate = new Date(weekStartDate);
-    weekEndDate.setDate(weekStartDate.getDate() + 6);
-    var weekStartISO = weekStartDate.getFullYear()+'-'+pad2(weekStartDate.getMonth()+1)+'-'+pad2(weekStartDate.getDate());
-    var weekEndISO   = weekEndDate.getFullYear()+'-'+pad2(weekEndDate.getMonth()+1)+'-'+pad2(weekEndDate.getDate());
+    /* ── Compute date ranges ───────────────────────────────── */
+    var startDate, endDate, prevStartDate, prevEndDate, periodLabel;
+    var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-    var weekEvents = getExpandedEvents(weekStartISO, weekEndISO);
-    var jobs = getJobs();
-
-    var jobById = {}, jobByName = {};
-    jobs.forEach(function(j){
-      if (j.id != null) jobById[j.id] = j;
-      if (j.name) jobByName[j.name.toLowerCase()] = j;
-    });
-
-    var DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    // Per-day buckets
-    var dayData = []; // { iso, label, earnings, hours }
-    for (var d = 0; d < 7; d++){
-      var dt = new Date(weekStartDate);
-      dt.setDate(weekStartDate.getDate() + d);
-      dayData.push({
-        iso: dt.getFullYear()+'-'+pad2(dt.getMonth()+1)+'-'+pad2(dt.getDate()),
-        label: DAY_NAMES[dt.getDay()] + ' ' + (dt.getMonth()+1) + '/' + dt.getDate(),
-        earnings: 0,
-        hours: 0
-      });
+    if (_workEarningsMode === 'week'){
+      var dow = todayDate.getDay();
+      startDate = new Date(todayDate);
+      startDate.setDate(todayDate.getDate() - dow + (_workEarningsOffset * 7));
+      endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 6);
+      periodLabel = 'Week of '+(startDate.getMonth()+1)+'/'+startDate.getDate()+' – '+(endDate.getMonth()+1)+'/'+endDate.getDate();
+      prevStartDate = new Date(startDate); prevStartDate.setDate(startDate.getDate() - 7);
+      prevEndDate   = new Date(endDate);   prevEndDate.setDate(endDate.getDate() - 7);
+    } else {
+      var y = todayDate.getFullYear(), m = todayDate.getMonth() + _workEarningsOffset;
+      while (m < 0){ m += 12; y--; } while (m > 11){ m -= 12; y++; }
+      startDate = new Date(y, m, 1); endDate = new Date(y, m+1, 0);
+      periodLabel = MONTH_NAMES[m] + ' ' + y;
+      var pm = m - 1, py = y;
+      if (pm < 0){ pm = 11; py--; }
+      prevStartDate = new Date(py, pm, 1); prevEndDate = new Date(py, pm+1, 0);
     }
 
-    // Per-job buckets
-    var jobEarnings = {}; // keyed by job id or name
+    var startISO     = startDate.getFullYear()+'-'+pad2(startDate.getMonth()+1)+'-'+pad2(startDate.getDate());
+    var endISO       = endDate.getFullYear()+'-'+pad2(endDate.getMonth()+1)+'-'+pad2(endDate.getDate());
+    var prevStartISO = prevStartDate.getFullYear()+'-'+pad2(prevStartDate.getMonth()+1)+'-'+pad2(prevStartDate.getDate());
+    var prevEndISO   = prevEndDate.getFullYear()+'-'+pad2(prevEndDate.getMonth()+1)+'-'+pad2(prevEndDate.getDate());
 
-    var totalSalary = 0;
-    var totalHours  = 0;
+    var curr = computeEarningsForRange(startISO, endISO);
+    var prev = computeEarningsForRange(prevStartISO, prevEndISO);
 
-    weekEvents.forEach(function(ev){
-      var cat = (ev.category || 'event').toLowerCase();
-      var isJobCategory = (cat === 'job');
-      var isWorkWithBucket = ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
-      if (!isJobCategory && !isWorkWithBucket) return;
-
-      var job = null;
-      var jid = ev.jobId || ev.eventJobId;
-      if (jid != null){
-        var id = typeof jid === 'number' ? jid : parseInt(jid, 10);
-        job = jobById[id] || null;
-      }
-      if (!job && ev.bucketId != null) job = jobById[ev.bucketId] || null;
-      if (!job && ev.jobName) job = jobByName[(ev.jobName || '').toLowerCase()] || null;
-      if (!job && ev.jobRate) job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour', name: ev.title || 'Unknown', emoji: '' };
-      if (!job) return;
-
-      var rate = parseFloat(ev.jobRate || ev.eventJobRate || job.rate) || 0;
-      var unit = ev.jobUnit || ev.eventJobUnit || job.unit || 'hour';
-
-      var evEarnings = 0;
-      var evHours = 0;
-
-      if (unit === 'job' || unit === 'day'){
-        evEarnings = rate;
-      } else {
-        var startStr = ev.startTime || ev.time || '';
-        var endStr   = ev.endTime || '';
-        if (startStr && endStr){
-          var sp = startStr.match(/(\d{1,2}):(\d{2})/);
-          var ep = endStr.match(/(\d{1,2}):(\d{2})/);
-          if (sp && ep){
-            var sm = parseInt(sp[1],10)*60+parseInt(sp[2],10);
-            var em = parseInt(ep[1],10)*60+parseInt(ep[2],10);
-            if (em <= sm) em += 1440;
-            evHours = (em - sm) / 60;
-            evEarnings = rate * evHours;
-          }
-        }
-      }
-
-      if (evEarnings <= 0) return;
-
-      totalSalary += evEarnings;
-      totalHours  += evHours;
-
-      // Assign to day
-      var evDate = normalizeDate(ev.date);
-      for (var i = 0; i < dayData.length; i++){
-        if (dayData[i].iso === evDate){
-          dayData[i].earnings += evEarnings;
-          dayData[i].hours    += evHours;
-          break;
-        }
-      }
-
-      // Assign to job
-      var jobKey = (job.id != null) ? 'id_'+job.id : 'name_'+(job.name||'').toLowerCase();
-      if (!jobEarnings[jobKey]){
-        jobEarnings[jobKey] = {
-          name: job.name || 'Unknown',
-          emoji: job.emoji || '💼',
-          rate: rate,
-          unit: unit,
-          totalEarnings: 0,
-          totalHours: 0,
-          shifts: 0
-        };
-      }
-      jobEarnings[jobKey].totalEarnings += evEarnings;
-      jobEarnings[jobKey].totalHours    += evHours;
-      jobEarnings[jobKey].shifts        += 1;
-    });
-
-    // Build HTML
+    /* ── Build HTML ────────────────────────────────────────── */
     var html = '';
+    var isCurrentPeriod = (_workEarningsOffset === 0);
 
-    // Week label
-    var startLabel = (weekStartDate.getMonth()+1)+'/'+weekStartDate.getDate();
-    var endLabel   = (weekEndDate.getMonth()+1)+'/'+weekEndDate.getDate();
-    html += '<div class="work-earnings-week-label">Week of ' + startLabel + ' – ' + endLabel + '</div>';
+    /* Controls bar */
+    html += '<div class="we-controls">';
+    html += '<button class="we-nav-btn" data-we-action="prev">&#8249; Prev</button>';
+    html += '<div class="we-mode-toggle">';
+    html += '<button class="we-mode-btn'+(_workEarningsMode==='week'?' active':'')+'" data-we-action="mode-week">Week</button>';
+    html += '<button class="we-mode-btn'+(_workEarningsMode==='month'?' active':'')+'" data-we-action="mode-month">Month</button>';
+    html += '</div>';
+    if (!isCurrentPeriod) html += '<button class="we-nav-btn" data-we-action="today">Today</button>';
+    html += '<button class="we-nav-btn" data-we-action="next">Next &#8250;</button>';
+    html += '<button class="we-export-btn" data-we-action="export" title="Export CSV">&#8595; CSV</button>';
+    html += '<button class="we-settings-btn" data-we-action="toggle-settings" title="Earnings settings">&#9881;</button>';
+    html += '</div>';
 
-    if (totalSalary <= 0){
-      html += '<div class="earnings-empty">No job earnings this week. Schedule job events to see earnings here.</div>';
+    /* Inline settings panel */
+    if (_workEarningsSettingsOpen){
+      html += '<div class="we-settings-panel">';
+      html += '<strong style="font-size:0.93rem">&#9881; Earnings Settings</strong>';
+      html += '<div class="we-settings-row">';
+      html += '<div><label for="we-weekly-goal">Weekly goal ($)</label><input id="we-weekly-goal" type="number" min="0" step="1" value="'+escHtml(settings.weeklyGoal||'')+'" placeholder="0" /></div>';
+      html += '<div><label for="we-monthly-goal">Monthly goal ($)</label><input id="we-monthly-goal" type="number" min="0" step="1" value="'+escHtml(settings.monthlyGoal||'')+'" placeholder="0" /></div>';
+      html += '<div><label for="we-tax-rate">Tax rate (%)</label><input id="we-tax-rate" type="number" min="0" max="100" step="0.5" value="'+escHtml(settings.taxRate||'')+'" placeholder="0" /></div>';
+      html += '</div>';
+      html += '<button class="we-nav-btn" data-we-action="save-settings" style="margin-top:8px;background:#4a90e2;color:#fff;border-color:#4a90e2">Save</button>';
+      html += '</div>';
+    }
+
+    /* Period label */
+    html += '<div class="work-earnings-week-label">'+escHtml(periodLabel)+'</div>';
+
+    if (curr.totalGross <= 0){
+      html += '<div class="earnings-empty">No job earnings this period. Schedule job events to see earnings here.</div>';
       container.innerHTML = html;
+      wireWorkEarningsHandlers();
       return;
     }
 
-    // Total
-    html += '<div class="work-earnings-total">$' + totalSalary.toFixed(2) + '</div>';
+    /* Total */
+    html += '<div class="work-earnings-total">$'+curr.totalGross.toFixed(2)+'</div>';
 
-    // Per-day table
-    html += '<table class="earnings-day-table">';
-    html += '<thead><tr><th>Day</th><th class="edt-hours">Hours</th><th class="edt-amount">Earned</th></tr></thead>';
-    html += '<tbody>';
-    for (var i = 0; i < dayData.length; i++){
-      var dd = dayData[i];
-      var isToday = dd.iso === todayStr;
-      html += '<tr' + (isToday ? ' class="edt-today"' : '') + '>';
-      html += '<td>' + dd.label + (isToday ? ' <strong>·</strong>' : '') + '</td>';
-      html += '<td class="edt-hours">' + (dd.hours > 0 ? dd.hours.toFixed(1) + 'h' : '–') + '</td>';
-      html += '<td class="edt-amount">' + (dd.earnings > 0 ? '$' + dd.earnings.toFixed(2) : '–') + '</td>';
-      html += '</tr>';
+    /* Comparison badge */
+    if (prev.totalGross > 0){
+      var diff = curr.totalGross - prev.totalGross;
+      var periodWord = _workEarningsMode === 'week' ? 'last week' : 'last month';
+      if (Math.abs(diff) < 0.01){
+        html += '<div class="we-comparison same">Same as '+escHtml(periodWord)+'</div>';
+      } else {
+        var pct = Math.round(Math.abs(diff) / prev.totalGross * 100);
+        if (diff > 0){
+          html += '<div class="we-comparison up">+$'+diff.toFixed(2)+' ('+pct+'%) &#9650; vs '+escHtml(periodWord)+'</div>';
+        } else {
+          html += '<div class="we-comparison down">&#8722;$'+Math.abs(diff).toFixed(2)+' ('+pct+'%) &#9660; vs '+escHtml(periodWord)+'</div>';
+        }
+      }
     }
+
+    /* Tax estimator */
+    if (taxRate > 0){
+      var taxAmt = curr.totalGross * taxRate / 100;
+      var netAmt = curr.totalGross - taxAmt;
+      html += '<div class="we-tax-line">Est. tax ('+taxRate+'%): <strong>$'+taxAmt.toFixed(2)+'</strong> &nbsp;&#183;&nbsp; Est. net: <strong>$'+netAmt.toFixed(2)+'</strong></div>';
+    }
+
+    /* Goal progress bar */
+    if (goalAmt > 0){
+      var goalPct = Math.min(curr.totalGross / goalAmt * 100, 100);
+      var overGoal = curr.totalGross >= goalAmt;
+      var goalLabel = _workEarningsMode === 'week' ? 'Weekly goal' : 'Monthly goal';
+      html += '<div class="we-goal-bar-wrap">';
+      html += '<div class="we-goal-bar-label"><span>'+escHtml(goalLabel)+'</span><span>$'+curr.totalGross.toFixed(2)+' / $'+goalAmt.toFixed(2)+'</span></div>';
+      html += '<div class="we-goal-bar-outer"><div class="we-goal-bar-inner'+(overGoal?' over':'')+'" style="width:'+goalPct.toFixed(1)+'%"></div></div>';
+      html += '</div>';
+    }
+
+    /* Bar chart */
+    html += buildEarningsChart(curr, _workEarningsMode, todayStr);
+
+    /* Per-day table */
+    html += '<table class="earnings-day-table"><thead><tr><th>Day</th><th class="edt-hours">Hours</th><th class="edt-amount">Earned</th></tr></thead><tbody>';
+    curr.dayData.forEach(function(dd){
+      var isToday = dd.iso === todayStr;
+      html += '<tr'+(isToday?' class="edt-today"':'')+'>'+
+              '<td>'+escHtml(dd.label)+(isToday?' <strong>·</strong>':'')+' </td>'+
+              '<td class="edt-hours">'+(dd.hours > 0 ? dd.hours.toFixed(1)+'h' : '–')+'</td>'+
+              '<td class="edt-amount">'+(dd.earnings > 0 ? '$'+dd.earnings.toFixed(2) : '–')+'</td>'+
+              '</tr>';
+    });
     html += '</tbody></table>';
 
-    // Per-job cards
-    var jobKeys = Object.keys(jobEarnings);
+    /* Per-job expandable cards */
+    var jobKeys = Object.keys(curr.jobEarnings);
     if (jobKeys.length > 0){
-      html += '<h4 style="margin:0 0 8px;font-size:0.95rem;color:#666">By Job</h4>';
+      html += '<h4 style="margin:12px 0 8px;font-size:0.95rem;color:#666">By Job</h4>';
       html += '<div class="earnings-job-cards">';
-      jobKeys.sort(function(a,b){ return jobEarnings[b].totalEarnings - jobEarnings[a].totalEarnings; });
-      for (var j = 0; j < jobKeys.length; j++){
-        var je = jobEarnings[jobKeys[j]];
-        var meta = '';
+      jobKeys.sort(function(a,b){ return curr.jobEarnings[b].totalEarnings - curr.jobEarnings[a].totalEarnings; });
+      jobKeys.forEach(function(key){
+        var je = curr.jobEarnings[key];
+        var isExpanded = !!_workEarningsExpanded[key];
+        var meta;
         if (je.unit === 'hour'){
-          meta = je.totalHours.toFixed(1) + 'h · $' + je.rate.toFixed(2) + '/hr · ' + je.shifts + ' shift' + (je.shifts !== 1 ? 's' : '');
+          meta = je.totalHours.toFixed(1)+'h';
+          if (je.overtimeHours > 0){
+            meta += ' ('+je.regularHours.toFixed(1)+'h reg + '+je.overtimeHours.toFixed(1)+'h OT)';
+          }
+          meta += ' · $'+je.rate.toFixed(2)+'/hr · '+je.shifts+' shift'+(je.shifts!==1?'s':'');
         } else {
-          meta = '$' + je.rate.toFixed(2) + '/' + je.unit + ' · ' + je.shifts + ' shift' + (je.shifts !== 1 ? 's' : '');
+          meta = '$'+je.rate.toFixed(2)+'/'+je.unit+' · '+je.shifts+' shift'+(je.shifts!==1?'s':'');
         }
-        html += '<div class="earnings-job-card">';
-        html += '<span class="earnings-job-emoji">' + je.emoji + '</span>';
+        html += '<div class="earnings-job-card" data-we-job="'+escHtml(key)+'">';
+        html += '<span class="earnings-job-emoji">'+escHtml(je.emoji)+'</span>';
         html += '<div class="earnings-job-info">';
-        html += '<div class="earnings-job-name">' + je.name + '</div>';
-        html += '<div class="earnings-job-meta">' + meta + '</div>';
+        html += '<div class="earnings-job-name">'+escHtml(je.name)+'</div>';
+        html += '<div class="earnings-job-meta">'+escHtml(meta)+'</div>';
+        if (je.overtimeEarnings > 0){
+          html += '<div style="font-size:0.78rem;color:#856404;margin-top:2px">$'+je.regularEarnings.toFixed(2)+' reg + $'+je.overtimeEarnings.toFixed(2)+' OT</div>';
+        }
         html += '</div>';
-        html += '<div class="earnings-job-total">$' + je.totalEarnings.toFixed(2) + '</div>';
+        html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
+        html += '<div class="earnings-job-total">$'+je.totalEarnings.toFixed(2)+'</div>';
+        html += '<span class="we-card-chevron" style="font-size:0.85rem;color:#aaa">'+(isExpanded?'▾':'▸')+'</span>';
         html += '</div>';
+        html += '<div class="earnings-job-shifts'+(isExpanded?' open':'') +'">';
+        je.shifts_detail.forEach(function(s){
+          html += '<div class="earnings-job-shift-row">';
+          html += '<span style="color:#888;min-width:72px">'+escHtml(s.date)+'</span>';
+          if (s.timeRange) html += '<span style="color:#666">'+escHtml(s.timeRange)+'</span>';
+          if (s.title)     html += '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(s.title)+'</span>';
+          if (s.hours > 0) html += '<span style="color:#888">'+s.hours.toFixed(1)+'h</span>';
+          html += '<span style="font-weight:600;color:#27ae60;margin-left:4px">$'+s.earnings.toFixed(2)+'</span>';
+          if (s.isOT)      html += '<span class="earnings-ot-badge">OT</span>';
+          html += '</div>';
+        });
+        html += '</div>'; // .earnings-job-shifts
+        html += '</div>'; // .earnings-job-card
+      });
+      html += '</div>';
+    }
+
+    /* Earnings by Location */
+    var locationMap = {};
+    jobKeys.forEach(function(key){
+      var je = curr.jobEarnings[key];
+      if (je.location){
+        if (!locationMap[je.location]) locationMap[je.location] = { earnings: 0, hours: 0, jobs: [] };
+        locationMap[je.location].earnings += je.totalEarnings;
+        locationMap[je.location].hours    += je.totalHours;
+        locationMap[je.location].jobs.push(je.name);
       }
+    });
+    var locKeys = Object.keys(locationMap);
+    if (locKeys.length > 0){
+      html += '<div class="we-location-section">';
+      html += '<h4 style="margin:12px 0 6px;font-size:0.95rem;color:#666">By Location</h4>';
+      locKeys.sort(function(a,b){ return locationMap[b].earnings - locationMap[a].earnings; });
+      locKeys.forEach(function(loc){
+        var ld = locationMap[loc];
+        html += '<div class="we-location-group">';
+        html += '<span class="we-location-name">&#128205; '+escHtml(loc);
+        if (ld.hours > 0) html += ' <span class="we-location-jobs">'+ld.hours.toFixed(1)+'h</span>';
+        html += '</span>';
+        html += '<span class="we-location-jobs">'+escHtml(ld.jobs.join(', '))+'</span>';
+        html += '<span class="we-location-amount">$'+ld.earnings.toFixed(2)+'</span>';
+        html += '</div>';
+      });
       html += '</div>';
     }
 
     container.innerHTML = html;
+    wireWorkEarningsHandlers();
   } catch(e) {
     container.innerHTML = '<div class="earnings-empty">Unable to calculate earnings.</div>';
     console.warn('renderWorkEarnings error', e);
