@@ -92,8 +92,14 @@
         if (remoteTs >= localTs) map[id] = item; // remote wins on tie
       }
     });
-    // Keep local items without IDs; only add remote no-id items if local has none
-    var noIdItems = localNoId.length ? localNoId : remoteNoId;
+    // Preserve items without IDs from both sides (legacy items created before IDs were added).
+    // Deduplicate by JSON content to avoid duplicating the same item.
+    var noIdSeen = {};
+    var noIdItems = [];
+    localNoId.concat(remoteNoId).forEach(function (item) {
+      var key = JSON.stringify(item);
+      if (!noIdSeen[key]) { noIdSeen[key] = true; noIdItems.push(item); }
+    });
     return Object.values(map).concat(noIdItems);
   }
 
