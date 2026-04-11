@@ -78,7 +78,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy)).catch(() => undefined);
           return res;
         })
-        .catch(() => caches.match('./index.html'));
+        .catch(() => new Response('Network error', { status: 503, statusText: 'Service Unavailable' }));
     })
   );
 });
