@@ -18,7 +18,8 @@
     /* filepath: /Users/williamjoyce/Documents/GitHub/willlappschedule/assets/app.css (inlined) */
     body { font-family: 'Source Sans 3', Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
     header { background:#4a90e2; color:#fff; padding:1rem; font-size:1.25rem; position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; }
-    header .header-btn { background:none; border:none; color:#fff; font-size:1.25rem; cursor:pointer; padding:4px 8px; text-decoration:none; display:flex; align-items:center; gap:4px; }
+    header .header-btn { background:none; border:1.5px solid rgba(255,255,255,0.5); border-radius:10px; color:#fff; font-size:1.25rem; cursor:pointer; padding:4px 8px; text-decoration:none; display:flex; align-items:center; gap:4px; transition:background 0.15s, border-color 0.15s; }
+    header .header-btn:hover { border-color:#fff; background:rgba(255,255,255,0.12); }
     header .header-btn .header-btn-label { font-size:0.75rem; }
     header #appHeaderTitle { flex:1; text-align:center; }
     main{padding-bottom:92px;}
