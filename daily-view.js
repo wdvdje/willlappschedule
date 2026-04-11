@@ -364,7 +364,7 @@
   // Re-render when navigating to the Calendar view
   window.addEventListener('view:show', (e) => {
     const v = (e && e.detail && e.detail.view) || '';
-    if (v === 'calendar') refreshForSelectedDate();
+    if (v === 'today') refreshForSelectedDate();
   });
 
   // wire day part selector

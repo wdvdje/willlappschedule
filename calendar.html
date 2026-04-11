@@ -12,7 +12,11 @@
   <link rel="stylesheet" href="./assets/app.css" />
 </head>
 <body>
-  <header>📅 TimeScape Planner</header>
+  <header>
+    <a href="index.html#inbox" class="header-btn" style="background:none;border:none;color:#fff;font-size:1.25rem;cursor:pointer;padding:4px 8px;text-decoration:none;display:flex;align-items:center;gap:4px" aria-label="Inbox"><span>📥</span><span style="font-size:0.75rem">Inbox</span></a>
+    <span style="flex:1;text-align:center">📅 TimeScape Planner</span>
+    <a href="index.html#settings" class="header-btn" style="background:none;border:none;color:#fff;font-size:1.25rem;cursor:pointer;padding:4px 8px;text-decoration:none;display:flex;align-items:center;gap:4px" aria-label="Settings"><span>⚙️</span><span style="font-size:0.75rem">Settings</span></a>
+  </header>
 
   <div class="calendar-controls">
     <button id="prevBtn">&lt;</button>
@@ -133,12 +137,11 @@
 
   <!-- bottom ribbon navigation -->
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-    <a href="index.html#events" class="r-item"><span>📅</span><span class="r-label">Events</span></a>
-    <a href="index.html#reminders" class="r-item"><span>🔔</span><span class="r-label">Reminders</span></a>
-    <a href="index.html#calendar" class="r-item r-center"><span>🗓️</span><span class="r-label">Calendar</span></a>
-    <a href="index.html#tasks" class="r-item"><span>✅</span><span class="r-label">Tasks</span></a>
-    <a href="index.html#inbox" class="r-item"><span>📥</span><span class="r-label">Inbox</span></a>
-    <a href="index.html#settings" class="r-item"><span>⚙️</span><span class="r-label">Settings</span></a>
+    <a href="index.html#personal" class="r-item"><span>👤</span><span class="r-label">Personal</span></a>
+    <a href="index.html#calendar" class="r-item"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="index.html#today" class="r-item r-center"><span>🏠</span><span class="r-label">Today</span></a>
+    <a href="index.html#home" class="r-item"><span>🏡</span><span class="r-label">Home</span></a>
+    <a href="index.html#work" class="r-item"><span>💼</span><span class="r-label">Work</span></a>
   </nav>
 
   <script src="./sync.js"></script>
