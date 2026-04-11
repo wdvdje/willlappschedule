@@ -295,100 +295,20 @@ function getEventsForDateKey(dateKey){
   return getExpandedEvents(dateKey, dateKey).filter(ev => ev.time || ev.endTime);
 }
 
-/* Updated renderDailyViewForDay:
-   - If partKey not provided or invalid, compute the part that contains the current hour.
-   - Color hour-label background to match the calendar day (weekday/weekend theme).
-   - Show events for the date, placing them in any hour they overlap; display start–end in 24h.
-*/
+/* renderDailyViewForDay:
+   Delegates to the calendar-style timeline renderer in daily-view.js.
+   Sets the date and triggers a re-render of the vertical timeline view. */
 function renderDailyViewForDay(year, monthIndex, day, partKey){
-  const container = document.getElementById('dailyView');
-  if(!container) return;
   const dateKey = `${year}-${pad2(monthIndex+1)}-${pad2(day)}`;
-  const events = getEventsForDateKey(dateKey);
-
-  // Determine part: if explicit valid partKey given (morning/day/night) use it,
-  // otherwise pick the part containing current hour (so no 'auto' behavior needed)
-  let part = DAY_PARTS[partKey];
-  if(!part){
-    const now = new Date();
-    // use current hour (local) for selecting the part
-    const curHour = (now.getFullYear()===year && now.getMonth()===monthIndex && now.getDate()===day) ? now.getHours() : new Date().getHours();
-    partKey = determinePartFromHour(curHour);
-    part = DAY_PARTS[partKey];
+  // Sync day-part selector if a valid partKey is given
+  if (partKey && DAY_PARTS[partKey]) {
+    const sel = document.getElementById('dayPartSelect');
+    if (sel) sel.value = partKey;
   }
-
-  // Build hours array interpreted as numbers (use 24..25 for 00:00 next day if needed)
-  const hours = [];
-  for(let h = part.start; h < part.end; h++){
-    hours.push(h);
+  // Delegate to daily-view.js timeline renderer
+  if (typeof window.dailyViewSetDate === 'function') {
+    window.dailyViewSetDate(dateKey);
   }
-
-  // Determine theme color for this date (match calendar cell)
-  const dt = new Date(year, monthIndex, day);
-  const dow = dt.getDay();
-  const theme = themes[monthIndex] || themes[0];
-  const labelBg = (dow===0 || dow===6) ? theme.weekend : theme.weekday;
-
-  // render
-  container.innerHTML = '';
-  const wrapper = document.createElement('div');
-  wrapper.className = 'daily-view';
-  hours.forEach(h => {
-    const row = document.createElement('div');
-    row.className = 'hour-row';
-    if (isCurrentHourForDate(year, monthIndex, day, h)) row.classList.add('current');
-
-    const label = document.createElement('div');
-    label.className = 'hour-label';
-    label.textContent = hourToLabel(h);
-    // style label background to match calendar day color
-    label.style.background = labelBg;
-    label.style.borderRadius = '6px';
-    label.style.padding = '6px';
-    label.style.color = '#000';
-    row.appendChild(label);
-
-    const eventsCell = document.createElement('div');
-    eventsCell.className = 'hour-events';
-
-    // list events overlapping this hour
-    events.forEach(ev=>{
-      const start = parseTimeToFloat(ev.time); // e.g., "09:30" -> 9.5
-      const end = parseTimeToFloat(ev.endTime) || start;
-      if (start == null) return; // skip untimed events in daily view
-      let s = start, e = end;
-      // treat end <= start as next-day end
-      if (e <= s) e = e + 24;
-
-      // hour cell represents [h, h+1)
-      if ( (s < h+1) && (e > h) ){
-        const evb = document.createElement('div');
-        evb.className = 'event-block' + ( (s < h || e > h+1) ? ' continues' : '' );
-
-        // show start–end if end present
-        const timeSpan = document.createElement('span'); timeSpan.className='event-time';
-        const startLabel = ev.time ? ev.time : '';
-        const endLabel = ev.endTime ? ('–' + ev.endTime) : '';
-        timeSpan.textContent = startLabel + endLabel;
-
-        evb.appendChild(timeSpan);
-        const title = document.createElement('span'); title.textContent = ' ' + (ev.emoji ? ev.emoji + ' ' : '') + (ev.title||'');
-        evb.appendChild(title);
-
-        // attach edit on click
-        evb.addEventListener('click', ()=> { editEvent(ev.id); });
-        eventsCell.appendChild(evb);
-      }
-    });
-
-    row.appendChild(eventsCell);
-    wrapper.appendChild(row);
-  });
-
-  container.appendChild(wrapper);
-
-  const info = document.getElementById('dailyViewInfo');
-  if(info) info.textContent = `${capitalize(partKey)} view (${hourToLabel(hours[0])} – ${hourToLabel(hours[hours.length-1])})`;
 }
 
 function determinePartFromHour(hour){
@@ -692,8 +612,8 @@ function showReminders(day){
     renderDailyViewForDay(selectedYear, selectedMonth, day, part);
     const container = document.getElementById('dailyView');
     if(container){
-      const current = container.querySelector('.hour-row.current');
-      if(current) current.scrollIntoView({ behavior:'smooth', block:'center' });
+      const nowLine = container.querySelector('.dv-now-line');
+      if(nowLine) nowLine.scrollIntoView({ behavior:'smooth', block:'center' });
     }
   }
 }
