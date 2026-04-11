@@ -1334,50 +1334,57 @@ function updateWeeklySalary(){
 
     const weekEvents = getExpandedEvents(weekStartISO, weekEndISO);
     const jobs = getJobs();
-    if (!jobs.length) { el.innerHTML = ''; return; }
 
-    // Build a lookup for jobs by id
-    const jobMap = {};
-    jobs.forEach(j => { jobMap[j.id] = j; });
+    // Build lookups by id and by name (for category:'job' events that only store jobName)
+    const jobById = {}, jobByName = {};
+    jobs.forEach(j => {
+      if (j.id != null) jobById[j.id] = j;
+      if (j.name) jobByName[j.name.toLowerCase()] = j;
+    });
 
     let totalSalary = 0;
-    // Count occurrences per job this week
-    const jobOccurrences = {};
     weekEvents.forEach(ev => {
-      const jid = ev.jobId || ev.eventJobId || '';
-      if (!jid) return;
-      const id = typeof jid === 'number' ? jid : parseInt(jid, 10);
-      if (!jobMap[id]) return;
-      jobOccurrences[id] = (jobOccurrences[id] || 0) + 1;
+      // Mirror the filter from calcEarnings() in desktop.js:
+      // include category:'job' events and work-domain events linked to a bucket/job
+      const cat = (ev.category || 'event').toLowerCase();
+      const isJobCategory = (cat === 'job');
+      const isWorkWithBucket = ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
+      if (!isJobCategory && !isWorkWithBucket) return;
+
+      // Resolve the job using the same chain as calcEarnings():
+      //   jobId → bucketId → jobName → inline jobRate snapshot
+      let job = null;
+      const jid = ev.jobId || ev.eventJobId;
+      if (jid != null) {
+        const id = typeof jid === 'number' ? jid : parseInt(jid, 10);
+        job = jobById[id] || null;
+      }
+      if (!job && ev.bucketId != null) job = jobById[ev.bucketId] || null;
+      if (!job && ev.jobName) job = jobByName[(ev.jobName || '').toLowerCase()] || null;
+      if (!job && ev.jobRate) job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour' };
+      if (!job) return;
 
       // If event has its own rate snapshot, use it; otherwise use job master rate
-      const job = jobMap[id];
       const rate = parseFloat(ev.jobRate || ev.eventJobRate || job.rate) || 0;
       const unit = ev.jobUnit || ev.eventJobUnit || job.unit || 'hour';
 
-      if (unit === 'job') {
-        // flat rate per occurrence
-        totalSalary += rate;
-      } else if (unit === 'day') {
+      if (unit === 'job' || unit === 'day') {
         totalSalary += rate;
       } else {
-        // hourly: calculate hours from start/end time
-        let hours = 0;
+        // hourly: only count when both start and end times are present
         const startStr = ev.startTime || ev.time || '';
         const endStr = ev.endTime || '';
         if (startStr && endStr) {
           const sp = startStr.match(/(\d{1,2}):(\d{2})/);
           const ep = endStr.match(/(\d{1,2}):(\d{2})/);
           if (sp && ep) {
-            const sm = parseInt(sp[1],10)*60+parseInt(sp[2],10);
-            const em = parseInt(ep[1],10)*60+parseInt(ep[2],10);
-            hours = Math.max(0, (em - sm) / 60);
+            let sm = parseInt(sp[1],10)*60+parseInt(sp[2],10);
+            let em = parseInt(ep[1],10)*60+parseInt(ep[2],10);
+            if (em <= sm) em += 1440; // handle overnight shifts
+            const hours = (em - sm) / 60;
+            totalSalary += rate * hours;
           }
         }
-        // fallback: if no times, assume default work hours
-        var DEFAULT_WORK_HOURS = 8;
-        if (!hours) hours = DEFAULT_WORK_HOURS;
-        totalSalary += rate * hours;
       }
     });
 
