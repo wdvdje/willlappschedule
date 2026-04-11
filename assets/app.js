@@ -1144,8 +1144,11 @@ function setRing(fgId, pctId, percent, color){
   const pctEl = document.getElementById(pctId);
   if (fg) {
     const offset = RING_CIRCUMFERENCE - (percent / 100) * RING_CIRCUMFERENCE;
-    fg.style.strokeDashoffset = offset;
-    fg.style.stroke = color;
+    // Use setAttribute for reliable SVG rendering across all platforms
+    // (iOS WebKit standalone PWA mode may ignore style-based SVG properties)
+    fg.setAttribute('stroke-dasharray', String(RING_CIRCUMFERENCE));
+    fg.setAttribute('stroke-dashoffset', String(offset));
+    fg.setAttribute('stroke', color);
   }
   if (pctEl) pctEl.textContent = Math.round(percent) + '%';
 }
@@ -1516,7 +1519,7 @@ function showView(view, updateHash = true){
     const candidate = (a.dataset && a.dataset.view) ? a.dataset.view : (href.indexOf('#')>-1 ? href.split('#').pop() : '');
     a.classList.toggle('active', candidate === view);
   });
-  if (view === 'today'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } }
+  if (view === 'today'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } try{ updateCompletionRing(); updateDayElapsedRing(); }catch(e){ console.warn(e); } }
   else if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } try{ renderCalendarSummary(); }catch(e){ console.warn(e); } }
   else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
@@ -3880,21 +3883,23 @@ function wireCalendarSummary() {
 
 /* ----- Init all new features on DOMContentLoaded ----- */
 document.addEventListener('DOMContentLoaded',function(){
-  wireCategoryFilters();
-  wireViewToggle();
-  wireQuickAdd();
-  wireSearch();
-  wireUndoBtn();
-  wireKeyboardShortcuts();
-  wireSyncStatusBar();
-  wireCalendarSwipe();
-  wireMorningBriefing();
-  wireDomainColorEditor();
-  updateInboxBadge();
-  wireDomainForms();
-  wireCalendarSummary();
-  wireBucketPages();
-  /* Refresh day-elapsed ring every 60s */
+  try {
+    wireCategoryFilters();
+    wireViewToggle();
+    wireQuickAdd();
+    wireSearch();
+    wireUndoBtn();
+    wireKeyboardShortcuts();
+    wireSyncStatusBar();
+    wireCalendarSwipe();
+    wireMorningBriefing();
+    wireDomainColorEditor();
+    updateInboxBadge();
+    wireDomainForms();
+    wireCalendarSummary();
+    wireBucketPages();
+  } catch(e) { console.warn('Feature wiring error', e); }
+  /* Refresh rings immediately and every 60s */
   updateDayElapsedRing();
   updateCompletionRing();
   updateWeeklySalary();
