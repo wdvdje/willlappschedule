@@ -1076,6 +1076,8 @@
     leftExpandTab.id = 'calDaySummaryExpandTab';
     leftExpandTab.className = 'cal-panel-expand-tab';
     leftExpandTab.title = 'Expand day summary';
+    leftExpandTab.setAttribute('role', 'button');
+    leftExpandTab.setAttribute('aria-label', 'Expand day summary panel');
     leftExpandTab.textContent = '📅 Day';
     leftExpandTab.addEventListener('click', function () { toggleDaySummaryPanel(false); });
     layout.appendChild(leftExpandTab);
@@ -1086,7 +1088,7 @@
     leftPanel.className = 'cal-side-panel';
     leftPanel.innerHTML = '<h4>' +
       '<span>📅 <span id="calDailyPanelDate">Today</span></span>' +
-      '<button class="cal-panel-toggle" id="calDaySummaryToggle" title="Collapse day summary">◂</button>' +
+      '<button class="cal-panel-toggle" id="calDaySummaryToggle" title="Collapse day summary" aria-label="Collapse day summary panel" aria-expanded="true">◂</button>' +
       '</h4>' +
       '<div id="calDailyPanelContent" style="font-size:0.82rem;color:#888">Select a day to see details.</div>';
     layout.appendChild(leftPanel);
@@ -1108,7 +1110,7 @@
     var existingSummary = document.getElementById('calendarSummary');
     var summaryHeaderHTML = '<h4>' +
       '<span>📋 Upcoming</span>' +
-      '<button class="cal-panel-toggle" id="calUpcomingToggle" title="Collapse upcoming">▸</button>' +
+      '<button class="cal-panel-toggle" id="calUpcomingToggle" title="Collapse upcoming" aria-label="Collapse upcoming panel" aria-expanded="true">▸</button>' +
       '</h4>';
 
     rightPanel.innerHTML = summaryHeaderHTML +
@@ -1133,6 +1135,8 @@
     rightExpandTab.id = 'calUpcomingExpandTab';
     rightExpandTab.className = 'cal-panel-expand-tab';
     rightExpandTab.title = 'Expand upcoming';
+    rightExpandTab.setAttribute('role', 'button');
+    rightExpandTab.setAttribute('aria-label', 'Expand upcoming panel');
     rightExpandTab.textContent = '📋 Soon';
     rightExpandTab.addEventListener('click', function () { toggleUpcomingPanel(false); });
     layout.appendChild(rightExpandTab);
@@ -1174,6 +1178,7 @@
   function toggleDaySummaryPanel(collapse) {
     var panel = document.getElementById('calDaySummaryPanel');
     var tab = document.getElementById('calDaySummaryExpandTab');
+    var toggleBtn = document.getElementById('calDaySummaryToggle');
     if (!panel || !tab) return;
     _daySummaryCollapsed = collapse;
     if (collapse) {
@@ -1183,11 +1188,13 @@
       panel.classList.remove('collapsed');
       tab.classList.remove('visible');
     }
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapse));
   }
 
   function toggleUpcomingPanel(collapse) {
     var panel = document.getElementById('calUpcomingPanel');
     var tab = document.getElementById('calUpcomingExpandTab');
+    var toggleBtn = document.getElementById('calUpcomingToggle');
     if (!panel || !tab) return;
     _upcomingCollapsed = collapse;
     if (collapse) {
@@ -1197,6 +1204,7 @@
       panel.classList.remove('collapsed');
       tab.classList.remove('visible');
     }
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapse));
   }
 
   function refreshUpcomingPanel() {
