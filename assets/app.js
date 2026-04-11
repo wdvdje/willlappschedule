@@ -2650,8 +2650,8 @@ function updateInboxBadge(){
   const label=document.getElementById('inboxNavLabel');
   if(!label) return;
   const viewDate = getViewedDateISO();
-  const tasks = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) === viewDate; });
-  const rems = getReminders()[viewDate] || [];
+  const tasks = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) === viewDate && !t.done; });
+  const rems = (getReminders()[viewDate] || []).filter(function(r){ return !r.done; });
   const dailyCount = tasks.length + rems.length;
   const unsortedCount = getInbox().length;
   const total = dailyCount + unsortedCount;
