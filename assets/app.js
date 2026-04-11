@@ -462,6 +462,7 @@ function saveJobFromUI(){
     hideJobModal();
     clearJobForm();
     renderJobs();
+    renderCategoryFilterBar();
   }catch(e){ console.warn('saveJobFromUI failed', e); alert('Save failed'); }
 }
 
@@ -490,6 +491,7 @@ function deleteJob(id){
     jobs = jobs.filter(function(j){ return j.id !== id; });
     setJobs(jobs);
     renderJobs();
+    renderCategoryFilterBar();
   }catch(e){ console.warn('deleteJob failed', e); }
 }
 
@@ -2031,16 +2033,82 @@ const CAT_COLORS = {
 
 /* ----- Active category filter state ----- */
 let activeFilter = 'all';
+let activeFilterBucket = null; // { domain, bucketId } when filtering by a specific bucket
 
-function wireCategoryFilters(){
-  document.querySelectorAll('.cat-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.cat-filter-btn').forEach(b => b.classList.remove('active'));
+/* Build the category filter bar dynamically from user buckets across all 3 domains */
+function renderCategoryFilterBar() {
+  const bar = document.getElementById('categoryFilterBar');
+  if (!bar) return;
+
+  // Preserve only the label span, rebuild buttons
+  bar.innerHTML = '<span style="font-size:0.8rem;color:#666;margin-right:2px">Filter:</span>';
+
+  // "All" button
+  const allBtn = document.createElement('button');
+  allBtn.className = 'cat-filter-btn' + (activeFilter === 'all' && !activeFilterBucket ? ' active' : '');
+  allBtn.dataset.cat = 'all';
+  allBtn.textContent = 'All';
+  bar.appendChild(allBtn);
+
+  // For each domain, add a domain-level button then its bucket buttons
+  var domains = ['personal', 'home', 'work'];
+  domains.forEach(function(domain) {
+    var meta = DOMAIN_META[domain];
+    if (!meta) return;
+
+    // Domain-level filter button
+    var domBtn = document.createElement('button');
+    domBtn.className = 'cat-filter-btn' + (activeFilter === domain && !activeFilterBucket ? ' active' : '');
+    domBtn.dataset.cat = domain;
+    domBtn.textContent = meta.emoji + ' ' + meta.label;
+    domBtn.style.fontWeight = '600';
+    bar.appendChild(domBtn);
+
+    // Bucket buttons for this domain
+    var buckets = getBuckets(domain);
+    buckets.forEach(function(b) {
+      var btn = document.createElement('button');
+      var isActive = activeFilterBucket && activeFilterBucket.domain === domain && activeFilterBucket.bucketId === b.id;
+      btn.className = 'cat-filter-btn' + (isActive ? ' active' : '');
+      btn.dataset.cat = 'bucket';
+      btn.dataset.bucketDomain = domain;
+      btn.dataset.bucketId = String(b.id);
+      btn.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+      btn.style.fontSize = '0.78rem';
+      bar.appendChild(btn);
+    });
+  });
+
+  // Wire click handlers
+  bar.querySelectorAll('.cat-filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      bar.querySelectorAll('.cat-filter-btn').forEach(function(b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      activeFilter = btn.dataset.cat || 'all';
+
+      if (btn.dataset.cat === 'bucket') {
+        activeFilter = 'bucket';
+        activeFilterBucket = {
+          domain: btn.dataset.bucketDomain,
+          bucketId: parseInt(btn.dataset.bucketId, 10)
+        };
+      } else {
+        activeFilter = btn.dataset.cat || 'all';
+        activeFilterBucket = null;
+      }
       generateCalendar();
       if (selectedDay) showReminders(selectedDay);
     });
+  });
+}
+
+function wireCategoryFilters(){
+  renderCategoryFilterBar();
+  // Re-render filter bar when data changes (buckets may have been added/removed)
+  window.addEventListener('app:data:updated', renderCategoryFilterBar);
+  window.addEventListener('storage', function(e) {
+    if (!e.key || e.key.indexOf('Buckets') !== -1 || e.key === 'jobs') {
+      renderCategoryFilterBar();
+    }
   });
 }
 
@@ -2061,8 +2129,14 @@ function wireCategoryFilters(){
       const dayEvents = events.filter(e => normalizeDate(e.date) === ymd);
 
       if (activeFilter !== 'all') {
-        const hasMatch = dayEvents.some(e => (e.category || 'event') === activeFilter)
-          || (activeFilter === 'holiday' && !!getHoliday(pad2(selectedMonth+1)+'-'+pad2(day), selectedYear));
+        let hasMatch;
+        if (activeFilter === 'bucket' && activeFilterBucket) {
+          // Filter by specific bucket within a domain
+          hasMatch = dayEvents.some(e => getDomainOfItem(e) === activeFilterBucket.domain && e.bucketId === activeFilterBucket.bucketId);
+        } else {
+          // Filter by domain (personal, home, work)
+          hasMatch = dayEvents.some(e => getDomainOfItem(e) === activeFilter);
+        }
         cell.style.opacity = hasMatch ? '1' : '0.35';
       } else {
         cell.style.opacity = '1';
@@ -3104,9 +3178,8 @@ function addBucket(domain) {
   buckets.push({ id: nextBucketId(domain), name: name, emoji: emoji || '', collapsed: false });
   setBuckets(domain, buckets);
   renderBucketPage(domain);
+  renderCategoryFilterBar();
 }
-
-/* Rename an existing bucket */
 function renameBucket(domain, bucketId) {
   const buckets = getBuckets(domain);
   const b = buckets.find(function(x) { return x.id === bucketId; });
@@ -3118,6 +3191,7 @@ function renameBucket(domain, bucketId) {
   b.emoji = newEmoji;
   setBuckets(domain, buckets);
   renderBucketPage(domain);
+  renderCategoryFilterBar();
 }
 
 /* Delete a bucket and move its items to Uncategorized */
@@ -3143,6 +3217,7 @@ function deleteBucket(domain, bucketId) {
   const buckets = getBuckets(domain);
   setBuckets(domain, buckets.filter(function(b) { return b.id !== bucketId; }));
   renderBucketPage(domain);
+  renderCategoryFilterBar();
 }
 
 /* Build the "Add Item" collapsible panel for a bucket */
