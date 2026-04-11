@@ -2,6 +2,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const PORT = process.env.PORT || 8080;
 const ROOT = process.cwd();
@@ -49,6 +50,106 @@ async function connectCouchbase() {
 }
 
 connectCouchbase();
+
+// ---------------------------------------------------------------------------
+// Token-sync storage (in-memory, optionally persisted to data/token-sync.json)
+// ---------------------------------------------------------------------------
+
+const TOKEN_SYNC_COLLECTIONS = new Set(['events', 'tasks', 'taskCategories', 'reminders', 'inbox']);
+const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+const TOKEN_SYNC_DATA_DIR = path.join(ROOT, 'data');
+const TOKEN_SYNC_DATA_FILE = path.join(TOKEN_SYNC_DATA_DIR, 'token-sync.json');
+
+// Map<token, { lastUsed: number, data: { [collection]: any } }>
+const tokenSyncStore = new Map();
+
+function loadTokenSyncData() {
+  try {
+    const raw = fs.readFileSync(TOKEN_SYNC_DATA_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') {
+      for (const [token, entry] of Object.entries(parsed)) {
+        if (entry && typeof entry.lastUsed === 'number' && typeof entry.data === 'object') {
+          tokenSyncStore.set(token, entry);
+        }
+      }
+    }
+    console.log(`Token-sync: loaded ${tokenSyncStore.size} token(s) from disk.`);
+  } catch (_) {
+    // File may not exist yet – that's fine.
+  }
+}
+
+function saveTokenSyncData() {
+  try {
+    fs.mkdirSync(TOKEN_SYNC_DATA_DIR, { recursive: true });
+    const out = {};
+    for (const [token, entry] of tokenSyncStore.entries()) out[token] = entry;
+    fs.writeFileSync(TOKEN_SYNC_DATA_FILE, JSON.stringify(out));
+  } catch (e) {
+    console.error('Token-sync: could not save data to disk:', e.message);
+  }
+}
+
+function purgeExpiredTokens() {
+  const cutoff = Date.now() - TOKEN_TTL_MS;
+  let removed = 0;
+  for (const [token, entry] of tokenSyncStore.entries()) {
+    if (entry.lastUsed < cutoff) { tokenSyncStore.delete(token); removed++; }
+  }
+  if (removed) saveTokenSyncData();
+}
+
+function generateSyncToken() {
+  // 12 lowercase hex chars (crypto.randomBytes(6) → 48 bits of entropy)
+  return crypto.randomBytes(6).toString('hex');
+}
+
+loadTokenSyncData();
+// Purge stale tokens once an hour
+setInterval(purgeExpiredTokens, 60 * 60 * 1000);
+
+// ---------------------------------------------------------------------------
+// Token-sync API handlers
+// ---------------------------------------------------------------------------
+
+function handleTokenSyncRegister(res) {
+  const token = generateSyncToken();
+  tokenSyncStore.set(token, { lastUsed: Date.now(), data: {} });
+  saveTokenSyncData();
+  return jsonResponse(res, 200, { token });
+}
+
+function handleTokenSyncGet(res, token, collection) {
+  const entry = tokenSyncStore.get(token);
+  if (!entry) return jsonResponse(res, 404, { error: 'Token not found' });
+  entry.lastUsed = Date.now();
+  const value = Object.prototype.hasOwnProperty.call(entry.data, collection)
+    ? entry.data[collection]
+    : null;
+  return jsonResponse(res, 200, { value });
+}
+
+async function handleTokenSyncPost(res, token, collection, body) {
+  let payload;
+  try {
+    payload = JSON.parse(body);
+    if (typeof payload !== 'object' || payload === null || !Object.prototype.hasOwnProperty.call(payload, 'value')) {
+      throw new Error('Expected { value: ... }');
+    }
+  } catch (e) {
+    return jsonResponse(res, 400, { error: 'Invalid JSON: expected { "value": ... }' });
+  }
+
+  if (!tokenSyncStore.has(token)) {
+    tokenSyncStore.set(token, { lastUsed: Date.now(), data: {} });
+  }
+  const entry = tokenSyncStore.get(token);
+  entry.lastUsed = Date.now();
+  entry.data[collection] = payload.value;
+  saveTokenSyncData();
+  return jsonResponse(res, 200, { ok: true });
+}
 
 // ---------------------------------------------------------------------------
 // Sync API helpers
@@ -116,6 +217,35 @@ http.createServer((req, res) => {
     if (req.method === 'OPTIONS' && urlPath.startsWith('/api/')) {
       res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type' });
       res.end();
+      return;
+    }
+
+    // Token-sync API: POST /api/token-sync/new  GET/POST /api/token-sync/:token/:collection
+    if (urlPath === '/api/token-sync/new' && req.method === 'POST') {
+      handleTokenSyncRegister(res);
+      return;
+    }
+    const tokenSyncMatch = urlPath.match(/^\/api\/token-sync\/([a-f0-9]{12})\/([a-zA-Z0-9_-]+)$/);
+    if (tokenSyncMatch) {
+      const token = tokenSyncMatch[1];
+      const collection = tokenSyncMatch[2];
+      if (!TOKEN_SYNC_COLLECTIONS.has(collection)) {
+        jsonResponse(res, 404, { error: 'Unknown collection' });
+        return;
+      }
+      if (req.method === 'GET') {
+        handleTokenSyncGet(res, token, collection);
+        return;
+      }
+      if (req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+          handleTokenSyncPost(res, token, collection, body).catch(e => jsonResponse(res, 500, { error: e.message }));
+        });
+        return;
+      }
+      jsonResponse(res, 405, { error: 'Method not allowed' });
       return;
     }
 

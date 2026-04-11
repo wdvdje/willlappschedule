@@ -2323,6 +2323,9 @@ function wireSyncStatusBar(){
   window.addEventListener('pouch-sync:paused',function(){ show('\u2705 Synced',true); });
   window.addEventListener('pouch-sync:import',function(){ show('\u2705 Data imported from cloud',true); });
   window.addEventListener('pouch-sync:error', function(e){ show('\u26A0\uFE0F Sync error: '+(e.detail&&e.detail.message?e.detail.message:'unknown'),true); });
+  window.addEventListener('token-sync:started',function(){ show('\uD83D\uDD04 Token sync active',true); });
+  window.addEventListener('token-sync:updated',function(){ show('\u2705 Data updated from other device',true); });
+  window.addEventListener('token-sync:stopped',function(){ show('Token sync stopped',true); });
 }
 
 /* ----- Swipe to navigate months ----- */
