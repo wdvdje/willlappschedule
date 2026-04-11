@@ -263,9 +263,36 @@
         // day-off skip carries forward permanently to every subsequent occurrence.
         // Slots before baseDate are skipped without affecting the shift: off-days
         // before the event's own start date should not displace its schedule.
+        //
+        // School A/B days form a continuous sequence of school days. A holiday
+        // on ANY weekday — even one that was not itself a canonical event slot —
+        // removes one day from the sequence and therefore shifts every subsequent
+        // occurrence forward by one. We handle this by scanning all weekdays
+        // strictly between consecutive canonical slots and counting any off-day
+        // found there as an additional cumulative shift before processing the
+        // next slot.
         let cumulativeShift = 0;
+        // scanFrom tracks where the inter-slot scan should begin (inclusive).
+        // It starts at baseDate so that weekday holidays between baseDate and
+        // the first canonical slot are counted, but days before baseDate are not.
+        let scanFrom = baseDate;
         canonicalSlots.forEach(function(canonical) {
           if (canonical < baseDate) return;
+          // Count off-days on non-canonical weekdays in [scanFrom, canonical).
+          // Each such off-day removes one school day from the sequence and
+          // therefore shifts this and all later occurrences forward by one.
+          if (skipDates) {
+            let scanDate = scanFrom;
+            while (scanDate < canonical) {
+              const sdow = parseISO(scanDate).getDay();
+              if (sdow !== 0 && sdow !== 6 && skipDates[scanDate]) {
+                cumulativeShift++;
+              }
+              scanDate = addDaysISO(scanDate, 1);
+            }
+          }
+          // Next scan starts after this canonical slot so it is not re-scanned.
+          scanFrom = addDaysISO(canonical, 1);
           let candidate = addDaysISO(canonical, cumulativeShift);
           // Advance past weekends and off-days, growing the cumulative shift each
           // time. Cap at 60 iterations to cover any extended holiday block (e.g.
