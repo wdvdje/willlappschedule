@@ -13,6 +13,12 @@
   const REMINDER_COLOR = '#e67e22';
   const TASK_DEFAULT_COLOR = '#2ecc71';
   const HOUR_HEIGHT = 60; // px per hour slot
+  const REMINDER_DEFAULT_DURATION = 15; // minutes
+  const TASK_DEFAULT_DURATION = 30; // minutes
+  const GUTTER_WIDTH = 56; // px, keep in sync with CSS .dv-gutter
+  const MAX_LAYOUT_PASSES = 10;
+  const SWIPE_THRESHOLD_PX = 60;
+  const SWIPE_DIRECTION_RATIO = 1.5;
 
   // ── Shared helpers (utils.js if available, else local) ──
   const loadEvents = (window.appUtils && window.appUtils.loadEvents) ? window.appUtils.loadEvents : function () {
@@ -157,7 +163,7 @@
         title: r.text || r.title || 'Reminder',
         emoji: (r.emoji || '').trim(),
         startMin: s,
-        endMin: s + 15,
+        endMin: s + REMINDER_DEFAULT_DURATION,
         hasTimes: !!(r.time || r.reminderTime),
         color: REMINDER_COLOR,
         raw: r
@@ -175,7 +181,7 @@
         title: t.title || 'Task',
         emoji: (t.emoji || '').trim(),
         startMin: sRaw,
-        endMin: sRaw + 30,
+        endMin: sRaw + TASK_DEFAULT_DURATION,
         hasTimes: true,
         color: color,
         raw: t
@@ -224,7 +230,7 @@
     // second pass: ensure all overlapping events share the same _totalCols
     var changed = true;
     var passes = 0;
-    while (changed && passes < 10) {
+    while (changed && passes < MAX_LAYOUT_PASSES) {
       changed = false;
       passes++;
       items.forEach(function(item) {
@@ -588,7 +594,7 @@
       var dx = touch.clientX - touchStartX;
       var dy = touch.clientY - touchStartY;
       // Require horizontal swipe (at least 60px, and more horizontal than vertical)
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (Math.abs(dx) > SWIPE_THRESHOLD_PX && Math.abs(dx) > Math.abs(dy) * SWIPE_DIRECTION_RATIO) {
         if (dx > 0) navigateDay(-1); // swipe right → previous day
         else navigateDay(1);          // swipe left → next day
       }

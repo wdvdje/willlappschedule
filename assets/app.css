@@ -194,7 +194,7 @@ body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
 .dv-hour-slot:last-child { border-bottom: none; }
 .dv-half-line {
   position: absolute;
-  left: 56px;
+  left: 0;
   right: 0;
   height: 0;
   border-top: 1px dashed #f5f5f5;
@@ -203,7 +203,7 @@ body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
 /* current-time indicator */
 .dv-now-line {
   position: absolute;
-  left: 48px;
+  left: -8px;
   right: 0;
   height: 2px;
   background: #e74c3c;
@@ -268,7 +268,7 @@ body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
   .dv-gutter-label { font-size: 0.72rem; padding-right: 4px; }
   .dv-event-block { font-size: 0.78rem; padding: 3px 6px; left: 2px; right: 2px; }
   .day-nav-title { font-size: 0.92rem; }
-  .dv-now-line { left: 38px; }
+  .dv-now-line { left: -6px; }
 }
 
 /* legacy class kept for backward compat */
