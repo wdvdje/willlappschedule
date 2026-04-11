@@ -25,7 +25,7 @@
     .hidden{display:none}
     .page{max-width:900px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left}
     .calendar-controls{display:flex;gap:10px;justify-content:center;align-items:center;margin:18px 0;}
-    .calendar-controls button{background:#4a90e2;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;}
+    .calendar-controls button{background:#4a90e2;color:#fff;border:none;border-radius:10px;padding:6px 12px;cursor:pointer;}
     .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;width:calc(100vw - 32px);max-width:100%;margin:0 auto 12px;background:#fff;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,0.07);box-sizing:border-box;}
     .calendar-dayname{font-weight:700;color:#4a90e2;padding-bottom:4px}
     .day{background:#fff;border-radius:8px;padding:8px;min-height:64px;position:relative;cursor:pointer;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; flex-direction:column; align-items:stretch;}
@@ -65,11 +65,12 @@
     .progress-ring-wrap .ring-label { font-size:0.8rem;color:#666;text-align:center; }
     .weekly-salary { margin-top:10px;font-size:1rem;color:#333; }
     .weekly-salary strong { color:#27ae60; }
-    .bottom-ribbon{ position:fixed;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid #e6e6e6;display:flex;align-items:center;justify-content:space-around; box-shadow:0 -4px 18px rgba(0,0,0,0.06);z-index:999; }
-    .bottom-ribbon .r-item{ text-decoration:none;color:#333;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:6px 4px;}
+    .bottom-ribbon{ position:fixed;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid #e6e6e6;display:flex;align-items:center;justify-content:space-around; box-shadow:0 -4px 18px rgba(0,0,0,0.06);z-index:999;padding:4px 6px;gap:4px; }
+    .bottom-ribbon .r-item{ text-decoration:none;color:#333;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:6px 4px;border:1.5px solid #e0e0e0;border-radius:10px;transition:background 0.15s, border-color 0.15s, color 0.15s;}
+    .bottom-ribbon .r-item:hover{ border-color:#4a90e2;background:rgba(74,144,226,0.05); }
     .bottom-ribbon .r-item .r-label{ font-size:11px;margin-top:4px;display:block;}
-    .bottom-ribbon .r-item.r-center{ border-radius:12px; margin:0 6px; padding:8px 6px; }
-    .bottom-ribbon .r-item.active{ background:linear-gradient(0deg, rgba(74,144,226,0.10), transparent); color:#4a90e2; }
+    .bottom-ribbon .r-item.r-center{ margin:0 2px; }
+    .bottom-ribbon .r-item.active{ background:linear-gradient(0deg, rgba(74,144,226,0.10), transparent); color:#4a90e2; border-color:#4a90e2; }
     body { padding-bottom: 92px; }
 
     /* ===== Day navigation bar ===== */
@@ -262,7 +263,7 @@
     .domain-tab.active { background:#4a90e2; color:#fff; font-weight:600; }
     .domain-tab:hover:not(.active) { background:#f0f6ff; }
     .domain-form-panel { padding:8px 0; }
-    .domain-add-btn { background:#4a90e2; color:#fff; border:none; border-radius:6px; padding:8px 16px; cursor:pointer; font-size:0.9rem; }
+    .domain-add-btn { background:#4a90e2; color:#fff; border:none; border-radius:10px; padding:8px 16px; cursor:pointer; font-size:0.9rem; }
     .domain-add-btn:hover { background:#2568c3; }
     /* Calendar summary domain pills */
     .cal-domain-pill { padding:3px 10px; border-radius:16px; border:1.5px solid #ddd; background:#fff; cursor:pointer; font-size:0.8rem; }
@@ -638,7 +639,7 @@
           </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
             <button id="catCancelBtn" type="button" class="small-btn">Cancel</button>
-            <button id="catAddBtn" type="button" style="background:#4a90e2;color:#fff;border:none;padding:6px 10px;border-radius:6px">Add</button>
+            <button id="catAddBtn" type="button" style="background:#4a90e2;color:#fff;border:none;padding:6px 10px;border-radius:10px">Add</button>
           </div>
         </div>
       </div>
@@ -952,7 +953,7 @@
         </div>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
           <button type="button" id="cancelEdit" class="small-btn">Cancel</button>
-          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
+          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:10px">Save</button>
         </div>
       </form>
     </div>
