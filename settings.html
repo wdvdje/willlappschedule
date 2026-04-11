@@ -166,7 +166,7 @@
           e.preventDefault();
           // always load fresh index with the requested view
           location.href = 'index.html?_=' + Date.now() + '#' + view;
-        }, { passive: true });
+        });
       });
     })();
   </script>

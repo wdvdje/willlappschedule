@@ -1269,6 +1269,8 @@ function initOverlayInputs(){
 /* SPA view switching */
 function showView(view, updateHash = true){
   view = view || 'today';
+  /* Ensure modals are closed when switching views */
+  try { hideJobModal(); } catch(_) {}
   document.querySelectorAll('[id^="page-"]').forEach(p=> p.classList.add('hidden'));
   const el = document.getElementById('page-'+view) || document.getElementById('page-today');
   if (el) el.classList.remove('hidden');
