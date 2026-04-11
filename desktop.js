@@ -788,116 +788,11 @@
   }
 
   // ---------------------------------------------------------------------------
-  // 7. Agenda sidebar (desktop calendar — upcoming events list)
+  // 7. Agenda sidebar — removed (integrated into split-panel layout)
   // ---------------------------------------------------------------------------
 
-  var _agendaMinimized = false;
-
-  function injectAgendaSidebar() {
-    var calPage = document.getElementById('page-calendar');
-    if (!calPage || !isDesktop() || document.getElementById('dtAgendaSidebar')) return;
-
-    var sidebar = document.createElement('div');
-    sidebar.id = 'dtAgendaSidebar';
-    sidebar.style.cssText = 'position:fixed;right:16px;top:72px;width:260px;max-height:calc(100vh - 100px);' +
-      'overflow-y:auto;background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.08);' +
-      'padding:14px 16px;z-index:50;font-size:0.88rem;display:none';
-
-    var headerDiv = document.createElement('div');
-    headerDiv.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;cursor:pointer';
-    var title = document.createElement('h4');
-    title.style.cssText = 'margin:0;color:#333;font-size:0.95rem';
-    title.textContent = '📋 Upcoming';
-    var toggleBtn = document.createElement('button');
-    toggleBtn.id = 'dtAgendaToggle';
-    toggleBtn.type = 'button';
-    toggleBtn.style.cssText = 'background:none;border:none;cursor:pointer;font-size:1rem;padding:0 2px;color:#888;line-height:1';
-    toggleBtn.title = 'Minimize';
-    toggleBtn.textContent = '▾';
-    toggleBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      _agendaMinimized = !_agendaMinimized;
-      var bodyEl = document.getElementById('dtAgendaBody');
-      if (bodyEl) bodyEl.style.display = _agendaMinimized ? 'none' : '';
-      toggleBtn.textContent = _agendaMinimized ? '▸' : '▾';
-      toggleBtn.title = _agendaMinimized ? 'Expand' : 'Minimize';
-    });
-    headerDiv.appendChild(title);
-    headerDiv.appendChild(toggleBtn);
-    headerDiv.addEventListener('click', function() { toggleBtn.click(); });
-
-    var bodyDiv = document.createElement('div');
-    bodyDiv.id = 'dtAgendaBody';
-
-    sidebar.appendChild(headerDiv);
-    sidebar.appendChild(bodyDiv);
-    document.body.appendChild(sidebar);
-    refreshAgenda();
-  }
-
-  function refreshAgenda() {
-    var body = document.getElementById('dtAgendaBody');
-    var sidebar = document.getElementById('dtAgendaSidebar');
-    if (!body || !sidebar) return;
-
-    var calPage = document.getElementById('page-calendar');
-    if (!calPage || calPage.classList.contains('hidden')) { sidebar.style.display = 'none'; return; }
-    sidebar.style.display = 'block';
-    body.style.display = _agendaMinimized ? 'none' : '';
-
-    var today = new Date();
-    var todayStr = today.getFullYear() + '-' + p2(today.getMonth() + 1) + '-' + p2(today.getDate());
-    var endDate = new Date(today);
-    endDate.setDate(endDate.getDate() + 7);
-    var endStr = endDate.getFullYear() + '-' + p2(endDate.getMonth() + 1) + '-' + p2(endDate.getDate());
-
-    // Use getExpandedEvents (recurring-aware) when available, fall back to raw getEv()
-    var rawEvents;
-    if (typeof getExpandedEvents === 'function') {
-      rawEvents = getExpandedEvents(todayStr, endStr);
-    } else {
-      rawEvents = getEv().filter(function (e) {
-        var d = nd(e.date);
-        return d >= todayStr && d <= endStr;
-      });
-    }
-    var events = rawEvents.sort(function (a, b) {
-      var cmp = (nd(a.date) || '').localeCompare(nd(b.date) || '');
-      if (cmp !== 0) return cmp;
-      return (a.time || '').localeCompare(b.time || '');
-    });
-
-    var domainColors = (typeof getDomainColors === 'function') ? getDomainColors() : { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6' };
-    var DOMAIN_LABELS = { work: 'Work', home: 'Home', personal: 'Personal' };
-
-    if (!events.length) {
-      body.innerHTML = '<div style="color:#aaa;padding:8px 0">No upcoming events this week.</div>';
-      return;
-    }
-
-    var html = '';
-    var lastDate = '';
-    events.forEach(function (ev) {
-      var d = nd(ev.date);
-      if (d !== lastDate) {
-        var dateObj = new Date(d + 'T12:00:00');
-        var dateLabel = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-        html += '<div style="font-weight:700;font-size:0.78rem;color:#888;margin-top:8px;text-transform:uppercase;letter-spacing:0.03em">' + esc(dateLabel) + '</div>';
-        lastDate = d;
-      }
-      var domain = ev.domain || 'personal';
-      var color = domainColors[domain] || '#9b59b6';
-      html += '<div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #f5f5f5">';
-      html += '<div style="width:4px;height:28px;border-radius:2px;background:' + color + ';flex-shrink:0"></div>';
-      html += '<div style="flex:1;overflow:hidden">';
-      html += '<div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (ev.emoji ? ev.emoji + ' ' : '') + esc(ev.title || '') + '</div>';
-      html += '<div style="font-size:0.75rem;color:#888">' + (ev.time || 'All day') +
-        ' · <span style="color:' + color + '">' + esc(DOMAIN_LABELS[domain] || domain) + '</span></div>';
-      html += '</div></div>';
-    });
-
-    body.innerHTML = html;
-  }
+  function injectAgendaSidebar() { /* no-op: upcoming panel is now in the split-panel layout */ }
+  function refreshAgenda() { /* no-op */ }
 
   // ---------------------------------------------------------------------------
   // 8. Keyboard navigation for calendar days (desktop)
