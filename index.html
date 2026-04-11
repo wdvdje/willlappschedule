@@ -50,6 +50,7 @@
     @media (max-width:600px){ .mobile-label{display:inline-block} .calendar,.tasks,.events,.reminders{width:calc(100vw - 32px);}}
     #editModal{position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
     #editModal:not(.hidden){display:flex}
+    #jobModal:not(.hidden){display:flex}
     #editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
     .event-preview.reminder { color: #e67e22; } .event-preview.task { color: green; } .reminder-dot { display:none; }
     .places-suggestions { position:relative; }
@@ -658,8 +659,61 @@
     <section id="page-work" class="page hidden">
       <h2>💼 Work</h2>
       <div style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
-        <p style="text-align:center;font-size:0.88rem;color:#666;margin:0 0 12px">Jobs are managed in <a href="index.html#settings" style="color:#4a90e2">Settings → Jobs</a></p>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button id="addWorkJobBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Job</button>
+        </div>
         <div id="domain-buckets-work"></div>
+      </div>
+
+      <!-- Job Add/Edit Modal -->
+      <div id="jobModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999">
+        <div style="background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left;max-height:90vh;overflow-y:auto">
+          <h3 id="jobModalHeading" style="margin:0 0 12px">Add Job</h3>
+          <input id="jobId" type="hidden" />
+          <label for="jobName" style="display:block;margin-top:6px;font-weight:600">Job name</label>
+          <input id="jobName" type="text" placeholder="e.g. Lawn mowing" />
+
+          <label for="jobEmoji" style="display:block;margin-top:6px;font-weight:600">Emoji</label>
+          <input id="jobEmoji" type="text" placeholder="e.g. 🚜" />
+
+          <label for="jobLocation" style="display:block;margin-top:6px;font-weight:600">Location</label>
+          <div class="places-suggestions" style="position:relative">
+            <input id="jobLocation" type="text" placeholder="Address or area" autocomplete="off" />
+            <div id="jobLocationList" class="suggestions-list" style="display:none"></div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <div style="flex:1">
+              <label for="jobRate" style="display:block;font-weight:600">Rate</label>
+              <input id="jobRate" type="text" placeholder="e.g. 25.00" />
+            </div>
+            <div style="width:140px">
+              <label for="jobUnit" style="display:block;font-weight:600">Unit</label>
+              <select id="jobUnit">
+                <option value="hour">hour</option>
+                <option value="job">job</option>
+                <option value="day">day</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Per-Job Off-Days -->
+          <div style="margin-top:12px;border-top:1px solid #eee;padding-top:10px">
+            <label style="display:block;font-weight:600">Days Off</label>
+            <p style="color:#666;font-size:0.85rem;margin:2px 0 6px">Add days off for this job. The A/B weekday repeat pattern will skip these dates.</p>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="jobOffDayDate" type="date" style="flex:1" />
+              <input id="jobOffDayLabel" type="text" placeholder="Label (optional)" style="flex:1" />
+              <button type="button" id="addJobOffDayBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+            </div>
+            <ul id="jobOffDaysList" style="list-style:none;padding:0;margin:6px 0 0"></ul>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+            <button id="cancelJobBtn" type="button" class="small-btn">Cancel</button>
+            <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -700,54 +754,10 @@
           <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
         </section>
 
-        <!-- Jobs -->
+        <!-- Jobs: now managed on the Work page -->
         <section id="userJobs" style="margin-top:18px">
           <h3>Jobs</h3>
-
-          <!-- Saved Jobs -->
-          <div id="savedJobs" style="margin-top:8px">
-            <h4>Saved Jobs</h4>
-            <ul id="jobList" style="list-style:none;padding:0;margin:8px 0;">
-              <!-- ... populated by JS ... -->
-            </ul>
-          </div>
-
-          <!-- Add / Edit Job -->
-          <div id="addJob" style="margin-top:16px">
-            <h4>Add Job</h4>
-            <input id="jobId" type="hidden" />
-            <label for="jobName" style="display:block;margin-top:6px;font-weight:600">Job name</label>
-            <input id="jobName" type="text" placeholder="e.g. Lawn mowing" />
-
-            <label for="jobEmoji" style="display:block;margin-top:6px;font-weight:600">Emoji</label>
-            <input id="jobEmoji" type="text" placeholder="e.g. 🚜" />
-
-            <label for="jobLocation" style="display:block;margin-top:6px;font-weight:600">Location</label>
-            <div class="places-suggestions" style="position:relative">
-              <input id="jobLocation" type="text" placeholder="Address or area" autocomplete="off" />
-              <div id="jobLocationList" class="suggestions-list" style="display:none"></div>
-            </div>
-
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <div style="flex:1">
-                <label for="jobRate" style="display:block;font-weight:600">Rate</label>
-                <input id="jobRate" type="text" placeholder="e.g. 25.00" />
-              </div>
-              <div style="width:140px">
-                <label for="jobUnit" style="display:block;font-weight:600">Unit</label>
-                <select id="jobUnit">
-                  <option value="hour">hour</option>
-                  <option value="job">job</option>
-                  <option value="day">day</option>
-                </select>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:8px;margin-top:10px">
-              <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
-              <button id="clearJobBtn" class="small-btn">Clear</button>
-            </div>
-          </div>
+          <p style="color:#666;font-size:0.9rem">Jobs are now managed on the <a href="index.html#work" style="color:#4a90e2">💼 Work</a> page.</p>
         </section>
 
         <!-- GitHub Gist sync (no extra account needed – uses existing GitHub login) -->

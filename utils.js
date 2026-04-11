@@ -228,6 +228,23 @@
           } catch(_) {}
         }
 
+        // Per-job/bucket off-days: if event is linked to a job (work domain), add job-specific off-days
+        var jobLinkId = (ev.bucketId !== undefined && ev.bucketId !== null) ? ev.bucketId : (ev.jobId ? ev.jobId : null);
+        if (jobLinkId !== null) {
+          try {
+            var jobs = JSON.parse(localStorage.getItem('jobs') || '[]');
+            var parsedId = (typeof jobLinkId === 'string') ? parseInt(jobLinkId, 10) : jobLinkId;
+            var linkedJob = jobs.find(function(j) { return j.id === parsedId || j.id === jobLinkId; });
+            if (linkedJob && Array.isArray(linkedJob.offDays) && linkedJob.offDays.length) {
+              if (!skipDates) skipDates = {};
+              linkedJob.offDays.forEach(function(d) {
+                var dateStr = typeof d === 'string' ? d : (d && d.date ? d.date : '');
+                if (dateStr) skipDates[dateStr] = true;
+              });
+            }
+          } catch(_) {}
+        }
+
         let weekIndex = 0;
         while (weekIndex < 200) {
           const weekStart = addDaysISO(mondays, weekIndex * 7);
