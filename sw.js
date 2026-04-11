@@ -1,5 +1,5 @@
 /* Service worker: offline shell caching + push notifications */
-const CACHE_VERSION = 'ts-cache-v2';
+const CACHE_VERSION = 'ts-cache-v3';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -16,10 +16,14 @@ const CORE_ASSETS = [
   './daily-view.js',
   './tasks.js',
   './notifications.js',
-  './push.js'
+  './push.js',
+  './gist-sync.js',
+  './calendar-advanced.js',
+  './desktop.js'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(CORE_ASSETS)).catch(() => undefined)
   );
