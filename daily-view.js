@@ -347,6 +347,9 @@
         var block = document.createElement('button');
         block.type = 'button';
         block.className = 'dv-event-block';
+        if (item.raw && item.raw.done && (item.kind === 'task' || item.kind === 'reminder')) {
+          block.classList.add('dv-item-done');
+        }
         block.style.top = topPx + 'px';
         block.style.height = heightPx + 'px';
         block.style.left = leftPct + '%';
@@ -367,10 +370,34 @@
         }
 
         var html = '';
+
+        // Add checkbox for tasks and reminders
+        if (item.kind === 'task' || item.kind === 'reminder') {
+          var isDone = !!(item.raw && item.raw.done);
+          html += '<input type="checkbox" class="dv-item-checkbox" ' + (isDone ? 'checked' : '') + '>';
+        }
+
         if (emojiStr) html += '<span class="dv-ev-emoji">' + emojiStr + '</span>';
-        html += '<span class="dv-ev-title">' + escapeHTML(item.title) + '</span>';
+        var titleClass = 'dv-ev-title';
+        if (item.raw && item.raw.done && (item.kind === 'task' || item.kind === 'reminder')) {
+          titleClass += ' dv-title-done';
+        }
+        html += '<span class="' + titleClass + '">' + escapeHTML(item.title) + '</span>';
         if (timeStr) html += '<br><span class="dv-ev-time">' + escapeHTML(timeStr) + '</span>';
         block.innerHTML = html;
+
+        // Wire up checkbox for tasks and reminders
+        var checkbox = block.querySelector('.dv-item-checkbox');
+        if (checkbox) {
+          checkbox.addEventListener('click', function(ev) {
+            ev.stopPropagation();
+          });
+          checkbox.addEventListener('change', (function(itm, cb) {
+            return function() {
+              toggleDailyViewItemDone(itm, cb.checked, dateStr);
+            };
+          })(item, checkbox));
+        }
 
         // Click to edit
         block.addEventListener('click', function(ev) {
@@ -458,6 +485,63 @@
   function escapeHTML(s) {
     if (!s) return '';
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ── Toggle done state for tasks/reminders from daily-view ──
+  function toggleDailyViewItemDone(item, done, dateStr) {
+    if (item.kind === 'task') {
+      // Update task in localStorage
+      try {
+        var tasks = JSON.parse(localStorage.getItem('tasks') || '[]') || [];
+        for (var i = 0; i < tasks.length; i++) {
+          if (tasks[i] && tasks[i].id && item.raw && tasks[i].id === item.raw.id) {
+            tasks[i].done = !!done;
+            break;
+          }
+        }
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+      } catch (_) {}
+    } else if (item.kind === 'reminder') {
+      // Update reminder in localStorage
+      try {
+        var raw = JSON.parse(localStorage.getItem('reminders') || '{}');
+        // Reminders can be stored as map { date: [...] } or array
+        if (Array.isArray(raw)) {
+          for (var j = 0; j < raw.length; j++) {
+            if (raw[j] && raw[j].date === dateStr &&
+                (raw[j].text || '') === (item.raw.text || '') &&
+                (raw[j].time || '') === (item.raw.time || '')) {
+              raw[j].done = !!done;
+              break;
+            }
+          }
+        } else if (raw && typeof raw === 'object') {
+          var arr = raw[dateStr] || [];
+          for (var k = 0; k < arr.length; k++) {
+            if (arr[k] &&
+                (arr[k].text || '') === (item.raw.text || '') &&
+                (arr[k].time || '') === (item.raw.time || '')) {
+              arr[k].done = !!done;
+              break;
+            }
+          }
+          raw[dateStr] = arr;
+        }
+        localStorage.setItem('reminders', JSON.stringify(raw));
+      } catch (_) {}
+    }
+    // Re-render the daily view to reflect the change
+    renderDailyView(dateStr);
+    // Update the completion ring
+    if (typeof updateCompletionRing === 'function') updateCompletionRing();
+    // Re-render the task list if it exists
+    if (typeof loadTasks === 'function') {
+      try { loadTasks(); } catch (_) {}
+    }
+    // Re-render reminders sidebar if applicable
+    if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined') {
+      try { showReminders(selectedDay); } catch (_) {}
+    }
   }
 
   // ── Day navigation ──

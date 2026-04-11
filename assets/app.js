@@ -668,7 +668,11 @@ function showReminders(day){
   const reminderArea = document.getElementById('reminderBar');
   if (reminderArea){
     if (items.length){
-      reminderArea.innerHTML = `<div class="reminder-bar"><b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${items.map((r,i)=>`<li>${r.time?`[${r.time}] `:''}${escapeHTML(r.text)} <span class="item-controls"><button class="small-btn" onclick="editReminder(${day},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button></span></li>`).join('')}</ul></div>`;
+      reminderArea.innerHTML = `<div class="reminder-bar"><b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${items.map((r,i)=>{
+        const checked = r.done ? 'checked' : '';
+        const doneStyle = r.done ? ' style="text-decoration:line-through;opacity:0.7"' : '';
+        return `<li><input type="checkbox" ${checked} onchange="toggleReminderDone(${day},${i},this.checked)"><span${doneStyle}>${r.time?`[${r.time}] `:''}${escapeHTML(r.text)}</span> <span class="item-controls"><button class="small-btn" onclick="editReminder(${day},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button></span></li>`;
+      }).join('')}</ul></div>`;
     } else {
       reminderArea.innerHTML = '';
     }
@@ -749,6 +753,15 @@ function editReminder(day,index){
   const bRow = document.getElementById('editBucketRow');
   if (bRow) bRow.style.display = 'block';
   showModalFieldsFor('reminder'); openEditModal('Edit Reminder');
+}
+function toggleReminderDone(day, index, done){
+  const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+  const r = getReminders();
+  if (!r[key] || !r[key][index]) return;
+  r[key][index].done = !!done;
+  setReminders(r);
+  showReminders(day);
+  updateCompletionRing();
 }
 
 /* Tasks list management */
@@ -1154,10 +1167,19 @@ function getTodayISO(){
 /* --- Off-day detection helper --- */
 const OFF_DAY_LABEL = '—';
 
-function isTodayOffDay(){
-  const todayStr = getTodayISO();
-  const d = new Date();
-  const yr = d.getFullYear();
+/* Returns the date string the dashboard rings should use.
+   Prefers the daily-view's selected date, falls back to today. */
+function getViewedDateISO(){
+  if (typeof window.dailyViewGetDate === 'function') {
+    var d = window.dailyViewGetDate();
+    if (d && typeof d === 'string') return d;
+  }
+  return getTodayISO();
+}
+
+function isOffDay(dateStr){
+  if (!dateStr) dateStr = getTodayISO();
+  const yr = parseInt(dateStr.split('-')[0], 10);
 
   // Check federal holidays
   function nthWeekday(year, month, weekday, nth) {
@@ -1185,7 +1207,7 @@ function isTodayOffDay(){
     yr+'-10-'+pad2(nthWeekday(yr,9,1,2)),
     yr+'-11-'+pad2(nthWeekday(yr,10,4,4))
   ];
-  if (federalHolidays.indexOf(todayStr) !== -1) return true;
+  if (federalHolidays.indexOf(dateStr) !== -1) return true;
 
   // Check user-defined off-days
   try {
@@ -1193,8 +1215,8 @@ function isTodayOffDay(){
     if (Array.isArray(userOffDays)) {
       for (var i = 0; i < userOffDays.length; i++) {
         var entry = userOffDays[i];
-        var dateStr = typeof entry === 'string' ? entry : (entry && entry.date ? entry.date : '');
-        if (dateStr === todayStr) return true;
+        var entryDate = typeof entry === 'string' ? entry : (entry && entry.date ? entry.date : '');
+        if (entryDate === dateStr) return true;
       }
     }
   } catch(_) {}
@@ -1212,101 +1234,136 @@ function getActiveHours(){
   return { start: start, end: end };
 }
 
-/* Ring 1: tasks + reminders + events completion for today */
+/* Ring 1: tasks + reminders + events completion for the viewed date */
 function updateCompletionRing(){
   const wrap = document.getElementById('completionRingWrap');
   const labelEl = wrap ? wrap.querySelector('.ring-label') : null;
+  const viewDate = getViewedDateISO();
+  const todayStr = getTodayISO();
 
   // Off-day: show gray ring with "Off Day"
-  if (isTodayOffDay()) {
+  if (isOffDay(viewDate)) {
     setRing('completionRingFg', 'completionRingPct', 0, '#999');
     const pctEl = document.getElementById('completionRingPct');
     if (pctEl) pctEl.textContent = OFF_DAY_LABEL;
-    if (wrap) wrap.title = 'Today is an off day';
+    if (wrap) wrap.title = 'This day is an off day';
     if (labelEl) labelEl.textContent = 'Off Day';
     return;
   }
   if (labelEl) labelEl.textContent = 'Completed';
 
-  const todayStr = getTodayISO();
-  // Tasks for today
-  const tasks = getTasks().filter(t => t.date && normalizeDate(t.date) === todayStr);
+  const isFuture = viewDate > todayStr;
+  const isPast = viewDate < todayStr;
+
+  // Tasks for this date
+  const tasks = getTasks().filter(t => t.date && normalizeDate(t.date) === viewDate);
   const tasksDone = tasks.filter(t => t.done).length;
-  // Reminders for today
+  // Reminders for this date
   const rems = getReminders();
-  const todayReminders = rems[todayStr] || [];
-  const remDone = todayReminders.filter(r => r.done).length;
-  // Events for today
-  const todayEvents = getExpandedEvents(todayStr, todayStr);
-  const now = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const dateReminders = rems[viewDate] || [];
+  const remDone = dateReminders.filter(r => r.done).length;
+  // Events for this date
+  const dateEvents = getExpandedEvents(viewDate, viewDate);
+
   let eventsDone = 0;
-  todayEvents.forEach(ev => {
-    // If event has an end time, use it
-    const endStr = ev.endTime || '';
-    if (endStr) {
-      const parts = endStr.match(/(\d{1,2}):(\d{2})/);
-      if (parts) {
-        const endMins = parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
-        if (nowMins >= endMins) eventsDone++;
-        return;
+  if (isPast) {
+    // Past day: all events are considered done
+    eventsDone = dateEvents.length;
+  } else if (isFuture) {
+    // Future day: no events are done yet
+    eventsDone = 0;
+  } else {
+    // Today: use current time to determine which events are done
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    dateEvents.forEach(ev => {
+      // If event has an end time, use it
+      const endStr = ev.endTime || '';
+      if (endStr) {
+        const parts = endStr.match(/(\d{1,2}):(\d{2})/);
+        if (parts) {
+          const endMins = parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+          if (nowMins >= endMins) eventsDone++;
+          return;
+        }
       }
-    }
-    // No end time: if event has a start time, consider done once start time has passed
-    const startStr = ev.time || '';
-    if (startStr) {
-      const sp = startStr.match(/(\d{1,2}):(\d{2})/);
-      if (sp) {
-        const startMins = parseInt(sp[1], 10) * 60 + parseInt(sp[2], 10);
-        if (nowMins >= startMins) eventsDone++;
-        return;
+      // No end time: if event has a start time, consider done once start time has passed
+      const startStr = ev.time || '';
+      if (startStr) {
+        const sp = startStr.match(/(\d{1,2}):(\d{2})/);
+        if (sp) {
+          const startMins = parseInt(sp[1], 10) * 60 + parseInt(sp[2], 10);
+          if (nowMins >= startMins) eventsDone++;
+          return;
+        }
       }
-    }
-    // No start or end time (all-day event): treat as done at end of day
-    if (nowMins >= 1439) eventsDone++;
-  });
-  const total = tasks.length + todayReminders.length + todayEvents.length;
+      // No start or end time (all-day event): treat as done at end of day
+      if (nowMins >= 1439) eventsDone++;
+    });
+  }
+
+  const total = tasks.length + dateReminders.length + dateEvents.length;
   const done = tasksDone + remDone + eventsDone;
-  const pct = total ? Math.round((done / total) * 100) : 100;
+  const pct = total ? Math.round((done / total) * 100) : (isFuture ? 0 : 100);
   const color = pct === 100 ? '#27ae60' : '#4a90e2';
   setRing('completionRingFg', 'completionRingPct', pct, color);
-  if (wrap) wrap.title = done + '/' + total + ' items done today';
+  if (wrap) wrap.title = done + '/' + total + ' items done';
 }
 
 /* Ring 2: percent of active day elapsed */
 function updateDayElapsedRing(){
   const wrap = document.getElementById('dayElapsedRingWrap');
   const labelEl = wrap ? wrap.querySelector('.ring-label') : null;
+  const viewDate = getViewedDateISO();
+  const todayStr = getTodayISO();
 
   // Off-day: show gray ring with "Off Day"
-  if (isTodayOffDay()) {
+  if (isOffDay(viewDate)) {
     setRing('dayElapsedRingFg', 'dayElapsedRingPct', 0, '#999');
     const pctEl = document.getElementById('dayElapsedRingPct');
     if (pctEl) pctEl.textContent = OFF_DAY_LABEL;
-    if (wrap) wrap.title = 'Today is an off day';
+    if (wrap) wrap.title = 'This day is an off day';
     if (labelEl) labelEl.textContent = 'Off Day';
     return;
   }
   if (labelEl) labelEl.textContent = 'Day Elapsed';
 
-  const now = new Date();
-  const decimalHours = now.getHours() + now.getMinutes() / 60;
   const active = getActiveHours();
   const totalActive = active.end - active.start;
   let pct;
-  if (decimalHours <= active.start) {
+
+  if (viewDate > todayStr) {
+    // Future day: 0% elapsed
     pct = 0;
-  } else if (decimalHours >= active.end) {
+  } else if (viewDate < todayStr) {
+    // Past day: 100% elapsed
     pct = 100;
   } else {
-    pct = Math.round(((decimalHours - active.start) / totalActive) * 100);
+    // Today: use current time
+    const now = new Date();
+    const decimalHours = now.getHours() + now.getMinutes() / 60;
+    if (decimalHours <= active.start) {
+      pct = 0;
+    } else if (decimalHours >= active.end) {
+      pct = 100;
+    } else {
+      pct = Math.round(((decimalHours - active.start) / totalActive) * 100);
+    }
   }
   const color = pct >= 75 ? '#e74c3c' : pct >= 50 ? '#e67e22' : '#f1c40f';
   setRing('dayElapsedRingFg', 'dayElapsedRingPct', pct, color);
-  const elapsed = Math.max(0, decimalHours - active.start);
-  const elH = Math.floor(elapsed);
-  const elM = Math.round((elapsed - elH) * 60);
-  if (wrap) wrap.title = elH + 'h ' + elM + 'm of ' + totalActive + 'h active day elapsed';
+  if (viewDate === todayStr) {
+    const now = new Date();
+    const decimalHours = now.getHours() + now.getMinutes() / 60;
+    const elapsed = Math.max(0, decimalHours - active.start);
+    const elH = Math.floor(elapsed);
+    const elM = Math.round((elapsed - elH) * 60);
+    if (wrap) wrap.title = elH + 'h ' + elM + 'm of ' + totalActive + 'h active day elapsed';
+  } else if (viewDate < todayStr) {
+    if (wrap) wrap.title = 'Past day – fully elapsed';
+  } else {
+    if (wrap) wrap.title = 'Future day – not yet started';
+  }
 }
 
 /* Weekly salary calculation based on jobs */
@@ -3889,4 +3946,10 @@ document.addEventListener('DOMContentLoaded',function(){
   updateCompletionRing();
   updateWeeklySalary();
   setInterval(function(){ updateDayElapsedRing(); updateCompletionRing(); }, 60000);
+
+  /* Re-update rings when the daily-view date changes */
+  window.addEventListener('dailyview:datechange', function(){
+    updateCompletionRing();
+    updateDayElapsedRing();
+  });
 });
