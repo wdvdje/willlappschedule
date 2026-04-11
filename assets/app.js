@@ -1136,16 +1136,17 @@ function initOverlayInputs(){
 
 /* SPA view switching */
 function showView(view, updateHash = true){
-  view = view || 'calendar';
+  view = view || 'today';
   document.querySelectorAll('[id^="page-"]').forEach(p=> p.classList.add('hidden'));
-  const el = document.getElementById('page-'+view) || document.getElementById('page-calendar');
+  const el = document.getElementById('page-'+view) || document.getElementById('page-today');
   if (el) el.classList.remove('hidden');
   document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
     const href = a.getAttribute('href') || '';
     const candidate = (a.dataset && a.dataset.view) ? a.dataset.view : (href.indexOf('#')>-1 ? href.split('#').pop() : '');
     a.classList.toggle('active', candidate === view);
   });
-  if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } }
+  if (view === 'today'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } }
+  else if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } }
   else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
   else if (view === 'jobs'){ try{ renderJobs(); }catch(e){ console.warn(e); } }
@@ -1153,7 +1154,7 @@ function showView(view, updateHash = true){
   if (updateHash){ const newHash = '#'+view; if (location.hash !== newHash) location.hash = newHash; }
 }
 window.addEventListener('hashchange', ()=> {
-  const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+  const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'today';
   showView(v, false);
 });
 
@@ -1196,7 +1197,7 @@ function attachPageListeners(){
         const isHashOnly = href && href.trim().startsWith('#');
         if (onIndex || isHashOnly){
           ev.preventDefault();
-          showView(targetView || 'calendar');
+          showView(targetView || 'today');
         }
       });
     });
@@ -1229,7 +1230,7 @@ document.addEventListener('DOMContentLoaded', function(){
     selectedYear = now.getFullYear();
     selectedDay = now.getDate();
     attachPageListeners();
-    const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+    const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'today';
     try { showView(initial, false); } catch(e){ console.warn('showView failed', e); }
     try{ if (document.getElementById('calendar')) generateCalendar(); }catch(e){ console.warn('generateCalendar init failed',e); }
     try{ if (document.getElementById('calendar')) showReminders(selectedDay); }catch(e){ console.warn('showReminders init failed',e); }
@@ -2142,7 +2143,7 @@ function deleteInboxItem(index){
 }
 window.deleteInboxItem=deleteInboxItem;
 
-window._focusQuickAdd=function(){ const i=document.getElementById('quickAddInput'); if(i){ showView('calendar'); i.focus(); i.select(); } };
+window._focusQuickAdd=function(){ const i=document.getElementById('quickAddInput'); if(i){ showView('today'); i.focus(); i.select(); } };
 
 /* ----- Search modal ----- */
 function openSearch(){
@@ -2290,7 +2291,7 @@ function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) bt
 
 /* ----- Keyboard shortcuts ----- */
 function wireKeyboardShortcuts(){
-  var VIEWS=['events','reminders','calendar','tasks','settings'];
+  var VIEWS=['events','reminders','today','calendar','tasks'];
   document.addEventListener('keydown',function(e){
     const tag=document.activeElement&&document.activeElement.tagName;
     const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';

@@ -712,7 +712,7 @@
     var view = e.detail && e.detail.view;
     if (view === 'tasks')    { injectTaskBar(); injectBulkTaskBar(); if (_bulkMode) schedApply(); }
     if (view === 'settings') { injectCsvButtons(); }
-    if (view === 'calendar') { injectEarningsPanel(); refreshEarnings(); }
+    if (view === 'calendar' || view === 'today') { injectEarningsPanel(); refreshEarnings(); }
   });
 
   // Refresh earnings and bulk checkboxes after any data change

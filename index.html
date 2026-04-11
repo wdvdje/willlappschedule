@@ -14,7 +14,10 @@
   <style>
     /* filepath: /Users/williamjoyce/Documents/GitHub/willlappschedule/assets/app.css (inlined) */
     body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
-    header { background:#4a90e2; color:#fff; padding:1rem; font-size:1.25rem; position:sticky; top:0; z-index:50 }
+    header { background:#4a90e2; color:#fff; padding:1rem; font-size:1.25rem; position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; }
+    header .header-btn { background:none; border:none; color:#fff; font-size:1.25rem; cursor:pointer; padding:4px 8px; text-decoration:none; display:flex; align-items:center; gap:4px; }
+    header .header-btn .header-btn-label { font-size:0.75rem; }
+    header #appHeaderTitle { flex:1; text-align:center; }
     main{padding-bottom:92px;}
     .hidden{display:none}
     .page{max-width:900px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left}
@@ -68,23 +71,17 @@
   </style>
 </head>
 <body>
-  <header id="appHeader">📅 TimeScape Planner</header>
+  <header id="appHeader">
+    <a href="#inbox" class="header-btn" id="headerInboxBtn" aria-label="Inbox"><span>📥</span><span class="header-btn-label" id="inboxNavLabel">Inbox</span></a>
+    <span id="appHeaderTitle">📅 TimeScape Planner</span>
+    <a href="#settings" class="header-btn" id="headerSettingsBtn" aria-label="Settings"><span>⚙️</span><span class="header-btn-label">Settings</span></a>
+  </header>
   <div id="syncStatusBar" style="display:none;background:#2568c3;color:#fff;font-size:0.78rem;text-align:center;padding:3px 8px;letter-spacing:0.02em" aria-live="polite"></div>
   <main>
-    <!-- Calendar page -->
-    <section id="page-calendar" class="page">
+    <!-- Today page (default home) -->
+    <section id="page-today" class="page">
       <div id="welcomeWrapper" style="text-align:center;margin-top:8px;">
         <div id="welcomeText" style="font-size:1rem;color:#222;margin-bottom:6px">Welcome,</div>
-      </div>
-
-      <div class="calendar-controls">
-        <button id="prevBtn">&lt;</button>
-        <span id="monthLabel" aria-live="polite"></span>
-        <button id="nextBtn">&gt;</button>
-        <div style="display:flex;gap:4px;margin-left:10px">
-          <button id="viewMonthBtn" class="view-toggle-btn active" title="Month view">Month</button>
-          <button id="viewWeekBtn" class="view-toggle-btn" title="Week view">Week</button>
-        </div>
       </div>
 
       <!-- Quick-add bar -->
@@ -97,24 +94,6 @@
         </div>
         <div id="quickAddPreview" style="display:none;margin-top:6px;padding:8px 14px;background:#eef6ff;border-radius:8px;font-size:0.85rem;color:#234"></div>
       </div>
-
-      <!-- Category filter bar -->
-      <div id="categoryFilterBar" style="max-width:720px;margin:0 auto 8px;padding:0 12px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:0.8rem;color:#666;margin-right:2px">Filter:</span>
-        <button class="cat-filter-btn active" data-cat="all">All</button>
-        <button class="cat-filter-btn" data-cat="work">💼 Work</button>
-        <button class="cat-filter-btn" data-cat="personal">👤 Personal</button>
-        <button class="cat-filter-btn" data-cat="home">🏠 Home</button>
-        <button class="cat-filter-btn" data-cat="errands">🛒 Errands</button>
-        <button class="cat-filter-btn" data-cat="appointment">📋 Appt</button>
-        <button class="cat-filter-btn" data-cat="job">🔧 Jobs</button>
-        <button class="cat-filter-btn" data-cat="holiday">🎉 Holiday</button>
-      </div>
-
-      <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
-
-      <!-- Week view (shown when week toggle active) -->
-      <div id="weekView" style="display:none;overflow-x:auto;max-width:100%;margin:0 auto 12px" aria-label="Week view"></div>
 
       <div id="selectedDateArea" style="max-width:720px;margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
         <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
@@ -152,6 +131,37 @@
       </section>
 
       <div id="reminderBar" aria-live="polite" style="max-width:540px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>
+    </section>
+
+    <!-- Calendar page -->
+    <section id="page-calendar" class="page hidden">
+      <div class="calendar-controls">
+        <button id="prevBtn">&lt;</button>
+        <span id="monthLabel" aria-live="polite"></span>
+        <button id="nextBtn">&gt;</button>
+        <div style="display:flex;gap:4px;margin-left:10px">
+          <button id="viewMonthBtn" class="view-toggle-btn active" title="Month view">Month</button>
+          <button id="viewWeekBtn" class="view-toggle-btn" title="Week view">Week</button>
+        </div>
+      </div>
+
+      <!-- Category filter bar -->
+      <div id="categoryFilterBar" style="max-width:720px;margin:0 auto 8px;padding:0 12px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:0.8rem;color:#666;margin-right:2px">Filter:</span>
+        <button class="cat-filter-btn active" data-cat="all">All</button>
+        <button class="cat-filter-btn" data-cat="work">💼 Work</button>
+        <button class="cat-filter-btn" data-cat="personal">👤 Personal</button>
+        <button class="cat-filter-btn" data-cat="home">🏠 Home</button>
+        <button class="cat-filter-btn" data-cat="errands">🛒 Errands</button>
+        <button class="cat-filter-btn" data-cat="appointment">📋 Appt</button>
+        <button class="cat-filter-btn" data-cat="job">🔧 Jobs</button>
+        <button class="cat-filter-btn" data-cat="holiday">🎉 Holiday</button>
+      </div>
+
+      <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
+
+      <!-- Week view (shown when week toggle active) -->
+      <div id="weekView" style="display:none;overflow-x:auto;max-width:100%;margin:0 auto 12px" aria-label="Week view"></div>
     </section>
 
     <!-- Events page -->
@@ -605,10 +615,9 @@
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
     <a href="#events" class="r-item" data-view="events"><span>📅</span><span class="r-label">Events</span></a>
     <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
-    <a href="#calendar" class="r-item r-center" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
+    <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
     <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
-    <a href="#inbox" class="r-item" data-view="inbox"><span>📥</span><span class="r-label" id="inboxNavLabel">Inbox</span></a>
-    <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
 
   <!-- Ensure ribbon links always target a cache-busted index.html, but avoid full reload when already on index -->
@@ -618,7 +627,7 @@
     if (!items || !items.length) return;
     const now = Date.now();
     items.forEach(a => {
-      const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '') || 'calendar';
+      const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '') || 'today';
       // set href to cache-busted target so navigating from other pages loads newest index.html
       a.setAttribute('href', 'index.html?_=' + now + '#' + view);
     });
@@ -627,7 +636,7 @@
     items.forEach(a => {
       a.addEventListener('click', (e) => {
         const path = location.pathname.split('/').pop();
-        const view = a.dataset.view || (a.getAttribute('href') || '').split('#')[1] || 'calendar';
+        const view = a.dataset.view || (a.getAttribute('href') || '').split('#')[1] || 'today';
         if (path === '' || path === 'index.html') {
           // already on index: prevent reload, update hash and trigger hashchange so router shows view
           e.preventDefault();
@@ -704,7 +713,7 @@
         a.addEventListener('click', (e) => {
           e.preventDefault();
           const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
-          navTo(view || 'calendar');
+          navTo(view || 'today');
         }, { passive: true });
       });
     }
@@ -712,19 +721,37 @@
     function updateHeaderFromProfile() {
       try {
         const name = localStorage.getItem('userName') || '';
-        const header = document.getElementById('appHeader');
+        const headerTitle = document.getElementById('appHeaderTitle');
         const profileStatus = document.getElementById('profileStatus');
-        if (header) header.textContent = name ? (name + "'s Planner") : '📅 TimeScape Planner';
+        if (headerTitle) headerTitle.textContent = name ? (name + "'s Planner") : '📅 TimeScape Planner';
         if (profileStatus) profileStatus.textContent = name ? ('Name set: ' + name) : 'Name not set';
       } catch (e) { /* ignore */ }
+    }
+
+    function wireHeaderButtons() {
+      var headerInbox = document.getElementById('headerInboxBtn');
+      var headerSettings = document.getElementById('headerSettingsBtn');
+      if (headerInbox) {
+        headerInbox.addEventListener('click', function(e) {
+          e.preventDefault();
+          navTo('inbox');
+        });
+      }
+      if (headerSettings) {
+        headerSettings.addEventListener('click', function(e) {
+          e.preventDefault();
+          navTo('settings');
+        });
+      }
     }
 
     // load view scripts and initialize router
     Promise.all(viewSrcs.map(loadScript)).catch(() => { /* ignore load errors */ }).then(() => {
       wireRibbon();
-      window.addEventListener('hashchange', () => showView(location.hash.replace('#', '') || 'calendar'));
+      wireHeaderButtons();
+      window.addEventListener('hashchange', () => showView(location.hash.replace('#', '') || 'today'));
       // initial view
-      const initial = location.hash.replace('#', '') || 'calendar';
+      const initial = location.hash.replace('#', '') || 'today';
       showView(initial);
       updateHeaderFromProfile();
     });
