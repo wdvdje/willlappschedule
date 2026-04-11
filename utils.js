@@ -251,11 +251,21 @@
           if (weekStart > effectiveEnd) break;
           const useA = (firstPattern === 'a') ? (weekIndex % 2 === 0) : (weekIndex % 2 !== 0);
           const dayList = useA ? aDays : bDays;
+          let shift = 0;
           dayList.forEach((weekdayNum) => {
-            const occ = addDaysISO(weekStart, weekdayNum - 1);
+            let dayOffset = weekdayNum - 1 + shift;
+            let occ = addDaysISO(weekStart, dayOffset);
+            // When an off-day is encountered, shift to the next weekday;
+            // subsequent events in the week also shift forward.
+            while (skipDates && skipDates[occ] && dayOffset < 5) {
+              shift += 1;
+              dayOffset = weekdayNum - 1 + shift;
+              occ = addDaysISO(weekStart, dayOffset);
+            }
+            // If shifted beyond Friday (end of work week), skip this occurrence
+            if (dayOffset >= 5) return;
             if (occ < baseDate) return;
             if (occ > effectiveEnd) return;
-            if (skipDates && skipDates[occ]) return;
             pushIfInRange(occ);
           });
           weekIndex += 1;
