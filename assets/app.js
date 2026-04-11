@@ -1467,6 +1467,7 @@ var _workEarningsMode = 'week';   // 'week' | 'month'
 var _workEarningsOffset = 0;      // 0=current, -1=prev, +1=next
 var _workEarningsExpanded = {};   // { [jobKey]: bool }
 var _workEarningsSettingsOpen = false;
+var DEFAULT_OT_MULTIPLIER = 1.5;
 
 function getEarningsSettings(){
   return safeParseStorage('earningsSettings', { weeklyGoal: 0, monthlyGoal: 0, taxRate: 0 });
@@ -1553,12 +1554,12 @@ function computeEarningsForRange(startISO, endISO){
     var job = raw.job;
     var unit = raw.unit;
     var otThreshold  = parseFloat(job.overtimeHours)      || 0;
-    var otMultiplier = parseFloat(job.overtimeMultiplier) || 1.5;
+    var otMultiplier = parseFloat(job.overtimeMultiplier) || DEFAULT_OT_MULTIPLIER;
 
     var je = {
       name: job.name || 'Unknown', emoji: job.emoji || '💼',
       location: job.location || '', rate: raw.rate, unit: unit,
-      overtimeMultiplier: parseFloat(job.overtimeMultiplier) || 1.5,
+      overtimeMultiplier: otMultiplier,
       totalEarnings: 0, totalHours: 0,
       regularHours: 0, overtimeHours: 0,
       regularEarnings: 0, overtimeEarnings: 0,
