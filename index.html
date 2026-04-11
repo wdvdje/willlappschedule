@@ -68,6 +68,20 @@
     /* cat modal: keep hidden by default; show only when .hidden removed */
     #catModal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; z-index: 9999; display: none; }
     #catModal:not(.hidden) { display: flex; }
+
+    /* ===== Domain pages ===== */
+    .domain-type-tabs { display:flex; gap:0; margin-bottom:12px; border-radius:8px; overflow:hidden; border:1px solid #e0e0e0; }
+    .domain-tab { flex:1; padding:8px 4px; border:none; background:#fff; cursor:pointer; font-size:0.88rem; border-right:1px solid #e0e0e0; }
+    .domain-tab:last-child { border-right:0; }
+    .domain-tab.active { background:#4a90e2; color:#fff; font-weight:600; }
+    .domain-tab:hover:not(.active) { background:#f0f6ff; }
+    .domain-form-panel { padding:8px 0; }
+    .domain-add-btn { background:#4a90e2; color:#fff; border:none; border-radius:6px; padding:8px 16px; cursor:pointer; font-size:0.9rem; }
+    .domain-add-btn:hover { background:#2568c3; }
+    /* Calendar summary domain pills */
+    .cal-domain-pill { padding:3px 10px; border-radius:16px; border:1.5px solid #ddd; background:#fff; cursor:pointer; font-size:0.8rem; }
+    .cal-domain-pill.active { background:#4a90e2; color:#fff; border-color:#4a90e2; }
+    .cal-domain-pill:hover:not(.active) { border-color:#4a90e2; }
   </style>
 </head>
 <body>
@@ -162,6 +176,25 @@
 
       <!-- Week view (shown when week toggle active) -->
       <div id="weekView" style="display:none;overflow-x:auto;max-width:100%;margin:0 auto 12px" aria-label="Week view"></div>
+
+      <!-- Cross-domain upcoming summary -->
+      <div id="calendarSummary" style="max-width:900px;margin:16px auto 0;padding:0 12px;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <h3 style="margin:0;font-size:1rem">📋 Upcoming</h3>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="cal-domain-pill active" data-domain="all">All</button>
+            <button class="cal-domain-pill" data-domain="personal">👤 Personal</button>
+            <button class="cal-domain-pill" data-domain="home">🏡 Home</button>
+            <button class="cal-domain-pill" data-domain="work">💼 Work</button>
+          </div>
+          <select id="summaryDaysSelect" style="width:130px;margin-left:auto">
+            <option value="7">Next 7 days</option>
+            <option value="30" selected>Next 30 days</option>
+            <option value="90">Next 90 days</option>
+          </select>
+        </div>
+        <div id="calendarSummaryList"></div>
+      </div>
     </section>
 
     <!-- Events page -->
@@ -351,6 +384,132 @@
         </div>
       </div>
     </div>
+
+    <!-- Personal domain page -->
+    <section id="page-personal" class="page hidden">
+      <h2>👤 Personal</h2>
+      <div style="max-width:640px;margin:0 auto 16px;padding:0 12px;box-sizing:border-box">
+        <div class="domain-type-tabs" data-domain="personal">
+          <button class="domain-tab active" data-type="event">📅 Event</button>
+          <button class="domain-tab" data-type="task">✅ Task</button>
+          <button class="domain-tab" data-type="reminder">🔔 Reminder</button>
+        </div>
+        <div class="domain-form-panel" id="domain-form-personal-event">
+          <input id="personal-ev-title" type="text" placeholder="Event title" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="personal-ev-date" type="date" style="flex:1" />
+            <input id="personal-ev-time" type="time" style="flex:1" />
+            <input id="personal-ev-endtime" type="time" style="flex:1" title="End time (optional)" />
+          </div>
+          <button class="domain-add-btn" data-domain="personal" data-type="event" style="margin-top:8px">Add Event</button>
+        </div>
+        <div class="domain-form-panel hidden" id="domain-form-personal-task">
+          <input id="personal-task-title" type="text" placeholder="Task title" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="personal-task-date" type="date" style="flex:1" />
+            <select id="personal-task-priority" style="width:120px">
+              <option value="1">! Low</option>
+              <option value="2" selected>!! Med</option>
+              <option value="3">!!! High</option>
+            </select>
+          </div>
+          <button class="domain-add-btn" data-domain="personal" data-type="task" style="margin-top:8px">Add Task</button>
+        </div>
+        <div class="domain-form-panel hidden" id="domain-form-personal-reminder">
+          <input id="personal-rem-text" type="text" placeholder="Reminder text" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="personal-rem-date" type="date" style="flex:1" />
+            <input id="personal-rem-time" type="time" style="flex:1" />
+          </div>
+          <button class="domain-add-btn" data-domain="personal" data-type="reminder" style="margin-top:8px">Add Reminder</button>
+        </div>
+      </div>
+      <div id="domain-list-personal" style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box"></div>
+    </section>
+
+    <!-- Home domain page -->
+    <section id="page-home" class="page hidden">
+      <h2>🏡 Home</h2>
+      <div style="max-width:640px;margin:0 auto 16px;padding:0 12px;box-sizing:border-box">
+        <div class="domain-type-tabs" data-domain="home">
+          <button class="domain-tab active" data-type="event">📅 Event</button>
+          <button class="domain-tab" data-type="task">✅ Task</button>
+          <button class="domain-tab" data-type="reminder">🔔 Reminder</button>
+        </div>
+        <div class="domain-form-panel" id="domain-form-home-event">
+          <input id="home-ev-title" type="text" placeholder="Event title" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="home-ev-date" type="date" style="flex:1" />
+            <input id="home-ev-time" type="time" style="flex:1" />
+            <input id="home-ev-endtime" type="time" style="flex:1" title="End time (optional)" />
+          </div>
+          <button class="domain-add-btn" data-domain="home" data-type="event" style="margin-top:8px">Add Event</button>
+        </div>
+        <div class="domain-form-panel hidden" id="domain-form-home-task">
+          <input id="home-task-title" type="text" placeholder="Task title" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="home-task-date" type="date" style="flex:1" />
+            <select id="home-task-priority" style="width:120px">
+              <option value="1">! Low</option>
+              <option value="2" selected>!! Med</option>
+              <option value="3">!!! High</option>
+            </select>
+          </div>
+          <button class="domain-add-btn" data-domain="home" data-type="task" style="margin-top:8px">Add Task</button>
+        </div>
+        <div class="domain-form-panel hidden" id="domain-form-home-reminder">
+          <input id="home-rem-text" type="text" placeholder="Reminder text" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="home-rem-date" type="date" style="flex:1" />
+            <input id="home-rem-time" type="time" style="flex:1" />
+          </div>
+          <button class="domain-add-btn" data-domain="home" data-type="reminder" style="margin-top:8px">Add Reminder</button>
+        </div>
+      </div>
+      <div id="domain-list-home" style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box"></div>
+    </section>
+
+    <!-- Work domain page -->
+    <section id="page-work" class="page hidden">
+      <h2>💼 Work</h2>
+      <div style="max-width:640px;margin:0 auto 16px;padding:0 12px;box-sizing:border-box">
+        <div class="domain-type-tabs" data-domain="work">
+          <button class="domain-tab active" data-type="event">📅 Event</button>
+          <button class="domain-tab" data-type="task">✅ Task</button>
+          <button class="domain-tab" data-type="reminder">🔔 Reminder</button>
+        </div>
+        <div class="domain-form-panel" id="domain-form-work-event">
+          <input id="work-ev-title" type="text" placeholder="Event title" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="work-ev-date" type="date" style="flex:1" />
+            <input id="work-ev-time" type="time" style="flex:1" />
+            <input id="work-ev-endtime" type="time" style="flex:1" title="End time (optional)" />
+          </div>
+          <button class="domain-add-btn" data-domain="work" data-type="event" style="margin-top:8px">Add Event</button>
+        </div>
+        <div class="domain-form-panel hidden" id="domain-form-work-task">
+          <input id="work-task-title" type="text" placeholder="Task title" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="work-task-date" type="date" style="flex:1" />
+            <select id="work-task-priority" style="width:120px">
+              <option value="1">! Low</option>
+              <option value="2" selected>!! Med</option>
+              <option value="3">!!! High</option>
+            </select>
+          </div>
+          <button class="domain-add-btn" data-domain="work" data-type="task" style="margin-top:8px">Add Task</button>
+        </div>
+        <div class="domain-form-panel hidden" id="domain-form-work-reminder">
+          <input id="work-rem-text" type="text" placeholder="Reminder text" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <input id="work-rem-date" type="date" style="flex:1" />
+            <input id="work-rem-time" type="time" style="flex:1" />
+          </div>
+          <button class="domain-add-btn" data-domain="work" data-type="reminder" style="margin-top:8px">Add Reminder</button>
+        </div>
+      </div>
+      <div id="domain-list-work" style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box"></div>
+    </section>
 
     <!-- Inbox (unsorted) page -->
     <section id="page-inbox" class="page hidden">
@@ -613,11 +772,11 @@
 
   <!-- bottom ribbon navigation -->
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-    <a href="#events" class="r-item" data-view="events"><span>📅</span><span class="r-label">Events</span></a>
-    <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
-    <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
+    <a href="#personal" class="r-item" data-view="personal"><span>👤</span><span class="r-label">Personal</span></a>
     <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
-    <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
+    <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
+    <a href="#home" class="r-item" data-view="home"><span>🏡</span><span class="r-label">Home</span></a>
+    <a href="#work" class="r-item" data-view="work"><span>💼</span><span class="r-label">Work</span></a>
   </nav>
 
   <!-- Ensure ribbon links always target a cache-busted index.html, but avoid full reload when already on index -->
