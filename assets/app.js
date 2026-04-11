@@ -162,6 +162,8 @@ function migrateConsistencyData(){
       }
     }
     if (eventChanged) setEvents(events);
+
+    migrateDomainField();
   } catch (e) {
     console.warn('Consistency migration failed', e);
   }
@@ -1000,6 +1002,7 @@ function saveEditHandler(e){
     generateCalendar(); showReminders(selectedDay);
   }
   closeEditModal();
+  refreshVisibleDomainPages();
 }
 
 /* progress & dashboard */
@@ -1136,24 +1139,26 @@ function initOverlayInputs(){
 
 /* SPA view switching */
 function showView(view, updateHash = true){
-  view = view || 'calendar';
+  view = view || 'today';
   document.querySelectorAll('[id^="page-"]').forEach(p=> p.classList.add('hidden'));
-  const el = document.getElementById('page-'+view) || document.getElementById('page-calendar');
+  const el = document.getElementById('page-'+view) || document.getElementById('page-today');
   if (el) el.classList.remove('hidden');
   document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
     const href = a.getAttribute('href') || '';
     const candidate = (a.dataset && a.dataset.view) ? a.dataset.view : (href.indexOf('#')>-1 ? href.split('#').pop() : '');
     a.classList.toggle('active', candidate === view);
   });
-  if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } }
+  if (view === 'today'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } }
+  else if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } try{ renderCalendarSummary(); }catch(e){ console.warn(e); } }
   else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
   else if (view === 'jobs'){ try{ renderJobs(); }catch(e){ console.warn(e); } }
   else if (view === 'inbox'){ try{ renderInbox(); updateInboxBadge(); }catch(e){ console.warn(e); } }
+  else if (view === 'personal' || view === 'home' || view === 'work'){ try{ renderDomainPage(view); }catch(e){ console.warn(e); } }
   if (updateHash){ const newHash = '#'+view; if (location.hash !== newHash) location.hash = newHash; }
 }
 window.addEventListener('hashchange', ()=> {
-  const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+  const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'today';
   showView(v, false);
 });
 
@@ -1196,7 +1201,7 @@ function attachPageListeners(){
         const isHashOnly = href && href.trim().startsWith('#');
         if (onIndex || isHashOnly){
           ev.preventDefault();
-          showView(targetView || 'calendar');
+          showView(targetView || 'today');
         }
       });
     });
@@ -1229,7 +1234,7 @@ document.addEventListener('DOMContentLoaded', function(){
     selectedYear = now.getFullYear();
     selectedDay = now.getDate();
     attachPageListeners();
-    const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+    const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'today';
     try { showView(initial, false); } catch(e){ console.warn('showView failed', e); }
     try{ if (document.getElementById('calendar')) generateCalendar(); }catch(e){ console.warn('generateCalendar init failed',e); }
     try{ if (document.getElementById('calendar')) showReminders(selectedDay); }catch(e){ console.warn('showReminders init failed',e); }
@@ -1915,7 +1920,8 @@ function parseQuickAdd(text){
   let s=text.trim();
 
   let category='';
-  s=s.replace(/[#@](work|personal|home|errands|appointment|job|holiday|event|commitment)\b/gi,(m,c)=>{ category=c.toLowerCase(); return ''; }).trim();
+  let domain='';
+  s=s.replace(/[#@](work|personal|home|errands|appointment|job|holiday|event|commitment)\b/gi,(m,c)=>{ const val=c.toLowerCase(); category=val; if(val==='work'||val==='home'||val==='personal') domain=val; return ''; }).trim();
 
   let time='';
   s=s.replace(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i,(m,hh,mm,ap)=>{
@@ -1984,7 +1990,7 @@ function parseQuickAdd(text){
     kind='unsorted';
   }
 
-  return { title, date:date||'', time, category, kind };
+  return { title, date:date||'', time, category, domain, kind };
 }
 
 function wireQuickAdd(){
@@ -2037,19 +2043,19 @@ function wireQuickAdd(){
     if(effectiveKind==='event'){
       const evs=getEvents();
       const id=evs.length?Math.max.apply(null,evs.map(function(e){return e.id;}))+1:1;
-      evs.push({ id, title:parsed.title, date:parsed.date||new Date().toISOString().slice(0,10), time:parsed.time, endTime:'', location:'', emoji:'', category:parsed.category||'event', repeat:'none', repeatUntil:'', preBuffer:0, postBuffer:0 });
+      evs.push({ id, title:parsed.title, date:parsed.date||new Date().toISOString().slice(0,10), time:parsed.time, endTime:'', location:'', emoji:'', category:parsed.category||'event', domain:parsed.domain||'personal', repeat:'none', repeatUntil:'', preBuffer:0, postBuffer:0 });
       setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
       addedLabel='\uD83D\uDCC5 Event added!';
     } else if(effectiveKind==='reminder'){
       const dateKey=parsed.date||new Date().toISOString().slice(0,10);
       const rems=getReminders();
       if(!rems[dateKey]) rems[dateKey]=[];
-      rems[dateKey].push({ text:parsed.title, time:parsed.time||'', notify:'none' });
+      rems[dateKey].push({ text:parsed.title, time:parsed.time||'', notify:'none', domain:parsed.domain||'personal' });
       setReminders(rems); generateCalendar(); if(selectedDay) showReminders(selectedDay);
       addedLabel='\uD83D\uDD14 Reminder added for '+dateKey+'!';
     } else if(effectiveKind==='task'){
       const tasks=getTasks();
-      tasks.push({ title:parsed.title, category:parsed.category||'', done:false, date:parsed.date||'', time:parsed.time||'', priority:'2' });
+      tasks.push({ title:parsed.title, category:parsed.category||'', domain:parsed.domain||'personal', done:false, date:parsed.date||'', time:parsed.time||'', priority:'2' });
       setTasks(tasks); try{ loadTasks(); }catch(_){}
       addedLabel='\u2705 Task added!';
     } else {
@@ -2129,6 +2135,7 @@ function sortInboxItem(index,kind){
   try{ if(selectedDay) showReminders(selectedDay); }catch(_){}
   try{ renderEvents(); }catch(_){}
   try{ loadTasks(); }catch(_){}
+  refreshVisibleDomainPages();
 }
 window.sortInboxItem=sortInboxItem;
 
@@ -2142,7 +2149,7 @@ function deleteInboxItem(index){
 }
 window.deleteInboxItem=deleteInboxItem;
 
-window._focusQuickAdd=function(){ const i=document.getElementById('quickAddInput'); if(i){ showView('calendar'); i.focus(); i.select(); } };
+window._focusQuickAdd=function(){ const i=document.getElementById('quickAddInput'); if(i){ showView('today'); i.focus(); i.select(); } };
 
 /* ----- Search modal ----- */
 function openSearch(){
@@ -2247,6 +2254,7 @@ function doUndo(){
   try{ action.undo(); }catch(e){ console.warn('Undo failed',e); }
   try{ generateCalendar(); }catch(_){} try{ if(selectedDay) showReminders(selectedDay); }catch(_){}
   try{ renderEvents(); }catch(_){} try{ loadTasks(); }catch(_){} hideUndoToast();
+  refreshVisibleDomainPages();
 }
 function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) btn.addEventListener('click',doUndo); }
 
@@ -2290,7 +2298,7 @@ function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) bt
 
 /* ----- Keyboard shortcuts ----- */
 function wireKeyboardShortcuts(){
-  var VIEWS=['events','reminders','calendar','tasks','settings'];
+  var VIEWS=['personal','calendar','today','home','work'];
   document.addEventListener('keydown',function(e){
     const tag=document.activeElement&&document.activeElement.tagName;
     const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
@@ -2380,6 +2388,422 @@ function scheduleMorningBriefing(){
   },delay);
 }
 
+/* ============================================================
+   DOMAIN PAGES: Personal, Home, Work
+   ============================================================ */
+
+/* Domain metadata */
+const DOMAIN_META = {
+  personal: { label: 'Personal', emoji: '👤', color: '#9b59b6' },
+  home:     { label: 'Home',     emoji: '🏡', color: '#27ae60' },
+  work:     { label: 'Work',     emoji: '💼', color: '#4a90e2' }
+};
+
+/* Infer domain from item category (for items without explicit domain field) */
+function inferDomainFromItem(item) {
+  const cat = item && item.category ? String(item.category).toLowerCase() : '';
+  if (cat === 'work' || cat === 'job') return 'work';
+  if (cat === 'home') return 'home';
+  return 'personal';
+}
+
+/* Get the domain of an item, preferring explicit domain field */
+function getDomainOfItem(item) {
+  if (item && item.domain && DOMAIN_META[item.domain]) return item.domain;
+  return inferDomainFromItem(item);
+}
+
+/* Migrate domain field onto existing items that lack it */
+function migrateDomainField() {
+  try {
+    const events = getEvents();
+    let evChanged = false;
+    events.forEach(function(ev) {
+      if (!ev.domain) { ev.domain = inferDomainFromItem(ev); evChanged = true; }
+    });
+    if (evChanged) setEvents(events);
+
+    const tasks = getTasks();
+    let taskChanged = false;
+    tasks.forEach(function(t) {
+      if (!t.domain) { t.domain = inferDomainFromItem(t); taskChanged = true; }
+    });
+    if (taskChanged) setTasks(tasks);
+
+    const rmap = getReminders();
+    let remChanged = false;
+    Object.keys(rmap).forEach(function(dk) {
+      (rmap[dk] || []).forEach(function(r) {
+        if (!r.domain) { r.domain = 'personal'; remChanged = true; }
+      });
+    });
+    if (remChanged) setReminders(rmap);
+  } catch (e) {
+    console.warn('migrateDomainField failed', e);
+  }
+}
+
+/* Refresh domain pages that are currently visible */
+function refreshVisibleDomainPages() {
+  ['personal', 'home', 'work'].forEach(function(d) {
+    const page = document.getElementById('page-' + d);
+    if (page && !page.classList.contains('hidden')) {
+      try { renderDomainPage(d); } catch(e) {}
+    }
+  });
+}
+
+/* Build a domain item element for the domain page list */
+function buildDomainItemEl(item, domain) {
+  const el = document.createElement('div');
+  el.style.cssText = 'background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,0.05)';
+
+  const typeEmoji = { event: '📅', task: '✅', reminder: '🔔' }[item.type] || '📌';
+
+  const left = document.createElement('div');
+  left.style.cssText = 'flex:1;text-align:left;min-width:0';
+
+  const titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px';
+
+  const typeBadge = document.createElement('span');
+  typeBadge.textContent = typeEmoji;
+  typeBadge.style.fontSize = '1rem';
+
+  const titleEl = document.createElement('b');
+  titleEl.style.wordBreak = 'break-word';
+  titleEl.textContent = item.title || '';
+  if (item.done) titleEl.style.textDecoration = 'line-through';
+
+  titleRow.appendChild(typeBadge);
+  titleRow.appendChild(titleEl);
+
+  const meta2 = document.createElement('div');
+  meta2.style.cssText = 'font-size:0.82rem;color:#666';
+  const prioMap = { '1': '!', '2': '!!', '3': '!!!' };
+  const metaParts = [];
+  if (item.date) metaParts.push(item.date);
+  if (item.time) metaParts.push(item.time + (item.endTime ? '\u2013' + item.endTime : ''));
+  if (item.location) metaParts.push('@ ' + item.location);
+  if (item.priority) metaParts.push('Priority: ' + (prioMap[item.priority] || item.priority));
+  meta2.textContent = metaParts.join(' \u00b7 ');
+
+  left.appendChild(titleRow);
+  if (meta2.textContent) left.appendChild(meta2);
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;flex-direction:column;gap:4px;flex-shrink:0';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'small-btn';
+  editBtn.textContent = 'Edit';
+  editBtn.addEventListener('click', function() {
+    if (item.type === 'event') {
+      try { editEvent(item.data.id); } catch(e) { console.warn(e); }
+    } else if (item.type === 'task') {
+      try { editTask(item.idx); } catch(e) { console.warn(e); }
+    } else if (item.type === 'reminder') {
+      const rparts = item.dateKey.split('-');
+      if (rparts.length === 3) {
+        selectedYear = parseInt(rparts[0], 10);
+        selectedMonth = parseInt(rparts[1], 10) - 1;
+        selectedDay = parseInt(rparts[2], 10);
+      }
+      try { editReminder(parseInt(rparts[2], 10), item.ridx); } catch(e) { console.warn(e); }
+    }
+  });
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'small-btn';
+  delBtn.textContent = 'Delete';
+  delBtn.addEventListener('click', function() {
+    if (item.type === 'event') {
+      try { deleteEvent(item.data.id); } catch(e) { console.warn(e); }
+    } else if (item.type === 'task') {
+      try { deleteTask(item.idx); } catch(e) { console.warn(e); }
+    } else if (item.type === 'reminder') {
+      const rparts = item.dateKey.split('-');
+      if (rparts.length === 3) {
+        selectedYear = parseInt(rparts[0], 10);
+        selectedMonth = parseInt(rparts[1], 10) - 1;
+        selectedDay = parseInt(rparts[2], 10);
+      }
+      try { deleteReminder(parseInt(rparts[2], 10), item.ridx); } catch(e) { console.warn(e); }
+    }
+    try { renderDomainPage(domain); } catch(e) {}
+  });
+
+  actions.appendChild(editBtn);
+  actions.appendChild(delBtn);
+  el.appendChild(left);
+  el.appendChild(actions);
+  return el;
+}
+
+/* Render all items for a domain */
+function renderDomainPage(domain) {
+  const container = document.getElementById('domain-list-' + domain);
+  if (!container) return;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const items = [];
+
+  getEvents().forEach(function(ev) {
+    if (getDomainOfItem(ev) === domain) {
+      items.push({
+        type: 'event', title: ev.title || '', date: ev.date || '',
+        time: ev.time || '', endTime: ev.endTime || '', location: ev.location || '',
+        sortKey: (ev.date || '9999') + (ev.time || '23:59'), data: ev
+      });
+    }
+  });
+
+  getTasks().forEach(function(t, idx) {
+    if (getDomainOfItem(t) === domain) {
+      items.push({
+        type: 'task', title: t.title || t.text || '', date: t.date || '',
+        time: t.time || '', priority: t.priority, done: !!t.done,
+        sortKey: (t.date || '9999') + (t.time || '23:59'), data: t, idx: idx
+      });
+    }
+  });
+
+  const rmap = getReminders();
+  Object.keys(rmap).forEach(function(dateKey) {
+    (rmap[dateKey] || []).forEach(function(r, ridx) {
+      if (getDomainOfItem(r) === domain) {
+        items.push({
+          type: 'reminder', title: r.text || '', date: dateKey,
+          time: r.time || '', sortKey: dateKey + (r.time || '23:59'),
+          data: r, dateKey: dateKey, ridx: ridx
+        });
+      }
+    });
+  });
+
+  const dated = items.filter(function(i) { return !!i.date; });
+  const undated = items.filter(function(i) { return !i.date; });
+  const upcoming = dated.filter(function(i) { return i.sortKey >= todayStr; })
+    .sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey); });
+  const past = dated.filter(function(i) { return i.sortKey < todayStr; })
+    .sort(function(a, b) { return b.sortKey.localeCompare(a.sortKey); });
+  const sorted = upcoming.concat(undated).concat(past);
+
+  container.innerHTML = '';
+  if (!sorted.length) {
+    container.innerHTML = '<div style="color:#aaa;text-align:center;padding:24px 0">No items yet. Add your first one above!</div>';
+    return;
+  }
+  sorted.forEach(function(item) {
+    container.appendChild(buildDomainItemEl(item, domain));
+  });
+}
+
+/* Add an event to a domain */
+function addDomainEvent(domain) {
+  const titleEl = document.getElementById(domain + '-ev-title');
+  const dateEl  = document.getElementById(domain + '-ev-date');
+  const timeEl  = document.getElementById(domain + '-ev-time');
+  const endEl   = document.getElementById(domain + '-ev-endtime');
+  if (!titleEl) return;
+  const title = titleEl.value.trim();
+  if (!title) { alert('Enter an event title'); return; }
+  const date = normalizeDate(dateEl ? dateEl.value : '') || new Date().toISOString().slice(0, 10);
+  const time = timeEl ? timeEl.value : '';
+  const endTime = endEl ? endEl.value : '';
+  const evs = getEvents();
+  const id = evs.length ? Math.max.apply(null, evs.map(function(e) { return e.id; })) + 1 : 1;
+  evs.push({ id, title, date, time, startTime: time, endTime, location: '', emoji: '', category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 });
+  setEvents(evs);
+  if (titleEl) titleEl.value = '';
+  if (dateEl)  dateEl.value  = '';
+  if (timeEl)  timeEl.value  = '';
+  if (endEl)   endEl.value   = '';
+  generateCalendar();
+  renderDomainPage(domain);
+  showUndoToast('\uD83D\uDCC5 Event added to ' + DOMAIN_META[domain].label + '!');
+}
+
+/* Add a task to a domain */
+function addDomainTask(domain) {
+  const titleEl    = document.getElementById(domain + '-task-title');
+  const dateEl     = document.getElementById(domain + '-task-date');
+  const priorityEl = document.getElementById(domain + '-task-priority');
+  if (!titleEl) return;
+  const title = titleEl.value.trim();
+  if (!title) { alert('Enter a task title'); return; }
+  const date     = normalizeDate(dateEl ? dateEl.value : '') || '';
+  const priority = priorityEl ? priorityEl.value : '2';
+  const tasks = getTasks();
+  tasks.push({ title, category: '', domain: domain, done: false, date, time: '', priority });
+  setTasks(tasks);
+  if (titleEl) titleEl.value = '';
+  if (dateEl)  dateEl.value  = '';
+  renderDomainPage(domain);
+  try { loadTasks(); } catch(_) {}
+  showUndoToast('\u2705 Task added to ' + DOMAIN_META[domain].label + '!');
+}
+
+/* Add a reminder to a domain */
+function addDomainReminder(domain) {
+  const textEl = document.getElementById(domain + '-rem-text');
+  const dateEl = document.getElementById(domain + '-rem-date');
+  const timeEl = document.getElementById(domain + '-rem-time');
+  if (!textEl) return;
+  const text = textEl.value.trim();
+  if (!text) { alert('Enter reminder text'); return; }
+  const date = normalizeDate(dateEl ? dateEl.value : '') || new Date().toISOString().slice(0, 10);
+  const time = timeEl ? timeEl.value : '';
+  const rmap = getReminders();
+  if (!rmap[date]) rmap[date] = [];
+  rmap[date].push({ text, time, notify: 'none', domain: domain });
+  setReminders(rmap);
+  if (textEl) textEl.value = '';
+  if (dateEl) dateEl.value = '';
+  if (timeEl) timeEl.value = '';
+  generateCalendar();
+  renderDomainPage(domain);
+  showUndoToast('\uD83D\uDD14 Reminder added to ' + DOMAIN_META[domain].label + '!');
+}
+
+/* Wire domain form tabs and add buttons */
+function wireDomainForms() {
+  const domains = ['personal', 'home', 'work'];
+  domains.forEach(function(domain) {
+    const tabContainer = document.querySelector('.domain-type-tabs[data-domain="' + domain + '"]');
+    if (tabContainer) {
+      tabContainer.querySelectorAll('.domain-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          const type = tab.dataset.type;
+          tabContainer.querySelectorAll('.domain-tab').forEach(function(t) { t.classList.remove('active'); });
+          tab.classList.add('active');
+          ['event', 'task', 'reminder'].forEach(function(t) {
+            const panel = document.getElementById('domain-form-' + domain + '-' + t);
+            if (panel) panel.classList.toggle('hidden', t !== type);
+          });
+        });
+      });
+    }
+
+    document.querySelectorAll('.domain-add-btn[data-domain="' + domain + '"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const type = btn.dataset.type;
+        if (type === 'event') addDomainEvent(domain);
+        else if (type === 'task') addDomainTask(domain);
+        else if (type === 'reminder') addDomainReminder(domain);
+      });
+    });
+
+    [domain + '-ev-title', domain + '-task-title', domain + '-rem-text'].forEach(function(inputId) {
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      const type = inputId.indexOf('-ev-') !== -1 ? 'event' : (inputId.indexOf('-task-') !== -1 ? 'task' : 'reminder');
+      inp.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        if (type === 'event') addDomainEvent(domain);
+        else if (type === 'task') addDomainTask(domain);
+        else if (type === 'reminder') addDomainReminder(domain);
+      });
+    });
+  });
+}
+
+/* ----- Calendar Cross-Domain Summary ----- */
+let calSummaryDomainFilter = 'all';
+
+function renderCalendarSummary() {
+  const list = document.getElementById('calendarSummaryList');
+  if (!list) return;
+
+  const daysEl = document.getElementById('summaryDaysSelect');
+  const days = daysEl ? parseInt(daysEl.value, 10) : 30;
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + days);
+  const endStr = endDate.toISOString().slice(0, 10);
+
+  const items = [];
+
+  getEvents().forEach(function(ev) {
+    const d = normalizeDate(ev.date);
+    if (!d || d < todayStr || d > endStr) return;
+    const domain = getDomainOfItem(ev);
+    if (calSummaryDomainFilter !== 'all' && domain !== calSummaryDomainFilter) return;
+    items.push({ type: 'event', title: ev.title || '', date: d, time: ev.time || '', domain: domain, sortKey: d + (ev.time || '23:59') });
+  });
+
+  getTasks().forEach(function(t) {
+    const d = normalizeDate(t.date);
+    if (!d || d < todayStr || d > endStr) return;
+    const domain = getDomainOfItem(t);
+    if (calSummaryDomainFilter !== 'all' && domain !== calSummaryDomainFilter) return;
+    items.push({ type: 'task', title: t.title || t.text || '', date: d, time: t.time || '', domain: domain, done: !!t.done, sortKey: d + (t.time || '23:59') });
+  });
+
+  const rmap = getReminders();
+  Object.keys(rmap).forEach(function(dk) {
+    if (dk < todayStr || dk > endStr) return;
+    (rmap[dk] || []).forEach(function(r) {
+      const domain = getDomainOfItem(r);
+      if (calSummaryDomainFilter !== 'all' && domain !== calSummaryDomainFilter) return;
+      items.push({ type: 'reminder', title: r.text || '', date: dk, time: r.time || '', domain: domain, sortKey: dk + (r.time || '23:59') });
+    });
+  });
+
+  items.sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey); });
+
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<div style="color:#aaa;text-align:center;padding:16px 0">No upcoming items in this range.</div>';
+    return;
+  }
+
+  items.forEach(function(item) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid #f0f0f0;font-size:0.88rem';
+
+    const typeIcon = { event: '\uD83D\uDCC5', task: '\u2705', reminder: '\uD83D\uDD14' }[item.type] || '\uD83D\uDCCC';
+    const meta = DOMAIN_META[item.domain] || DOMAIN_META.personal;
+
+    const domainBadge = document.createElement('span');
+    domainBadge.style.cssText = 'background:' + meta.color + ';color:#fff;padding:1px 7px;border-radius:10px;font-size:0.75rem;flex-shrink:0;white-space:nowrap';
+    domainBadge.textContent = meta.emoji + ' ' + meta.label;
+
+    const content = document.createElement('div');
+    content.style.cssText = 'flex:1;min-width:0';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = typeIcon + ' ' + (item.title || '');
+    if (item.done) titleSpan.style.textDecoration = 'line-through';
+
+    const dateSpan = document.createElement('span');
+    dateSpan.style.cssText = 'color:#888;margin-left:6px;font-size:0.8rem';
+    dateSpan.textContent = item.date + (item.time ? ' ' + item.time : '');
+
+    content.appendChild(titleSpan);
+    content.appendChild(dateSpan);
+    row.appendChild(domainBadge);
+    row.appendChild(content);
+    list.appendChild(row);
+  });
+}
+
+function wireCalendarSummary() {
+  document.querySelectorAll('.cal-domain-pill').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.cal-domain-pill').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      calSummaryDomainFilter = btn.dataset.domain || 'all';
+      renderCalendarSummary();
+    });
+  });
+
+  const daysEl = document.getElementById('summaryDaysSelect');
+  if (daysEl) daysEl.addEventListener('change', renderCalendarSummary);
+}
+
 /* ----- Init all new features on DOMContentLoaded ----- */
 document.addEventListener('DOMContentLoaded',function(){
   wireCategoryFilters();
@@ -2392,4 +2816,6 @@ document.addEventListener('DOMContentLoaded',function(){
   wireCalendarSwipe();
   wireMorningBriefing();
   updateInboxBadge();
+  wireDomainForms();
+  wireCalendarSummary();
 });
