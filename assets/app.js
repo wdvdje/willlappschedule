@@ -1155,8 +1155,83 @@ function getTodayISO(){
   return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
 }
 
+/* --- Off-day detection helper --- */
+const OFF_DAY_LABEL = '—';
+
+function isTodayOffDay(){
+  const todayStr = getTodayISO();
+  const d = new Date();
+  const yr = d.getFullYear();
+
+  // Check federal holidays
+  function nthWeekday(year, month, weekday, nth) {
+    var count = 0;
+    for (var day = 1; day <= 31; day++) {
+      var dt = new Date(year, month, day);
+      if (dt.getMonth() !== month) break;
+      if (dt.getDay() === weekday) {
+        count++;
+        if (count === nth) return day;
+      }
+    }
+    return 1;
+  }
+  function lastWeekday(year, month, weekday) {
+    var last = new Date(year, month + 1, 0);
+    return last.getDate() - ((7 + last.getDay() - weekday) % 7);
+  }
+  var federalHolidays = [
+    yr+'-01-01', yr+'-06-19', yr+'-07-04', yr+'-11-11', yr+'-12-25',
+    yr+'-01-'+pad2(nthWeekday(yr,0,1,3)),
+    yr+'-02-'+pad2(nthWeekday(yr,1,1,3)),
+    yr+'-05-'+pad2(lastWeekday(yr,4,1)),
+    yr+'-09-'+pad2(nthWeekday(yr,8,1,1)),
+    yr+'-10-'+pad2(nthWeekday(yr,9,1,2)),
+    yr+'-11-'+pad2(nthWeekday(yr,10,4,4))
+  ];
+  if (federalHolidays.indexOf(todayStr) !== -1) return true;
+
+  // Check user-defined off-days
+  try {
+    var userOffDays = JSON.parse(localStorage.getItem('userOffDays') || '[]');
+    if (Array.isArray(userOffDays)) {
+      for (var i = 0; i < userOffDays.length; i++) {
+        var entry = userOffDays[i];
+        var dateStr = typeof entry === 'string' ? entry : (entry && entry.date ? entry.date : '');
+        if (dateStr === todayStr) return true;
+      }
+    }
+  } catch(_) {}
+
+  return false;
+}
+
+/* --- Active hours helpers --- */
+function getActiveHours(){
+  var start = parseInt(localStorage.getItem('dayStartHour') || '', 10);
+  var end = parseInt(localStorage.getItem('dayEndHour') || '', 10);
+  if (isNaN(start) || start < 0 || start > 23) start = 0;
+  if (isNaN(end) || end < 1 || end > 24) end = 24;
+  if (end <= start) { start = 0; end = 24; }
+  return { start: start, end: end };
+}
+
 /* Ring 1: tasks + reminders + events completion for today */
 function updateCompletionRing(){
+  const wrap = document.getElementById('completionRingWrap');
+  const labelEl = wrap ? wrap.querySelector('.ring-label') : null;
+
+  // Off-day: show gray ring with "Off Day"
+  if (isTodayOffDay()) {
+    setRing('completionRingFg', 'completionRingPct', 0, '#999');
+    const pctEl = document.getElementById('completionRingPct');
+    if (pctEl) pctEl.textContent = OFF_DAY_LABEL;
+    if (wrap) wrap.title = 'Today is an off day';
+    if (labelEl) labelEl.textContent = 'Off Day';
+    return;
+  }
+  if (labelEl) labelEl.textContent = 'Completed';
+
   const todayStr = getTodayISO();
   // Tasks for today
   const tasks = getTasks().filter(t => t.date && normalizeDate(t.date) === todayStr);
@@ -1167,11 +1242,11 @@ function updateCompletionRing(){
   const remDone = todayReminders.filter(r => r.done).length;
   // Events for today
   const todayEvents = getExpandedEvents(todayStr, todayStr);
-  // Events count as "done" if their end time has passed
   const now = new Date();
   const nowMins = now.getHours() * 60 + now.getMinutes();
   let eventsDone = 0;
   todayEvents.forEach(ev => {
+    // If event has an end time, use it
     const endStr = ev.endTime || '';
     if (endStr) {
       const parts = endStr.match(/(\d{1,2}):(\d{2})/);
@@ -1181,7 +1256,17 @@ function updateCompletionRing(){
         return;
       }
     }
-    // No end time: treat as done only at end of day (23:59)
+    // No end time: if event has a start time, consider done once start time has passed
+    const startStr = ev.time || '';
+    if (startStr) {
+      const sp = startStr.match(/(\d{1,2}):(\d{2})/);
+      if (sp) {
+        const startMins = parseInt(sp[1], 10) * 60 + parseInt(sp[2], 10);
+        if (nowMins >= startMins) eventsDone++;
+        return;
+      }
+    }
+    // No start or end time (all-day event): treat as done at end of day
     if (nowMins >= 1439) eventsDone++;
   });
   const total = tasks.length + todayReminders.length + todayEvents.length;
@@ -1189,19 +1274,43 @@ function updateCompletionRing(){
   const pct = total ? Math.round((done / total) * 100) : 100;
   const color = pct === 100 ? '#27ae60' : '#4a90e2';
   setRing('completionRingFg', 'completionRingPct', pct, color);
-  const wrap = document.getElementById('completionRingWrap');
   if (wrap) wrap.title = done + '/' + total + ' items done today';
 }
 
-/* Ring 2: percent of day elapsed (current time as decimal hours / 24) */
+/* Ring 2: percent of active day elapsed */
 function updateDayElapsedRing(){
+  const wrap = document.getElementById('dayElapsedRingWrap');
+  const labelEl = wrap ? wrap.querySelector('.ring-label') : null;
+
+  // Off-day: show gray ring with "Off Day"
+  if (isTodayOffDay()) {
+    setRing('dayElapsedRingFg', 'dayElapsedRingPct', 0, '#999');
+    const pctEl = document.getElementById('dayElapsedRingPct');
+    if (pctEl) pctEl.textContent = OFF_DAY_LABEL;
+    if (wrap) wrap.title = 'Today is an off day';
+    if (labelEl) labelEl.textContent = 'Off Day';
+    return;
+  }
+  if (labelEl) labelEl.textContent = 'Day Elapsed';
+
   const now = new Date();
   const decimalHours = now.getHours() + now.getMinutes() / 60;
-  const pct = Math.round((decimalHours / 24) * 100);
+  const active = getActiveHours();
+  const totalActive = active.end - active.start;
+  let pct;
+  if (decimalHours <= active.start) {
+    pct = 0;
+  } else if (decimalHours >= active.end) {
+    pct = 100;
+  } else {
+    pct = Math.round(((decimalHours - active.start) / totalActive) * 100);
+  }
   const color = pct >= 75 ? '#e74c3c' : pct >= 50 ? '#e67e22' : '#f1c40f';
   setRing('dayElapsedRingFg', 'dayElapsedRingPct', pct, color);
-  const wrap = document.getElementById('dayElapsedRingWrap');
-  if (wrap) wrap.title = now.getHours() + 'h ' + now.getMinutes() + 'm elapsed';
+  const elapsed = Math.max(0, decimalHours - active.start);
+  const elH = Math.floor(elapsed);
+  const elM = Math.round((elapsed - elH) * 60);
+  if (wrap) wrap.title = elH + 'h ' + elM + 'm of ' + totalActive + 'h active day elapsed';
 }
 
 /* Weekly salary calculation based on jobs */
@@ -1706,7 +1815,9 @@ function buildExportPayload(){
       jobs: getJobs(),
       taskCategories: getTaskCategories(),
       userProfile: readUserProfile(),
-      userOffDays: (function(){ try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; } })()
+      userOffDays: (function(){ try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; } })(),
+      dayStartHour: localStorage.getItem('dayStartHour') || null,
+      dayEndHour: localStorage.getItem('dayEndHour') || null
     }
   };
 }
@@ -1852,6 +1963,8 @@ function applyImportData(importData, mode){
     setJobs(importData.jobs);
     localStorage.setItem('taskCategories', JSON.stringify(importData.taskCategories));
     if (Array.isArray(importData.userOffDays)) localStorage.setItem('userOffDays', JSON.stringify(importData.userOffDays));
+    if (importData.dayStartHour != null) localStorage.setItem('dayStartHour', importData.dayStartHour);
+    if (importData.dayEndHour != null) localStorage.setItem('dayEndHour', importData.dayEndHour);
     writeUserProfile(importData.userProfile || readUserProfile());
     refreshAfterImport();
     return {
@@ -1925,6 +2038,9 @@ function applyImportData(importData, mode){
     });
     localStorage.setItem('userOffDays', JSON.stringify(merged));
   }
+  // Merge active hours (prefer imported if local has no custom setting)
+  if (importData.dayStartHour != null && !localStorage.getItem('dayStartHour')) localStorage.setItem('dayStartHour', importData.dayStartHour);
+  if (importData.dayEndHour != null && !localStorage.getItem('dayEndHour')) localStorage.setItem('dayEndHour', importData.dayEndHour);
   refreshAfterImport();
 
   return {
