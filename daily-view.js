@@ -487,6 +487,15 @@
   }
   // Expose for other scripts
   window.dailyViewGetDate = getSelectedDate;
+  window.dailyViewSetDate = function(isoDate) {
+    if (isoDate && typeof isoDate === 'string') {
+      currentViewDate = isoDate;
+      renderDailyView(currentViewDate);
+    }
+  };
+  window.dailyViewRefresh = function() {
+    renderDailyView(currentViewDate);
+  };
 
   function refreshForSelectedDate() {
     updateDateDisplay();
