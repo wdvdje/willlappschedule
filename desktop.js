@@ -226,7 +226,7 @@
                           'border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);' +
                           'text-align:left;max-width:640px';
     panel.innerHTML = '<h4 style="margin:0 0 8px;color:#333;font-size:0.95rem">' +
-                      '💼 This Week\'s Job Earnings</h4>' +
+                      "💼 This Week's Job Earnings</h4>" +
                       '<div id="dtEarningsBody" style="font-size:0.88rem;color:#555"></div>';
     dash.appendChild(panel);
     refreshEarnings();
@@ -496,8 +496,6 @@
     var target = nd(newDate);
     if (!target || nd(events[idx].date) === target) return;
     events[idx].date = target;
-    // Keep both time aliases in sync
-    if (events[idx].startTime) events[idx].startTime = events[idx].time;
     setEv(events);
     window.dispatchEvent(new CustomEvent('app:data:updated'));
     try { if (typeof window.renderWeekView    === 'function') window.renderWeekView();    } catch (e) { /* ignore */ }
