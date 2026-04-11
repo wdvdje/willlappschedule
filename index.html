@@ -131,7 +131,8 @@
       border: 1px solid #eee;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
       box-sizing: border-box;
-      overflow: hidden;
+      overflow: hidden auto;
+      max-height: 480px;
     }
     .dv-grid {
       position: relative;
@@ -361,21 +362,10 @@
         <!-- existing top bars (holidays/events summary) -->
         <div id="dayTopBars"></div>
 
-        <!-- Daily view controls -->
-        <div id="dailyViewControls" style="display:flex;gap:8px;align-items:center;margin:10px 0;">
-          <div style="margin-left:auto;color:#666;font-size:0.95rem" id="dailyViewInfo"></div>
-        </div>
-
-        <!-- Hourly grid container (vertical timeline) -->
-        <div id="dailyView" class="daily-view-timeline" aria-live="polite">
-          <!-- hourly rows + event blocks will be rendered here by JS -->
-        </div>
-      </div>
-
       <section class="dashboard">
         <h2 id="dashboardHeading">📊 Dashboard</h2>
         <p id="summaryStats"></p>
-        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:8px;justify-content:center">
           <!-- Ring 1: today's completion -->
           <div class="progress-ring-wrap" id="completionRingWrap" title="Today's completion">
             <svg viewBox="0 0 44 44">
@@ -401,6 +391,17 @@
         </div>
         <div class="weekly-salary" id="weeklySalaryDisplay"></div>
       </section>
+
+        <!-- Daily view controls -->
+        <div id="dailyViewControls" style="display:flex;gap:8px;align-items:center;margin:10px 0;">
+          <div style="margin-left:auto;color:#666;font-size:0.95rem" id="dailyViewInfo"></div>
+        </div>
+
+        <!-- Hourly grid container (vertical timeline) -->
+        <div id="dailyView" class="daily-view-timeline" aria-live="polite">
+          <!-- hourly rows + event blocks will be rendered here by JS -->
+        </div>
+      </div>
 
       <div id="reminderBar" aria-live="polite" style="max-width:540px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>
     </section>
