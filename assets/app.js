@@ -1470,6 +1470,7 @@ function updateWeeklySalary(){
 /* ── Dashboard Weather Widget (Open-Meteo, no API key) ─────── */
 var _dashWeatherCache = null;
 var _dashWeatherCacheDate = null;
+var _dashWeatherUnit = '°C';
 var _DASH_WMO_EMOJI = {
   0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
   45:'🌫️',48:'🌫️',
@@ -1517,15 +1518,20 @@ function renderDashboardWeather(){
     return;
   }
 
+  /* Detect if user likely prefers Fahrenheit (US locale) */
+  var _useFahrenheit = /^en-US/i.test(navigator.language || '');
+  var tempUnit = _useFahrenheit ? '&temperature_unit=fahrenheit' : '';
+
   navigator.geolocation.getCurrentPosition(function(pos){
     var lat = pos.coords.latitude.toFixed(4);
     var lon = pos.coords.longitude.toFixed(4);
     var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
-      '&daily=weathercode,temperature_2m_max,temperature_2m_min&forecast_days=16&timezone=auto';
+      '&daily=weathercode,temperature_2m_max,temperature_2m_min&forecast_days=16&timezone=auto' + tempUnit;
     fetch(url).then(function(r){ return r.json(); }).then(function(data){
       if (!data.daily) return;
       _dashWeatherCache = {};
       _dashWeatherCacheDate = today;
+      _dashWeatherUnit = _useFahrenheit ? '°F' : '°C';
       var dates = data.daily.time || [];
       var codes = data.daily.weathercode || [];
       var highs = data.daily.temperature_2m_max || [];
@@ -1572,8 +1578,8 @@ function _renderWeatherCards(container, section, selDate, selISO){
     if (w){
       hasAny = true;
       html += '<div class="weather-day-icon">' + w.emoji + '</div>';
-      html += '<div class="weather-day-high">' + w.high + '°</div>';
-      html += '<div class="weather-day-low">' + w.low + '°</div>';
+      html += '<div class="weather-day-high">' + w.high + _dashWeatherUnit + '</div>';
+      html += '<div class="weather-day-low">' + w.low + _dashWeatherUnit + '</div>';
       html += '<div class="weather-day-desc">' + escapeHTML(w.desc) + '</div>';
     } else {
       html += '<div class="weather-day-icon">—</div>';
@@ -1582,7 +1588,7 @@ function _renderWeatherCards(container, section, selDate, selISO){
     html += '</div>';
   }
   html += '</div>';
-  html += '<p class="weather-widget-note">Powered by Open-Meteo · Temperatures in °C</p>';
+  html += '<p class="weather-widget-note">Powered by Open-Meteo · Temperatures in ' + _dashWeatherUnit + '</p>';
 
   if (hasAny){
     container.innerHTML = html;
