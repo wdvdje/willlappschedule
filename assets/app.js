@@ -581,14 +581,6 @@ function showReminders(day){
   const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
   const reminders = getReminders();
   const items = reminders[key] || [];
-  const events = getExpandedEvents(key, key);
-
-  const untimed = events.filter(e=>!e.time).slice().sort((a,b)=> (a.title||'').localeCompare(b.title||''));
-  const timed = events.filter(e=>e.time).slice().sort((a,b)=>{
-    if (a.time === b.time) return (a.title||'').localeCompare(b.title||'');
-    return (a.time||'').localeCompare(b.time||'');
-  });
-  const eventsSorted = untimed.concat(timed);
 
   const rd = document.getElementById('selectedDateLong');
   if (rd){
@@ -600,16 +592,9 @@ function showReminders(day){
   const h = getHoliday(mmdd, selectedYear);
 
   const holidayHTML = h ? `<div class="reminder-bar" style="background:#ffe5e3;border-left:4px solid #c0392b;color:#c0392b"><b>${h.emoji} ${h.name}</b></div>` : '';
-  const eventsHTML = eventsSorted.length ? `<div class="reminder-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234"><b>Events:</b><div class="events-list">${eventsSorted.map(ev=>{
-    const timePart = ev.time ? `[${escapeHTML(ev.time)}] ` : '';
-    const emojiPart = ev.emoji ? `${ev.emoji} ` : '';
-    const locationPart = ev.location ? ` @ <a href="${osmSearchUrl(ev.location)}" target="_blank">${escapeHTML(ev.location)}</a>` : '';
-    const bufferPart = (ev.preBuffer||0) || (ev.postBuffer||0) ? ` <small style="color:#555">(${ev.preBuffer||0}m pre / ${ev.postBuffer||0}m post)</small>` : '';
-    return `<div class="r-event">${timePart}${emojiPart}<b>${escapeHTML(ev.title)}</b>${locationPart}${bufferPart}<span class="r-actions"><button class="small-btn" onclick="editEvent(${ev.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${ev.id})">Delete</button></span></div>`;
-  }).join('')}</div></div>` : '';
 
   const ribbons = document.getElementById('dayTopBars');
-  if (ribbons) ribbons.innerHTML = holidayHTML + eventsHTML;
+  if (ribbons) ribbons.innerHTML = holidayHTML;
 
   const reminderArea = document.getElementById('reminderBar');
   if (reminderArea){
