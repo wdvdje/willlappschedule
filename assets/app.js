@@ -4626,21 +4626,12 @@ function wireCalendarSummary() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Calendar "Add Item" FAB — lets users add Event / Task / Reminder
+   Header "Add Item" popup — lets users add Event / Task / Reminder
    with domain + bucket selection (or Unassigned → Inbox)
    ═══════════════════════════════════════════════════════════════ */
-function injectCalendarAddItemFAB() {
-  var calPage = document.getElementById('page-calendar');
-  if (!calPage || document.getElementById('calAddItemFAB')) return;
-
-  /* --- FAB button (appended to body so fixed positioning works) --- */
-  var fab = document.createElement('button');
-  fab.id = 'calAddItemFAB';
-  fab.type = 'button';
-  fab.className = 'cal-fab-hidden';
-  fab.textContent = '＋ Add Item';
-  fab.setAttribute('aria-label', 'Add Item');
-  document.body.appendChild(fab);
+function initCalendarAddItemPopup() {
+  var headerBtn = document.getElementById('headerAddItemBtn');
+  if (!headerBtn || document.getElementById('calAddItemOverlay')) return;
 
   /* --- Overlay backdrop --- */
   var overlay = document.createElement('div');
@@ -4655,8 +4646,7 @@ function injectCalendarAddItemFAB() {
   var step1 = document.createElement('div');
   step1.id = 'calAddStep1';
   step1.innerHTML =
-    '<h3 style="margin:0 0 10px;font-size:1rem;text-align:center">Add Item</h3>' +
-    '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">' +
+    '<div style="display:flex;flex-direction:column;gap:8px;align-items:stretch">' +
       '<button type="button" class="cal-add-type-btn" data-item-type="event">📅 Add Event</button>' +
       '<button type="button" class="cal-add-type-btn" data-item-type="task">✅ Add Task</button>' +
       '<button type="button" class="cal-add-type-btn" data-item-type="reminder">🔔 Add Reminder</button>' +
@@ -4674,21 +4664,6 @@ function injectCalendarAddItemFAB() {
   /* State */
   var chosenType = '';
 
-  /* Show/hide FAB based on current view */
-  function updateFABVisibility(view) {
-    if (view === 'calendar') {
-      fab.classList.remove('cal-fab-hidden');
-    } else {
-      fab.classList.add('cal-fab-hidden');
-    }
-  }
-  window.addEventListener('view:show', function(e) {
-    updateFABVisibility(e.detail && e.detail.view);
-  });
-  /* Check initial view */
-  var initHash = (location.hash && location.hash.length > 1) ? location.hash.slice(1) : 'today';
-  updateFABVisibility(initHash);
-
   /* Open / close */
   function openModal() {
     overlay.classList.add('open');
@@ -4702,8 +4677,18 @@ function injectCalendarAddItemFAB() {
     modal.classList.remove('open');
   }
 
-  fab.addEventListener('click', openModal);
+  headerBtn.addEventListener('click', openModal);
   overlay.addEventListener('click', closeModal);
+
+  /* Show/hide header button based on current view — calendar only */
+  function updateAddBtnVisibility(view) {
+    headerBtn.style.display = (view === 'calendar') ? '' : 'none';
+  }
+  window.addEventListener('view:show', function(e) {
+    updateAddBtnVisibility(e.detail && e.detail.view);
+  });
+  var initHash = (location.hash && location.hash.length > 1) ? location.hash.slice(1) : 'today';
+  updateAddBtnVisibility(initHash);
 
   /* Step 1 → Step 2 */
   step1.querySelectorAll('.cal-add-type-btn').forEach(function(btn) {
@@ -4931,7 +4916,7 @@ document.addEventListener('DOMContentLoaded',function(){
     wireDomainForms();
     wireCalendarSummary();
     wireBucketPages();
-    injectCalendarAddItemFAB();
+    initCalendarAddItemPopup();
   } catch(e) { console.warn('Feature wiring error', e); }
   /* Refresh rings immediately and every 60s */
   updateDayElapsedRing();
