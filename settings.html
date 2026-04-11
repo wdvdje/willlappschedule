@@ -100,6 +100,19 @@
       </div>
     </section>
 
+    <!-- Off-Days / Holidays -->
+    <section id="userOffDays" style="margin-top:18px">
+      <h3 style="text-align:center">Off-Days / Holidays</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Add custom off-days (e.g. company holidays, personal days off). These will be skipped by the A/B weekday repeat pattern when "Skip holidays" is checked.</p>
+      <p style="color:#888;font-size:0.85rem;margin:0 0 8px">Federal holidays (MLK Day, Presidents' Day, Memorial Day, Juneteenth, Independence Day, Labor Day, Columbus Day, Veterans Day, Thanksgiving, Christmas, New Year's) are already included automatically.</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <input id="offDayDate" type="date" style="flex:1" />
+        <input id="offDayLabel" type="text" placeholder="Label (optional)" style="flex:1" />
+        <button id="addOffDayBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+      </div>
+      <ul id="offDaysList" style="list-style:none;padding:0;margin:8px 0;"></ul>
+    </section>
+
     <!-- Task categories -->
     <section id="taskCategories" style="margin-top:18px">
       <h3 style="text-align:center">Task categories</h3>
@@ -281,6 +294,85 @@
       window.addEventListener('token-sync:done',     function () { setStatus('✅ Synced'); });
       window.addEventListener('token-sync:stopped',  function () { setStatus('Sync stopped.'); refreshDisplay(); });
       window.addEventListener('token-sync:updated',  function () { setStatus('✅ Data updated from other device'); });
+    })();
+  </script>
+  <script>
+    // Off-Days management
+    (function () {
+      function getOffDays() {
+        try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; }
+      }
+      function setOffDays(list) {
+        localStorage.setItem('userOffDays', JSON.stringify(list));
+      }
+      function escapeText(s) { var d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
+      function renderOffDays() {
+        var ul = document.getElementById('offDaysList');
+        if (!ul) return;
+        var days = getOffDays();
+        if (!days.length) { ul.innerHTML = '<li style="color:#999;font-size:0.9rem">No custom off-days added yet.</li>'; return; }
+        ul.innerHTML = '';
+        days.forEach(function(entry, i) {
+          var li = document.createElement('li');
+          li.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #eee';
+          var dateStr = typeof entry === 'string' ? entry : (entry.date || '');
+          var label = (typeof entry === 'object' && entry.label) ? entry.label : '';
+
+          var dateSpan = document.createElement('span');
+          dateSpan.style.fontWeight = '600';
+          dateSpan.textContent = dateStr;
+          li.appendChild(dateSpan);
+
+          if (label) {
+            var labelSpan = document.createElement('span');
+            labelSpan.style.color = '#666';
+            labelSpan.textContent = label;
+            li.appendChild(labelSpan);
+          }
+
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'small-btn';
+          removeBtn.dataset.idx = i;
+          removeBtn.style.cssText = 'margin-left:auto;background:#e74c3c;color:#fff;padding:2px 8px;font-size:0.8rem';
+          removeBtn.textContent = 'Remove';
+          li.appendChild(removeBtn);
+
+          ul.appendChild(li);
+        });
+        ul.querySelectorAll('button[data-idx]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var idx = parseInt(btn.dataset.idx, 10);
+            var list = getOffDays();
+            list.splice(idx, 1);
+            setOffDays(list);
+            renderOffDays();
+          });
+        });
+      }
+      var addBtn = document.getElementById('addOffDayBtn');
+      if (addBtn) {
+        addBtn.addEventListener('click', function() {
+          var dateInp = document.getElementById('offDayDate');
+          var labelInp = document.getElementById('offDayLabel');
+          var date = dateInp ? dateInp.value : '';
+          if (!date) { if (dateInp) dateInp.focus(); return; }
+          var label = labelInp ? labelInp.value.trim() : '';
+          var list = getOffDays();
+          // Store as date string for the skip logic, but keep label for display
+          list.push({ date: date, label: label });
+          // Sort by date
+          list.sort(function(a, b) {
+            var da = typeof a === 'string' ? a : a.date;
+            var db = typeof b === 'string' ? b : b.date;
+            return da < db ? -1 : da > db ? 1 : 0;
+          });
+          setOffDays(list);
+          if (dateInp) dateInp.value = '';
+          if (labelInp) labelInp.value = '';
+          renderOffDays();
+        });
+      }
+      renderOffDays();
     })();
   </script>
 </body>

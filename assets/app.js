@@ -190,6 +190,9 @@ function migrateConsistencyData(){
       if (ev.repeat === 'weekday_ab') {
         const ab = (ev.abWeek || 'a').toString().toLowerCase() === 'b' ? 'b' : 'a';
         if (ev.abWeek !== ab) { ev.abWeek = ab; eventChanged = true; }
+        if (ev.abSkipHolidays !== undefined && typeof ev.abSkipHolidays !== 'boolean') {
+          ev.abSkipHolidays = !!ev.abSkipHolidays; eventChanged = true;
+        }
       }
     }
     if (eventChanged) setEvents(events);
@@ -910,6 +913,8 @@ function readRepeatPayload(prefix, eventDate){
       throw new Error('A/B weekday pattern requires a weekday start date.');
     }
     payload.abWeek = (abEl && (abEl.value || '').toLowerCase() === 'b') ? 'b' : 'a';
+    const skipEl = document.getElementById(prefix + 'ABSkipHolidays');
+    payload.abSkipHolidays = skipEl ? skipEl.checked : false;
   }
 
   return payload;
@@ -968,6 +973,7 @@ function addEvent(e){
   if (document.getElementById('eventRepeatInterval')) document.getElementById('eventRepeatInterval').value='1';
   if (document.getElementById('eventRepeatUnit')) document.getElementById('eventRepeatUnit').value='days';
   if (document.getElementById('eventABWeek')) document.getElementById('eventABWeek').value='a';
+  if (document.getElementById('eventABSkipHolidays')) document.getElementById('eventABSkipHolidays').checked=false;
   syncRepeatUI('event');
   renderEvents(); generateCalendar();
 }
@@ -993,6 +999,8 @@ function editEvent(id){
   document.getElementById('editRepeatInterval').value = e.repeatInterval || 1;
   document.getElementById('editRepeatUnit').value = e.repeatUnit || 'days';
   document.getElementById('editABWeek').value = e.abWeek || 'a';
+  var editSkipHol = document.getElementById('editABSkipHolidays');
+  if (editSkipHol) editSkipHol.checked = !!e.abSkipHolidays;
   syncRepeatUI('edit');
   const itemDomain = e.domain || getDomainOfItem(e);
   const editItemDomainEl = document.getElementById('editItemDomain');
@@ -1046,12 +1054,14 @@ function saveEditHandler(e){
       delete evs[idx].abWeek;
     } else if (repeatPayload.repeat === 'weekday_ab') {
       evs[idx].abWeek = repeatPayload.abWeek;
+      evs[idx].abSkipHolidays = repeatPayload.abSkipHolidays || false;
       delete evs[idx].repeatInterval;
       delete evs[idx].repeatUnit;
     } else {
       delete evs[idx].repeatInterval;
       delete evs[idx].repeatUnit;
       delete evs[idx].abWeek;
+      delete evs[idx].abSkipHolidays;
     }
     const editBucketEl = document.getElementById('editBucket');
     if (editBucketEl) {
@@ -1535,7 +1545,8 @@ function buildExportPayload(){
       reminders: getRemindersForExport(),
       jobs: getJobs(),
       taskCategories: getTaskCategories(),
-      userProfile: readUserProfile()
+      userProfile: readUserProfile(),
+      userOffDays: (function(){ try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; } })()
     }
   };
 }
@@ -1680,6 +1691,7 @@ function applyImportData(importData, mode){
     setRemindersFromArray(importData.reminders);
     setJobs(importData.jobs);
     localStorage.setItem('taskCategories', JSON.stringify(importData.taskCategories));
+    if (Array.isArray(importData.userOffDays)) localStorage.setItem('userOffDays', JSON.stringify(importData.userOffDays));
     writeUserProfile(importData.userProfile || readUserProfile());
     refreshAfterImport();
     return {
@@ -1737,6 +1749,22 @@ function applyImportData(importData, mode){
   setRemindersFromArray(mergedReminders.list);
   setJobs(mergedJobs.list);
   localStorage.setItem('taskCategories', JSON.stringify(mergedCategories.list));
+  // Merge user off-days (union of both lists, deduplicated by date)
+  if (Array.isArray(importData.userOffDays)) {
+    var localOffDays = (function(){ try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; } })();
+    var seen = {};
+    var merged = [];
+    localOffDays.concat(importData.userOffDays).forEach(function(entry) {
+      var d = typeof entry === 'string' ? entry : (entry && entry.date ? entry.date : '');
+      if (d && !seen[d]) { seen[d] = true; merged.push(entry); }
+    });
+    merged.sort(function(a, b) {
+      var da = typeof a === 'string' ? a : a.date;
+      var db = typeof b === 'string' ? b : b.date;
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+    localStorage.setItem('userOffDays', JSON.stringify(merged));
+  }
   refreshAfterImport();
 
   return {
@@ -3005,13 +3033,23 @@ function addItemToBucket(domain, bucketId, type, formEl) {
   const time = timeInp ? timeInp.value : '';
   const bId = (bucketId !== null && bucketId !== undefined) ? bucketId : undefined;
 
+  // For work domain, look up the job to inherit defaults (location, emoji)
+  var jobDefaults = { location: '', emoji: '' };
+  if (domain === 'work' && bId !== undefined) {
+    var matchedJob = getJobs().find(function(j) { return j.id === bId; });
+    if (matchedJob) {
+      jobDefaults.location = matchedJob.location || '';
+      jobDefaults.emoji = matchedJob.emoji || '';
+    }
+  }
+
   if (type === 'event') {
     const endTimeInp = formEl.querySelector('.bi-endtime');
     const endTime = endTimeInp ? endTimeInp.value : '';
     const evDate = date || new Date().toISOString().slice(0, 10);
     const evs = getEvents();
     const id = evs.length ? Math.max.apply(null, evs.map(function(x) { return x.id; })) + 1 : 1;
-    const ev = { id, title, date: evDate, time, startTime: time, endTime, location: '', emoji: '', category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
+    const ev = { id, title, date: evDate, time, startTime: time, endTime, location: jobDefaults.location, emoji: jobDefaults.emoji, category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
     if (bId !== undefined) ev.bucketId = bId;
     evs.push(ev);
     setEvents(evs);
@@ -3021,7 +3059,7 @@ function addItemToBucket(domain, bucketId, type, formEl) {
     const priorityEl = formEl.querySelector('.bi-priority');
     const priority = priorityEl ? priorityEl.value : '2';
     const tasks = getTasks();
-    const t = { title, category: domain, domain: domain, done: false, date, time, priority };
+    const t = { title, category: domain, domain: domain, done: false, date, time, priority, emoji: jobDefaults.emoji };
     if (bId !== undefined) t.bucketId = bId;
     tasks.push(t);
     setTasks(tasks);
@@ -3031,7 +3069,7 @@ function addItemToBucket(domain, bucketId, type, formEl) {
     const rDate = date || new Date().toISOString().slice(0, 10);
     const rmap = getReminders();
     if (!rmap[rDate]) rmap[rDate] = [];
-    const rObj = { text: title, time, notify: 'none', domain: domain };
+    const rObj = { text: title, time, notify: 'none', domain: domain, emoji: jobDefaults.emoji };
     if (bId !== undefined) rObj.bucketId = bId;
     rmap[rDate].push(rObj);
     setReminders(rmap);

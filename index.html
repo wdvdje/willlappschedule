@@ -61,7 +61,8 @@
     .bottom-ribbon{ position:fixed;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid #e6e6e6;display:flex;align-items:center;justify-content:space-around; box-shadow:0 -4px 18px rgba(0,0,0,0.06);z-index:999; }
     .bottom-ribbon .r-item{ text-decoration:none;color:#333;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:6px 4px;}
     .bottom-ribbon .r-item .r-label{ font-size:11px;margin-top:4px;display:block;}
-    .bottom-ribbon .r-item.r-center{ background:linear-gradient(0deg, rgba(74,144,226,0.06), transparent); border-radius:12px; margin:0 6px; padding:8px 6px; }
+    .bottom-ribbon .r-item.r-center{ border-radius:12px; margin:0 6px; padding:8px 6px; }
+    .bottom-ribbon .r-item.active{ background:linear-gradient(0deg, rgba(74,144,226,0.10), transparent); color:#4a90e2; }
     body { padding-bottom: 92px; }
 
     /* ADDED: center top headings on each page */
@@ -327,6 +328,7 @@
               <option value="a">A week (Mon/Wed/Fri)</option>
               <option value="b">B week (Tue/Thu)</option>
             </select>
+            <label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer"><input type="checkbox" id="eventABSkipHolidays" /> Skip holidays &amp; off-days</label>
           </div>
         </details>
 
@@ -737,6 +739,7 @@
             <option value="a">A week (Mon/Wed/Fri)</option>
             <option value="b">B week (Tue/Thu)</option>
           </select>
+          <label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer"><input type="checkbox" id="editABSkipHolidays" /> Skip holidays &amp; off-days</label>
         </div>
 
         <div id="editFieldsExtra" style="margin-top:8px">

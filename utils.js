@@ -178,6 +178,56 @@
         const mondays = startOfWeekMonday(baseDate);
         const aDays = [1,3,5];
         const bDays = [2,4];
+
+        // Build set of dates to skip when abSkipHolidays is enabled
+        var skipDates = null;
+        if (ev.abSkipHolidays) {
+          skipDates = {};
+          // helper: pad to 2 digits
+          function _p2(n) { return n < 10 ? '0' + n : '' + n; }
+          // helper: compute nth weekday of a month (1-indexed n)
+          function _nthWd(yr, mi, wd, n) {
+            var f = new Date(yr, mi, 1).getDay();
+            return 1 + ((7 + wd - f) % 7) + (n - 1) * 7;
+          }
+          // helper: compute last weekday of a month
+          function _lastWd(yr, mi, wd) {
+            var last = new Date(yr, mi + 1, 0);
+            return last.getDate() - ((7 + last.getDay() - wd) % 7);
+          }
+          // Gather years spanned by the range
+          var startYr = parseISO(baseDate).getFullYear();
+          var endYr = parseISO(effectiveEnd).getFullYear();
+          for (var yr = startYr; yr <= endYr; yr++) {
+            // Fixed federal holidays
+            var fixedDates = [
+              yr + '-01-01',  // New Year's Day
+              yr + '-06-19',  // Juneteenth
+              yr + '-07-04',  // Independence Day
+              yr + '-11-11',  // Veterans Day
+              yr + '-12-25'   // Christmas Day
+            ];
+            fixedDates.forEach(function(d) { skipDates[d] = true; });
+            // Computed federal holidays
+            skipDates[yr + '-01-' + _p2(_nthWd(yr, 0, 1, 3))] = true;  // MLK Day
+            skipDates[yr + '-02-' + _p2(_nthWd(yr, 1, 1, 3))] = true;  // Presidents' Day
+            skipDates[yr + '-05-' + _p2(_lastWd(yr, 4, 1))] = true;    // Memorial Day
+            skipDates[yr + '-09-' + _p2(_nthWd(yr, 8, 1, 1))] = true;  // Labor Day
+            skipDates[yr + '-10-' + _p2(_nthWd(yr, 9, 1, 2))] = true;  // Columbus Day
+            skipDates[yr + '-11-' + _p2(_nthWd(yr, 10, 4, 4))] = true; // Thanksgiving
+          }
+          // User-defined off-days from localStorage
+          try {
+            var userOffDays = JSON.parse(localStorage.getItem('userOffDays') || '[]');
+            if (Array.isArray(userOffDays)) {
+              userOffDays.forEach(function(d) {
+                var dateStr = typeof d === 'string' ? d : (d && d.date ? d.date : '');
+                if (dateStr) skipDates[dateStr] = true;
+              });
+            }
+          } catch(_) {}
+        }
+
         let weekIndex = 0;
         while (weekIndex < 200) {
           const weekStart = addDaysISO(mondays, weekIndex * 7);
@@ -188,6 +238,7 @@
             const occ = addDaysISO(weekStart, weekdayNum - 1);
             if (occ < baseDate) return;
             if (occ > effectiveEnd) return;
+            if (skipDates && skipDates[occ]) return;
             pushIfInRange(occ);
           });
           weekIndex += 1;
