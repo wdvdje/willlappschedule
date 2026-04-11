@@ -3005,13 +3005,23 @@ function addItemToBucket(domain, bucketId, type, formEl) {
   const time = timeInp ? timeInp.value : '';
   const bId = (bucketId !== null && bucketId !== undefined) ? bucketId : undefined;
 
+  // For work domain, look up the job to inherit defaults (location, emoji)
+  var jobDefaults = { location: '', emoji: '' };
+  if (domain === 'work' && bId !== undefined) {
+    var matchedJob = getJobs().find(function(j) { return j.id === bId; });
+    if (matchedJob) {
+      jobDefaults.location = matchedJob.location || '';
+      jobDefaults.emoji = matchedJob.emoji || '';
+    }
+  }
+
   if (type === 'event') {
     const endTimeInp = formEl.querySelector('.bi-endtime');
     const endTime = endTimeInp ? endTimeInp.value : '';
     const evDate = date || new Date().toISOString().slice(0, 10);
     const evs = getEvents();
     const id = evs.length ? Math.max.apply(null, evs.map(function(x) { return x.id; })) + 1 : 1;
-    const ev = { id, title, date: evDate, time, startTime: time, endTime, location: '', emoji: '', category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
+    const ev = { id, title, date: evDate, time, startTime: time, endTime, location: jobDefaults.location, emoji: jobDefaults.emoji, category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
     if (bId !== undefined) ev.bucketId = bId;
     evs.push(ev);
     setEvents(evs);
@@ -3021,7 +3031,7 @@ function addItemToBucket(domain, bucketId, type, formEl) {
     const priorityEl = formEl.querySelector('.bi-priority');
     const priority = priorityEl ? priorityEl.value : '2';
     const tasks = getTasks();
-    const t = { title, category: domain, domain: domain, done: false, date, time, priority };
+    const t = { title, category: domain, domain: domain, done: false, date, time, priority, emoji: jobDefaults.emoji };
     if (bId !== undefined) t.bucketId = bId;
     tasks.push(t);
     setTasks(tasks);
@@ -3031,7 +3041,7 @@ function addItemToBucket(domain, bucketId, type, formEl) {
     const rDate = date || new Date().toISOString().slice(0, 10);
     const rmap = getReminders();
     if (!rmap[rDate]) rmap[rDate] = [];
-    const rObj = { text: title, time, notify: 'none', domain: domain };
+    const rObj = { text: title, time, notify: 'none', domain: domain, emoji: jobDefaults.emoji };
     if (bId !== undefined) rObj.bucketId = bId;
     rmap[rDate].push(rObj);
     setReminders(rmap);
