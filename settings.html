@@ -124,6 +124,39 @@
       <div id="categoriesList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
     </section>
 
+    <!-- Domain Colors -->
+    <section id="domainColorsSection" style="margin-top:18px">
+      <h3 style="text-align:center">Domain Colors</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 12px">Customize the accent colors used for each domain on the calendar and throughout the app.</p>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">💼 Work</label>
+          <input id="dcWork" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcWorkHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">🏡 Home</label>
+          <input id="dcHome" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcHomeHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">👤 Personal</label>
+          <input id="dcPersonal" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcPersonalHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">🎉 Holiday</label>
+          <input id="dcHoliday" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcHolidayHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+        <button id="saveDomainColorsBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save colors</button>
+        <button id="resetDomainColorsBtn" class="small-btn">Reset to defaults</button>
+        <span id="domainColorStatus" style="font-size:0.9rem;color:#27ae60;margin-left:8px"></span>
+      </div>
+    </section>
+
     <!-- Push notifications settings -->
     <section id="pushSettings" style="margin-top:18px">
       <h3>Push notifications</h3>
@@ -265,6 +298,85 @@
         });
       }
       renderOffDays();
+    })();
+  </script>
+
+  <script>
+    // Domain Colors management
+    (function () {
+      var DEFAULTS = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c' };
+
+      function loadStored() {
+        try { return JSON.parse(localStorage.getItem('domainColors') || '{}'); } catch (_) { return {}; }
+      }
+
+      function getColors() {
+        var stored = loadStored();
+        return {
+          work:     stored.work     || DEFAULTS.work,
+          home:     stored.home     || DEFAULTS.home,
+          personal: stored.personal || DEFAULTS.personal,
+          holiday:  stored.holiday  || DEFAULTS.holiday
+        };
+      }
+
+      function updateHexLabels() {
+        var ids = { work: 'dcWork', home: 'dcHome', personal: 'dcPersonal', holiday: 'dcHoliday' };
+        Object.keys(ids).forEach(function (key) {
+          var inp = document.getElementById(ids[key]);
+          var lbl = document.getElementById(ids[key] + 'Hex');
+          if (inp && lbl) lbl.textContent = inp.value.toUpperCase();
+        });
+      }
+
+      function populateInputs(colors) {
+        var inp;
+        if ((inp = document.getElementById('dcWork')))     inp.value = colors.work;
+        if ((inp = document.getElementById('dcHome')))     inp.value = colors.home;
+        if ((inp = document.getElementById('dcPersonal'))) inp.value = colors.personal;
+        if ((inp = document.getElementById('dcHoliday')))  inp.value = colors.holiday;
+        updateHexLabels();
+      }
+
+      // Wire "input" events on each color picker to update the hex label live
+      ['dcWork', 'dcHome', 'dcPersonal', 'dcHoliday'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateHexLabels);
+      });
+
+      var saveBtn  = document.getElementById('saveDomainColorsBtn');
+      var resetBtn = document.getElementById('resetDomainColorsBtn');
+      var status   = document.getElementById('domainColorStatus');
+
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function () {
+          var colors = {
+            work:     (document.getElementById('dcWork')     || {}).value || DEFAULTS.work,
+            home:     (document.getElementById('dcHome')     || {}).value || DEFAULTS.home,
+            personal: (document.getElementById('dcPersonal') || {}).value || DEFAULTS.personal,
+            holiday:  (document.getElementById('dcHoliday')  || {}).value || DEFAULTS.holiday
+          };
+          localStorage.setItem('domainColors', JSON.stringify(colors));
+          if (status) {
+            status.textContent = '✓ Saved!';
+            setTimeout(function () { status.textContent = ''; }, 2500);
+          }
+        });
+      }
+
+      if (resetBtn) {
+        resetBtn.addEventListener('click', function () {
+          localStorage.removeItem('domainColors');
+          populateInputs(DEFAULTS);
+          if (status) {
+            status.textContent = '✓ Reset to defaults';
+            setTimeout(function () { status.textContent = ''; }, 2500);
+          }
+        });
+      }
+
+      // Initialise inputs with currently stored (or default) values
+      populateInputs(getColors());
     })();
   </script>
 </body>
