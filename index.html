@@ -64,8 +64,27 @@
     .progress-ring-wrap .ring-fg { fill:none;stroke-width:7;stroke-linecap:round; }
     .progress-ring-wrap .ring-pct { font-size:14px;font-weight:700;fill:#333;text-anchor:middle;dominant-baseline:central; }
     .progress-ring-wrap .ring-label { font-size:0.8rem;color:#666;text-align:center; }
-    .weekly-salary { margin-top:10px;font-size:1rem;color:#333; }
+    .weekly-salary { margin-top:10px;font-size:1rem;color:#333;cursor:pointer;transition:opacity 0.15s; }
+    .weekly-salary:hover { opacity:0.75; }
     .weekly-salary strong { color:#27ae60; }
+    .work-earnings-section { background:#fff;border-radius:10px;padding:16px;margin-bottom:18px;box-shadow:0 1px 8px rgba(0,0,0,0.07); }
+    .work-earnings-heading { margin:0 0 12px;font-size:1.15rem; }
+    .work-earnings-total { font-size:1.3rem;font-weight:700;color:#27ae60;margin-bottom:14px;text-align:center; }
+    .work-earnings-week-label { font-size:0.85rem;color:#888;text-align:center;margin-bottom:4px; }
+    .earnings-day-table { width:100%;border-collapse:collapse;margin-bottom:16px;font-size:0.92rem; }
+    .earnings-day-table th { text-align:left;padding:6px 8px;border-bottom:2px solid #e6e6e6;color:#666;font-weight:600; }
+    .earnings-day-table td { padding:6px 8px;border-bottom:1px solid #f0f0f0; }
+    .earnings-day-table tr.edt-today { background:#eaf4ff; }
+    .earnings-day-table .edt-amount { text-align:right;font-weight:600;color:#27ae60; }
+    .earnings-day-table .edt-hours { text-align:right;color:#888; }
+    .earnings-job-cards { display:flex;flex-direction:column;gap:10px; }
+    .earnings-job-card { display:flex;align-items:center;gap:12px;background:#f9fafb;border-radius:8px;padding:10px 12px;border:1px solid #eee; }
+    .earnings-job-emoji { font-size:1.5rem;flex-shrink:0; }
+    .earnings-job-info { flex:1;min-width:0; }
+    .earnings-job-name { font-weight:600;font-size:0.95rem; }
+    .earnings-job-meta { font-size:0.82rem;color:#888;margin-top:2px; }
+    .earnings-job-total { font-weight:700;font-size:1.05rem;color:#27ae60;flex-shrink:0; }
+    .earnings-empty { color:#aaa;text-align:center;padding:18px 0;font-size:0.95rem; }
     .bottom-ribbon{ position:fixed;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid #e6e6e6;display:flex;align-items:center;justify-content:space-around; box-shadow:0 -4px 18px rgba(0,0,0,0.06);z-index:999;padding:4px 6px;gap:4px; }
     .bottom-ribbon .r-item{ text-decoration:none;color:#333;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:6px 4px;border:1.5px solid #e0e0e0;border-radius:10px;transition:background 0.15s, border-color 0.15s, color 0.15s;}
     .bottom-ribbon .r-item:hover{ border-color:#4a90e2;background:rgba(74,144,226,0.05); }
@@ -685,6 +704,13 @@
     <section id="page-work" class="page hidden">
       <h2>💼 Work</h2>
       <div style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
+
+        <!-- Expanded Job Earnings Analytics -->
+        <div id="workEarningsSection" class="work-earnings-section">
+          <h3 class="work-earnings-heading">💰 Job Earnings</h3>
+          <div id="workEarningsContent"></div>
+        </div>
+
         <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
           <button id="addWorkJobBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Job</button>
         </div>

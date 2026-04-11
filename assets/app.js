@@ -1440,11 +1440,199 @@ function updateWeeklySalary(){
     });
 
     if (totalSalary > 0) {
-      el.innerHTML = '💰 Est. weekly salary: <strong>$' + totalSalary.toFixed(2) + '</strong>';
+      el.innerHTML = '💰 Est. weekly salary: <strong>$' + totalSalary.toFixed(2) + '</strong> <span style="font-size:0.8rem;color:#4a90e2;margin-left:4px">View details ›</span>';
+      el.onclick = function(){ showView('work'); };
+      el.title = 'View detailed earnings on Work page';
     } else {
       el.innerHTML = '';
+      el.onclick = null;
     }
   } catch(e) { el.innerHTML = ''; console.warn('weeklySalary error', e); }
+}
+
+/* ── Expanded Job Earnings Analytics (Work page) ──────────────── */
+function renderWorkEarnings(){
+  var container = document.getElementById('workEarningsContent');
+  if (!container) return;
+  try {
+    var todayStr = getTodayISO();
+    var todayDate = new Date(todayStr + 'T12:00:00');
+    var dow = todayDate.getDay();
+
+    // Current week Sun–Sat
+    var weekStartDate = new Date(todayDate);
+    weekStartDate.setDate(todayDate.getDate() - dow);
+    var weekEndDate = new Date(weekStartDate);
+    weekEndDate.setDate(weekStartDate.getDate() + 6);
+    var weekStartISO = weekStartDate.getFullYear()+'-'+pad2(weekStartDate.getMonth()+1)+'-'+pad2(weekStartDate.getDate());
+    var weekEndISO   = weekEndDate.getFullYear()+'-'+pad2(weekEndDate.getMonth()+1)+'-'+pad2(weekEndDate.getDate());
+
+    var weekEvents = getExpandedEvents(weekStartISO, weekEndISO);
+    var jobs = getJobs();
+
+    var jobById = {}, jobByName = {};
+    jobs.forEach(function(j){
+      if (j.id != null) jobById[j.id] = j;
+      if (j.name) jobByName[j.name.toLowerCase()] = j;
+    });
+
+    var DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    // Per-day buckets
+    var dayData = []; // { iso, label, earnings, hours }
+    for (var d = 0; d < 7; d++){
+      var dt = new Date(weekStartDate);
+      dt.setDate(weekStartDate.getDate() + d);
+      dayData.push({
+        iso: dt.getFullYear()+'-'+pad2(dt.getMonth()+1)+'-'+pad2(dt.getDate()),
+        label: DAY_NAMES[dt.getDay()] + ' ' + (dt.getMonth()+1) + '/' + dt.getDate(),
+        earnings: 0,
+        hours: 0
+      });
+    }
+
+    // Per-job buckets
+    var jobEarnings = {}; // keyed by job id or name
+
+    var totalSalary = 0;
+    var totalHours  = 0;
+
+    weekEvents.forEach(function(ev){
+      var cat = (ev.category || 'event').toLowerCase();
+      var isJobCategory = (cat === 'job');
+      var isWorkWithBucket = ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
+      if (!isJobCategory && !isWorkWithBucket) return;
+
+      var job = null;
+      var jid = ev.jobId || ev.eventJobId;
+      if (jid != null){
+        var id = typeof jid === 'number' ? jid : parseInt(jid, 10);
+        job = jobById[id] || null;
+      }
+      if (!job && ev.bucketId != null) job = jobById[ev.bucketId] || null;
+      if (!job && ev.jobName) job = jobByName[(ev.jobName || '').toLowerCase()] || null;
+      if (!job && ev.jobRate) job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour', name: ev.title || 'Unknown', emoji: '' };
+      if (!job) return;
+
+      var rate = parseFloat(ev.jobRate || ev.eventJobRate || job.rate) || 0;
+      var unit = ev.jobUnit || ev.eventJobUnit || job.unit || 'hour';
+
+      var evEarnings = 0;
+      var evHours = 0;
+
+      if (unit === 'job' || unit === 'day'){
+        evEarnings = rate;
+      } else {
+        var startStr = ev.startTime || ev.time || '';
+        var endStr   = ev.endTime || '';
+        if (startStr && endStr){
+          var sp = startStr.match(/(\d{1,2}):(\d{2})/);
+          var ep = endStr.match(/(\d{1,2}):(\d{2})/);
+          if (sp && ep){
+            var sm = parseInt(sp[1],10)*60+parseInt(sp[2],10);
+            var em = parseInt(ep[1],10)*60+parseInt(ep[2],10);
+            if (em <= sm) em += 1440;
+            evHours = (em - sm) / 60;
+            evEarnings = rate * evHours;
+          }
+        }
+      }
+
+      if (evEarnings <= 0) return;
+
+      totalSalary += evEarnings;
+      totalHours  += evHours;
+
+      // Assign to day
+      var evDate = normalizeDate(ev.date);
+      for (var i = 0; i < dayData.length; i++){
+        if (dayData[i].iso === evDate){
+          dayData[i].earnings += evEarnings;
+          dayData[i].hours    += evHours;
+          break;
+        }
+      }
+
+      // Assign to job
+      var jobKey = (job.id != null) ? 'id_'+job.id : 'name_'+(job.name||'').toLowerCase();
+      if (!jobEarnings[jobKey]){
+        jobEarnings[jobKey] = {
+          name: job.name || 'Unknown',
+          emoji: job.emoji || '💼',
+          rate: rate,
+          unit: unit,
+          totalEarnings: 0,
+          totalHours: 0,
+          shifts: 0
+        };
+      }
+      jobEarnings[jobKey].totalEarnings += evEarnings;
+      jobEarnings[jobKey].totalHours    += evHours;
+      jobEarnings[jobKey].shifts        += 1;
+    });
+
+    // Build HTML
+    var html = '';
+
+    // Week label
+    var startLabel = (weekStartDate.getMonth()+1)+'/'+weekStartDate.getDate();
+    var endLabel   = (weekEndDate.getMonth()+1)+'/'+weekEndDate.getDate();
+    html += '<div class="work-earnings-week-label">Week of ' + startLabel + ' – ' + endLabel + '</div>';
+
+    if (totalSalary <= 0){
+      html += '<div class="earnings-empty">No job earnings this week. Schedule job events to see earnings here.</div>';
+      container.innerHTML = html;
+      return;
+    }
+
+    // Total
+    html += '<div class="work-earnings-total">$' + totalSalary.toFixed(2) + '</div>';
+
+    // Per-day table
+    html += '<table class="earnings-day-table">';
+    html += '<thead><tr><th>Day</th><th class="edt-hours">Hours</th><th class="edt-amount">Earned</th></tr></thead>';
+    html += '<tbody>';
+    for (var i = 0; i < dayData.length; i++){
+      var dd = dayData[i];
+      var isToday = dd.iso === todayStr;
+      html += '<tr' + (isToday ? ' class="edt-today"' : '') + '>';
+      html += '<td>' + dd.label + (isToday ? ' <strong>·</strong>' : '') + '</td>';
+      html += '<td class="edt-hours">' + (dd.hours > 0 ? dd.hours.toFixed(1) + 'h' : '–') + '</td>';
+      html += '<td class="edt-amount">' + (dd.earnings > 0 ? '$' + dd.earnings.toFixed(2) : '–') + '</td>';
+      html += '</tr>';
+    }
+    html += '</tbody></table>';
+
+    // Per-job cards
+    var jobKeys = Object.keys(jobEarnings);
+    if (jobKeys.length > 0){
+      html += '<h4 style="margin:0 0 8px;font-size:0.95rem;color:#666">By Job</h4>';
+      html += '<div class="earnings-job-cards">';
+      jobKeys.sort(function(a,b){ return jobEarnings[b].totalEarnings - jobEarnings[a].totalEarnings; });
+      for (var j = 0; j < jobKeys.length; j++){
+        var je = jobEarnings[jobKeys[j]];
+        var meta = '';
+        if (je.unit === 'hour'){
+          meta = je.totalHours.toFixed(1) + 'h · $' + je.rate.toFixed(2) + '/hr · ' + je.shifts + ' shift' + (je.shifts !== 1 ? 's' : '');
+        } else {
+          meta = '$' + je.rate.toFixed(2) + '/' + je.unit + ' · ' + je.shifts + ' shift' + (je.shifts !== 1 ? 's' : '');
+        }
+        html += '<div class="earnings-job-card">';
+        html += '<span class="earnings-job-emoji">' + je.emoji + '</span>';
+        html += '<div class="earnings-job-info">';
+        html += '<div class="earnings-job-name">' + je.name + '</div>';
+        html += '<div class="earnings-job-meta">' + meta + '</div>';
+        html += '</div>';
+        html += '<div class="earnings-job-total">$' + je.totalEarnings.toFixed(2) + '</div>';
+        html += '</div>';
+      }
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+  } catch(e) {
+    container.innerHTML = '<div class="earnings-empty">Unable to calculate earnings.</div>';
+    console.warn('renderWorkEarnings error', e);
+  }
 }
 
 /* Legacy wrappers: updateProgress / updateDashboard / updateDayProgress still called from other code */
@@ -1583,7 +1771,7 @@ function showView(view, updateHash = true){
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
   else if (view === 'jobs'){ try{ renderJobs(); }catch(e){ console.warn(e); } }
   else if (view === 'inbox'){ try{ renderInbox(); updateInboxBadge(); }catch(e){ console.warn(e); } }
-  else if (view === 'personal' || view === 'home' || view === 'work'){ try{ renderDomainPage(view); }catch(e){ console.warn(e); } }
+  else if (view === 'personal' || view === 'home' || view === 'work'){ try{ renderDomainPage(view); }catch(e){ console.warn(e); } if(view==='work'){ try{ renderWorkEarnings(); }catch(e){ console.warn(e); } } }
   if (updateHash){ const newHash = '#'+view; if (location.hash !== newHash) location.hash = newHash; }
   try { window.dispatchEvent(new CustomEvent('view:show', { detail: { view: view } })); } catch(_) {}
 }
