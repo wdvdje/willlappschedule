@@ -58,9 +58,9 @@
     return parseInt(parts[0], 10) * 60 + parseInt(parts[1] || '0', 10);
   }
 
-  /** Returns the Sunday–Saturday range containing today. */
-  function weekRange() {
-    var now = new Date(), dow = now.getDay();
+  /** Returns the Sunday–Saturday range containing the given date (defaults to today). */
+  function weekRange(refDate) {
+    var now = refDate ? new Date(refDate) : new Date(), dow = now.getDay();
     var s = new Date(now); s.setDate(now.getDate() - dow); s.setHours(0, 0, 0, 0);
     var e = new Date(s);   e.setDate(s.getDate() + 6);    e.setHours(23, 59, 59, 999);
     return { start: s, end: e };
@@ -142,7 +142,9 @@
   // ---------------------------------------------------------------------------
 
   function calcEarnings() {
-    var range   = weekRange();
+    var viewDate = (typeof window.dailyViewGetDate === 'function') ? window.dailyViewGetDate() : null;
+    var ref = viewDate ? new Date(viewDate + 'T12:00:00') : null;
+    var range   = weekRange(ref);
     var startISO = range.start.toISOString().slice(0, 10);
     var endISO   = range.end.toISOString().slice(0, 10);
     var events;
@@ -202,6 +204,16 @@
     var result = calcEarnings();
     var fmt    = function (d) { return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
 
+    // Update the panel title to reflect which week is shown
+    var titleEl = document.getElementById('dtEarningsTitle');
+    if (titleEl) {
+      var todayRange = weekRange();
+      var isSameWeek = result.range.start.getTime() === todayRange.start.getTime();
+      titleEl.textContent = isSameWeek
+        ? "💼 This Week's Job Earnings"
+        : '💼 Job Earnings: ' + fmt(result.range.start) + ' – ' + fmt(result.range.end);
+    }
+
     if (!result.items.length) {
       body.innerHTML = '<span style="color:#aaa">No job events this week (' +
         fmt(result.range.start) + '–' + fmt(result.range.end) +
@@ -238,7 +250,7 @@
     panel.style.cssText = 'margin:12px auto 0;padding:12px;background:#fff;' +
                           'border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);' +
                           'text-align:left;max-width:640px';
-    panel.innerHTML = '<h4 style="margin:0 0 8px;color:#333;font-size:0.95rem">' +
+    panel.innerHTML = '<h4 id="dtEarningsTitle" style="margin:0 0 8px;color:#333;font-size:0.95rem">' +
                       "💼 This Week's Job Earnings</h4>" +
                       '<div id="dtEarningsBody" style="font-size:0.88rem;color:#555"></div>';
     dash.appendChild(panel);
@@ -959,6 +971,10 @@
       refreshAgenda();
       setTimeout(wireCalendarTooltips, 100);
     }
+  });
+  // Refresh earnings when the user navigates to a different day in the daily view
+  window.addEventListener('dailyview:datechange', function () {
+    refreshEarnings();
   });
   window.addEventListener('storage', function (e) {
     if (!e.key || e.key === 'events' || e.key === 'jobs') {
