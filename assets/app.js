@@ -1862,7 +1862,10 @@ function buildExportPayload(){
       userProfile: readUserProfile(),
       userOffDays: (function(){ try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; } })(),
       dayStartHour: localStorage.getItem('dayStartHour') || null,
-      dayEndHour: localStorage.getItem('dayEndHour') || null
+      dayEndHour: localStorage.getItem('dayEndHour') || null,
+      personalBuckets: safeParseStorage('personalBuckets', []),
+      homeBuckets: safeParseStorage('homeBuckets', []),
+      domainColors: safeParseStorage('domainColors', {})
     }
   };
 }
@@ -1896,8 +1899,14 @@ function parseImportPayload(parsed){
   const jobs = Array.isArray(data.jobs) ? data.jobs : [];
   const taskCategories = Array.isArray(data.taskCategories) ? data.taskCategories : [];
   const userProfile = (data.userProfile && typeof data.userProfile === 'object') ? data.userProfile : readUserProfile();
+  const personalBuckets = Array.isArray(data.personalBuckets) ? data.personalBuckets : [];
+  const homeBuckets = Array.isArray(data.homeBuckets) ? data.homeBuckets : [];
+  const domainColors = (data.domainColors && typeof data.domainColors === 'object' && !Array.isArray(data.domainColors)) ? data.domainColors : {};
+  const userOffDays = Array.isArray(data.userOffDays) ? data.userOffDays : undefined;
+  const dayStartHour = data.dayStartHour != null ? data.dayStartHour : undefined;
+  const dayEndHour = data.dayEndHour != null ? data.dayEndHour : undefined;
 
-  return { events, tasks, reminders, jobs, taskCategories, userProfile };
+  return { events, tasks, reminders, jobs, taskCategories, userProfile, personalBuckets, homeBuckets, domainColors, userOffDays, dayStartHour, dayEndHour };
 }
 
 function eventKey(x){
@@ -2010,6 +2019,9 @@ function applyImportData(importData, mode){
     if (Array.isArray(importData.userOffDays)) localStorage.setItem('userOffDays', JSON.stringify(importData.userOffDays));
     if (importData.dayStartHour != null) localStorage.setItem('dayStartHour', importData.dayStartHour);
     if (importData.dayEndHour != null) localStorage.setItem('dayEndHour', importData.dayEndHour);
+    if (Array.isArray(importData.personalBuckets)) localStorage.setItem('personalBuckets', JSON.stringify(importData.personalBuckets));
+    if (Array.isArray(importData.homeBuckets)) localStorage.setItem('homeBuckets', JSON.stringify(importData.homeBuckets));
+    if (importData.domainColors && typeof importData.domainColors === 'object' && Object.keys(importData.domainColors).length > 0) localStorage.setItem('domainColors', JSON.stringify(importData.domainColors));
     writeUserProfile(importData.userProfile || readUserProfile());
     refreshAfterImport();
     return {
@@ -2086,6 +2098,28 @@ function applyImportData(importData, mode){
   // Merge active hours (prefer imported if local has no custom setting)
   if (importData.dayStartHour != null && !localStorage.getItem('dayStartHour')) localStorage.setItem('dayStartHour', importData.dayStartHour);
   if (importData.dayEndHour != null && !localStorage.getItem('dayEndHour')) localStorage.setItem('dayEndHour', importData.dayEndHour);
+  // Merge personal/home buckets (union, deduplicated by id)
+  ['personalBuckets', 'homeBuckets'].forEach(function(key) {
+    if (Array.isArray(importData[key]) && importData[key].length) {
+      var local = safeParseStorage(key, []);
+      var seenIds = {};
+      var merged = [];
+      local.concat(importData[key]).forEach(function(b) {
+        if (!b) return;
+        var bid = b.id != null ? b.id : b.name;
+        if (!seenIds[bid]) { seenIds[bid] = true; merged.push(b); }
+      });
+      localStorage.setItem(key, JSON.stringify(merged));
+    }
+  });
+  // Merge domain colors (prefer imported values for keys not already set locally)
+  if (importData.domainColors && typeof importData.domainColors === 'object' && Object.keys(importData.domainColors).length > 0) {
+    var localDC = safeParseStorage('domainColors', {});
+    Object.keys(importData.domainColors).forEach(function(k) {
+      if (!localDC[k]) localDC[k] = importData.domainColors[k];
+    });
+    localStorage.setItem('domainColors', JSON.stringify(localDC));
+  }
   refreshAfterImport();
 
   return {
@@ -2201,8 +2235,14 @@ function renderCategoryFilterBar() {
   const bar = document.getElementById('categoryFilterBar');
   if (!bar) return;
 
-  // Preserve only the label span, rebuild buttons
-  bar.innerHTML = '<span style="font-size:0.8rem;color:#666;margin-right:2px">Filter:</span>';
+  // Clear and rebuild with grouped sections
+  bar.innerHTML = '';
+
+  // --- Domains section ---
+  var domainsLabel = document.createElement('span');
+  domainsLabel.style.cssText = 'font-size:0.8rem;color:#666;margin-right:2px;font-weight:600';
+  domainsLabel.textContent = 'Domains:';
+  bar.appendChild(domainsLabel);
 
   // "All" button
   const allBtn = document.createElement('button');
@@ -2211,34 +2251,48 @@ function renderCategoryFilterBar() {
   allBtn.textContent = 'All';
   bar.appendChild(allBtn);
 
-  // For each domain, add a domain-level button then its bucket buttons
+  // Domain-level buttons
   var domains = ['personal', 'home', 'work'];
   domains.forEach(function(domain) {
     var meta = DOMAIN_META[domain];
     if (!meta) return;
 
-    // Domain-level filter button
     var domBtn = document.createElement('button');
     domBtn.className = 'cat-filter-btn' + (activeFilter === domain && !activeFilterBucket ? ' active' : '');
     domBtn.dataset.cat = domain;
     domBtn.textContent = meta.emoji + ' ' + meta.label;
     domBtn.style.fontWeight = '600';
     bar.appendChild(domBtn);
-
-    // Bucket buttons for this domain
-    var buckets = getBuckets(domain);
-    buckets.forEach(function(b) {
-      var btn = document.createElement('button');
-      var isActive = activeFilterBucket && activeFilterBucket.domain === domain && activeFilterBucket.bucketId === b.id;
-      btn.className = 'cat-filter-btn' + (isActive ? ' active' : '');
-      btn.dataset.cat = 'bucket';
-      btn.dataset.bucketDomain = domain;
-      btn.dataset.bucketId = String(b.id);
-      btn.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
-      btn.style.fontSize = '0.78rem';
-      bar.appendChild(btn);
-    });
   });
+
+  // --- Buckets section ---
+  var hasBuckets = false;
+  domains.forEach(function(domain) {
+    var buckets = getBuckets(domain);
+    if (buckets.length) hasBuckets = true;
+  });
+
+  if (hasBuckets) {
+    var bucketsLabel = document.createElement('span');
+    bucketsLabel.style.cssText = 'font-size:0.8rem;color:#666;margin-right:2px;margin-left:6px;font-weight:600';
+    bucketsLabel.textContent = 'Buckets:';
+    bar.appendChild(bucketsLabel);
+
+    domains.forEach(function(domain) {
+      var buckets = getBuckets(domain);
+      buckets.forEach(function(b) {
+        var btn = document.createElement('button');
+        var isActive = activeFilterBucket && activeFilterBucket.domain === domain && activeFilterBucket.bucketId === b.id;
+        btn.className = 'cat-filter-btn' + (isActive ? ' active' : '');
+        btn.dataset.cat = 'bucket';
+        btn.dataset.bucketDomain = domain;
+        btn.dataset.bucketId = String(b.id);
+        btn.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+        btn.style.fontSize = '0.78rem';
+        bar.appendChild(btn);
+      });
+    });
+  }
 
   // Wire click handlers
   bar.querySelectorAll('.cat-filter-btn').forEach(function(btn) {
