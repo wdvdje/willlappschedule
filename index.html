@@ -6,6 +6,8 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="theme-color" content="#4a90e2" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMzYiIHk9IjUyIiB3aWR0aD0iMTIwIiBoZWlnaHQ9Ijk2IiByeD0iOCIgZmlsbD0id2hpdGUiLz48cmVjdCB4PSIzNiIgeT0iNTIiIHdpZHRoPSIxMjAiIGhlaWdodD0iMjgiIHJ4PSI4IiBmaWxsPSIjMjU2OGMzIi8+PHJlY3QgeD0iNjQiIHk9IjQwIiB3aWR0aD0iMTIiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIvPjxyZWN0IHg9IjExNiIgeT0iNDAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9IndoaXRlIi8+PHJlY3QgeD0iNTAiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iODYiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMTIyIiB5PSI5NiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iIzRhOTBlMiIvPjxyZWN0IHg9IjUwIiB5PSIxMjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIGZpbGw9IiM0YTkwZTIiLz48cmVjdCB4PSI4NiIgeT0iMTI0IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PC9zdmc+" />
   <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
   <title>TimeScape Planner</title>
@@ -67,6 +69,7 @@
 </head>
 <body>
   <header id="appHeader">📅 TimeScape Planner</header>
+  <div id="syncStatusBar" style="display:none;background:#2568c3;color:#fff;font-size:0.78rem;text-align:center;padding:3px 8px;letter-spacing:0.02em" aria-live="polite"></div>
   <main>
     <!-- Calendar page -->
     <section id="page-calendar" class="page">
@@ -78,9 +81,40 @@
         <button id="prevBtn">&lt;</button>
         <span id="monthLabel" aria-live="polite"></span>
         <button id="nextBtn">&gt;</button>
+        <div style="display:flex;gap:4px;margin-left:10px">
+          <button id="viewMonthBtn" class="view-toggle-btn active" title="Month view">Month</button>
+          <button id="viewWeekBtn" class="view-toggle-btn" title="Week view">Week</button>
+        </div>
+      </div>
+
+      <!-- Quick-add bar -->
+      <div id="quickAddBar" style="max-width:720px;margin:0 auto 10px;padding:0 12px;box-sizing:border-box">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="quickAddInput" type="text" placeholder="Quick add… e.g. 'Meeting tomorrow at 3pm #work'"
+                 style="flex:1;border-radius:24px;border:1.5px solid #ddd;padding:10px 16px;font-size:0.93rem;outline:none;margin:0"
+                 autocomplete="off" />
+          <button id="quickAddBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:24px;padding:10px 16px;cursor:pointer;font-size:0.93rem;white-space:nowrap;flex-shrink:0">+ Add</button>
+        </div>
+        <div id="quickAddPreview" style="display:none;margin-top:6px;padding:8px 14px;background:#eef6ff;border-radius:8px;font-size:0.85rem;color:#234"></div>
+      </div>
+
+      <!-- Category filter bar -->
+      <div id="categoryFilterBar" style="max-width:720px;margin:0 auto 8px;padding:0 12px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:0.8rem;color:#666;margin-right:2px">Filter:</span>
+        <button class="cat-filter-btn active" data-cat="all">All</button>
+        <button class="cat-filter-btn" data-cat="work">💼 Work</button>
+        <button class="cat-filter-btn" data-cat="personal">👤 Personal</button>
+        <button class="cat-filter-btn" data-cat="home">🏠 Home</button>
+        <button class="cat-filter-btn" data-cat="errands">🛒 Errands</button>
+        <button class="cat-filter-btn" data-cat="appointment">📋 Appt</button>
+        <button class="cat-filter-btn" data-cat="job">🔧 Jobs</button>
+        <button class="cat-filter-btn" data-cat="holiday">🎉 Holiday</button>
       </div>
 
       <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
+
+      <!-- Week view (shown when week toggle active) -->
+      <div id="weekView" style="display:none;overflow-x:auto;max-width:100%;margin:0 auto 12px" aria-label="Week view"></div>
 
       <div id="selectedDateArea" style="max-width:720px;margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
         <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
@@ -193,6 +227,10 @@
           <select id="eventCategory" name="eventCategory" style="width:200px">
             <option value="event">Events</option>
             <option value="appointment">Appointments</option>
+            <option value="work">Work</option>
+            <option value="personal">Personal</option>
+            <option value="home">Home</option>
+            <option value="errands">Errands</option>
             <option value="job">Jobs</option>
             <option value="holiday">Holiday</option>
             <option value="commitment">Commitment</option>
@@ -419,6 +457,20 @@
           </div>
           <div id="dataBackupStatus" style="margin-top:8px;color:#666;font-size:0.95rem">No backup action yet</div>
         </section>
+
+        <!-- Morning Briefing -->
+        <section id="morningBriefingSettings" style="margin-top:18px">
+          <h3>Morning Briefing</h3>
+          <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Get a daily push notification with today's schedule.</p>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+            <label style="margin:0;font-weight:600">Enable</label>
+            <input id="morningBriefingEnabled" type="checkbox" style="width:auto;margin:0" />
+            <label style="margin:0 0 0 12px;font-weight:600">Time</label>
+            <input id="morningBriefingTime" type="time" value="08:00" style="width:130px" />
+          </div>
+          <button id="saveMorningBriefingBtn" class="small-btn" style="background:#4a90e2;color:#fff;margin-top:8px">Save briefing settings</button>
+          <div id="morningBriefingStatus" style="margin-top:6px;color:#666;font-size:0.9rem"></div>
+        </section>
       </main>
     </section>
   </main>
@@ -488,7 +540,7 @@
           </div>
           <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
             <div style="flex:1"><label for="editEmoji">Emoji</label><input id="editEmoji" type="text" placeholder="🎉" /></div>
-            <div style="width:140px"><label for="editCategory">Category</label><select id="editCategory"><option value="work">work</option><option value="personal">personal</option><option value="errands">errands</option></select></div>
+            <div style="width:140px"><label for="editCategory">Category</label><select id="editCategory"><option value="work">work</option><option value="personal">personal</option><option value="home">home</option><option value="errands">errands</option><option value="event">event</option><option value="appointment">appointment</option><option value="job">job</option><option value="holiday">holiday</option><option value="commitment">commitment</option></select></div>
             <div style="width:120px"><label for="editPriority">Priority</label><select id="editPriority"><option value="1">!</option><option value="2">!!</option><option value="3">!!!</option></select></div>
           </div>
           <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
@@ -505,6 +557,39 @@
           <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Search modal -->
+  <div id="searchModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:10001;align-items:flex-start;justify-content:center;padding-top:72px" role="dialog" aria-modal="true" aria-label="Search">
+    <div style="background:#fff;border-radius:12px;width:94%;max-width:600px;box-shadow:0 8px 40px rgba(0,0,0,0.2);overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid #eee;display:flex;gap:8px;align-items:center">
+        <span style="font-size:1.2rem">🔍</span>
+        <input id="searchInput" type="text" placeholder="Search events, tasks, reminders…"
+               style="flex:1;border:none;outline:none;font-size:1rem;background:transparent;width:auto;padding:0;margin:0" autocomplete="off" />
+        <button id="closeSearchBtn" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:#666;padding:4px">✕</button>
+      </div>
+      <div id="searchResults" style="max-height:60vh;overflow-y:auto;padding:4px 0"></div>
+    </div>
+  </div>
+
+  <!-- Undo toast -->
+  <div id="undoToast" style="position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 16px;border-radius:24px;display:flex;gap:12px;align-items:center;z-index:9998;font-size:0.88rem;box-shadow:0 4px 20px rgba(0,0,0,0.25);opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap">
+    <span id="undoMessage">Item deleted.</span>
+    <button id="undoBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:12px;padding:4px 10px;cursor:pointer;font-size:0.82rem">Undo</button>
+  </div>
+
+  <!-- Keyboard shortcuts panel -->
+  <div id="shortcutHints" style="display:none;position:fixed;bottom:76px;right:16px;background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:9997;font-size:0.83rem;max-width:240px;text-align:left">
+    <b style="display:block;margin-bottom:8px">Keyboard shortcuts</b>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center">
+      <kbd>N</kbd><span>Quick add</span>
+      <kbd>Ctrl+K</kbd><span>Search</span>
+      <kbd>T</kbd><span>Go to today</span>
+      <kbd>← →</kbd><span>Navigate months</span>
+      <kbd>1–5</kbd><span>Switch views</span>
+      <kbd>Esc</kbd><span>Close modals</span>
+      <kbd>?</kbd><span>Toggle this panel</span>
     </div>
   </div>
 

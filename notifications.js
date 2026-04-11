@@ -125,6 +125,23 @@
     });
   }
 
+  // smart default notification lead time based on event category
+  function smartOffsetMin(ev, globalOffsetVal) {
+    // If event already has an explicit notify value, respect it
+    if (ev.notify && ev.notify !== 'none') return minutesOffset(ev.notify);
+    // If global select has a value set, use it
+    if (globalOffsetVal && globalOffsetVal !== 'none') return minutesOffset(globalOffsetVal);
+    // Smart defaults by category
+    const cat = (ev.category || '').toLowerCase();
+    let base = null;
+    if (cat === 'work' || cat === 'job' || cat === 'appointment') base = 30;
+    else if (cat === 'personal' || cat === 'home' || cat === 'errands') base = 15;
+    if (base == null) return null; // 'none' — no notification
+    // Add 15 min travel buffer when event has a location
+    if (ev.location || ev.place) base += 15;
+    return base;
+  }
+
   // schedule events (expand repeats and use eventNotify)
   function scheduleEvents() {
     const expand = window.appUtils && window.appUtils.expandEvents;
@@ -137,8 +154,7 @@
     const endISO = end.toISOString().slice(0,10);
     const events = expand ? expand(startISO, endISO) : (loadEvents().filter(e => e && e.date >= startISO && e.date <= endISO));
     events.forEach((ev, idx) => {
-      const offsetVal = ev.notify || ev.eventNotify || offsetSel || 'none';
-      const offsetMin = minutesOffset(offsetVal);
+      const offsetMin = smartOffsetMin(ev, offsetSel);
       if (offsetMin == null) return;
       const dateISO = ev.date;
       const when = dateFromParts(dateISO, ev.startTime || '09:00');
