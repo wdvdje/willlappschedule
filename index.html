@@ -171,7 +171,13 @@
       </div>
 
       <div id="selectedDateArea" style="max-width:720px;margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
-        <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
+        <!-- Day navigation -->
+        <div id="dayNavBar" class="day-nav-bar">
+          <button id="dayNavPrev" class="day-nav-btn" aria-label="Previous day">&lsaquo;</button>
+          <button id="dayNavToday" class="day-nav-today-btn" aria-label="Go to today">Today</button>
+          <h2 id="selectedDateLong" class="day-nav-title"></h2>
+          <button id="dayNavNext" class="day-nav-btn" aria-label="Next day">&rsaquo;</button>
+        </div>
 
         <!-- existing top bars (holidays/events summary) -->
         <div id="dayTopBars"></div>
@@ -181,15 +187,16 @@
           <label style="font-weight:600;margin:0 6px 0 0">Show</label>
           <select id="dayPartSelect" aria-label="Select part of day" style="padding:6px;border-radius:6px">
             <option value="morning">🌅 Morning (01:00–09:00)</option>
-            <option value="day">☀️ Day (09:00–17:00)</option>
+            <option value="day" selected>☀️ Day (09:00–17:00)</option>
             <option value="night">🌙 Night (17:00–01:00)</option>
+            <option value="all">📋 Full Day</option>
           </select>
           <div style="margin-left:auto;color:#666;font-size:0.95rem" id="dailyViewInfo"></div>
         </div>
 
-        <!-- Hourly grid container -->
-        <div id="dailyView" aria-live="polite" style="background:#fff;border-radius:10px;padding:8px;border:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-          <!-- hourly rows will be rendered here by JS -->
+        <!-- Hourly grid container (vertical timeline) -->
+        <div id="dailyView" class="daily-view-timeline" aria-live="polite">
+          <!-- hourly rows + event blocks will be rendered here by JS -->
         </div>
       </div>
 
