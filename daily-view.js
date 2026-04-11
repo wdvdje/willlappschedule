@@ -6,7 +6,6 @@
 
   // DOM accessors (lazy – elements may not exist at eval time)
   function getDailyView() { return document.getElementById('dailyView'); }
-  function getDayPartSelect() { return null; }
   function getCalendarEl() { return document.getElementById('calendar'); }
 
   const PRIMARY_COLOR = '#4a90e2';
@@ -438,9 +437,9 @@
       (function() {
         var scrollTarget = 8 * HOUR_HEIGHT; // default: 8 AM
         if (dateStr === todayISO()) {
-          var now2 = new Date();
-          var nowMin2 = now2.getHours() * 60 + now2.getMinutes();
-          scrollTarget = ((nowMin2 - rangeStartMin) / totalMinutes) * (hours.length * HOUR_HEIGHT);
+          var currentTime = new Date();
+          var currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+          scrollTarget = ((currentMinutes - rangeStartMin) / totalMinutes) * (hours.length * HOUR_HEIGHT);
         } else if (visibleItems.length > 0) {
           var earliest = visibleItems.reduce(function(min, item) {
             return item.startMin < min ? item.startMin : min;
