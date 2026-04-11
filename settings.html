@@ -280,7 +280,12 @@
         for (var h = minVal; h <= maxVal; h++) {
           var opt = document.createElement('option');
           opt.value = h;
-          var label = (h === 0 ? '12:00 AM' : h < 12 ? h + ':00 AM' : h === 12 ? '12:00 PM' : h === 24 ? '12:00 AM (next day)' : (h - 12) + ':00 PM');
+          var label;
+          if (h === 0) label = '12:00 AM';
+          else if (h < 12) label = h + ':00 AM';
+          else if (h === 12) label = '12:00 PM';
+          else if (h === 24) label = '12:00 AM (next day)';
+          else label = (h - 12) + ':00 PM';
           opt.textContent = label;
           if (h === savedVal) opt.selected = true;
           sel.appendChild(opt);

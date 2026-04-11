@@ -1156,22 +1156,38 @@ function getTodayISO(){
 }
 
 /* --- Off-day detection helper --- */
+const OFF_DAY_LABEL = '—';
+
 function isTodayOffDay(){
   const todayStr = getTodayISO();
   const d = new Date();
   const yr = d.getFullYear();
 
   // Check federal holidays
-  function _nthWd(y, m, wd, n){ var c=0; for(var d2=1;d2<=31;d2++){var dt=new Date(y,m,d2);if(dt.getMonth()!==m)break;if(dt.getDay()===wd){c++;if(c===n)return d2;}}return 1;}
-  function _lastWd(y, m, wd){ var last=new Date(y,m+1,0);return last.getDate()-((7+last.getDay()-wd)%7);}
+  function nthWeekday(year, month, weekday, nth) {
+    var count = 0;
+    for (var day = 1; day <= 31; day++) {
+      var dt = new Date(year, month, day);
+      if (dt.getMonth() !== month) break;
+      if (dt.getDay() === weekday) {
+        count++;
+        if (count === nth) return day;
+      }
+    }
+    return 1;
+  }
+  function lastWeekday(year, month, weekday) {
+    var last = new Date(year, month + 1, 0);
+    return last.getDate() - ((7 + last.getDay() - weekday) % 7);
+  }
   var federalHolidays = [
     yr+'-01-01', yr+'-06-19', yr+'-07-04', yr+'-11-11', yr+'-12-25',
-    yr+'-01-'+pad2(_nthWd(yr,0,1,3)),
-    yr+'-02-'+pad2(_nthWd(yr,1,1,3)),
-    yr+'-05-'+pad2(_lastWd(yr,4,1)),
-    yr+'-09-'+pad2(_nthWd(yr,8,1,1)),
-    yr+'-10-'+pad2(_nthWd(yr,9,1,2)),
-    yr+'-11-'+pad2(_nthWd(yr,10,4,4))
+    yr+'-01-'+pad2(nthWeekday(yr,0,1,3)),
+    yr+'-02-'+pad2(nthWeekday(yr,1,1,3)),
+    yr+'-05-'+pad2(lastWeekday(yr,4,1)),
+    yr+'-09-'+pad2(nthWeekday(yr,8,1,1)),
+    yr+'-10-'+pad2(nthWeekday(yr,9,1,2)),
+    yr+'-11-'+pad2(nthWeekday(yr,10,4,4))
   ];
   if (federalHolidays.indexOf(todayStr) !== -1) return true;
 
@@ -1209,7 +1225,7 @@ function updateCompletionRing(){
   if (isTodayOffDay()) {
     setRing('completionRingFg', 'completionRingPct', 0, '#999');
     const pctEl = document.getElementById('completionRingPct');
-    if (pctEl) pctEl.textContent = '—';
+    if (pctEl) pctEl.textContent = OFF_DAY_LABEL;
     if (wrap) wrap.title = 'Today is an off day';
     if (labelEl) labelEl.textContent = 'Off Day';
     return;
@@ -1270,7 +1286,7 @@ function updateDayElapsedRing(){
   if (isTodayOffDay()) {
     setRing('dayElapsedRingFg', 'dayElapsedRingPct', 0, '#999');
     const pctEl = document.getElementById('dayElapsedRingPct');
-    if (pctEl) pctEl.textContent = '—';
+    if (pctEl) pctEl.textContent = OFF_DAY_LABEL;
     if (wrap) wrap.title = 'Today is an off day';
     if (labelEl) labelEl.textContent = 'Off Day';
     return;
