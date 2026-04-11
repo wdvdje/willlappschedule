@@ -196,7 +196,8 @@ kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc; border-ra
   .bottom-ribbon .r-item span:first-child { font-size: 1.3rem; margin-right: 10px; }
   .bottom-ribbon .r-item .r-label { font-size: 0.92rem; display:block; }
   .bottom-ribbon .r-item.active { background: #e8f0fb; color: #4a90e2; }
-  .bottom-ribbon .r-item.r-center { background: none; margin: 0 8px; }
+  .bottom-ribbon .r-item.r-center { margin: 0 8px; }
+  .bottom-ribbon .r-item.r-center.active { background: #e8f0fb; }
   body { padding-bottom: 0 !important; padding-left: 216px; }
   header { padding-left: 16px; }
   #syncStatusBar { padding-left: 216px; }
