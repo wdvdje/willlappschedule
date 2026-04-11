@@ -485,13 +485,13 @@ body.dark-mode kbd { background: #2a2a4a; border-color: #4a4a7a; color: #ccc; }
     display: flex;
     gap: 14px;
     align-items: flex-start;
-    max-width: 900px;
+    max-width: 1200px;
     margin: 0 auto;
   }
-  #calLeftPanel { flex: 1; min-width: 0; }
-  #calDailyPanel {
+  #calCenterPanel { flex: 1; min-width: 0; }
+  .cal-side-panel {
     display: block;
-    width: 270px;
+    width: 260px;
     flex-shrink: 0;
     background: #fff;
     border-radius: 12px;
@@ -502,20 +502,66 @@ body.dark-mode kbd { background: #2a2a4a; border-color: #4a4a7a; color: #ccc; }
     max-height: calc(100vh - 90px);
     overflow-y: auto;
     font-size: 0.83rem;
+    transition: width 0.25s ease, padding 0.25s ease, opacity 0.25s ease;
   }
-  #calDailyPanel h4 {
+  .cal-side-panel h4 {
     margin: 0 0 8px;
     font-size: 0.9rem;
     color: #4a90e2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
+  .cal-side-panel.collapsed {
+    width: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .cal-panel-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 2px;
+    color: #888;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .cal-panel-toggle:hover { color: #4a90e2; }
+  .cal-panel-expand-tab {
+    display: none;
+    position: sticky;
+    top: 72px;
+    width: 24px;
+    flex-shrink: 0;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.08);
+    cursor: pointer;
+    padding: 8px 2px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #888;
+    writing-mode: vertical-rl;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  .cal-panel-expand-tab:hover { background: #f0f6ff; color: #4a90e2; }
+  .cal-panel-expand-tab.visible { display: block; }
   /* Prevent calendar grid from being too wide when panel present */
-  #calLeftPanel .calendar { max-width: 100%; }
-  /* Activity chart should be full width inside left panel */
+  #calCenterPanel .calendar { max-width: 100%; }
+  /* Activity chart should be full width inside center panel */
   #activityChartRow { max-width: 100%; }
+  /* Hide the original calendarSummary on desktop when integrated */
+  #calendarSummary { display: none !important; }
 }
 
 /* ── Dark mode for split panel ── */
-body.dark-mode #calDailyPanel { background: #16213e; color: #e0e0e0; }
+body.dark-mode .cal-side-panel { background: #16213e; color: #e0e0e0; }
+body.dark-mode .cal-panel-expand-tab { background: #16213e; color: #aaa; }
+body.dark-mode .cal-panel-expand-tab:hover { background: #1e3055; color: #7ab3f5; }
 
 /* ── Streak badge ── */
 .dcf-streak-badge {

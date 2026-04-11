@@ -55,7 +55,7 @@
       '@media print {',
       '  .bottom-ribbon, header, #syncStatusBar, #undoToast, #shortcutHints,',
       '  #dtPomodoro, #dtAgendaSidebar, #dtTaskBar, #dtBulkToggle, #dtBulkActs,',
-      '  #miniMonthNav, #calDailyPanel, #cmdPalette, #searchModal,',
+      '  #miniMonthNav, #calDailyPanel, #calDaySummaryPanel, #calUpcomingPanel, .cal-panel-expand-tab, #cmdPalette, #searchModal,',
       '  .calendar-controls button, #categoryFilterBar, #layerToggles,',
       '  #activityChartRow, #calendarSummary, #quickAddBar,',
       '  .item-controls, .small-btn { display: none !important; }',
@@ -66,7 +66,7 @@
       '  .day { min-height: 80px !important; break-inside: avoid; border: 1px solid #eee !important; }',
       '  .event-preview { white-space: normal !important; font-size: 0.7rem !important; }',
       '  .event-preview .ep-label { display: inline !important; max-width: none !important; }',
-      '  #calDailyPanel, #yearView, #twoWeekView { display: none !important; }',
+      '  #calDailyPanel, #calDaySummaryPanel, #calUpcomingPanel, .cal-panel-expand-tab, #yearView, #twoWeekView { display: none !important; }',
       '  @page { margin: 1cm; }',
       '}'
     ].join('\n');
@@ -106,7 +106,7 @@
       'body.dark-mode .dv-hour-slot { border-color: #2a2a4a !important; }',
       'body.dark-mode .week-grid { background: #16213e !important; }',
       'body.dark-mode .week-col { background: #1e2d45 !important; }',
-      'body.dark-mode #dtAgendaSidebar, body.dark-mode #calDailyPanel { background: #16213e !important; color: #e0e0e0 !important; }',
+      'body.dark-mode #dtAgendaSidebar, body.dark-mode .cal-side-panel { background: #16213e !important; color: #e0e0e0 !important; }',
       'body.dark-mode #calActivityRow { background: #16213e !important; }',
       'body.dark-mode .dcf-year-cell { background: #1e2d45 !important; }',
       'body.dark-mode .dcf-streak-badge { background: #2a3a5e !important; color: #ffa !important; }'
@@ -207,15 +207,30 @@
       '.dcf-chart-title { font-weight:700;font-size:0.82rem;color:#555;margin-bottom:6px; }',
       'body.dark-mode .dcf-chart-title { color:#aaa; }',
       '.dcf-streak-badge { display:inline-flex;align-items:center;gap:4px;background:#fff3cd;border:1.5px solid #f0ad4e;border-radius:20px;padding:4px 12px;font-size:0.88rem;font-weight:700;color:#7a4f00;margin:6px 0; }',
-      '#calDailyPanel { display:none; }',
+      '#calDaySummaryPanel { display:none; }',
+      '#calUpcomingPanel { display:none; }',
       '@media (min-width: 901px) {',
       '  #calPageLayout { display:flex;gap:14px;align-items:flex-start; }',
-      '  #calLeftPanel { flex:1;min-width:0; }',
-      '  #calDailyPanel { display:block;width:270px;flex-shrink:0;background:#fff;border-radius:12px;',
+      '  #calCenterPanel { flex:1;min-width:0; }',
+      '  .cal-side-panel { display:block;width:260px;flex-shrink:0;background:#fff;border-radius:12px;',
       '    box-shadow:0 2px 14px rgba(0,0,0,0.08);padding:10px 12px;',
-      '    position:sticky;top:72px;max-height:calc(100vh - 90px);overflow-y:auto;font-size:0.83rem; }',
-      '  body.dark-mode #calDailyPanel { background:#16213e; }',
-      '  #calDailyPanel h4 { margin:0 0 8px;font-size:0.9rem;color:#4a90e2; }',
+      '    position:sticky;top:72px;max-height:calc(100vh - 90px);overflow-y:auto;font-size:0.83rem;',
+      '    transition:width 0.25s ease,padding 0.25s ease,opacity 0.25s ease; }',
+      '  body.dark-mode .cal-side-panel { background:#16213e;color:#e0e0e0; }',
+      '  .cal-side-panel h4 { margin:0 0 8px;font-size:0.9rem;color:#4a90e2;display:flex;align-items:center;justify-content:space-between; }',
+      '  .cal-side-panel.collapsed { width:0;padding:0;overflow:hidden;opacity:0;pointer-events:none; }',
+      '  .cal-panel-toggle { background:none;border:none;cursor:pointer;font-size:1rem;padding:0 2px;color:#888;line-height:1;flex-shrink:0; }',
+      '  .cal-panel-toggle:hover { color:#4a90e2; }',
+      '  .cal-panel-expand-tab { display:none;position:sticky;top:72px;width:24px;flex-shrink:0;',
+      '    background:#fff;border-radius:8px;box-shadow:0 1px 8px rgba(0,0,0,0.08);cursor:pointer;',
+      '    padding:8px 2px;text-align:center;font-size:0.85rem;color:#888;writing-mode:vertical-rl;',
+      '    user-select:none;transition:background 0.15s; }',
+      '  .cal-panel-expand-tab:hover { background:#f0f6ff;color:#4a90e2; }',
+      '  body.dark-mode .cal-panel-expand-tab { background:#16213e;color:#aaa; }',
+      '  body.dark-mode .cal-panel-expand-tab:hover { background:#1e3055;color:#7ab3f5; }',
+      '  .cal-panel-expand-tab.visible { display:block; }',
+      '  #calDaySummaryPanel { display:block; }',
+      '  #calUpcomingPanel { display:block; }',
       '}',
       '.dcf-split-event { padding:5px 8px;border-radius:6px;margin-bottom:4px;border-left:4px solid;font-size:0.8rem; }',
       '.dcf-split-time { font-size:0.72rem;color:#888;display:block; }',
@@ -1038,6 +1053,9 @@
   /* ══════════════════════════════════════════════════════
      17. SPLIT-PANEL LAYOUT  (calendar + mini daily side panel)
   ══════════════════════════════════════════════════════ */
+  var _daySummaryCollapsed = false;
+  var _upcomingCollapsed = false;
+
   function injectSplitPanel() {
     if (!isDesktop()) return;
     var calPage = document.getElementById('page-calendar');
@@ -1050,24 +1068,81 @@
     var yearView = document.getElementById('yearView');
     if (!calEl) return;
 
-    /* Only wrap if not already wrapped */
     var layout = document.createElement('div');
     layout.id = 'calPageLayout';
 
-    var leftPanel = document.createElement('div');
-    leftPanel.id = 'calLeftPanel';
+    /* ── Left expand tab (shown when day summary collapsed) ── */
+    var leftExpandTab = document.createElement('div');
+    leftExpandTab.id = 'calDaySummaryExpandTab';
+    leftExpandTab.className = 'cal-panel-expand-tab';
+    leftExpandTab.title = 'Expand day summary';
+    leftExpandTab.setAttribute('role', 'button');
+    leftExpandTab.setAttribute('aria-label', 'Expand day summary panel');
+    leftExpandTab.textContent = '📅 Day';
+    leftExpandTab.addEventListener('click', function () { toggleDaySummaryPanel(false); });
+    layout.appendChild(leftExpandTab);
 
-    /* Move calendar elements into left panel */
-    [calEl, weekView, twoWeekView, yearView].forEach(function (el) {
-      if (el) leftPanel.appendChild(el);
-    });
+    /* ── Left panel — Day Summary ── */
+    var leftPanel = document.createElement('div');
+    leftPanel.id = 'calDaySummaryPanel';
+    leftPanel.className = 'cal-side-panel';
+    leftPanel.innerHTML = '<h4>' +
+      '<span>📅 <span id="calDailyPanelDate">Today</span></span>' +
+      '<button class="cal-panel-toggle" id="calDaySummaryToggle" title="Collapse day summary" aria-label="Collapse day summary panel" aria-expanded="true">◂</button>' +
+      '</h4>' +
+      '<div id="calDailyPanelContent" style="font-size:0.82rem;color:#888">Select a day to see details.</div>';
     layout.appendChild(leftPanel);
 
-    /* Right panel */
+    /* ── Center panel — Calendar ── */
+    var centerPanel = document.createElement('div');
+    centerPanel.id = 'calCenterPanel';
+    [calEl, weekView, twoWeekView, yearView].forEach(function (el) {
+      if (el) centerPanel.appendChild(el);
+    });
+    layout.appendChild(centerPanel);
+
+    /* ── Right panel — Upcoming ── */
     var rightPanel = document.createElement('div');
-    rightPanel.id = 'calDailyPanel';
-    rightPanel.innerHTML = '<h4>📅 <span id="calDailyPanelDate">Today</span></h4><div id="calDailyPanelContent" style="font-size:0.82rem;color:#888">Select a day to see details.</div>';
+    rightPanel.id = 'calUpcomingPanel';
+    rightPanel.className = 'cal-side-panel';
+
+    /* Move the existing calendarSummary content into this panel */
+    var existingSummary = document.getElementById('calendarSummary');
+    var summaryHeaderHTML = '<h4>' +
+      '<span>📋 Upcoming</span>' +
+      '<button class="cal-panel-toggle" id="calUpcomingToggle" title="Collapse upcoming" aria-label="Collapse upcoming panel" aria-expanded="true">▸</button>' +
+      '</h4>';
+
+    rightPanel.innerHTML = summaryHeaderHTML +
+      '<div id="calUpcomingPanelControls" style="margin-bottom:8px">' +
+        '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">' +
+          '<button class="cal-domain-pill cal-up-domain active" data-domain="all" style="font-size:0.72rem;padding:2px 7px">All</button>' +
+          '<button class="cal-domain-pill cal-up-domain" data-domain="personal" style="font-size:0.72rem;padding:2px 7px">👤</button>' +
+          '<button class="cal-domain-pill cal-up-domain" data-domain="home" style="font-size:0.72rem;padding:2px 7px">🏡</button>' +
+          '<button class="cal-domain-pill cal-up-domain" data-domain="work" style="font-size:0.72rem;padding:2px 7px">💼</button>' +
+        '</div>' +
+        '<select id="calUpcomingDaysSelect" style="width:100%;font-size:0.78rem;padding:3px 6px;border-radius:6px;border:1px solid #ddd">' +
+          '<option value="7">Next 7 days</option>' +
+          '<option value="30" selected>Next 30 days</option>' +
+          '<option value="90">Next 90 days</option>' +
+        '</select>' +
+      '</div>' +
+      '<div id="calUpcomingPanelContent" style="font-size:0.82rem;color:#888">Loading...</div>';
     layout.appendChild(rightPanel);
+
+    /* ── Right expand tab (shown when upcoming collapsed) ── */
+    var rightExpandTab = document.createElement('div');
+    rightExpandTab.id = 'calUpcomingExpandTab';
+    rightExpandTab.className = 'cal-panel-expand-tab';
+    rightExpandTab.title = 'Expand upcoming';
+    rightExpandTab.setAttribute('role', 'button');
+    rightExpandTab.setAttribute('aria-label', 'Expand upcoming panel');
+    rightExpandTab.textContent = '📋 Soon';
+    rightExpandTab.addEventListener('click', function () { toggleUpcomingPanel(false); });
+    layout.appendChild(rightExpandTab);
+
+    /* Hide the original calendarSummary on desktop since we integrated it */
+    if (existingSummary) existingSummary.style.display = 'none';
 
     /* Find the category filter bar and insert layout after it */
     var layerBar = document.getElementById('dcfLayerBar') || document.getElementById('categoryFilterBar');
@@ -1076,11 +1151,146 @@
     } else {
       calPage.appendChild(layout);
     }
+
+    /* Wire collapse toggle buttons */
+    document.getElementById('calDaySummaryToggle').addEventListener('click', function () { toggleDaySummaryPanel(true); });
+    document.getElementById('calUpcomingToggle').addEventListener('click', function () { toggleUpcomingPanel(true); });
+
+    /* Wire upcoming domain filters */
+    rightPanel.querySelectorAll('.cal-up-domain').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        rightPanel.querySelectorAll('.cal-up-domain').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        refreshUpcomingPanel();
+      });
+    });
+    var upDaysEl = document.getElementById('calUpcomingDaysSelect');
+    if (upDaysEl) upDaysEl.addEventListener('change', function () { refreshUpcomingPanel(); });
+
+    /* Hide the fixed agenda sidebar since upcoming is now integrated */
+    var agendaSidebar = document.getElementById('dtAgendaSidebar');
+    if (agendaSidebar) agendaSidebar.style.display = 'none';
+
+    /* Initial render */
+    refreshUpcomingPanel();
+  }
+
+  function toggleDaySummaryPanel(collapse) {
+    var panel = document.getElementById('calDaySummaryPanel');
+    var tab = document.getElementById('calDaySummaryExpandTab');
+    var toggleBtn = document.getElementById('calDaySummaryToggle');
+    if (!panel || !tab) return;
+    _daySummaryCollapsed = collapse;
+    if (collapse) {
+      panel.classList.add('collapsed');
+      tab.classList.add('visible');
+    } else {
+      panel.classList.remove('collapsed');
+      tab.classList.remove('visible');
+    }
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapse));
+  }
+
+  function toggleUpcomingPanel(collapse) {
+    var panel = document.getElementById('calUpcomingPanel');
+    var tab = document.getElementById('calUpcomingExpandTab');
+    var toggleBtn = document.getElementById('calUpcomingToggle');
+    if (!panel || !tab) return;
+    _upcomingCollapsed = collapse;
+    if (collapse) {
+      panel.classList.add('collapsed');
+      tab.classList.add('visible');
+    } else {
+      panel.classList.remove('collapsed');
+      tab.classList.remove('visible');
+    }
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapse));
+  }
+
+  function refreshUpcomingPanel() {
+    var content = document.getElementById('calUpcomingPanelContent');
+    if (!content) return;
+    if (!isDesktop()) return;
+
+    /* Read filter state */
+    var activeBtn = document.querySelector('.cal-up-domain.active');
+    var domainFilter = activeBtn ? activeBtn.dataset.domain || 'all' : 'all';
+    var daysEl = document.getElementById('calUpcomingDaysSelect');
+    var days = daysEl ? parseInt(daysEl.value, 10) : 30;
+
+    var today = new Date();
+    var todayStr = today.getFullYear() + '-' + p2(today.getMonth() + 1) + '-' + p2(today.getDate());
+    var endDate = new Date(today);
+    endDate.setDate(endDate.getDate() + days);
+    var endStr = endDate.getFullYear() + '-' + p2(endDate.getMonth() + 1) + '-' + p2(endDate.getDate());
+
+    var items = [];
+    var dcs = safeDomainColors();
+
+    /* Gather events */
+    safeGetEvts(todayStr, endStr).forEach(function (ev) {
+      var d = nd(ev.date);
+      if (!d || d < todayStr || d > endStr) return;
+      var domain = ev.domain || 'personal';
+      if (domainFilter !== 'all' && domain !== domainFilter) return;
+      items.push({ kind: 'event', time: ev.time || '23:59', title: ev.title || '', color: dcs[domain] || '#4a90e2', emoji: ev.emoji || '📌', date: d, endTime: ev.endTime || '', repeat: ev.repeat || 'none' });
+    });
+
+    /* Gather tasks */
+    safeTasks().forEach(function (t) {
+      var d = nd(t.date);
+      if (!d || d < todayStr || d > endStr) return;
+      var domain = t.domain || 'personal';
+      if (domainFilter !== 'all' && domain !== domainFilter) return;
+      items.push({ kind: 'task', time: t.time || '23:59', title: t.title || t.text || '', color: '#27ae60', emoji: t.done ? '✅' : '⬜', date: d, done: t.done });
+    });
+
+    /* Gather reminders */
+    var rems = safeRems();
+    Object.keys(rems).forEach(function (dk) {
+      if (dk < todayStr || dk > endStr) return;
+      (rems[dk] || []).forEach(function (r) {
+        var domain = r.domain || 'personal';
+        if (domainFilter !== 'all' && domain !== domainFilter) return;
+        items.push({ kind: 'reminder', time: r.time || '23:59', title: r.text || '', color: '#e67e22', emoji: '🔔', date: dk });
+      });
+    });
+
+    items.sort(function (a, b) {
+      var cmp = a.date.localeCompare(b.date);
+      if (cmp !== 0) return cmp;
+      return a.time.localeCompare(b.time);
+    });
+
+    if (!items.length) {
+      content.innerHTML = '<div style="color:#aaa;padding:8px 0;text-align:center">No upcoming items.</div>';
+      return;
+    }
+
+    var html = '';
+    var lastDate = '';
+    items.forEach(function (item) {
+      if (item.date !== lastDate) {
+        var dateObj = new Date(item.date + 'T12:00:00');
+        var dateLabel = dateObj.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        html += '<div style="font-weight:700;font-size:0.72rem;color:#888;margin-top:6px;text-transform:uppercase;letter-spacing:0.03em">' + esc(dateLabel) + '</div>';
+        lastDate = item.date;
+      }
+      var repeatIcon = (item.repeat && item.repeat !== 'none') ? ' 🔁' : '';
+      var doneStyle = item.done ? 'text-decoration:line-through;opacity:0.65;' : '';
+      html += '<div class="dcf-split-event" style="border-left-color:' + item.color + ';background:' + hexToRgba2(item.color, 0.1) + ';' + doneStyle + '">';
+      html += '<span style="font-weight:600">' + item.emoji + ' ' + esc(item.title) + repeatIcon + '</span>';
+      if (item.time && item.time !== '23:59') {
+        html += '<span class="dcf-split-time">' + esc(item.time) + (item.endTime ? ' – ' + esc(item.endTime) : '') + '</span>';
+      }
+      html += '</div>';
+    });
+    content.innerHTML = html;
   }
 
   function refreshSplitPanel() {
-    var panel = document.getElementById('calDailyPanel');
-    if (!panel || panel.style.display === 'none') return;
+    var panel = document.getElementById('calDaySummaryPanel');
+    if (!panel) return;
     if (!isDesktop()) return;
 
     var yr = selYear(), mo = selMonth(), day = window.selectedDay;
@@ -1717,7 +1927,13 @@
         injectGotoDate();
         injectActivityChartRow();
         refreshCharts();
-        if (isDesktop()) injectSplitPanel();
+        if (isDesktop()) {
+          injectSplitPanel();
+          refreshUpcomingPanel();
+          /* Hide the fixed agenda sidebar since upcoming is integrated */
+          var agendaSidebar = document.getElementById('dtAgendaSidebar');
+          if (agendaSidebar) agendaSidebar.style.display = 'none';
+        }
         wireSearchHighlight();
         fetchWeather();
       }, 80);
@@ -1734,6 +1950,7 @@
   window.addEventListener('app:data:updated', function () {
     try { refreshCharts(); } catch (_) {}
     try { refreshSplitPanel(); } catch (_) {}
+    try { refreshUpcomingPanel(); } catch (_) {}
     try { renderStreak(); } catch (_) {}
     try { applyCountBadgesAndRecurIcons(); } catch (_) {}
   });
