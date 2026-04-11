@@ -191,17 +191,24 @@
           const offsetMin = minutesOffset(offsetVal);
           // persist the reminder so daily view and other parts see it
           if (dateISO) {
-            const reminders = JSON.parse(localStorage.getItem('reminders') || '[]');
-            const newRem = { id: 'rem:' + Date.now().toString(36), date: dateISO, time: time, text: text, notify: offsetVal || 'none' };
-            reminders.push(newRem);
-            localStorage.setItem('reminders', JSON.stringify(reminders));
+            const parsed = JSON.parse(localStorage.getItem('reminders') || '{}');
+            const reminders = normalizeReminders(parsed);
+            const grouped = {};
+            reminders.forEach((r) => {
+              if (!r || !r.date) return;
+              if (!grouped[r.date]) grouped[r.date] = [];
+              grouped[r.date].push({ text: r.text || r.title || '', time: r.time || '', notify: r.notify || r.reminderNotify || 'none' });
+            });
+            if (!grouped[dateISO]) grouped[dateISO] = [];
+            grouped[dateISO].push({ text: text, time: time, notify: offsetVal || 'none' });
+            localStorage.setItem('reminders', JSON.stringify(grouped));
             // also notify listeners that watch storage (some modules rely on storage event)
             try { window.dispatchEvent(new Event('storage')); } catch (e) { /* ignore */ }
             // schedule immediate notification (if offset set)
             if (offsetMin != null) {
               const when = dateFromParts(dateISO, time);
               when.setMinutes(when.getMinutes() - offsetMin);
-              const key = keyFor('reminder', newRem.id, dateISO);
+              const key = keyFor('reminder', 'rem:' + Date.now().toString(36), dateISO);
               const body = [dateISO, time].filter(Boolean).join(' • ');
               scheduleAt(key, when, { title: text, body, emoji: '', url: 'index.html#reminders', tag: key });
             }

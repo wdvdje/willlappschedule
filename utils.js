@@ -57,9 +57,18 @@
     setIf('editEventId', ev.id || '');
     setIf('editText', ev.title || '');
     setIf('editDate', ev.date || '');
-    setIf('editTime', ev.startTime || '');
+    setIf('editTime', ev.startTime || ev.time || '');
     setIf('editEndTime', ev.endTime || '');
     setIf('editEmoji', ev.emoji || '');
+    setIf('editRepeat', ev.repeat || 'none');
+    setIf('editRepeatUntil', ev.repeatUntil || '');
+    setIf('editRepeatInterval', ev.repeatInterval || 1);
+    setIf('editRepeatUnit', ev.repeatUnit || 'days');
+    setIf('editABWeek', ev.abWeek || 'a');
+    try {
+      const rep = document.getElementById('editRepeat');
+      if (rep) rep.dispatchEvent(new Event('change'));
+    } catch (_) {}
     // --- copy job/category info (if present) into the main event form so it is visible/editable ---
     try {
       const mainCat = document.getElementById('eventCategory');
@@ -98,6 +107,36 @@
     return toISODate(dt);
   }
 
+  function startOfWeekMonday(dateISO) {
+    const dt = parseISO(dateISO);
+    const dow = dt.getDay();
+    const mondayOffset = dow === 0 ? -6 : (1 - dow);
+    dt.setDate(dt.getDate() + mondayOffset);
+    return toISODate(dt);
+  }
+
+  function addMonthsISO(dateISO, count) {
+    const dt = parseISO(dateISO);
+    const day = dt.getDate();
+    dt.setMonth(dt.getMonth() + count);
+    if (dt.getDate() < day) dt.setDate(0);
+    return toISODate(dt);
+  }
+
+  function addYearsISO(dateISO, count) {
+    const dt = parseISO(dateISO);
+    const day = dt.getDate();
+    dt.setFullYear(dt.getFullYear() + count);
+    if (dt.getDate() < day) dt.setDate(0);
+    return toISODate(dt);
+  }
+
+  function minDateISO(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    return a <= b ? a : b;
+  }
+
   // expandEvents(startISO, endISO): returns occurrences (including non-repeating) whose date falls within [startISO,endISO]
   // Each occurrence is a shallow clone of the base event with .occurrenceDate and ._baseId set to original id.
   function expandEvents(startISO, endISO, storageKey = 'events') {
@@ -111,6 +150,8 @@
       const baseDate = ev.date;
       const repeat = (ev.repeat || 'none'); // expected value strings from UI
       const until = ev.repeatUntil || null; // optional YYYY-MM-DD
+      const capUntil = addYearsISO(baseDate, 2);
+      const effectiveEnd = minDateISO(endISO, minDateISO(until, capUntil));
 
       // helper to push occurrence if in range
       const pushIfInRange = (dISO) => {
@@ -130,6 +171,30 @@
         return;
       }
 
+      if (repeat === 'weekday_ab') {
+        const startDow = parseISO(baseDate).getDay();
+        if (startDow === 0 || startDow === 6) return;
+        const firstPattern = (String(ev.abWeek || 'a').toLowerCase() === 'b') ? 'b' : 'a';
+        const mondays = startOfWeekMonday(baseDate);
+        const aDays = [1,3,5];
+        const bDays = [2,4];
+        let weekIndex = 0;
+        while (weekIndex < 200) {
+          const weekStart = addDaysISO(mondays, weekIndex * 7);
+          if (weekStart > effectiveEnd) break;
+          const useA = (firstPattern === 'a') ? (weekIndex % 2 === 0) : (weekIndex % 2 !== 0);
+          const dayList = useA ? aDays : bDays;
+          dayList.forEach((weekdayNum) => {
+            const occ = addDaysISO(weekStart, weekdayNum - 1);
+            if (occ < baseDate) return;
+            if (occ > effectiveEnd) return;
+            pushIfInRange(occ);
+          });
+          weekIndex += 1;
+        }
+        return;
+      }
+
       // repeating: iterate from baseDate to end, advancing according to rule, stop at repeatUntil if present
       let d = baseDate;
       const maxLoop = 2000; // safety cap
@@ -137,8 +202,7 @@
       while (true) {
         if (loops++ > maxLoop) break;
         // stop if beyond end or beyond repeatUntil
-        if (parseISO(d) > end) break;
-        if (until && parseISO(d) > parseISO(until)) break;
+        if (d > effectiveEnd) break;
         // push occurrence if >= start and <= end
         pushIfInRange(d);
         // advance
@@ -146,13 +210,14 @@
         else if (repeat === '2day') d = addDaysISO(d, 2);
         else if (repeat === 'weekly') d = addDaysISO(d, 7);
         else if (repeat === 'monthly') {
-          // advance month, keep day number where possible
-          const dt = parseISO(d);
-          const day = dt.getDate();
-          dt.setMonth(dt.getMonth() + 1);
-          // if month overflowed to next month adjust last day
-          if (dt.getDate() < day) { dt.setDate(0); } // move to last day of prev month if needed
-          d = toISODate(dt);
+          d = addMonthsISO(d, 1);
+        } else if (repeat === 'custom') {
+          const n = Math.max(1, Math.min(30, parseInt(ev.repeatInterval, 10) || 1));
+          const unit = ['days','weeks','months','years'].includes(ev.repeatUnit) ? ev.repeatUnit : 'days';
+          if (unit === 'days') d = addDaysISO(d, n);
+          else if (unit === 'weeks') d = addDaysISO(d, n * 7);
+          else if (unit === 'months') d = addMonthsISO(d, n);
+          else d = addYearsISO(d, n);
         } else {
           // unknown rule: break
           break;
