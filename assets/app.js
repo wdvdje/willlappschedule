@@ -16,7 +16,10 @@ function remindersToMap(input){
       const date = normalizeDate(r.date || r.reminderDate || '');
       if (!date) { console.warn('Skipping malformed reminder (missing date)', r); return; }
       if (!map[date]) map[date] = [];
-      map[date].push({ text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' });
+      const ro = { text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' };
+      if (r.domain) ro.domain = r.domain;
+      if (r.bucketId !== undefined) ro.bucketId = r.bucketId;
+      map[date].push(ro);
     });
     return map;
   }
@@ -28,7 +31,10 @@ function remindersToMap(input){
       map[date] = [];
       arr.forEach((r)=>{
         if (!r || typeof r !== 'object') return;
-        map[date].push({ text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' });
+        const ro = { text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' };
+        if (r.domain) ro.domain = r.domain;
+        if (r.bucketId !== undefined) ro.bucketId = r.bucketId;
+        map[date].push(ro);
       });
     });
   }
@@ -51,6 +57,31 @@ function getJobs(){ return safeParseStorage('jobs', []); }
 function setJobs(v){ localStorage.setItem('jobs', JSON.stringify(v)); }
 function getInbox(){ return safeParseStorage('inbox', []); }
 function setInbox(v){ localStorage.setItem('inbox', JSON.stringify(v)); }
+
+/* Bucket storage: personalBuckets / homeBuckets (work uses jobs) */
+function getBuckets(domain) {
+  if (domain === 'work') {
+    return getJobs().map(function(j) {
+      return { id: j.id, name: j.name, emoji: j.emoji || '💼', collapsed: false };
+    });
+  }
+  return safeParseStorage(domain + 'Buckets', []);
+}
+function setBuckets(domain, v) {
+  if (domain === 'work') return;
+  localStorage.setItem(domain + 'Buckets', JSON.stringify(v));
+}
+function nextBucketId(domain) {
+  const buckets = getBuckets(domain);
+  if (!buckets.length) return 1;
+  return Math.max.apply(null, buckets.map(function(b) { return b.id || 0; })) + 1;
+}
+function persistBucketCollapse(domain, bucketId, collapsed) {
+  if (domain === 'work') return;
+  const buckets = getBuckets(domain);
+  const b = buckets.find(function(x) { return x.id === bucketId; });
+  if (b) { b.collapsed = collapsed; setBuckets(domain, buckets); }
+}
 
 function showAppError(msg){
   try{
@@ -706,6 +737,12 @@ function editReminder(day,index){
   document.getElementById('editText').value = item.text||'';
   document.getElementById('editDate').value = key;
   document.getElementById('editTime').value = item.time || '';
+  const itemDomain = item.domain || 'personal';
+  const editItemDomainEl = document.getElementById('editItemDomain');
+  if (editItemDomainEl) editItemDomainEl.value = itemDomain;
+  populateBucketSelect(document.getElementById('editBucket'), itemDomain, item.bucketId);
+  const bRow = document.getElementById('editBucketRow');
+  if (bRow) bRow.style.display = 'block';
   showModalFieldsFor('reminder'); openEditModal('Edit Reminder');
 }
 
@@ -755,6 +792,12 @@ function editTask(i){
   document.getElementById('editTime').value = t.time||'';
   document.getElementById('editCategory').value = t.category||'work';
   document.getElementById('editPriority').value = t.priority||'2';
+  const itemDomain = t.domain || getDomainOfItem(t);
+  const editItemDomainEl = document.getElementById('editItemDomain');
+  if (editItemDomainEl) editItemDomainEl.value = itemDomain;
+  populateBucketSelect(document.getElementById('editBucket'), itemDomain, t.bucketId);
+  const bRow = document.getElementById('editBucketRow');
+  if (bRow) bRow.style.display = 'block';
   showModalFieldsFor('task'); openEditModal('Edit Task');
 }
 
@@ -951,6 +994,12 @@ function editEvent(id){
   document.getElementById('editRepeatUnit').value = e.repeatUnit || 'days';
   document.getElementById('editABWeek').value = e.abWeek || 'a';
   syncRepeatUI('edit');
+  const itemDomain = e.domain || getDomainOfItem(e);
+  const editItemDomainEl = document.getElementById('editItemDomain');
+  if (editItemDomainEl) editItemDomainEl.value = itemDomain;
+  populateBucketSelect(document.getElementById('editBucket'), itemDomain, e.bucketId);
+  const bRow = document.getElementById('editBucketRow');
+  if (bRow) bRow.style.display = 'block';
   showModalFieldsFor('event'); openEditModal('Edit Event');
 }
 
@@ -1004,6 +1053,12 @@ function saveEditHandler(e){
       delete evs[idx].repeatUnit;
       delete evs[idx].abWeek;
     }
+    const editBucketEl = document.getElementById('editBucket');
+    if (editBucketEl) {
+      const bval = editBucketEl.value;
+      if (bval) evs[idx].bucketId = parseInt(bval, 10);
+      else delete evs[idx].bucketId;
+    }
     setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
     closeEditModal();
     return;
@@ -1011,6 +1066,12 @@ function saveEditHandler(e){
     const idx = parseInt(document.getElementById('editTaskIndex').value,10);
     const tasks = getTasks(); if (!tasks[idx]) { closeEditModal(); return; }
     tasks[idx].title = text; tasks[idx].date = date; tasks[idx].time = time; tasks[idx].category = document.getElementById('editCategory').value; tasks[idx].priority = document.getElementById('editPriority').value;
+    const editBucketElT = document.getElementById('editBucket');
+    if (editBucketElT) {
+      const bvalT = editBucketElT.value;
+      if (bvalT) tasks[idx].bucketId = parseInt(bvalT, 10);
+      else delete tasks[idx].bucketId;
+    }
     setTasks(tasks); loadTasks();
   } else if (kind==='reminder'){
     const origKey = document.getElementById('editReminderKey').value;
@@ -1019,7 +1080,12 @@ function saveEditHandler(e){
     const newDate = date || origKey;
     arr.splice(ridx,1); if (!arr.length) delete r[origKey];
     if (!r[newDate]) r[newDate]=[];
-    r[newDate].push({text,time});
+    const newR = {text,time};
+    const editItemDomainEl2 = document.getElementById('editItemDomain');
+    if (editItemDomainEl2 && editItemDomainEl2.value) newR.domain = editItemDomainEl2.value;
+    const editBucketElR = document.getElementById('editBucket');
+    if (editBucketElR && editBucketElR.value) newR.bucketId = parseInt(editBucketElR.value, 10);
+    r[newDate].push(newR);
     setReminders(r);
     const parts = newDate.split('-');
     if (parts.length===3){ selectedYear = parseInt(parts[0],10); selectedMonth = parseInt(parts[1],10)-1; selectedDay = parseInt(parts[2],10); }
@@ -2567,6 +2633,11 @@ function buildDomainItemEl(item, domain) {
 
 /* Render all items for a domain */
 function renderDomainPage(domain) {
+  /* Delegate to bucket-based rendering if bucket container is present */
+  if (document.getElementById('domain-buckets-' + domain)) {
+    try { renderBucketPage(domain); } catch(e) { console.warn('renderBucketPage failed', e); }
+    return;
+  }
   const container = document.getElementById('domain-list-' + domain);
   if (!container) return;
 
@@ -2734,6 +2805,509 @@ function wireDomainForms() {
   });
 }
 
+/* ============================================================
+   BUCKET PAGES: Personal, Home, Work — category/bucket grouping
+   ============================================================ */
+
+/* Populate a bucket select element */
+function populateBucketSelect(selectEl, domain, currentBucketId) {
+  if (!selectEl) return;
+  selectEl.innerHTML = '';
+  const noOpt = document.createElement('option');
+  noOpt.value = '';
+  noOpt.textContent = '— Uncategorized —';
+  selectEl.appendChild(noOpt);
+  const buckets = getBuckets(domain);
+  buckets.forEach(function(b) {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+    selectEl.appendChild(opt);
+  });
+  selectEl.value = (currentBucketId !== undefined && currentBucketId !== null) ? String(currentBucketId) : '';
+}
+
+/* Add a new bucket category (Personal or Home) */
+function addBucket(domain) {
+  const name = (prompt('Category name:') || '').trim();
+  if (!name) return;
+  const emoji = (prompt('Emoji (optional, e.g. 🏃):') || '').trim();
+  const buckets = getBuckets(domain);
+  buckets.push({ id: nextBucketId(domain), name: name, emoji: emoji || '', collapsed: false });
+  setBuckets(domain, buckets);
+  renderBucketPage(domain);
+}
+
+/* Rename an existing bucket */
+function renameBucket(domain, bucketId) {
+  const buckets = getBuckets(domain);
+  const b = buckets.find(function(x) { return x.id === bucketId; });
+  if (!b) return;
+  const newName = (prompt('Rename category:', b.name) || '').trim();
+  if (!newName) return;
+  const newEmoji = (prompt('Emoji (optional):', b.emoji || '') || '').trim();
+  b.name = newName;
+  b.emoji = newEmoji;
+  setBuckets(domain, buckets);
+  renderBucketPage(domain);
+}
+
+/* Delete a bucket and move its items to Uncategorized */
+function deleteBucket(domain, bucketId) {
+  if (!confirm('Delete this category? Its items will become Uncategorized.')) return;
+  const evs = getEvents();
+  evs.forEach(function(ev) {
+    if (getDomainOfItem(ev) === domain && ev.bucketId === bucketId) delete ev.bucketId;
+  });
+  setEvents(evs);
+  const tasks = getTasks();
+  tasks.forEach(function(t) {
+    if (getDomainOfItem(t) === domain && t.bucketId === bucketId) delete t.bucketId;
+  });
+  setTasks(tasks);
+  const rmap = getReminders();
+  Object.keys(rmap).forEach(function(dk) {
+    (rmap[dk] || []).forEach(function(r) {
+      if (getDomainOfItem(r) === domain && r.bucketId === bucketId) delete r.bucketId;
+    });
+  });
+  setReminders(rmap);
+  const buckets = getBuckets(domain);
+  setBuckets(domain, buckets.filter(function(b) { return b.id !== bucketId; }));
+  renderBucketPage(domain);
+}
+
+/* Build the "Add Item" collapsible panel for a bucket */
+function buildBucketAddArea(domain, bucketId) {
+  const wrapper = document.createElement('div');
+
+  const toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.className = 'bucket-add-toggle';
+  toggleBtn.textContent = '＋ Add Item';
+
+  const panel = document.createElement('div');
+  panel.className = 'bucket-add-panel';
+
+  const tabs = document.createElement('div');
+  tabs.className = 'bucket-type-tabs';
+
+  const types = [
+    { key: 'event', label: '📅 Event' },
+    { key: 'task', label: '✅ Task' },
+    { key: 'reminder', label: '🔔 Reminder' }
+  ];
+
+  const forms = {};
+  types.forEach(function(t, i) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bucket-type-tab' + (i === 0 ? ' active' : '');
+    btn.dataset.type = t.key;
+    btn.textContent = t.label;
+    tabs.appendChild(btn);
+
+    const form = document.createElement('div');
+    form.className = 'bucket-item-form';
+    form.style.display = i === 0 ? '' : 'none';
+    form.dataset.type = t.key;
+
+    if (t.key === 'event') {
+      form.innerHTML = [
+        '<input type="text" placeholder="Event title" class="bi-title" style="width:100%;box-sizing:border-box;margin-top:0" />',
+        '<div style="display:flex;gap:6px;margin-top:6px">',
+        '<input type="date" class="bi-date" style="flex:1" />',
+        '<input type="time" class="bi-time" style="flex:1" />',
+        '<input type="time" class="bi-endtime" style="flex:1" title="End time (optional)" />',
+        '</div>',
+        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="event">Add Event</button>'
+      ].join('');
+    } else if (t.key === 'task') {
+      form.innerHTML = [
+        '<input type="text" placeholder="Task title" class="bi-title" style="width:100%;box-sizing:border-box;margin-top:0" />',
+        '<div style="display:flex;gap:6px;margin-top:6px">',
+        '<input type="date" class="bi-date" style="flex:1" />',
+        '<select class="bi-priority" style="width:110px"><option value="1">! Low</option><option value="2" selected>!! Med</option><option value="3">!!! High</option></select>',
+        '</div>',
+        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="task">Add Task</button>'
+      ].join('');
+    } else {
+      form.innerHTML = [
+        '<input type="text" placeholder="Reminder text" class="bi-title" style="width:100%;box-sizing:border-box;margin-top:0" />',
+        '<div style="display:flex;gap:6px;margin-top:6px">',
+        '<input type="date" class="bi-date" style="flex:1" />',
+        '<input type="time" class="bi-time" style="flex:1" />',
+        '</div>',
+        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="reminder">Add Reminder</button>'
+      ].join('');
+    }
+
+    forms[t.key] = form;
+    panel.appendChild(form);
+  });
+
+  panel.insertBefore(tabs, panel.firstChild);
+
+  tabs.querySelectorAll('.bucket-type-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      tabs.querySelectorAll('.bucket-type-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      Object.keys(forms).forEach(function(k) { forms[k].style.display = 'none'; });
+      if (forms[tab.dataset.type]) forms[tab.dataset.type].style.display = '';
+    });
+  });
+
+  panel.querySelectorAll('.bucket-add-item-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const type = btn.dataset.type;
+      if (forms[type]) addItemToBucket(domain, bucketId, type, forms[type]);
+    });
+  });
+
+  panel.querySelectorAll('.bi-title').forEach(function(inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const activeTab = tabs.querySelector('.bucket-type-tab.active');
+      if (!activeTab) return;
+      const type = activeTab.dataset.type;
+      if (forms[type]) addItemToBucket(domain, bucketId, type, forms[type]);
+    });
+  });
+
+  toggleBtn.addEventListener('click', function() {
+    const isOpen = panel.classList.contains('open');
+    panel.classList.toggle('open', !isOpen);
+    toggleBtn.textContent = !isOpen ? '▾ Add Item' : '＋ Add Item';
+    if (!isOpen) {
+      const firstTitle = panel.querySelector('.bucket-item-form:not([style*="none"]) .bi-title');
+      if (firstTitle) setTimeout(function() { firstTitle.focus(); }, 50);
+    }
+  });
+
+  wrapper.appendChild(toggleBtn);
+  wrapper.appendChild(panel);
+  return wrapper;
+}
+
+/* Add an item to a specific bucket */
+function addItemToBucket(domain, bucketId, type, formEl) {
+  const titleInp = formEl.querySelector('.bi-title');
+  const dateInp = formEl.querySelector('.bi-date');
+  const timeInp = formEl.querySelector('.bi-time');
+  const title = titleInp ? titleInp.value.trim() : '';
+  if (!title) { if (titleInp) { titleInp.focus(); titleInp.style.outline = '2px solid #e74c3c'; setTimeout(function() { titleInp.style.outline = ''; }, 1200); } return; }
+  const date = normalizeDate(dateInp ? dateInp.value : '') || '';
+  const time = timeInp ? timeInp.value : '';
+  const bId = (bucketId !== null && bucketId !== undefined) ? bucketId : undefined;
+
+  if (type === 'event') {
+    const endTimeInp = formEl.querySelector('.bi-endtime');
+    const endTime = endTimeInp ? endTimeInp.value : '';
+    const evDate = date || new Date().toISOString().slice(0, 10);
+    const evs = getEvents();
+    const id = evs.length ? Math.max.apply(null, evs.map(function(x) { return x.id; })) + 1 : 1;
+    const ev = { id, title, date: evDate, time, startTime: time, endTime, location: '', emoji: '', category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
+    if (bId !== undefined) ev.bucketId = bId;
+    evs.push(ev);
+    setEvents(evs);
+    try { generateCalendar(); } catch(_) {}
+    showUndoToast('📅 Event added!');
+  } else if (type === 'task') {
+    const priorityEl = formEl.querySelector('.bi-priority');
+    const priority = priorityEl ? priorityEl.value : '2';
+    const tasks = getTasks();
+    const t = { title, category: domain, domain: domain, done: false, date, time, priority };
+    if (bId !== undefined) t.bucketId = bId;
+    tasks.push(t);
+    setTasks(tasks);
+    try { loadTasks(); } catch(_) {}
+    showUndoToast('✅ Task added!');
+  } else if (type === 'reminder') {
+    const rDate = date || new Date().toISOString().slice(0, 10);
+    const rmap = getReminders();
+    if (!rmap[rDate]) rmap[rDate] = [];
+    const rObj = { text: title, time, notify: 'none', domain: domain };
+    if (bId !== undefined) rObj.bucketId = bId;
+    rmap[rDate].push(rObj);
+    setReminders(rmap);
+    try { generateCalendar(); } catch(_) {}
+    showUndoToast('🔔 Reminder added!');
+  }
+
+  if (titleInp) titleInp.value = '';
+  if (dateInp) dateInp.value = '';
+  if (timeInp) timeInp.value = '';
+  const endTimeInp = formEl.querySelector('.bi-endtime');
+  if (endTimeInp) endTimeInp.value = '';
+  renderBucketPage(domain);
+}
+
+/* Build a single item row inside a bucket card */
+function buildBucketItemEl(item, domain) {
+  const el = document.createElement('div');
+  el.className = 'bucket-item';
+  const typeEmoji = { event: '📅', task: '✅', reminder: '🔔' }[item.type] || '📌';
+
+  const left = document.createElement('div');
+  left.style.cssText = 'flex:1;text-align:left;min-width:0';
+
+  const titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:2px';
+
+  const badge = document.createElement('span');
+  badge.textContent = typeEmoji;
+  badge.style.fontSize = '0.9rem';
+
+  const titleEl = document.createElement('b');
+  titleEl.style.cssText = 'word-break:break-word;font-size:0.92rem';
+  titleEl.textContent = item.title || '';
+  if (item.done) titleEl.style.textDecoration = 'line-through';
+
+  titleRow.appendChild(badge);
+  titleRow.appendChild(titleEl);
+
+  const meta = document.createElement('div');
+  meta.style.cssText = 'font-size:0.78rem;color:#888';
+  const prioMap = {'1':'!','2':'!!','3':'!!!'};
+  const parts = [];
+  if (item.date) parts.push(item.date);
+  if (item.time) parts.push(item.time + (item.endTime ? '–' + item.endTime : ''));
+  if (item.location) parts.push('@ ' + item.location);
+  if (item.priority) parts.push(prioMap[item.priority] || item.priority);
+  meta.textContent = parts.join(' · ');
+
+  left.appendChild(titleRow);
+  if (meta.textContent) left.appendChild(meta);
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;flex-direction:column;gap:3px;flex-shrink:0';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'small-btn';
+  editBtn.textContent = 'Edit';
+  editBtn.style.fontSize = '0.75rem';
+  editBtn.addEventListener('click', function() {
+    if (item.type === 'event') {
+      try { editEvent(item.data.id); } catch(e) { console.warn(e); }
+    } else if (item.type === 'task') {
+      try { editTask(item.idx); } catch(e) { console.warn(e); }
+    } else if (item.type === 'reminder') {
+      const rparts = item.dateKey.split('-');
+      if (rparts.length === 3) {
+        selectedYear = parseInt(rparts[0], 10);
+        selectedMonth = parseInt(rparts[1], 10) - 1;
+        selectedDay = parseInt(rparts[2], 10);
+      }
+      try { editReminder(parseInt(rparts[2], 10), item.ridx); } catch(e) { console.warn(e); }
+    }
+  });
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'small-btn';
+  delBtn.textContent = 'Del';
+  delBtn.style.fontSize = '0.75rem';
+  delBtn.addEventListener('click', function() {
+    if (item.type === 'event') {
+      try { deleteEvent(item.data.id); } catch(e) { console.warn(e); }
+    } else if (item.type === 'task') {
+      try { deleteTask(item.idx); } catch(e) { console.warn(e); }
+    } else if (item.type === 'reminder') {
+      const rparts = item.dateKey.split('-');
+      if (rparts.length === 3) {
+        selectedYear = parseInt(rparts[0], 10);
+        selectedMonth = parseInt(rparts[1], 10) - 1;
+        selectedDay = parseInt(rparts[2], 10);
+      }
+      try { deleteReminder(parseInt(rparts[2], 10), item.ridx); } catch(e) { console.warn(e); }
+    }
+    try { renderBucketPage(domain); } catch(e) {}
+  });
+
+  actions.appendChild(editBtn);
+  actions.appendChild(delBtn);
+  el.appendChild(left);
+  el.appendChild(actions);
+  return el;
+}
+
+/* Build a complete bucket card */
+function buildBucketCard(domain, bucket, items) {
+  const isUncategorized = bucket.id === null;
+
+  const card = document.createElement('div');
+  card.className = 'bucket-card';
+
+  /* Header */
+  const header = document.createElement('div');
+  header.className = 'bucket-header';
+
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'bucket-title';
+  if (bucket.emoji) {
+    const emSp = document.createElement('span');
+    emSp.textContent = bucket.emoji;
+    titleDiv.appendChild(emSp);
+  }
+  const nameSp = document.createElement('span');
+  nameSp.textContent = bucket.name;
+  titleDiv.appendChild(nameSp);
+  if (items.length) {
+    const cnt = document.createElement('span');
+    cnt.style.cssText = 'font-size:0.75rem;color:#888;font-weight:400;margin-left:4px';
+    cnt.textContent = '(' + items.length + ')';
+    titleDiv.appendChild(cnt);
+  }
+  header.appendChild(titleDiv);
+
+  if (!isUncategorized) {
+    const editBucketBtn = document.createElement('button');
+    editBucketBtn.type = 'button';
+    editBucketBtn.className = 'small-btn';
+    editBucketBtn.textContent = '✏️';
+    editBucketBtn.title = 'Rename';
+    editBucketBtn.style.cssText = 'background:none;border:none;font-size:1rem;cursor:pointer;padding:2px 4px;color:#666';
+    editBucketBtn.addEventListener('click', function(e) { e.stopPropagation(); renameBucket(domain, bucket.id); });
+
+    const delBucketBtn = document.createElement('button');
+    delBucketBtn.type = 'button';
+    delBucketBtn.className = 'small-btn';
+    delBucketBtn.textContent = '🗑️';
+    delBucketBtn.title = 'Delete category';
+    delBucketBtn.style.cssText = 'background:none;border:none;font-size:1rem;cursor:pointer;padding:2px 4px;color:#e74c3c';
+    delBucketBtn.addEventListener('click', function(e) { e.stopPropagation(); deleteBucket(domain, bucket.id); });
+
+    header.appendChild(editBucketBtn);
+    header.appendChild(delBucketBtn);
+  }
+
+  const chevron = document.createElement('span');
+  chevron.className = 'bucket-chevron';
+  chevron.setAttribute('aria-hidden', 'true');
+  chevron.textContent = bucket.collapsed ? '▸' : '▾';
+  header.appendChild(chevron);
+
+  /* Body */
+  const body = document.createElement('div');
+  body.className = 'bucket-body';
+  if (bucket.collapsed) body.style.display = 'none';
+
+  if (!items.length) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.style.cssText = 'color:#aaa;text-align:center;padding:6px 0 2px;font-size:0.85rem';
+    emptyMsg.textContent = 'No items yet.';
+    body.appendChild(emptyMsg);
+  } else {
+    items.forEach(function(item) { body.appendChild(buildBucketItemEl(item, domain)); });
+  }
+
+  body.appendChild(buildBucketAddArea(domain, bucket.id));
+
+  card.appendChild(header);
+  card.appendChild(body);
+
+  header.addEventListener('click', function() {
+    const isCollapsed = body.style.display === 'none';
+    body.style.display = isCollapsed ? '' : 'none';
+    chevron.textContent = isCollapsed ? '▾' : '▸';
+    if (!isUncategorized) persistBucketCollapse(domain, bucket.id, !isCollapsed);
+  });
+
+  return card;
+}
+
+/* Render the full bucket page for a domain */
+function renderBucketPage(domain) {
+  const container = document.getElementById('domain-buckets-' + domain);
+  if (!container) return;
+
+  container.innerHTML = '';
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const itemsByBucket = {};
+  const uncategorized = [];
+
+  function pushItem(bucketId, item) {
+    if (bucketId !== undefined && bucketId !== null) {
+      if (!itemsByBucket[bucketId]) itemsByBucket[bucketId] = [];
+      itemsByBucket[bucketId].push(item);
+    } else {
+      uncategorized.push(item);
+    }
+  }
+
+  getEvents().forEach(function(ev) {
+    if (getDomainOfItem(ev) !== domain) return;
+    pushItem(ev.bucketId, {
+      type: 'event', title: ev.title || '', date: ev.date || '',
+      time: ev.time || '', endTime: ev.endTime || '', location: ev.location || '',
+      sortKey: (ev.date || '9999') + (ev.time || '23:59'), data: ev
+    });
+  });
+
+  getTasks().forEach(function(t, idx) {
+    if (getDomainOfItem(t) !== domain) return;
+    pushItem(t.bucketId, {
+      type: 'task', title: t.title || t.text || '', date: t.date || '',
+      time: t.time || '', priority: t.priority, done: !!t.done,
+      sortKey: (t.date || '9999') + (t.time || '23:59'), data: t, idx: idx
+    });
+  });
+
+  const rmap = getReminders();
+  Object.keys(rmap).forEach(function(dateKey) {
+    (rmap[dateKey] || []).forEach(function(r, ridx) {
+      if (getDomainOfItem(r) !== domain) return;
+      pushItem(r.bucketId, {
+        type: 'reminder', title: r.text || '', date: dateKey,
+        time: r.time || '', sortKey: dateKey + (r.time || '23:59'),
+        data: r, dateKey: dateKey, ridx: ridx
+      });
+    });
+  });
+
+  function sortItems(arr) {
+    const dated = arr.filter(function(i) { return !!i.date; });
+    const undated = arr.filter(function(i) { return !i.date; });
+    const upcoming = dated.filter(function(i) { return i.sortKey >= todayStr; })
+      .sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey); });
+    const past = dated.filter(function(i) { return i.sortKey < todayStr; })
+      .sort(function(a, b) { return b.sortKey.localeCompare(a.sortKey); });
+    return upcoming.concat(undated).concat(past);
+  }
+
+  const buckets = getBuckets(domain);
+  const hasContent = buckets.length > 0 || uncategorized.length > 0 || Object.keys(itemsByBucket).length > 0;
+
+  if (!hasContent) {
+    if (domain === 'work') {
+      container.innerHTML = '<div style="color:#aaa;text-align:center;padding:32px 0">No jobs yet. Add jobs in <a href="index.html#settings" style="color:#4a90e2">Settings → Jobs</a>.</div>';
+    } else {
+      container.innerHTML = '<div style="color:#aaa;text-align:center;padding:32px 0">No categories yet. Tap <b>＋ Add Category</b> to get started.</div>';
+    }
+    return;
+  }
+
+  buckets.forEach(function(bucket) {
+    const items = sortItems(itemsByBucket[bucket.id] || []);
+    container.appendChild(buildBucketCard(domain, bucket, items));
+  });
+
+  const uncatItems = sortItems(uncategorized);
+  if (uncatItems.length) {
+    container.appendChild(buildBucketCard(domain, { id: null, name: 'Uncategorized', emoji: '📥', collapsed: false }, uncatItems));
+  }
+}
+
+/* Wire bucket page controls */
+function wireBucketPages() {
+  ['personal', 'home'].forEach(function(domain) {
+    const cap = domain.charAt(0).toUpperCase() + domain.slice(1);
+    const btn = document.getElementById('add' + cap + 'BucketBtn');
+    if (btn) btn.addEventListener('click', function() { addBucket(domain); });
+  });
+}
+
 /* ----- Calendar Cross-Domain Summary ----- */
 let calSummaryDomainFilter = 'all';
 
@@ -2843,4 +3417,5 @@ document.addEventListener('DOMContentLoaded',function(){
   updateInboxBadge();
   wireDomainForms();
   wireCalendarSummary();
+  wireBucketPages();
 });

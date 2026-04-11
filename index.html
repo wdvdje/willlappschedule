@@ -88,6 +88,24 @@
     .cal-domain-pill.active { background:#4a90e2; color:#fff; border-color:#4a90e2; }
     .cal-domain-pill:hover:not(.active) { border-color:#4a90e2; }
 
+    /* ===== Bucket cards ===== */
+    .bucket-card { background:#fff; border-radius:12px; border:1px solid #e6e6e6; margin-bottom:12px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+    .bucket-header { display:flex; align-items:center; padding:11px 14px; cursor:pointer; user-select:none; background:#f7f9fc; gap:6px; border-bottom:1px solid #eef0f3; }
+    .bucket-title { flex:1; font-weight:600; font-size:0.95rem; display:flex; align-items:center; gap:6px; min-width:0; }
+    .bucket-chevron { font-size:0.85rem; color:#aaa; min-width:14px; text-align:center; }
+    .bucket-body { padding:10px 14px 12px; }
+    .bucket-add-toggle { display:block; width:100%; background:none; border:1.5px dashed #c8d6e8; color:#4a90e2; border-radius:8px; padding:7px 0; cursor:pointer; font-size:0.85rem; margin-top:10px; text-align:center; box-sizing:border-box; }
+    .bucket-add-toggle:hover { border-color:#4a90e2; background:#f0f6ff; }
+    .bucket-add-panel { display:none; margin-top:8px; background:#f0f5fb; border-radius:8px; padding:10px; border:1px solid #d8e6f5; }
+    .bucket-add-panel.open { display:block; }
+    .bucket-type-tabs { display:flex; margin-bottom:8px; border-radius:6px; overflow:hidden; border:1px solid #d8e0ec; }
+    .bucket-type-tab { flex:1; padding:5px 2px; border:none; background:#fff; cursor:pointer; font-size:0.8rem; border-right:1px solid #d8e0ec; }
+    .bucket-type-tab:last-child { border-right:0; }
+    .bucket-type-tab.active { background:#4a90e2; color:#fff; font-weight:600; }
+    .bucket-type-tab:hover:not(.active) { background:#e8f0fb; }
+    .bucket-item { background:#fff; border:1px solid #eaecf4; border-radius:8px; padding:8px 10px; margin-bottom:6px; display:flex; align-items:flex-start; gap:8px; }
+    .bucket-item:last-of-type { margin-bottom:0; }
+
     /* ===== Desktop: domain-colored event banners in calendar ===== */
     @media (min-width: 901px) {
       .day { min-height: 90px; }
@@ -436,127 +454,32 @@
     <!-- Personal domain page -->
     <section id="page-personal" class="page hidden">
       <h2>👤 Personal</h2>
-      <div style="max-width:640px;margin:0 auto 16px;padding:0 12px;box-sizing:border-box">
-        <div class="domain-type-tabs" data-domain="personal">
-          <button class="domain-tab active" data-type="event">📅 Event</button>
-          <button class="domain-tab" data-type="task">✅ Task</button>
-          <button class="domain-tab" data-type="reminder">🔔 Reminder</button>
+      <div style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button id="addPersonalBucketBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Category</button>
         </div>
-        <div class="domain-form-panel" id="domain-form-personal-event">
-          <input id="personal-ev-title" type="text" placeholder="Event title" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="personal-ev-date" type="date" style="flex:1" />
-            <input id="personal-ev-time" type="time" style="flex:1" />
-            <input id="personal-ev-endtime" type="time" style="flex:1" title="End time (optional)" />
-          </div>
-          <button class="domain-add-btn" data-domain="personal" data-type="event" style="margin-top:8px">Add Event</button>
-        </div>
-        <div class="domain-form-panel hidden" id="domain-form-personal-task">
-          <input id="personal-task-title" type="text" placeholder="Task title" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="personal-task-date" type="date" style="flex:1" />
-            <select id="personal-task-priority" style="width:120px">
-              <option value="1">! Low</option>
-              <option value="2" selected>!! Med</option>
-              <option value="3">!!! High</option>
-            </select>
-          </div>
-          <button class="domain-add-btn" data-domain="personal" data-type="task" style="margin-top:8px">Add Task</button>
-        </div>
-        <div class="domain-form-panel hidden" id="domain-form-personal-reminder">
-          <input id="personal-rem-text" type="text" placeholder="Reminder text" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="personal-rem-date" type="date" style="flex:1" />
-            <input id="personal-rem-time" type="time" style="flex:1" />
-          </div>
-          <button class="domain-add-btn" data-domain="personal" data-type="reminder" style="margin-top:8px">Add Reminder</button>
-        </div>
+        <div id="domain-buckets-personal"></div>
       </div>
-      <div id="domain-list-personal" style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box"></div>
     </section>
 
     <!-- Home domain page -->
     <section id="page-home" class="page hidden">
       <h2>🏡 Home</h2>
-      <div style="max-width:640px;margin:0 auto 16px;padding:0 12px;box-sizing:border-box">
-        <div class="domain-type-tabs" data-domain="home">
-          <button class="domain-tab active" data-type="event">📅 Event</button>
-          <button class="domain-tab" data-type="task">✅ Task</button>
-          <button class="domain-tab" data-type="reminder">🔔 Reminder</button>
+      <div style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button id="addHomeBucketBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Category</button>
         </div>
-        <div class="domain-form-panel" id="domain-form-home-event">
-          <input id="home-ev-title" type="text" placeholder="Event title" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="home-ev-date" type="date" style="flex:1" />
-            <input id="home-ev-time" type="time" style="flex:1" />
-            <input id="home-ev-endtime" type="time" style="flex:1" title="End time (optional)" />
-          </div>
-          <button class="domain-add-btn" data-domain="home" data-type="event" style="margin-top:8px">Add Event</button>
-        </div>
-        <div class="domain-form-panel hidden" id="domain-form-home-task">
-          <input id="home-task-title" type="text" placeholder="Task title" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="home-task-date" type="date" style="flex:1" />
-            <select id="home-task-priority" style="width:120px">
-              <option value="1">! Low</option>
-              <option value="2" selected>!! Med</option>
-              <option value="3">!!! High</option>
-            </select>
-          </div>
-          <button class="domain-add-btn" data-domain="home" data-type="task" style="margin-top:8px">Add Task</button>
-        </div>
-        <div class="domain-form-panel hidden" id="domain-form-home-reminder">
-          <input id="home-rem-text" type="text" placeholder="Reminder text" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="home-rem-date" type="date" style="flex:1" />
-            <input id="home-rem-time" type="time" style="flex:1" />
-          </div>
-          <button class="domain-add-btn" data-domain="home" data-type="reminder" style="margin-top:8px">Add Reminder</button>
-        </div>
+        <div id="domain-buckets-home"></div>
       </div>
-      <div id="domain-list-home" style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box"></div>
     </section>
 
     <!-- Work domain page -->
     <section id="page-work" class="page hidden">
       <h2>💼 Work</h2>
-      <div style="max-width:640px;margin:0 auto 16px;padding:0 12px;box-sizing:border-box">
-        <div class="domain-type-tabs" data-domain="work">
-          <button class="domain-tab active" data-type="event">📅 Event</button>
-          <button class="domain-tab" data-type="task">✅ Task</button>
-          <button class="domain-tab" data-type="reminder">🔔 Reminder</button>
-        </div>
-        <div class="domain-form-panel" id="domain-form-work-event">
-          <input id="work-ev-title" type="text" placeholder="Event title" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="work-ev-date" type="date" style="flex:1" />
-            <input id="work-ev-time" type="time" style="flex:1" />
-            <input id="work-ev-endtime" type="time" style="flex:1" title="End time (optional)" />
-          </div>
-          <button class="domain-add-btn" data-domain="work" data-type="event" style="margin-top:8px">Add Event</button>
-        </div>
-        <div class="domain-form-panel hidden" id="domain-form-work-task">
-          <input id="work-task-title" type="text" placeholder="Task title" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="work-task-date" type="date" style="flex:1" />
-            <select id="work-task-priority" style="width:120px">
-              <option value="1">! Low</option>
-              <option value="2" selected>!! Med</option>
-              <option value="3">!!! High</option>
-            </select>
-          </div>
-          <button class="domain-add-btn" data-domain="work" data-type="task" style="margin-top:8px">Add Task</button>
-        </div>
-        <div class="domain-form-panel hidden" id="domain-form-work-reminder">
-          <input id="work-rem-text" type="text" placeholder="Reminder text" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <input id="work-rem-date" type="date" style="flex:1" />
-            <input id="work-rem-time" type="time" style="flex:1" />
-          </div>
-          <button class="domain-add-btn" data-domain="work" data-type="reminder" style="margin-top:8px">Add Reminder</button>
-        </div>
+      <div style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
+        <p style="text-align:center;font-size:0.88rem;color:#666;margin:0 0 12px">Jobs are managed in <a href="index.html#settings" style="color:#4a90e2">Settings → Jobs</a></p>
+        <div id="domain-buckets-work"></div>
       </div>
-      <div id="domain-list-work" style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box"></div>
     </section>
 
     <!-- Inbox (unsorted) page -->
@@ -767,6 +690,7 @@
         <input type="hidden" id="editTaskIndex" />
         <input type="hidden" id="editReminderKey" />
         <input type="hidden" id="editReminderIndex" />
+        <input type="hidden" id="editItemDomain" />
         <div style="margin-top:8px;">
           <label for="editText">Text / Title</label>
           <input id="editText" type="text" />
@@ -836,6 +760,10 @@
               <select id="editPostBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option></select>
             </div>
           </div>
+        </div>
+        <div id="editBucketRow" style="margin-top:8px;display:none">
+          <label for="editBucket">Category / Bucket</label>
+          <select id="editBucket" style="margin-top:4px"><option value="">— Uncategorized —</option></select>
         </div>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
           <button type="button" id="cancelEdit" class="small-btn">Cancel</button>
