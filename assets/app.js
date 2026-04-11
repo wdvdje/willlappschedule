@@ -316,11 +316,6 @@ function getEventsForDateKey(dateKey){
    Sets the date and triggers a re-render of the vertical timeline view. */
 function renderDailyViewForDay(year, monthIndex, day, partKey){
   const dateKey = `${year}-${pad2(monthIndex+1)}-${pad2(day)}`;
-  // Sync day-part selector if a valid partKey is given
-  if (partKey && DAY_PARTS[partKey]) {
-    const sel = document.getElementById('dayPartSelect');
-    if (sel) sel.value = partKey;
-  }
   // Delegate to daily-view.js timeline renderer
   if (typeof window.dailyViewSetDate === 'function') {
     window.dailyViewSetDate(dateKey);
@@ -682,9 +677,7 @@ function showReminders(day){
   updateDayProgress(day);
 
   if (selectedYear != null && selectedMonth != null && day){
-    const sel = document.getElementById('dayPartSelect');
-    const part = (sel && sel.value && sel.value !== 'auto') ? sel.value : 'auto';
-    renderDailyViewForDay(selectedYear, selectedMonth, day, part);
+    renderDailyViewForDay(selectedYear, selectedMonth, day);
     const container = document.getElementById('dailyView');
     if(container){
       const nowLine = container.querySelector('.dv-now-line');
@@ -1585,16 +1578,8 @@ function attachPageListeners(){
       });
     });
 
-    const sel = document.getElementById('dayPartSelect');
-    if(sel){
-      sel.addEventListener('change', ()=>{
-        if (selectedYear != null && selectedMonth != null && selectedDay != null){
-          const key = sel.value === 'auto' ? 'auto' : sel.value;
-          renderDailyViewForDay(selectedYear, selectedMonth, selectedDay, key);
-        }
-      });
-    }
-  }catch(e){ console.warn('attachPageListeners failed', e); }
+    // dayPartSelect removed – full 24h scrollable view is now used
+    }catch(e){ console.warn('attachPageListeners failed', e); }
 }
 
 /* expose inline handlers */
@@ -1625,14 +1610,7 @@ document.addEventListener('DOMContentLoaded', function(){
     try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }
     try{ wireRepeatControls(); }catch(e){ console.warn('wireRepeatControls failed', e); }
 
-    // set dayPartSelect default to current part if present
-    const sel = document.getElementById('dayPartSelect');
-    if (sel){
-      const now = new Date();
-      const curPart = determinePartFromHour(now.getHours());
-      // If user had a value, we keep it; otherwise set to current
-      if (!sel.value || !DAY_PARTS[sel.value]) sel.value = curPart;
-    }
+    // dayPartSelect removed – full 24h scrollable view is now used
   }catch(err){
     console.error('Init error',err);
     showAppError('Initialization error: ' + (err && err.message || err));

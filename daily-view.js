@@ -6,7 +6,6 @@
 
   // DOM accessors (lazy – elements may not exist at eval time)
   function getDailyView() { return document.getElementById('dailyView'); }
-  function getDayPartSelect() { return document.getElementById('dayPartSelect'); }
   function getCalendarEl() { return document.getElementById('calendar'); }
 
   const PRIMARY_COLOR = '#4a90e2';
@@ -259,7 +258,7 @@
       if (!dailyView) return;
       dailyView.innerHTML = '';
 
-      var part = (getDayPartSelect() && getDayPartSelect().value) || 'day';
+      var part = 'all';
       var hours = hoursForPart(part);
       var items = getDayItems(dateStr);
 
@@ -433,6 +432,24 @@
       if (info) {
         info.textContent = visibleItems.length + ' item' + (visibleItems.length !== 1 ? 's' : '');
       }
+
+      // Auto-scroll: if viewing today, scroll to current time; otherwise scroll to first event or 8 AM
+      (function() {
+        var scrollTarget = 8 * HOUR_HEIGHT; // default: 8 AM
+        if (dateStr === todayISO()) {
+          var currentTime = new Date();
+          var currentMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
+          scrollTarget = ((currentMinutes - rangeStartMin) / totalMinutes) * (hours.length * HOUR_HEIGHT);
+        } else if (visibleItems.length > 0) {
+          var earliest = visibleItems.reduce(function(min, item) {
+            return item.startMin < min ? item.startMin : min;
+          }, Infinity);
+          scrollTarget = ((earliest - rangeStartMin) / totalMinutes) * (hours.length * HOUR_HEIGHT);
+        }
+        // Center the target in the visible area
+        var containerHeight = dailyView.clientHeight || 480;
+        dailyView.scrollTop = Math.max(0, scrollTarget - containerHeight / 3);
+      })();
     } catch (err) {
       console.error('daily-view render error', err);
     }
@@ -519,11 +536,7 @@
     if (todayBtn) todayBtn.addEventListener('click', function() { goToToday(); });
   }
 
-  // ── Wire day part selector ──
-  function wireDayPart() {
-    var dp = getDayPartSelect();
-    if (dp) dp.addEventListener('change', refreshForSelectedDate);
-  }
+  // ── (Day part selector removed – full 24h scrollable view) ──
 
   // ── Listen for data changes ──
   window.addEventListener('app:data:updated', refreshForSelectedDate);
@@ -619,14 +632,12 @@
   // ── Initialize ──
   document.addEventListener('DOMContentLoaded', function() {
     wireNavButtons();
-    wireDayPart();
     refreshForSelectedDate();
   });
 
   // Also try immediately (in case DOMContentLoaded already fired)
   setTimeout(function() {
     wireNavButtons();
-    wireDayPart();
     refreshForSelectedDate();
   }, 200);
 })();
