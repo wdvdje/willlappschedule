@@ -69,7 +69,9 @@
     .weekly-salary:hover { opacity:0.75; }
     .weekly-salary strong { color:#27ae60; }
     .work-earnings-section { background:#fff;border-radius:10px;padding:16px;margin-bottom:18px;box-shadow:0 1px 8px rgba(0,0,0,0.07); }
-    .work-earnings-heading { margin:0 0 12px;font-size:1.15rem; }
+    .work-earnings-heading { margin:0 0 12px;font-size:1.15rem;display:flex;justify-content:space-between;align-items:center; }
+    .work-earnings-details-link { font-size:0.8rem;color:#4a90e2;text-decoration:none;font-weight:400;cursor:pointer; }
+    .work-earnings-details-link:hover { text-decoration:underline; }
     .work-earnings-total { font-size:1.3rem;font-weight:700;color:#27ae60;margin-bottom:14px;text-align:center; }
     .work-earnings-week-label { font-size:0.85rem;color:#888;text-align:center;margin-bottom:4px; }
     .earnings-day-table { width:100%;border-collapse:collapse;margin-bottom:16px;font-size:0.92rem; }
@@ -1346,7 +1348,7 @@
 
         <!-- Expanded Job Earnings Analytics -->
         <div id="workEarningsSection" class="work-earnings-section">
-          <h3 class="work-earnings-heading" style="display:flex;justify-content:space-between;align-items:center">💰 Job Earnings <a href="#workEarningsContent" class="work-earnings-details-link" style="font-size:0.8rem;color:#4a90e2;text-decoration:none;font-weight:400;cursor:pointer" onclick="document.getElementById('workEarningsContent').scrollIntoView({behavior:'smooth'})">View details ›</a></h3>
+          <h3 class="work-earnings-heading">💰 Job Earnings <a href="#workEarningsContent" class="work-earnings-details-link">View details ›</a></h3>
           <div id="workEarningsContent"></div>
         </div>
 
