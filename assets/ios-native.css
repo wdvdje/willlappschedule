@@ -714,7 +714,7 @@ main {
    They mirror the manual body.dark-mode rules already in app.css. */
 @media (prefers-color-scheme: dark) {
   body {
-    background: #000000 !important;
+    background: #1c1c1e !important;
   }
   .calendar {
     background: #1c1c1e !important;

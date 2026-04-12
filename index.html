@@ -35,8 +35,8 @@
   <script>try{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body&&document.body.classList.add('dark-mode')}catch(e){}</script>
 </head>
 <body>
-  <!-- Dark mode initialised in <head> above; also handled by ios-native.js -->
-  <script>try{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body.classList.add('dark-mode')}catch(e){}</script>
+  <!-- Dark mode initialized in <head> above; also handled by ios-native.js -->
+  <script>try{if(!document.body.classList.contains('dark-mode')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body.classList.add('dark-mode')}catch(e){}</script>
   <header id="appHeader">
     <a href="#inbox" class="header-btn" id="headerInboxBtn" aria-label="Inbox"><span>📥</span><span class="header-btn-label" id="inboxNavLabel">Inbox</span></a>
     <span id="appHeaderTitle">📅 TimeScape Planner</span>
