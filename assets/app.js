@@ -7215,12 +7215,13 @@ function createBudgetBillReminder(bill) {
   var dateKey = bill.dueDate;
   if (!reminders[dateKey]) reminders[dateKey] = [];
   // Check if reminder already exists for this bill
+  var reminderText = 'Bill due: ' + bill.name + ' ($' + (parseFloat(bill.amount) || 0).toFixed(2) + ')';
   var exists = reminders[dateKey].some(function(r) {
-    return r.bucketId === 'budget' && r.text === 'Bill due: ' + bill.name;
+    return r.bucketId === 'budget' && r.text === reminderText;
   });
   if (!exists) {
     reminders[dateKey].push({
-      text: 'Bill due: ' + bill.name + ' ($' + (parseFloat(bill.amount) || 0).toFixed(2) + ')',
+      text: reminderText,
       time: '09:00',
       notify: '1d',
       domain: 'personal',
@@ -7528,7 +7529,7 @@ function openBudgetAnalyticsModal(budget, jobIncome, billsTotal, oneTimeTotal, g
   var overview = document.createElement('div');
   overview.style.cssText = 'margin-bottom:16px';
   overview.innerHTML =
-    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:8px">Overview (30 days)</div>' +
+    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:8px">Overview</div>' +
     '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem"><span>💰 Total Income</span><span style="color:#27ae60;font-weight:600">$' + jobIncome.toFixed(2) + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem"><span>💸 Total Expenses</span><span style="color:#e74c3c;font-weight:600">$' + totalExpenses.toFixed(2) + '</span></div>' +
     '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.95rem;font-weight:700;border-top:2px solid #eee;margin-top:4px"><span>Net</span><span style="color:' + (net >= 0 ? '#27ae60' : '#e74c3c') + '">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span></div>';

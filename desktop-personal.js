@@ -1705,21 +1705,21 @@
 
   function getMealBucketLinkedItems() {
     var items = [];
-    // Tasks
+    // Tasks — match by bucketId or legacy "Eating Tracker" category name
     var tasks = (typeof getTasks === 'function') ? getTasks() : sp('tasks', []);
     tasks.forEach(function (t) {
       if (t.bucketId === 'meal-planner' || (t.category && t.category.toLowerCase() === 'eating tracker')) {
         items.push({ type: 'task', typeIcon: '☑️', title: t.title || t.text || '', date: t.date || '' });
       }
     });
-    // Events
+    // Events — match by bucketId or legacy "Eating Tracker" category name
     var events = (typeof getEvents === 'function') ? getEvents() : sp('events', []);
     events.forEach(function (e) {
       if (e.bucketId === 'meal-planner' || (e.category && e.category.toLowerCase() === 'eating tracker')) {
         items.push({ type: 'event', typeIcon: '📅', title: e.title || '', date: e.date || '' });
       }
     });
-    // Reminders
+    // Reminders — match by bucketId or legacy "Eating Tracker" domain name
     var reminders = (typeof getReminders === 'function') ? getReminders() : sp('reminders', {});
     Object.keys(reminders).forEach(function (dateKey) {
       var arr = reminders[dateKey];
