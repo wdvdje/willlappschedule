@@ -193,11 +193,11 @@
       '#calDaySummaryPanel { display:none; }',
       '#calUpcomingPanel { display:none; }',
       '@media (min-width: 901px) {',
-      '  #calPageLayout { display:flex;gap:6px;align-items:flex-start;max-width:100%;padding:0 4px;box-sizing:border-box; }',
+      '  #calPageLayout { display:flex;gap:6px;align-items:stretch;max-width:100%;padding:0 4px;box-sizing:border-box; }',
       '  #calCenterPanel { flex:1;min-width:0; }',
-      '  .cal-side-panel { display:block;width:220px;flex-shrink:0;background:#fff;border-radius:12px;',
+      '  .cal-side-panel { display:flex;flex-direction:column;width:220px;flex-shrink:0;background:#fff;border-radius:12px;',
       '    box-shadow:0 2px 14px rgba(0,0,0,0.08);padding:10px 12px;',
-      '    position:sticky;top:72px;max-height:calc(100vh - 90px);overflow-y:auto;font-size:0.83rem;',
+      '    overflow-y:auto;font-size:0.83rem;',
       '    transition:width 0.25s ease,padding 0.25s ease,opacity 0.25s ease; }',
       '  body.dark-mode .cal-side-panel { background:#16213e;color:#e0e0e0; }',
       '  .cal-side-panel h4 { margin:0 0 8px;font-size:0.9rem;color:#4a90e2;display:flex;align-items:center;justify-content:space-between; }',
@@ -215,7 +215,15 @@
       '  #calDaySummaryPanel { display:block; }',
       '  #calUpcomingPanel { display:block; }',
       '}',
-      '.dcf-split-event { padding:5px 8px;border-radius:6px;margin-bottom:4px;border-left:4px solid;font-size:0.8rem; }',
+      '.dcf-split-event { padding:5px 8px;border-radius:6px;margin-bottom:4px;border-left:4px solid;font-size:0.8rem;cursor:pointer;transition:background 0.15s; }',
+      '.dcf-split-event:hover { filter:brightness(0.95); }',
+      '.dcf-split-kind { display:inline-block;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;padding:1px 5px;border-radius:4px;margin-right:4px;vertical-align:middle; }',
+      '.dcf-split-kind-event { background:#e8f0fe;color:#3367d6; }',
+      '.dcf-split-kind-task { background:#e6f4ea;color:#1e7e34; }',
+      '.dcf-split-kind-reminder { background:#fef3e0;color:#c77c00; }',
+      'body.dark-mode .dcf-split-kind-event { background:#1e3055;color:#7ab3f5; }',
+      'body.dark-mode .dcf-split-kind-task { background:#1a3020;color:#8fcd8f; }',
+      'body.dark-mode .dcf-split-kind-reminder { background:#3a2a10;color:#f0c060; }',
       '.dcf-split-time { font-size:0.72rem;color:#888;display:block; }',
       'body.dark-mode .dcf-split-time { color:#aaa; }',
       '.dcf-cmd-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10002;display:none;align-items:flex-start;justify-content:center;padding-top:80px; }',
@@ -1421,26 +1429,26 @@
       if (!d || d < todayStr || d > endStr) return;
       var domain = ev.domain || 'personal';
       if (domainFilter !== 'all' && domain !== domainFilter) return;
-      items.push({ kind: 'event', time: ev.time || '23:59', title: ev.title || '', color: dcs[domain] || '#4a90e2', emoji: ev.emoji || '📌', date: d, endTime: ev.endTime || '', repeat: ev.repeat || 'none' });
+      items.push({ kind: 'event', time: ev.time || '23:59', title: ev.title || '', color: dcs[domain] || '#4a90e2', emoji: ev.emoji || '📌', date: d, endTime: ev.endTime || '', repeat: ev.repeat || 'none', eventId: ev.id });
     });
 
     /* Gather tasks */
-    safeTasks().forEach(function (t) {
+    safeTasks().forEach(function (t, idx) {
       var d = nd(t.date);
       if (!d || d < todayStr || d > endStr) return;
       var domain = t.domain || 'personal';
       if (domainFilter !== 'all' && domain !== domainFilter) return;
-      items.push({ kind: 'task', time: t.time || '23:59', title: t.title || t.text || '', color: '#27ae60', emoji: t.done ? '✅' : '⬜', date: d, done: t.done });
+      items.push({ kind: 'task', time: t.time || '23:59', title: t.title || t.text || '', color: '#27ae60', emoji: t.done ? '✅' : '⬜', date: d, done: t.done, taskIdx: idx });
     });
 
     /* Gather reminders */
     var rems = safeRems();
     Object.keys(rems).forEach(function (dk) {
       if (dk < todayStr || dk > endStr) return;
-      (rems[dk] || []).forEach(function (r) {
+      (rems[dk] || []).forEach(function (r, ri) {
         var domain = r.domain || 'personal';
         if (domainFilter !== 'all' && domain !== domainFilter) return;
-        items.push({ kind: 'reminder', time: r.time || '23:59', title: r.text || '', color: '#e67e22', emoji: '🔔', date: dk });
+        items.push({ kind: 'reminder', time: r.time || '23:59', title: r.text || '', color: '#e67e22', emoji: '🔔', date: dk, remKey: dk, remIdx: ri });
       });
     });
 
@@ -1466,14 +1474,20 @@
       }
       var repeatIcon = (item.repeat && item.repeat !== 'none') ? ' 🔁' : '';
       var doneStyle = item.done ? 'text-decoration:line-through;opacity:0.65;' : '';
-      html += '<div class="dcf-split-event" style="border-left-color:' + item.color + ';background:' + hexToRgba2(item.color, 0.1) + ';' + doneStyle + '">';
-      html += '<span style="font-weight:600">' + item.emoji + ' ' + esc(item.title) + repeatIcon + '</span>';
+      var dataAttrs = '';
+      if (item.kind === 'event') dataAttrs = ' data-action="edit-event" data-event-id="' + item.eventId + '"';
+      else if (item.kind === 'task') dataAttrs = ' data-action="edit-task" data-task-idx="' + item.taskIdx + '"';
+      else if (item.kind === 'reminder') dataAttrs = ' data-action="edit-reminder" data-rem-key="' + esc(item.remKey) + '" data-rem-idx="' + item.remIdx + '"';
+      var kindLabel = '<span class="dcf-split-kind dcf-split-kind-' + item.kind + '">' + item.kind.charAt(0).toUpperCase() + item.kind.slice(1) + '</span>';
+      html += '<div class="dcf-split-event" style="border-left-color:' + item.color + ';background:' + hexToRgba2(item.color, 0.1) + ';' + doneStyle + '"' + dataAttrs + ' title="Click to edit">';
+      html += kindLabel + '<span style="font-weight:600">' + item.emoji + ' ' + esc(item.title) + repeatIcon + '</span>';
       if (item.time && item.time !== '23:59') {
         html += '<span class="dcf-split-time">' + esc(item.time) + (item.endTime ? ' – ' + esc(item.endTime) : '') + '</span>';
       }
       html += '</div>';
     });
     content.innerHTML = html;
+    wireItemClicks(content);
   }
 
   function refreshSplitPanel() {
@@ -1495,7 +1509,9 @@
     if (!content) return;
 
     var evts = safeGetEvts(ymd, ymd);
-    var tasks = safeTasks().filter(function (t) { return nd(t.date) === ymd; });
+    var allTasks = safeTasks();
+    var tasks = [];
+    allTasks.forEach(function (t, idx) { if (nd(t.date) === ymd) tasks.push({ task: t, idx: idx }); });
     var rems = safeRems()[ymd] || [];
     var dcs = safeDomainColors();
 
@@ -1505,16 +1521,21 @@
     } else {
       /* Sort events by time */
       var items = [];
-      evts.forEach(function (e) { items.push({ kind: 'event', time: e.time || '23:59', title: e.title || '', color: dcs[e.domain || 'personal'] || '#4a90e2', emoji: e.emoji || '📌', endTime: e.endTime || '', repeat: e.repeat || 'none' }); });
-      tasks.forEach(function (t) { items.push({ kind: 'task', time: t.time || '23:59', title: t.title || t.text || '', color: '#27ae60', emoji: t.done ? '✅' : '⬜', done: t.done }); });
-      rems.forEach(function (r) { items.push({ kind: 'reminder', time: r.time || '23:59', title: r.text || '', color: '#e67e22', emoji: '🔔' }); });
+      evts.forEach(function (e) { items.push({ kind: 'event', time: e.time || '23:59', title: e.title || '', color: dcs[e.domain || 'personal'] || '#4a90e2', emoji: e.emoji || '📌', endTime: e.endTime || '', repeat: e.repeat || 'none', eventId: e.id }); });
+      tasks.forEach(function (entry) { var t = entry.task; items.push({ kind: 'task', time: t.time || '23:59', title: t.title || t.text || '', color: '#27ae60', emoji: t.done ? '✅' : '⬜', done: t.done, taskIdx: entry.idx }); });
+      rems.forEach(function (r, ri) { items.push({ kind: 'reminder', time: r.time || '23:59', title: r.text || '', color: '#e67e22', emoji: '🔔', remKey: ymd, remIdx: ri }); });
       items.sort(function (a, b) { return a.time.localeCompare(b.time); });
 
       items.forEach(function (item) {
         var repeatIcon = (item.repeat && item.repeat !== 'none') ? ' 🔁' : '';
         var doneStyle = item.done ? 'text-decoration:line-through;opacity:0.65;' : '';
-        html += '<div class="dcf-split-event" style="border-left-color:' + item.color + ';background:' + hexToRgba2(item.color, 0.1) + ';' + doneStyle + '">';
-        html += '<span style="font-weight:600">' + item.emoji + ' ' + esc(item.title) + repeatIcon + '</span>';
+        var dataAttrs = '';
+        if (item.kind === 'event') dataAttrs = ' data-action="edit-event" data-event-id="' + item.eventId + '"';
+        else if (item.kind === 'task') dataAttrs = ' data-action="edit-task" data-task-idx="' + item.taskIdx + '"';
+        else if (item.kind === 'reminder') dataAttrs = ' data-action="edit-reminder" data-rem-key="' + esc(item.remKey) + '" data-rem-idx="' + item.remIdx + '"';
+        var kindLabel = '<span class="dcf-split-kind dcf-split-kind-' + item.kind + '">' + item.kind.charAt(0).toUpperCase() + item.kind.slice(1) + '</span>';
+        html += '<div class="dcf-split-event" style="border-left-color:' + item.color + ';background:' + hexToRgba2(item.color, 0.1) + ';' + doneStyle + '"' + dataAttrs + ' title="Click to edit">';
+        html += kindLabel + '<span style="font-weight:600">' + item.emoji + ' ' + esc(item.title) + repeatIcon + '</span>';
         if (item.time && item.time !== '23:59') {
           html += '<span class="dcf-split-time">' + esc(item.time) + (item.endTime ? ' – ' + esc(item.endTime) : '') + '</span>';
         }
@@ -1522,6 +1543,26 @@
       });
     }
     content.innerHTML = html;
+    wireItemClicks(content);
+  }
+
+  /* Wire click-to-edit on panel items */
+  function wireItemClicks(container) {
+    container.querySelectorAll('[data-action]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var action = el.dataset.action;
+        try {
+          if (action === 'edit-event' && typeof window.editEvent === 'function') {
+            window.editEvent(parseInt(el.dataset.eventId, 10));
+          } else if (action === 'edit-task' && typeof window.editTask === 'function') {
+            window.editTask(parseInt(el.dataset.taskIdx, 10));
+          } else if (action === 'edit-reminder' && typeof window.editReminder === 'function') {
+            var day = parseInt(el.dataset.remKey.split('-')[2], 10);
+            window.editReminder(day, parseInt(el.dataset.remIdx, 10));
+          }
+        } catch (e) { console.warn('Panel item click error:', e); }
+      });
+    });
   }
 
   /* ══════════════════════════════════════════════════════
