@@ -5909,9 +5909,13 @@ function calcGymStreak(gym) {
   var d = new Date();
   for (var i = 0; i < 365; i++) {
     var ds = d.toISOString().slice(0, 10);
-    if (gym.log[ds] && gym.log[ds].length > 0) streak++;
-    else if (i > 0) break; // allow today to not be logged yet
-    else break;
+    if (gym.log[ds] && gym.log[ds].length > 0) {
+      streak++;
+    } else if (i === 0) {
+      // Today not logged yet — skip but continue checking previous days
+    } else {
+      break;
+    }
     d.setDate(d.getDate() - 1);
   }
   return streak;
@@ -6075,10 +6079,12 @@ function renderRoutineChecklist() {
           var r = getPersonalRoutines();
           r[period].splice(idx, 1);
           setPersonalRoutines(r);
-          // Also clean up log indices
+          // Remap log indices: remove deleted index, shift higher indices down
           var l = getPersonalRoutineLog();
           if (l[today] && l[today][period]) {
-            l[today][period] = l[today][period].filter(function(i) { return i < r[period].length; });
+            l[today][period] = l[today][period]
+              .filter(function(i) { return i !== idx; })
+              .map(function(i) { return i > idx ? i - 1 : i; });
             setPersonalRoutineLog(l);
           }
           renderRoutineChecklist();
