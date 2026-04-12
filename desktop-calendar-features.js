@@ -132,6 +132,23 @@
       if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) applyDarkMode(true);
     }
 
+    /* Auto-follow system dark/light changes at runtime (e.g. sunset auto-switch) */
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var handler = function(e) {
+        /* Only follow system if the user has NOT manually set a preference */
+        if (localStorage.getItem('darkMode') === null) {
+          applyDarkMode(e.matches);
+        }
+      };
+      if (mq.addEventListener) {
+        mq.addEventListener('change', handler);
+      } else if (mq.addListener) {
+        /* Safari < 14 fallback */
+        mq.addListener(handler);
+      }
+    }
+
     /* Dark mode toggle is available in Settings page only */
     document.addEventListener('DOMContentLoaded', function () {
       /* Inject settings page toggle */
@@ -247,7 +264,8 @@
       'body.dark-mode .dcf-suggest-result { background:#1a3020;color:#8fcd8f;border-color:#27ae60; }',
       '.dcf-goto-row { display:flex;align-items:center;gap:6px; }',
       '.dcf-goto-input { width:140px !important;padding:5px 8px !important;border-radius:8px !important;font-size:0.82rem !important;margin:0 !important; }',
-      '.dcf-goto-btn { padding:5px 10px;border-radius:8px;background:#4a90e2;color:#fff;border:none;cursor:pointer;font-size:0.82rem; }'
+      '.dcf-goto-btn { padding:5px 10px;border-radius:8px;background:#4a90e2;color:#fff;border:none;cursor:pointer;font-size:0.82rem; }',
+      '@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important; } .dcf-anim-fade { animation:none !important; } }'
     ].join('\n');
     document.head.appendChild(style);
   })();

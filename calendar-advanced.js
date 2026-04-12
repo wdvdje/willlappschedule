@@ -155,9 +155,116 @@
       try { generateICS(); }
       catch (err) { alert('ICS export failed: ' + (err && err.message ? err.message : err)); }
     });
+
+    /* ICS Import */
+    var importLabel = document.createElement('span');
+    importLabel.style.cssText = 'font-size:0.88rem;font-weight:600;color:#555;margin-left:12px';
+    importLabel.textContent = '\uD83D\uDCC5 Calendar import:';
+    var importBtn = document.createElement('button');
+    importBtn.id = 'icsImportBtn';
+    importBtn.className = 'small-btn';
+    importBtn.textContent = 'Import .ICS';
+    var importFile = document.createElement('input');
+    importFile.type = 'file';
+    importFile.accept = '.ics,text/calendar';
+    importFile.style.display = 'none';
+    importBtn.addEventListener('click', function() { importFile.click(); });
+    importFile.addEventListener('change', function() {
+      var file = importFile.files && importFile.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(ev) { parseAndImportICS(ev.target.result); importFile.value = ''; };
+      reader.readAsText(file, 'utf-8');
+    });
+    var importStatus = document.createElement('div');
+    importStatus.id = 'icsImportStatus';
+    importStatus.style.cssText = 'margin-top:6px;font-size:0.88rem;color:#27ae60;display:none';
+
     wrap.appendChild(label);
     wrap.appendChild(btn);
+    wrap.appendChild(importLabel);
+    wrap.appendChild(importBtn);
+    wrap.appendChild(importFile);
     section.appendChild(wrap);
+    section.appendChild(importStatus);
+  }
+
+  /* ── ICS Parser & Importer ── */
+  function parseAndImportICS(text) {
+    var status = document.getElementById('icsImportStatus');
+    function showStatus(msg, err) {
+      if (status) { status.textContent = msg; status.style.display = 'block'; status.style.color = err ? '#e74c3c' : '#27ae60'; }
+    }
+    try {
+      var lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+      /* Unfold continuation lines (RFC 5545) */
+      var unfolded = [];
+      lines.forEach(function(l){ if (l.match(/^[ \t]/) && unfolded.length) unfolded[unfolded.length-1] += l.slice(1); else unfolded.push(l); });
+
+      function parseDate(val) {
+        /* DTSTART;TZID=... or DTSTART;VALUE=DATE or plain DTSTART */
+        var m = val.match(/(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/);
+        if (!m) return { date:'', time:'' };
+        var date = m[1] + '-' + m[2] + '-' + m[3];
+        var time = m[4] ? m[4] + ':' + m[5] : '';
+        return { date: date, time: time };
+      }
+      function unescape(s) { return (s||'').replace(/\\n/g,'\n').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\\\/g,'\\'); }
+
+      var imported = 0;
+      var skipped = 0;
+      var existing = typeof getEvents === 'function' ? getEvents() : [];
+      var existingIds = new Set(existing.map(function(e){ return e.id+''; }));
+
+      var i = 0;
+      while (i < unfolded.length) {
+        if (unfolded[i].toUpperCase() === 'BEGIN:VEVENT') {
+          var ev = {};
+          i++;
+          while (i < unfolded.length && unfolded[i].toUpperCase() !== 'END:VEVENT') {
+            var colonIdx = unfolded[i].indexOf(':');
+            if (colonIdx > 0) {
+              var key = unfolded[i].slice(0, colonIdx).split(';')[0].toUpperCase();
+              var val = unfolded[i].slice(colonIdx + 1);
+              if (key === 'SUMMARY') ev.title = unescape(val);
+              else if (key === 'DTSTART') { var d = parseDate(val); ev.date = d.date; ev.time = d.time; ev.startTime = d.time; }
+              else if (key === 'DTEND')   { var de = parseDate(val); ev.endDate = de.date; ev.endTime = de.time; }
+              else if (key === 'LOCATION') ev.location = unescape(val);
+              else if (key === 'DESCRIPTION') ev.notes = unescape(val);
+              else if (key === 'UID') ev._uid = val;
+            }
+            i++;
+          }
+          if (ev.title && ev.date) {
+            var maxId = existing.length ? Math.max.apply(null, existing.map(function(x){ return parseInt(x.id,10)||0; })) : 0;
+            ev.id = maxId + imported + 1;
+            ev.category = 'event';
+            ev.repeat = 'none';
+            ev.repeatUntil = '';
+            ev.preBuffer = 0;
+            ev.postBuffer = 0;
+            /* Avoid importing duplicates by same UID if already in store */
+            var dupUID = ev._uid && existing.some(function(x){ return x._uid === ev._uid; });
+            if (!dupUID) { existing.push(ev); imported++; }
+            else skipped++;
+            delete ev._uid;
+          }
+        }
+        i++;
+      }
+
+      if (imported > 0) {
+        if (typeof setEvents === 'function') setEvents(existing);
+        try { generateCalendar(); } catch(_){}
+        try { renderEvents(); } catch(_){}
+        showStatus('\u2705 Imported ' + imported + ' event' + (imported !== 1 ? 's' : '') + (skipped ? ' (' + skipped + ' duplicate' + (skipped!==1?'s':'')+' skipped)' : '') + '.');
+      } else {
+        showStatus(skipped > 0 ? '\u26A0\uFE0F All events already imported (' + skipped + ' duplicates skipped).' : '\u26A0\uFE0F No events found in this ICS file.', true);
+      }
+    } catch(err) {
+      var status = document.getElementById('icsImportStatus');
+      if (status) { status.textContent = '\u274C ICS import failed: ' + (err&&err.message?err.message:String(err)); status.style.display='block'; status.style.color='#e74c3c'; }
+    }
   }
 
   /* ══════════════════════════════════════════════════════════
@@ -663,6 +770,7 @@
             : '\u2615 Break over! Back to work.';
           try { if ('Notification' in window && Notification.permission === 'granted') new Notification('TimeScape', { body: msg, tag: 'pom' }); } catch (_) {}
           try { window.showUndoToast && window.showUndoToast(msg); } catch (_) {}
+          try { window.haptic && window.haptic.timer(); } catch (_) {}
           return;
         }
         _pom.minutes--; _pom.seconds = 59;
