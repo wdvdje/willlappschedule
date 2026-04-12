@@ -2243,6 +2243,7 @@ function showView(view, updateHash = true){
   view = view || 'today';
   /* Ensure modals are closed when switching views */
   try { hideJobModal(); } catch(_) {}
+  try { var ctm = document.getElementById('choreTemplateModal'); if (ctm) ctm.classList.add('hidden'); } catch(_) {}
   document.querySelectorAll('[id^="page-"]').forEach(p=> p.classList.add('hidden'));
   const el = document.getElementById('page-'+view) || document.getElementById('page-today');
   if (el) el.classList.remove('hidden');
@@ -2993,6 +2994,21 @@ function renderCategoryFilterBar() {
 
 function wireCategoryFilters(){
   renderCategoryFilterBar();
+
+  // Wire the Filter toggle button
+  var toggleBtn = document.getElementById('categoryFilterToggle');
+  var bar = document.getElementById('categoryFilterBar');
+  var arrow = document.getElementById('filterArrow');
+  if (toggleBtn && bar) {
+    toggleBtn.onclick = function(e) {
+      e.stopPropagation();
+      var isOpen = bar.style.display === 'flex';
+      bar.style.display = isOpen ? 'none' : 'flex';
+      toggleBtn.setAttribute('aria-expanded', String(!isOpen));
+      if (arrow) arrow.textContent = isOpen ? '▸' : '▾';
+    };
+  }
+
   // Re-render filter bar when data changes (buckets may have been added/removed)
   window.addEventListener('app:data:updated', renderCategoryFilterBar);
   window.addEventListener('storage', function(e) {
@@ -5139,6 +5155,9 @@ function renderChoreTemplateModalContent() {
   var bucketRow = document.querySelector('.chore-tpl-bucket-row');
   var titleEl = document.querySelector('.chore-tpl-title');
   var manageBtn = document.getElementById('choreManagePresetsBtn');
+  // Scroll modal panel to top so title/mode change is visible
+  var panel = document.querySelector('.chore-tpl-panel');
+  if (panel) panel.scrollTop = 0;
   if (!grid) return;
 
   var templates = getChoreTemplates();

@@ -56,7 +56,7 @@
       '  .bottom-ribbon, header, #syncStatusBar, #undoToast, #shortcutHints,',
       '  #dtPomodoro, #dtAgendaSidebar, #dtTaskBar, #dtBulkToggle, #dtBulkActs,',
       '  #miniMonthNav, #calDailyPanel, #calDaySummaryPanel, #calUpcomingPanel, .cal-panel-expand-tab, #cmdPalette, #searchModal,',
-      '  .calendar-controls button, #categoryFilterBar, #layerToggles,',
+      '  .calendar-controls button, #categoryFilterWrap, #layerToggles,',
       '  #activityChartRow, #calendarSummary, #quickAddBar,',
       '  .item-controls, .small-btn { display: none !important; }',
       '  body { background: #fff !important; padding: 0 !important; color: #000 !important; }',
@@ -263,8 +263,8 @@
 
   function injectLayerToggles() {
     if (document.getElementById('dcfLayerBar')) return;
-    var filterBar = document.getElementById('categoryFilterBar');
-    if (!filterBar) return;
+    var filterBar = document.getElementById('categoryFilterWrap');
+    if (!filterBar) filterBar = document.getElementById('categoryFilterBar');
     var bar = document.createElement('div');
     bar.id = 'dcfLayerBar';
     bar.className = 'dcf-layer-bar';
@@ -1128,7 +1128,7 @@
     if (existingSummary) existingSummary.style.display = 'none';
 
     /* Find the category filter bar and insert layout after it */
-    var layerBar = document.getElementById('dcfLayerBar') || document.getElementById('categoryFilterBar');
+    var layerBar = document.getElementById('dcfLayerBar') || document.getElementById('categoryFilterWrap') || document.getElementById('categoryFilterBar');
     if (layerBar) {
       layerBar.insertAdjacentElement('afterend', layout);
     } else {
