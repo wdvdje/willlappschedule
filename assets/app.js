@@ -4838,7 +4838,7 @@ function updateHomeStreak(bucketId) {
 var _homeEnergyFilter = 'all';
 
 /* ── Chore templates ─────────────────────────────────────────── */
-var CHORE_TEMPLATES = [
+var DEFAULT_CHORE_TEMPLATES = [
   { emoji: '🍽️', name: 'Dishes',               repeat: 'daily',   energy: 'low',    defaultDate: 0 },
   { emoji: '💊', name: 'Take Medication',       repeat: 'daily',   energy: 'low',    defaultDate: 0 },
   { emoji: '📬', name: 'Check mail',            repeat: 'daily',   energy: 'low',    defaultDate: 0 },
@@ -4857,6 +4857,25 @@ var CHORE_TEMPLATES = [
 
 var _REPEAT_LABELS = { daily: 'daily', '2day': 'every 2 days', weekly: 'weekly', monthly: 'monthly', none: 'once' };
 var _ENERGY_LABELS = { low: '🟢 Low', medium: '🟡 Medium', high: '🔴 High' };
+
+/* ── User-customisable chore template storage ────────────────── */
+var CHORE_TPL_KEY = 'choreTemplatesCustom';
+
+function getChoreTemplates() {
+  var stored = safeParseStorage(CHORE_TPL_KEY, null);
+  if (stored === null) return DEFAULT_CHORE_TEMPLATES.map(function(t) {
+    return { id: generateChoreTplId(), emoji: t.emoji, name: t.name, repeat: t.repeat, energy: t.energy, defaultDate: t.defaultDate, defaultBucketId: undefined };
+  });
+  return stored;
+}
+
+function setChoreTemplates(list) {
+  localStorage.setItem(CHORE_TPL_KEY, JSON.stringify(list));
+}
+
+function generateChoreTplId() {
+  return 'ctpl:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2);
+}
 
 /* ── Render Home Dashboard ───────────────────────────────────── */
 function renderHomeDashboard() {
@@ -5105,41 +5124,231 @@ function wireGroceryList() {
 }
 
 /* ── Chore Template Modal ────────────────────────────────────── */
+var _choreModalMode = 'pick'; // 'pick' or 'manage'
+
 function openChoreTemplateModal() {
+  _choreModalMode = 'pick';
+  renderChoreTemplateModalContent();
   var modal = document.getElementById('choreTemplateModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function renderChoreTemplateModalContent() {
   var grid = document.getElementById('choreTemplateGrid');
   var bucketSel = document.getElementById('choreTemplateBucket');
-  if (!modal || !grid) return;
+  var bucketRow = document.querySelector('.chore-tpl-bucket-row');
+  var titleEl = document.querySelector('.chore-tpl-title');
+  var manageBtn = document.getElementById('choreManagePresetsBtn');
+  if (!grid) return;
 
-  // Populate bucket dropdown
-  if (bucketSel) {
-    bucketSel.innerHTML = '<option value="">— Uncategorized —</option>';
-    getBuckets('home').forEach(function(b) {
+  var templates = getChoreTemplates();
+  var homeBuckets = getBuckets('home');
+
+  if (_choreModalMode === 'pick') {
+    // --- Pick mode (original behaviour + manage button) ---
+    if (titleEl) titleEl.textContent = '⚡ Quick Chore';
+    if (bucketRow) bucketRow.style.display = 'flex';
+    if (manageBtn) { manageBtn.textContent = '✏️ Manage Presets'; manageBtn.onclick = function() { _choreModalMode = 'manage'; renderChoreTemplateModalContent(); }; }
+
+    // Populate bucket dropdown
+    if (bucketSel) {
+      bucketSel.innerHTML = '<option value="">— Uncategorized —</option>';
+      homeBuckets.forEach(function(b) {
+        var opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+        bucketSel.appendChild(opt);
+      });
+    }
+
+    // Build template grid
+    grid.innerHTML = '';
+    templates.forEach(function(tpl) {
+      var btn = document.createElement('button');
+      btn.className = 'chore-tpl-item';
+      btn.type = 'button';
+      // Show linked bucket if set
+      var bucketLabel = '';
+      if (tpl.defaultBucketId !== undefined && tpl.defaultBucketId !== null) {
+        var linkedBucket = homeBuckets.find(function(b) { return b.id === tpl.defaultBucketId; });
+        if (linkedBucket) bucketLabel = ' → ' + (linkedBucket.emoji ? linkedBucket.emoji + ' ' : '') + escapeHTML(linkedBucket.name);
+      }
+      btn.innerHTML = '<span class="tpl-emoji">' + tpl.emoji + '</span>' +
+        '<span><span class="tpl-name">' + escapeHTML(tpl.name) + '</span>' +
+        '<span class="tpl-meta">' + (_REPEAT_LABELS[tpl.repeat] || tpl.repeat) + ' · ' + _ENERGY_LABELS[tpl.energy] + (bucketLabel ? bucketLabel : '') + '</span></span>';
+      btn.addEventListener('click', function() {
+        // Use bucket selector override, else template default, else undefined
+        var bId;
+        if (bucketSel && bucketSel.value) {
+          bId = parseInt(bucketSel.value, 10);
+        } else if (tpl.defaultBucketId !== undefined && tpl.defaultBucketId !== null) {
+          bId = tpl.defaultBucketId;
+        }
+        addChoreFromTemplate(tpl, bId);
+        var modal = document.getElementById('choreTemplateModal');
+        if (modal) modal.classList.add('hidden');
+      });
+      grid.appendChild(btn);
+    });
+
+    if (templates.length === 0) {
+      grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#888;font-size:0.88rem">No presets configured. Tap "✏️ Manage Presets" to add some.</p>';
+    }
+  } else {
+    // --- Manage mode ---
+    if (titleEl) titleEl.textContent = '✏️ Manage Chore Presets';
+    if (bucketRow) bucketRow.style.display = 'none';
+    if (manageBtn) { manageBtn.textContent = '⬅ Back'; manageBtn.onclick = function() { _choreModalMode = 'pick'; renderChoreTemplateModalContent(); }; }
+
+    grid.innerHTML = '';
+
+    // Add new preset row
+    var addRow = document.createElement('div');
+    addRow.className = 'chore-tpl-manage-add';
+    addRow.innerHTML =
+      '<input type="text" id="newChoreTplEmoji" placeholder="😀" maxlength="4" class="chore-tpl-emoji-input" />' +
+      '<input type="text" id="newChoreTplName" placeholder="Chore name…" class="chore-tpl-name-input" />' +
+      '<select id="newChoreTplRepeat" class="chore-tpl-sel">' +
+        '<option value="daily">Daily</option><option value="2day">Every 2 days</option>' +
+        '<option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option><option value="none">Once</option>' +
+      '</select>' +
+      '<select id="newChoreTplEnergy" class="chore-tpl-sel">' +
+        '<option value="low">🟢 Low</option><option value="medium">🟡 Medium</option><option value="high">🔴 High</option>' +
+      '</select>' +
+      '<select id="newChoreTplBucket" class="chore-tpl-sel"><option value="">No default bucket</option></select>' +
+      '<button type="button" id="addChoreTplBtn" class="chore-tpl-add-btn">+ Add</button>';
+    grid.appendChild(addRow);
+
+    // Populate new-preset bucket dropdown
+    var newBucketSel = addRow.querySelector('#newChoreTplBucket');
+    homeBuckets.forEach(function(b) {
       var opt = document.createElement('option');
       opt.value = b.id;
       opt.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
-      bucketSel.appendChild(opt);
+      newBucketSel.appendChild(opt);
     });
+
+    addRow.querySelector('#addChoreTplBtn').addEventListener('click', function() {
+      var emoji = (document.getElementById('newChoreTplEmoji').value || '📋').trim();
+      var name = (document.getElementById('newChoreTplName').value || '').trim();
+      if (!name) { document.getElementById('newChoreTplName').focus(); return; }
+      var repeat = document.getElementById('newChoreTplRepeat').value;
+      var energy = document.getElementById('newChoreTplEnergy').value;
+      var bVal = document.getElementById('newChoreTplBucket').value;
+      var tpls = getChoreTemplates();
+      tpls.push({ id: generateChoreTplId(), emoji: emoji, name: name, repeat: repeat, energy: energy, defaultDate: 0, defaultBucketId: bVal ? parseInt(bVal, 10) : undefined });
+      setChoreTemplates(tpls);
+      renderChoreTemplateModalContent();
+    });
+
+    // List existing presets
+    templates.forEach(function(tpl) {
+      var row = document.createElement('div');
+      row.className = 'chore-tpl-manage-row';
+
+      // Bucket label
+      var linkedBucketLabel = 'No default bucket';
+      if (tpl.defaultBucketId !== undefined && tpl.defaultBucketId !== null) {
+        var lb = homeBuckets.find(function(b) { return b.id === tpl.defaultBucketId; });
+        if (lb) linkedBucketLabel = (lb.emoji ? lb.emoji + ' ' : '') + lb.name;
+      }
+
+      row.innerHTML =
+        '<span class="tpl-emoji" style="font-size:1.3rem;flex-shrink:0">' + tpl.emoji + '</span>' +
+        '<span class="chore-tpl-manage-info">' +
+          '<span class="tpl-name">' + escapeHTML(tpl.name) + '</span>' +
+          '<span class="tpl-meta">' + (_REPEAT_LABELS[tpl.repeat] || tpl.repeat) + ' · ' + _ENERGY_LABELS[tpl.energy] + '</span>' +
+          '<span class="tpl-meta" style="color:#4a90e2">🔗 ' + escapeHTML(linkedBucketLabel) + '</span>' +
+        '</span>' +
+        '<button type="button" class="chore-tpl-edit-btn" title="Edit">✏️</button>' +
+        '<button type="button" class="chore-tpl-del-btn" title="Delete">🗑️</button>';
+
+      // Delete
+      row.querySelector('.chore-tpl-del-btn').addEventListener('click', function() {
+        var tpls = getChoreTemplates().filter(function(t) { return t.id !== tpl.id; });
+        setChoreTemplates(tpls);
+        renderChoreTemplateModalContent();
+      });
+
+      // Edit – replace row with inline edit form
+      row.querySelector('.chore-tpl-edit-btn').addEventListener('click', function() {
+        row.innerHTML = '';
+        row.className = 'chore-tpl-manage-edit';
+        row.innerHTML =
+          '<input type="text" class="chore-tpl-emoji-input" value="' + escapeHTML(tpl.emoji) + '" maxlength="4" />' +
+          '<input type="text" class="chore-tpl-name-input" value="' + escapeHTML(tpl.name) + '" />' +
+          '<select class="chore-tpl-sel edit-repeat"></select>' +
+          '<select class="chore-tpl-sel edit-energy"></select>' +
+          '<select class="chore-tpl-sel edit-bucket"><option value="">No default bucket</option></select>' +
+          '<button type="button" class="chore-tpl-save-btn">💾 Save</button>' +
+          '<button type="button" class="chore-tpl-cancel-btn">Cancel</button>';
+
+        // populate selects
+        var repSel = row.querySelector('.edit-repeat');
+        [['daily','Daily'],['2day','Every 2 days'],['weekly','Weekly'],['monthly','Monthly'],['none','Once']].forEach(function(p) {
+          var o = document.createElement('option'); o.value = p[0]; o.textContent = p[1];
+          if (p[0] === tpl.repeat) o.selected = true;
+          repSel.appendChild(o);
+        });
+        var enSel = row.querySelector('.edit-energy');
+        [['low','🟢 Low'],['medium','🟡 Medium'],['high','🔴 High']].forEach(function(p) {
+          var o = document.createElement('option'); o.value = p[0]; o.textContent = p[1];
+          if (p[0] === tpl.energy) o.selected = true;
+          enSel.appendChild(o);
+        });
+        var bkSel = row.querySelector('.edit-bucket');
+        homeBuckets.forEach(function(b) {
+          var o = document.createElement('option'); o.value = b.id; o.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+          if (tpl.defaultBucketId !== undefined && tpl.defaultBucketId !== null && b.id === tpl.defaultBucketId) o.selected = true;
+          bkSel.appendChild(o);
+        });
+
+        row.querySelector('.chore-tpl-save-btn').addEventListener('click', function() {
+          var editedName = (row.querySelector('.chore-tpl-name-input').value || '').trim();
+          if (!editedName) { row.querySelector('.chore-tpl-name-input').focus(); return; }
+          var tpls = getChoreTemplates();
+          var idx = tpls.findIndex(function(t) { return t.id === tpl.id; });
+          if (idx === -1) { renderChoreTemplateModalContent(); return; }
+          tpls[idx].emoji = (row.querySelector('.chore-tpl-emoji-input').value || '📋').trim();
+          tpls[idx].name = editedName;
+          tpls[idx].repeat = repSel.value;
+          tpls[idx].energy = enSel.value;
+          var bv = bkSel.value;
+          tpls[idx].defaultBucketId = bv ? parseInt(bv, 10) : undefined;
+          setChoreTemplates(tpls);
+          renderChoreTemplateModalContent();
+        });
+
+        row.querySelector('.chore-tpl-cancel-btn').addEventListener('click', function() {
+          renderChoreTemplateModalContent();
+        });
+      });
+
+      grid.appendChild(row);
+    });
+
+    if (templates.length === 0) {
+      var emptyMsg = document.createElement('p');
+      emptyMsg.style.cssText = 'text-align:center;color:#888;font-size:0.88rem;margin-top:8px';
+      emptyMsg.textContent = 'No presets yet. Use the form above to add one.';
+      grid.appendChild(emptyMsg);
+    }
+
+    // Reset to defaults button
+    var resetRow = document.createElement('div');
+    resetRow.style.cssText = 'text-align:center;margin-top:12px';
+    var resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'chore-tpl-reset-btn';
+    resetBtn.textContent = '↩ Reset to Defaults';
+    resetBtn.addEventListener('click', function() {
+      if (!confirm('Reset all chore presets to the built-in defaults? Your customisations will be lost.')) return;
+      localStorage.removeItem(CHORE_TPL_KEY);
+      renderChoreTemplateModalContent();
+    });
+    resetRow.appendChild(resetBtn);
+    grid.appendChild(resetRow);
   }
-
-  // Build template grid
-  grid.innerHTML = '';
-  CHORE_TEMPLATES.forEach(function(tpl) {
-    var btn = document.createElement('button');
-    btn.className = 'chore-tpl-item';
-    btn.type = 'button';
-    btn.innerHTML = '<span class="tpl-emoji">' + tpl.emoji + '</span>' +
-      '<span><span class="tpl-name">' + escapeHTML(tpl.name) + '</span>' +
-      '<span class="tpl-meta">' + (_REPEAT_LABELS[tpl.repeat] || tpl.repeat) + ' · ' + _ENERGY_LABELS[tpl.energy] + '</span></span>';
-    btn.addEventListener('click', function() {
-      var bId = bucketSel ? (bucketSel.value ? parseInt(bucketSel.value, 10) : undefined) : undefined;
-      addChoreFromTemplate(tpl, bId);
-      modal.classList.add('hidden');
-    });
-    grid.appendChild(btn);
-  });
-
-  modal.classList.remove('hidden');
 }
 
 function addChoreFromTemplate(tpl, bucketId) {
