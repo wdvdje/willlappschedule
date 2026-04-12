@@ -6675,6 +6675,15 @@ function renderDailyFocus() {
   var allFocus = getPersonalFocus();
   var items = allFocus[today] || [];
 
+  // Get today's tasks for the task picker
+  var allTasks = getTasks();
+  var todayTasks = allTasks.filter(function(t) { return t.date === today && !t.done; });
+  // Filter out tasks already added as priorities
+  var existingTexts = items.map(function(i) { return i.text; });
+  var availableTasks = todayTasks.filter(function(t) {
+    return existingTexts.indexOf(t.title) < 0;
+  });
+
   var card = buildPWCard('focusCard', '🎯', 'Today\'s Top Priorities', function(body) {
     // Info text
     var info = document.createElement('div');
@@ -6721,6 +6730,34 @@ function renderDailyFocus() {
         '<input type="text" id="focusAddInput" placeholder="What\'s your #' + (items.length + 1) + ' priority?" />' +
         '<button class="focus-add-btn" id="focusAddBtn">Add</button>';
       body.appendChild(addRow);
+
+      // Task picker: select from today's assigned tasks
+      if (availableTasks.length > 0) {
+        var pickerLabel = document.createElement('div');
+        pickerLabel.style.cssText = 'font-size:0.78rem;color:#888;margin-top:8px;margin-bottom:4px';
+        pickerLabel.textContent = '— or pick from today\'s tasks —';
+        body.appendChild(pickerLabel);
+
+        var pickerWrap = document.createElement('div');
+        pickerWrap.style.cssText = 'display:flex;flex-direction:column;gap:4px';
+        availableTasks.forEach(function(task) {
+          var taskBtn = document.createElement('button');
+          taskBtn.style.cssText = 'text-align:left;background:#f0f6ff;border:1px solid #d0dff5;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:0.82rem;display:flex;align-items:center;gap:6px';
+          var pmap = {'1':'!','2':'!!','3':'!!!'};
+          var priLabel = task.priority ? ' <span style="color:#e74c3c;font-weight:600">' + (pmap[task.priority] || '') + '</span>' : '';
+          taskBtn.innerHTML = '<span>＋</span><span>' + escapeHTML(task.title) + priLabel + '</span>';
+          taskBtn.addEventListener('click', function() {
+            var f = getPersonalFocus();
+            if (!f[today]) f[today] = [];
+            if (f[today].length >= 3) { alert('Maximum 3 priorities per day'); return; }
+            f[today].push({ text: task.title, done: false, taskId: task.id });
+            setPersonalFocus(f);
+            renderDailyFocus();
+          });
+          pickerWrap.appendChild(taskBtn);
+        });
+        body.appendChild(pickerWrap);
+      }
     }
 
     // Completion message
@@ -7114,7 +7151,7 @@ function formatShortDate(dateStr) {
    8. BUDGET WIDGET
    ══════════════════════════════════════════════════════════════ */
 
-function getPersonalBudget() { return safeParseStorage('personalBudget', { bills: [] }); }
+function getPersonalBudget() { return safeParseStorage('personalBudget', { bills: [], oneTimeExpenses: [], categories: [] }); }
 function setPersonalBudget(data) { localStorage.setItem('personalBudget', JSON.stringify(data)); }
 
 function calcBudgetJobIncome() {
@@ -7171,6 +7208,29 @@ function calcBudgetGrocerySpending() {
   return list.reduce(function(sum, item) { return sum + (parseFloat(item.price) || 0); }, 0);
 }
 
+/** Create a reminder in the Budget bucket for a recurring bill */
+function createBudgetBillReminder(bill) {
+  if (!bill.dueDate) return;
+  var reminders = getReminders();
+  var dateKey = bill.dueDate;
+  if (!reminders[dateKey]) reminders[dateKey] = [];
+  // Check if reminder already exists for this bill
+  var reminderText = 'Bill due: ' + bill.name + ' ($' + (parseFloat(bill.amount) || 0).toFixed(2) + ')';
+  var exists = reminders[dateKey].some(function(r) {
+    return r.bucketId === 'budget' && r.text === reminderText;
+  });
+  if (!exists) {
+    reminders[dateKey].push({
+      text: reminderText,
+      time: '09:00',
+      notify: '1d',
+      domain: 'personal',
+      bucketId: 'budget'
+    });
+    setReminders(reminders);
+  }
+}
+
 function renderBudgetWidget() {
   var section = document.getElementById('personalBudgetSection');
   if (!section) return;
@@ -7178,6 +7238,8 @@ function renderBudgetWidget() {
 
   var budget = getPersonalBudget();
   var bills = budget.bills || [];
+  var oneTimeExpenses = budget.oneTimeExpenses || [];
+  var budgetCategories = budget.categories || [];
 
   var card = buildPWCard('budgetCard', '💰', 'Budget', function(body) {
     /* ── Income ── */
@@ -7192,6 +7254,30 @@ function renderBudgetWidget() {
       '</div>';
     body.appendChild(incomeSection);
 
+    /* ── Budget Categories ── */
+    var catSection = document.createElement('div');
+    catSection.style.cssText = 'margin-bottom:10px';
+    catSection.innerHTML = '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">🏷️ Budget Categories</div>';
+
+    if (budgetCategories.length) {
+      budgetCategories.forEach(function(cat, ci) {
+        var catRow = document.createElement('div');
+        catRow.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0;padding:3px 8px;background:' + (cat.color || '#e8f0fe') + '22;border:1px solid ' + (cat.color || '#4a90e2') + '55;border-radius:12px;font-size:0.78rem;color:' + (cat.color || '#4a90e2');
+        catRow.innerHTML = escapeHTML(cat.name) +
+          '<button class="budget-cat-del" data-ci="' + ci + '" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#aaa;padding:0 2px" title="Remove">✕</button>';
+        catSection.appendChild(catRow);
+      });
+    }
+
+    var addCatRow = document.createElement('div');
+    addCatRow.style.cssText = 'display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap';
+    addCatRow.innerHTML =
+      '<input type="text" id="budgetCatName" placeholder="Category name" style="flex:1;min-width:80px;font-size:0.78rem;border:1px solid #ddd;border-radius:8px;padding:4px 6px" />' +
+      '<input type="color" id="budgetCatColor" value="#4a90e2" style="width:28px;height:28px;border:none;border-radius:4px;padding:0;cursor:pointer" />' +
+      '<button id="budgetAddCatBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:4px 8px;font-size:0.78rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+    catSection.appendChild(addCatRow);
+    body.appendChild(catSection);
+
     /* ── Recurring bills ── */
     var billsSection = document.createElement('div');
     billsSection.style.cssText = 'margin-bottom:10px';
@@ -7204,8 +7290,10 @@ function renderBudgetWidget() {
     bills.forEach(function(bill, bi) {
       var bRow = document.createElement('div');
       bRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.85rem;border-bottom:1px solid #f5f5f5';
+      var catTag = bill.category ? '<span style="font-size:0.72rem;color:#888;margin-left:4px">(' + escapeHTML(bill.category) + ')</span>' : '';
+      var dateTag = bill.dueDate ? '<span style="font-size:0.72rem;color:#4a90e2;margin-left:4px">📅 ' + escapeHTML(bill.dueDate) + '</span>' : '';
       bRow.innerHTML =
-        '<span>' + escapeHTML(bill.name) + '</span>' +
+        '<span>' + escapeHTML(bill.name) + catTag + dateTag + '</span>' +
         '<span style="display:flex;align-items:center;gap:6px">' +
           '<span style="color:#e74c3c;font-weight:600">$' + (parseFloat(bill.amount) || 0).toFixed(2) + '</span>' +
           '<button class="budget-bill-del" data-bi="' + bi + '" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:#aaa;padding:2px" title="Remove">✕</button>' +
@@ -7213,21 +7301,60 @@ function renderBudgetWidget() {
       billsSection.appendChild(bRow);
     });
 
-    /* Add bill form */
+    /* Add bill form with date and category */
     var addBillRow = document.createElement('div');
     addBillRow.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';
+    var catOptions = '<option value="">Category</option>';
+    budgetCategories.forEach(function(c) { catOptions += '<option value="' + escapeHTML(c.name) + '">' + escapeHTML(c.name) + '</option>'; });
     addBillRow.innerHTML =
       '<input type="text" id="budgetBillName" placeholder="Bill name" style="flex:1;min-width:100px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
       '<input type="number" id="budgetBillAmount" placeholder="Amount" min="0" step="0.01" style="width:80px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="date" id="budgetBillDate" title="Due date (creates a reminder)" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<select id="budgetBillCategory" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' + catOptions + '</select>' +
       '<button id="budgetAddBillBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
     billsSection.appendChild(addBillRow);
     body.appendChild(billsSection);
 
-    /* ── Expenses ── */
+    /* ── One-Time Expenses ── */
+    var oneTimeSection = document.createElement('div');
+    oneTimeSection.style.cssText = 'margin-bottom:10px';
+    var oneTimeTotal = oneTimeExpenses.reduce(function(s, e) { return s + (parseFloat(e.amount) || 0); }, 0);
+    oneTimeSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">🧾 One-Time Expenses' +
+        '<span style="font-weight:400;font-size:0.78rem;color:#888;margin-left:6px">$' + oneTimeTotal.toFixed(2) + '</span>' +
+      '</div>';
+
+    oneTimeExpenses.forEach(function(exp, ei) {
+      var eRow = document.createElement('div');
+      eRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.85rem;border-bottom:1px solid #f5f5f5';
+      var catTag = exp.category ? '<span style="font-size:0.72rem;color:#888;margin-left:4px">(' + escapeHTML(exp.category) + ')</span>' : '';
+      var dateTag = exp.date ? '<span style="font-size:0.72rem;color:#888;margin-left:4px">📅 ' + escapeHTML(exp.date) + '</span>' : '';
+      eRow.innerHTML =
+        '<span>' + escapeHTML(exp.name) + catTag + dateTag + '</span>' +
+        '<span style="display:flex;align-items:center;gap:6px">' +
+          '<span style="color:#e74c3c;font-weight:600">$' + (parseFloat(exp.amount) || 0).toFixed(2) + '</span>' +
+          '<button class="budget-onetime-del" data-ei="' + ei + '" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:#aaa;padding:2px" title="Remove">✕</button>' +
+        '</span>';
+      oneTimeSection.appendChild(eRow);
+    });
+
+    /* Add one-time expense form */
+    var addOneTimeRow = document.createElement('div');
+    addOneTimeRow.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';
+    addOneTimeRow.innerHTML =
+      '<input type="text" id="budgetOneTimeName" placeholder="Expense name" style="flex:1;min-width:100px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="number" id="budgetOneTimeAmount" placeholder="Amount" min="0" step="0.01" style="width:80px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="date" id="budgetOneTimeDate" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<select id="budgetOneTimeCategory" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' + catOptions + '</select>' +
+      '<button id="budgetAddOneTimeBtn" style="background:#9b59b6;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+    oneTimeSection.appendChild(addOneTimeRow);
+    body.appendChild(oneTimeSection);
+
+    /* ── Expenses Summary ── */
     var grocerySpend = calcBudgetGrocerySpending();
     var expenseSection = document.createElement('div');
     expenseSection.style.cssText = 'margin-bottom:10px';
-    var totalExpenses = billsTotal + grocerySpend;
+    var totalExpenses = billsTotal + oneTimeTotal + grocerySpend;
     expenseSection.innerHTML =
       '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">💸 Expenses</div>' +
       (grocerySpend > 0 ?
@@ -7239,6 +7366,11 @@ function renderBudgetWidget() {
         '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem">' +
           '<span>Recurring bills</span>' +
           '<span style="color:#e74c3c;font-weight:600">$' + billsTotal.toFixed(2) + '</span>' +
+        '</div>' : '') +
+      (oneTimeTotal > 0 ?
+        '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem">' +
+          '<span>One-time expenses</span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + oneTimeTotal.toFixed(2) + '</span>' +
         '</div>' : '') +
       '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:0.88rem;font-weight:700;border-top:1px solid #eee;margin-top:4px">' +
         '<span>Total expenses</span>' +
@@ -7256,6 +7388,15 @@ function renderBudgetWidget() {
       '<span style="color:' + netColor + '">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span>';
     body.appendChild(summaryEl);
 
+    /* ── Analytics Button ── */
+    var analyticsBtn = document.createElement('button');
+    analyticsBtn.style.cssText = 'margin-top:10px;width:100%;background:#27ae60;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:0.88rem;cursor:pointer;font-weight:600';
+    analyticsBtn.textContent = '📊 View Budget Analytics';
+    analyticsBtn.addEventListener('click', function() {
+      openBudgetAnalyticsModal(budget, jobIncome, billsTotal, oneTimeTotal, grocerySpend);
+    });
+    body.appendChild(analyticsBtn);
+
     /* ── Wire events ── */
     body.querySelectorAll('.budget-bill-del').forEach(function(btn) {
       btn.addEventListener('click', function() {
@@ -7267,21 +7408,211 @@ function renderBudgetWidget() {
       });
     });
 
+    body.querySelectorAll('.budget-onetime-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.ei, 10);
+        var b = getPersonalBudget();
+        if (!b.oneTimeExpenses) b.oneTimeExpenses = [];
+        b.oneTimeExpenses.splice(idx, 1);
+        setPersonalBudget(b);
+        renderBudgetWidget();
+      });
+    });
+
+    body.querySelectorAll('.budget-cat-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.ci, 10);
+        var b = getPersonalBudget();
+        if (!b.categories) b.categories = [];
+        b.categories.splice(idx, 1);
+        setPersonalBudget(b);
+        renderBudgetWidget();
+      });
+    });
+
+    /* Wire add category */
+    var addCatBtn = body.querySelector('#budgetAddCatBtn');
+    if (addCatBtn) addCatBtn.addEventListener('click', function() {
+      var nameInput = document.getElementById('budgetCatName');
+      var colorInput = document.getElementById('budgetCatColor');
+      var name = nameInput ? nameInput.value.trim() : '';
+      if (!name) return;
+      var b = getPersonalBudget();
+      if (!b.categories) b.categories = [];
+      if (b.categories.some(function(c) { return c.name.toLowerCase() === name.toLowerCase(); })) {
+        alert('Category "' + name + '" already exists.');
+        return;
+      }
+      b.categories.push({ name: name, color: colorInput ? colorInput.value : '#4a90e2' });
+      setPersonalBudget(b);
+      renderBudgetWidget();
+    });
+
+    /* Wire add bill */
     var addBillBtn = body.querySelector('#budgetAddBillBtn');
     if (addBillBtn) addBillBtn.addEventListener('click', function() {
       var nameInput = document.getElementById('budgetBillName');
       var amtInput = document.getElementById('budgetBillAmount');
+      var dateInput = document.getElementById('budgetBillDate');
+      var catInput = document.getElementById('budgetBillCategory');
       var name = nameInput ? nameInput.value.trim() : '';
       var amount = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+      var dueDate = dateInput ? dateInput.value : '';
+      var category = catInput ? catInput.value : '';
       if (!name) return;
       var b = getPersonalBudget();
-      b.bills.push({ name: name, amount: amount });
+      var newBill = { name: name, amount: amount };
+      if (dueDate) newBill.dueDate = dueDate;
+      if (category) newBill.category = category;
+      b.bills.push(newBill);
+      setPersonalBudget(b);
+      // Create a reminder for the bill if a date was provided
+      if (dueDate) {
+        createBudgetBillReminder(newBill);
+      }
+      renderBudgetWidget();
+    });
+
+    /* Wire add one-time expense */
+    var addOneTimeBtn = body.querySelector('#budgetAddOneTimeBtn');
+    if (addOneTimeBtn) addOneTimeBtn.addEventListener('click', function() {
+      var nameInput = document.getElementById('budgetOneTimeName');
+      var amtInput = document.getElementById('budgetOneTimeAmount');
+      var dateInput = document.getElementById('budgetOneTimeDate');
+      var catInput = document.getElementById('budgetOneTimeCategory');
+      var name = nameInput ? nameInput.value.trim() : '';
+      var amount = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+      var date = dateInput ? dateInput.value : '';
+      var category = catInput ? catInput.value : '';
+      if (!name) return;
+      var b = getPersonalBudget();
+      if (!b.oneTimeExpenses) b.oneTimeExpenses = [];
+      var newExpense = { name: name, amount: amount };
+      if (date) newExpense.date = date;
+      if (category) newExpense.category = category;
+      b.oneTimeExpenses.push(newExpense);
       setPersonalBudget(b);
       renderBudgetWidget();
     });
   }, 'pw_budget');
 
   section.appendChild(card);
+}
+
+/** Opens a small modal showing budget analytics */
+function openBudgetAnalyticsModal(budget, jobIncome, billsTotal, oneTimeTotal, grocerySpend) {
+  var existing = document.getElementById('budgetAnalyticsModal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'budgetAnalyticsModal';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:2000;display:flex;align-items:center;justify-content:center';
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:14px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,0.2)';
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px';
+  hdr.innerHTML = '<div style="font-weight:700;font-size:1.1rem">📊 Budget Analytics</div>';
+  var closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:none;border:none;font-size:1.2rem;cursor:pointer;color:#888';
+  closeBtn.addEventListener('click', function() { overlay.remove(); });
+  hdr.appendChild(closeBtn);
+  modal.appendChild(hdr);
+
+  var totalExpenses = billsTotal + oneTimeTotal + grocerySpend;
+  var net = jobIncome - totalExpenses;
+
+  // Overview
+  var overview = document.createElement('div');
+  overview.style.cssText = 'margin-bottom:16px';
+  overview.innerHTML =
+    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:8px">Overview</div>' +
+    '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem"><span>💰 Total Income</span><span style="color:#27ae60;font-weight:600">$' + jobIncome.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem"><span>💸 Total Expenses</span><span style="color:#e74c3c;font-weight:600">$' + totalExpenses.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.95rem;font-weight:700;border-top:2px solid #eee;margin-top:4px"><span>Net</span><span style="color:' + (net >= 0 ? '#27ae60' : '#e74c3c') + '">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span></div>';
+  modal.appendChild(overview);
+
+  // Expense breakdown bar
+  var breakdownTitle = document.createElement('div');
+  breakdownTitle.style.cssText = 'font-weight:600;font-size:0.92rem;margin-bottom:8px';
+  breakdownTitle.textContent = 'Expense Breakdown';
+  modal.appendChild(breakdownTitle);
+
+  var segments = [];
+  if (billsTotal > 0) segments.push({ label: 'Recurring Bills', amount: billsTotal, color: '#e74c3c' });
+  if (oneTimeTotal > 0) segments.push({ label: 'One-Time', amount: oneTimeTotal, color: '#9b59b6' });
+  if (grocerySpend > 0) segments.push({ label: 'Groceries', amount: grocerySpend, color: '#f39c12' });
+
+  if (segments.length > 0 && totalExpenses > 0) {
+    var barWrap = document.createElement('div');
+    barWrap.style.cssText = 'display:flex;height:22px;border-radius:6px;overflow:hidden;margin-bottom:8px';
+    segments.forEach(function(seg) {
+      var pct = (seg.amount / totalExpenses) * 100;
+      var segEl = document.createElement('div');
+      segEl.style.cssText = 'height:100%;background:' + seg.color;
+      segEl.style.width = pct + '%';
+      segEl.title = seg.label + ': $' + seg.amount.toFixed(2) + ' (' + Math.round(pct) + '%)';
+      barWrap.appendChild(segEl);
+    });
+    modal.appendChild(barWrap);
+
+    // Legend
+    var legend = document.createElement('div');
+    legend.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px';
+    segments.forEach(function(seg) {
+      var pct = Math.round((seg.amount / totalExpenses) * 100);
+      var item = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:0.82rem';
+      item.innerHTML = '<span style="width:10px;height:10px;border-radius:50%;background:' + seg.color + ';display:inline-block"></span>' +
+        escapeHTML(seg.label) + ' $' + seg.amount.toFixed(2) + ' (' + pct + '%)';
+      legend.appendChild(item);
+    });
+    modal.appendChild(legend);
+  } else {
+    var noData = document.createElement('div');
+    noData.style.cssText = 'color:#aaa;font-size:0.85rem;padding:8px 0';
+    noData.textContent = 'No expenses to analyze.';
+    modal.appendChild(noData);
+  }
+
+  // Category breakdown
+  var bills = budget.bills || [];
+  var oneTimeExpenses = budget.oneTimeExpenses || [];
+  var allExpenseItems = [];
+  bills.forEach(function(b) { allExpenseItems.push({ category: b.category || 'Uncategorized', amount: parseFloat(b.amount) || 0 }); });
+  oneTimeExpenses.forEach(function(e) { allExpenseItems.push({ category: e.category || 'Uncategorized', amount: parseFloat(e.amount) || 0 }); });
+
+  if (allExpenseItems.length > 0) {
+    var catTitle = document.createElement('div');
+    catTitle.style.cssText = 'font-weight:600;font-size:0.92rem;margin-bottom:8px;margin-top:8px;border-top:1px solid #eee;padding-top:12px';
+    catTitle.textContent = 'By Category';
+    modal.appendChild(catTitle);
+
+    var catTotals = {};
+    allExpenseItems.forEach(function(item) {
+      var cat = item.category || 'Uncategorized';
+      catTotals[cat] = (catTotals[cat] || 0) + item.amount;
+    });
+
+    var catColors = ['#e74c3c', '#3498db', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#2ecc71'];
+    var catKeys = Object.keys(catTotals).sort(function(a, b) { return catTotals[b] - catTotals[a]; });
+    catKeys.forEach(function(cat, i) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.85rem';
+      var color = catColors[i % catColors.length];
+      row.innerHTML =
+        '<div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:' + color + ';display:inline-block"></span>' + escapeHTML(cat) + '</div>' +
+        '<span style="font-weight:600">$' + catTotals[cat].toFixed(2) + '</span>';
+      modal.appendChild(row);
+    });
+  }
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
 }
 
 /* ══════════════════════════════════════════════════════════════
