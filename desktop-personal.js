@@ -312,6 +312,9 @@
           renderDeskMeal();
         });
         body.appendChild(goalRow);
+
+        // View All Items button (bucket-like view)
+        body.appendChild(buildMealViewAllBtn());
       });
 
     section.appendChild(card);
@@ -980,20 +983,36 @@
     }, 0);
   }
 
+  /** Returns array of ISO date strings for every day in the current month. */
+  function currentMonthDays() {
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = now.getMonth();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var out = [];
+    for (var i = 1; i <= daysInMonth; i++) {
+      out.push(year + '-' + p2(month + 1) + '-' + p2(i));
+    }
+    return out;
+  }
+
   function buildRoutineHeatmap(phases) {
     var wrap = document.createElement('div');
     wrap.className = 'droutine-heatmap';
+    var now = new Date();
+    var daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var monthName = MONTHS[now.getMonth()];
     var title = document.createElement('div');
     title.className   = 'droutine-heatmap-title';
-    title.textContent = '📅 28-Day Completion';
+    title.textContent = '📅 ' + monthName + ' Completion (' + daysInMonth + ' days)';
     wrap.appendChild(title);
 
     var grid = document.createElement('div');
     grid.className = 'droutine-heatmap-grid';
     var log  = getRouLog();
-    var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-    pastDays(28).forEach(function (dateISO) {
+    currentMonthDays().forEach(function (dateISO) {
       var totalSteps = 0, totalDone = 0;
       phases.forEach(function (phase) {
         var sLen = (phase.steps || []).length;
@@ -1522,10 +1541,203 @@
   //  INIT & WIRING
   // ===========================================================================
 
+  // ---------------------------------------------------------------------------
+  // TOGGLE ALL WIDGETS OPEN/CLOSED
+  // ---------------------------------------------------------------------------
+  var ALL_PW_KEYS = ['pw_focus', 'pw_budget', 'pw_meal', 'pw_routine', 'pw_gym', 'pw_hydration', 'pw_sleep', 'pw_mood'];
+
+  function initToggleAllWidgets() {
+    var toolbar = document.getElementById('personalToolbar');
+    if (!toolbar || document.getElementById('toggleAllWidgetsBtn')) return;
+    var btn = document.createElement('button');
+    btn.id = 'toggleAllWidgetsBtn';
+    btn.className = 'domain-add-btn';
+    btn.style.cssText = 'font-size:0.88rem;margin-right:8px';
+    updateToggleBtnLabel(btn);
+    btn.addEventListener('click', function () {
+      var anyExpanded = ALL_PW_KEYS.some(function (k) { return !sp(k + '_collapsed', false); });
+      var shouldCollapse = anyExpanded;
+      ALL_PW_KEYS.forEach(function (k) {
+        sk(k + '_collapsed', shouldCollapse);
+      });
+      // Update all visible pw-card bodies + chevrons
+      document.querySelectorAll('.pw-card').forEach(function (card) {
+        var body = card.querySelector('.pw-body');
+        var chev = card.querySelector('.pw-chevron');
+        if (body) body.style.display = shouldCollapse ? 'none' : '';
+        if (chev) chev.textContent = shouldCollapse ? '▸' : '▾';
+      });
+      updateToggleBtnLabel(btn);
+    });
+    toolbar.insertBefore(btn, toolbar.firstChild);
+  }
+
+  function updateToggleBtnLabel(btn) {
+    var anyExpanded = ALL_PW_KEYS.some(function (k) { return !sp(k + '_collapsed', false); });
+    btn.textContent = anyExpanded ? '▾ Collapse All Widgets' : '▸ Expand All Widgets';
+  }
+
+  // ---------------------------------------------------------------------------
+  // MEAL PLANNER — View All Items (bucket-like view)
+  // ---------------------------------------------------------------------------
+  function buildMealViewAllBtn() {
+    var btn = document.createElement('button');
+    btn.className = 'dmeal-view-all-btn';
+    btn.textContent = '📋 View All Items';
+    btn.style.cssText = 'margin-top:8px;background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.82rem;cursor:pointer;width:100%';
+    btn.addEventListener('click', function () {
+      openMealBucketModal();
+    });
+    return btn;
+  }
+
+  function openMealBucketModal() {
+    var existing = document.getElementById('mealBucketModal');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'mealBucketModal';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:2000;display:flex;align-items:center;justify-content:center';
+
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:#fff;border-radius:14px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,0.2)';
+
+    // Header
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:12px';
+    hdr.innerHTML = '<div style="font-weight:700;font-size:1.1rem">🍽️ Meal Planner — All Items</div>';
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'background:none;border:none;font-size:1.2rem;cursor:pointer;color:#888';
+    closeBtn.addEventListener('click', function () { overlay.remove(); });
+    hdr.appendChild(closeBtn);
+    modal.appendChild(hdr);
+
+    // Collect all meals
+    var allMeals = getMeals();
+    var mealItems = [];
+    Object.keys(allMeals).sort().forEach(function (dateISO) {
+      var day = allMeals[dateISO];
+      MEAL_TYPES.forEach(function (mt) {
+        var m = day[mt.key];
+        if (m && m.name) {
+          mealItems.push({ date: dateISO, type: mt.label, icon: mt.icon, name: m.name, calories: m.calories || 0, time: m.time || '' });
+        }
+      });
+    });
+
+    if (!mealItems.length) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'text-align:center;color:#aaa;padding:20px';
+      empty.textContent = 'No meals planned yet.';
+      modal.appendChild(empty);
+    } else {
+      mealItems.forEach(function (item) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid #f0f0f0;cursor:pointer;font-size:0.88rem';
+        row.innerHTML =
+          '<div>' +
+            '<span>' + item.icon + ' <strong>' + esc(item.name) + '</strong></span>' +
+            '<span style="color:#888;margin-left:8px;font-size:0.78rem">' + esc(item.type) + ' · ' + esc(item.date) + (item.time ? ' · ' + esc(item.time) : '') + '</span>' +
+          '</div>' +
+          '<span style="color:#888;font-size:0.78rem">' + (item.calories ? item.calories + ' cal' : '') + '</span>';
+        row.addEventListener('click', function () {
+          showMealBucketItems(item.name, modal);
+        });
+        modal.appendChild(row);
+      });
+    }
+
+    // Show linked tasks/reminders/events for Meal Planner bucket
+    var bucketTitle = document.createElement('div');
+    bucketTitle.style.cssText = 'font-weight:700;font-size:0.95rem;margin-top:16px;margin-bottom:8px;border-top:2px solid #eee;padding-top:12px';
+    bucketTitle.textContent = '📌 Linked Tasks / Reminders / Events';
+    modal.appendChild(bucketTitle);
+
+    var linkedItems = getMealBucketLinkedItems();
+    if (!linkedItems.length) {
+      var noItems = document.createElement('div');
+      noItems.style.cssText = 'color:#aaa;font-size:0.82rem;padding:8px 0';
+      noItems.textContent = 'No tasks, reminders, or events are assigned to the Meal Planner bucket. Assign items with bucketId "meal-planner" to see them here.';
+      modal.appendChild(noItems);
+    } else {
+      linkedItems.forEach(function (li) {
+        var liRow = document.createElement('div');
+        liRow.style.cssText = 'display:flex;justify-content:space-between;padding:6px 4px;border-bottom:1px solid #f5f5f5;font-size:0.85rem';
+        liRow.innerHTML =
+          '<div><span style="margin-right:6px">' + li.typeIcon + '</span>' + esc(li.title) + '</div>' +
+          '<span style="color:#888;font-size:0.78rem">' + esc(li.date || '') + '</span>';
+        modal.appendChild(liRow);
+      });
+    }
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
+  }
+
+  function showMealBucketItems(mealName, modal) {
+    // Show tasks/reminders/events that mention this meal name
+    var items = getMealBucketLinkedItems().filter(function (li) {
+      return li.title.toLowerCase().indexOf(mealName.toLowerCase()) >= 0;
+    });
+
+    var existing = modal.querySelector('.meal-item-detail');
+    if (existing) existing.remove();
+
+    var detail = document.createElement('div');
+    detail.className = 'meal-item-detail';
+    detail.style.cssText = 'background:#f8f9fa;border-radius:8px;padding:12px;margin-top:8px';
+    detail.innerHTML = '<div style="font-weight:600;margin-bottom:6px">📎 Items mentioning "' + esc(mealName) + '"</div>';
+
+    if (!items.length) {
+      detail.innerHTML += '<div style="color:#aaa;font-size:0.82rem">No linked items found for this meal.</div>';
+    } else {
+      items.forEach(function (li) {
+        var r = document.createElement('div');
+        r.style.cssText = 'padding:4px 0;font-size:0.82rem;border-bottom:1px solid #eee';
+        r.textContent = li.typeIcon + ' ' + li.title + (li.date ? ' (' + li.date + ')' : '');
+        detail.appendChild(r);
+      });
+    }
+    modal.appendChild(detail);
+  }
+
+  function getMealBucketLinkedItems() {
+    var items = [];
+    // Tasks
+    var tasks = (typeof getTasks === 'function') ? getTasks() : sp('tasks', []);
+    tasks.forEach(function (t) {
+      if (t.bucketId === 'meal-planner' || (t.category && t.category.toLowerCase() === 'eating tracker')) {
+        items.push({ type: 'task', typeIcon: '☑️', title: t.title || t.text || '', date: t.date || '' });
+      }
+    });
+    // Events
+    var events = (typeof getEvents === 'function') ? getEvents() : sp('events', []);
+    events.forEach(function (e) {
+      if (e.bucketId === 'meal-planner' || (e.category && e.category.toLowerCase() === 'eating tracker')) {
+        items.push({ type: 'event', typeIcon: '📅', title: e.title || '', date: e.date || '' });
+      }
+    });
+    // Reminders
+    var reminders = (typeof getReminders === 'function') ? getReminders() : sp('reminders', {});
+    Object.keys(reminders).forEach(function (dateKey) {
+      var arr = reminders[dateKey];
+      if (!Array.isArray(arr)) return;
+      arr.forEach(function (r) {
+        if (r.bucketId === 'meal-planner' || (r.domain && r.domain.toLowerCase() === 'eating tracker')) {
+          items.push({ type: 'reminder', typeIcon: '🔔', title: r.text || '', date: dateKey });
+        }
+      });
+    });
+    return items;
+  }
+
   function renderAdvancedPersonalWidgets() {
     try { renderDeskMeal();    } catch (e) { console.warn('[dp] meal failed', e); }
     try { renderDeskRoutine(); } catch (e) { console.warn('[dp] routine failed', e); }
     try { renderDeskGym();     } catch (e) { console.warn('[dp] gym failed', e); }
+    try { initToggleAllWidgets(); } catch (e) { console.warn('[dp] toggle-all failed', e); }
   }
 
   // Keep backward-compatible alias
