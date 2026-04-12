@@ -1,9 +1,11 @@
 /**
- * desktop-personal.js — Advanced desktop enhancements for the Personal page.
+ * desktop-personal.js — Advanced enhancements for the Personal page.
  *
- * Activates on screens ≥ 901px (matches grid layout breakpoint in index.html).
- * Patches window.renderPersonalWidgets() to replace the compact mobile widgets
- * for Meal Planner, Daily Routine, and Gym Planner with richer desktop variants.
+ * Patches window.renderPersonalWidgets() to replace the compact widgets
+ * for Meal Planner, Daily Routine, and Gym Planner with richer advanced
+ * variants on all screen sizes.  On mobile the same advanced widgets are
+ * rendered in a single-column layout with mobile-friendly CSS overrides
+ * defined in index.html.
  *
  * Features:
  *   1. Meal Planner  — Full-week 7-column grid, drag-and-drop, favorites sidebar,
@@ -18,7 +20,7 @@
   'use strict';
 
   // ---------------------------------------------------------------------------
-  // Breakpoint guard
+  // Breakpoint helper (kept for any future per-feature gating)
   // ---------------------------------------------------------------------------
   function isDesktop() {
     return window.matchMedia('(min-width: 901px)').matches;
@@ -1495,27 +1497,29 @@
   //  INIT & WIRING
   // ===========================================================================
 
-  function renderDesktopPersonalWidgets() {
+  function renderAdvancedPersonalWidgets() {
     try { renderDeskMeal();    } catch (e) { console.warn('[dp] meal failed', e); }
     try { renderDeskRoutine(); } catch (e) { console.warn('[dp] routine failed', e); }
     try { renderDeskGym();     } catch (e) { console.warn('[dp] gym failed', e); }
   }
 
+  // Keep backward-compatible alias
+  var renderDesktopPersonalWidgets = renderAdvancedPersonalWidgets;
+
   /**
-   * Patches window.renderPersonalWidgets so that on desktop the enhanced
-   * versions replace the compact mobile widgets for the three main sections.
+   * Patches window.renderPersonalWidgets so that the enhanced (advanced)
+   * versions always replace the compact widgets for Meal, Routine, and Gym.
    * The original function still runs first so that Focus, Hydration, Sleep,
    * and Mood continue to render correctly in every scenario.
    */
-  function initPersonalDesktop() {
-    if (!isDesktop()) return;
+  function initAdvancedPersonal() {
     if (window._dpPatched) return;
     if (typeof window.renderPersonalWidgets !== 'function') return;
 
     var orig = window.renderPersonalWidgets;
     window.renderPersonalWidgets = function () {
       orig();
-      if (isDesktop()) renderDesktopPersonalWidgets();
+      renderAdvancedPersonalWidgets();
     };
     window._dpPatched = true;
   }
@@ -1525,23 +1529,21 @@
   if (!window._dpViewListener) {
     window._dpViewListener = true;
     window.addEventListener('view:show', function (e) {
-      if (!isDesktop()) return;
       if (e.detail && e.detail.view === 'personal') {
-        initPersonalDesktop();
+        initAdvancedPersonal();
         // If already patched the original will run both; if not patched yet we
         // need to trigger our renders directly since renderPersonalWidgets was
         // already called by app.js before we patched it.
-        if (!window._dpPatched) renderDesktopPersonalWidgets();
+        if (!window._dpPatched) renderAdvancedPersonalWidgets();
       }
     });
   }
 
-  // Handle resize into desktop breakpoint
+  // Handle resize into desktop breakpoint — re-render so layout adjusts
   if (!window._dpMediaListener) {
     window._dpMediaListener = true;
-    window.matchMedia('(min-width: 901px)').addEventListener('change', function (mq) {
-      if (!mq.matches) return;
-      initPersonalDesktop();
+    window.matchMedia('(min-width: 901px)').addEventListener('change', function () {
+      initAdvancedPersonal();
       var page = document.getElementById('page-personal');
       if (page && !page.classList.contains('hidden')) {
         if (typeof window.renderPersonalWidgets === 'function') window.renderPersonalWidgets();
@@ -1549,11 +1551,25 @@
     });
   }
 
-  // Boot — delay slightly so app.js has time to define renderPersonalWidgets
+  // Boot — poll until app.js defines renderPersonalWidgets (more reliable
+  // than a single setTimeout which can miss if app.js loads slowly).
+  var _tryCount = 0;
+  function tryInit() {
+    initAdvancedPersonal();
+    if (!window._dpPatched && _tryCount++ < 50) {
+      setTimeout(tryInit, 100);
+    } else if (window._dpPatched) {
+      // If the personal page is already visible, render immediately
+      var page = document.getElementById('page-personal');
+      if (page && !page.classList.contains('hidden')) {
+        renderAdvancedPersonalWidgets();
+      }
+    }
+  }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function () { setTimeout(initPersonalDesktop, 50); });
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(tryInit, 50); });
   } else {
-    setTimeout(initPersonalDesktop, 50);
+    setTimeout(tryInit, 50);
   }
 
 })();

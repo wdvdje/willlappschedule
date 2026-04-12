@@ -862,6 +862,47 @@
     body.dark-mode .dgym-rest-timer { background:#2a1f00; border-color:#f39c12; }
     body.dark-mode .dgym-add-ex-form { border-color:#2a2a4a; }
 
+    /* ===== Mobile: advanced widgets in single column, more vertical spacing ===== */
+    @media (max-width: 900px) {
+      /* Columns stack into a single column on mobile */
+      #personalColumns { display:flex; flex-direction:column; gap:18px; }
+      #personalColLeft, #personalColRight { width:100%; }
+
+      /* More vertical breathing room between widget cards */
+      .pw-card { margin-bottom:18px; }
+      .pw-body { padding:12px 14px 16px; }
+
+      /* Meal week grid: scroll horizontally and size up slots for readability */
+      .dmeal-layout { flex-direction:column; gap:10px; }
+      .dmeal-week-grid { grid-template-columns:repeat(7, minmax(54px,1fr)); overflow-x:auto; -webkit-overflow-scrolling:touch; }
+      .dmeal-slot { min-height:48px; padding:5px 6px; }
+      .dmeal-slot-name { font-size:0.78rem; white-space:normal; overflow-wrap:break-word; }
+      .dmeal-slot-cal { font-size:0.72rem; }
+      .dmeal-fav-sidebar { width:100%; flex-direction:row; flex-wrap:wrap; }
+      .dmeal-fav-item { font-size:0.82rem; }
+      .dmeal-summary { flex-wrap:wrap; gap:8px; padding:10px; }
+      .dmeal-summary-stat { min-width:48px; }
+
+      /* Routine phases: stack vertically */
+      .droutine-phases { flex-direction:column; gap:14px; overflow-x:visible; }
+      .droutine-phase { max-width:none; min-width:0; }
+      .droutine-add-phase { max-width:none; min-width:0; flex-direction:row; padding:8px 12px; }
+      .droutine-node-text { font-size:0.88rem; white-space:normal; }
+      .droutine-node-card { padding:7px 9px; font-size:0.88rem; }
+
+      /* Gym: stack split panel into single column */
+      .dgym-split { flex-direction:column; gap:10px; }
+      .dgym-left { width:100%; flex-direction:row; flex-wrap:wrap; gap:8px; }
+      .dgym-routine-item { font-size:0.88rem; }
+      .dgym-sched-week { grid-template-columns:repeat(7,1fr); }
+      .dgym-sched-day { min-height:40px; font-size:0.78rem; }
+      .dgym-ex-name { font-size:0.95rem; }
+      .dgym-ex-detail { font-size:0.82rem; }
+      .dgym-add-ex-form { flex-direction:column; gap:6px; }
+      .dgym-add-ex-form input { width:100%; box-sizing:border-box; }
+      .dgym-add-ex-name { min-width:0; }
+    }
+
     /* ===== Desktop: domain-colored event banners in calendar ===== */
     @media (min-width: 901px) {
       /* Calendar page: expand wider than other pages, near full viewport width */
@@ -900,30 +941,22 @@
       .event-preview.reminder { --domain-color: #e67e22; --domain-bg: rgba(230,126,34,0.10); }
       .event-preview.task { --domain-color: #27ae60; --domain-bg: rgba(39,174,96,0.10); }
 
-      /* ===== Personal Page: Desktop Multi-Column Grid Layout ===== */
+      /* ===== Personal Page: Desktop Multi-Column Layout ===== */
       #page-personal { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; }
       #page-personal > h2 { max-width: none; margin-left: 0; margin-right: 0; padding: 0 8px; }
       #personalGrid {
         max-width: none !important;
         padding: 0 8px !important;
-        display: grid;
-        grid-template-areas:
-          "focus   focus"
-          "meal    routine"
-          "gym     side"
-          "toolbar toolbar"
-          "buckets buckets";
-        grid-template-columns: 2fr 1fr;
-        column-gap: 16px;
-        row-gap: 0;
       }
-      #personalFocusSection   { grid-area: focus; }
-      #personalMealSection    { grid-area: meal; }
-      #personalRoutineSection { grid-area: routine; }
-      #personalGymSection     { grid-area: gym; }
-      #personalSideCol        { grid-area: side; }
-      #personalToolbar        { grid-area: toolbar; }
-      #domain-buckets-personal { grid-area: buckets; }
+      /* Two independent columns — each flows on its own so minimising a
+         widget in one column never leaves empty space in the other. */
+      #personalColumns {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+      }
+      #personalColLeft  { flex: 2; min-width: 0; }
+      #personalColRight { flex: 1; min-width: 0; }
     }
     /* Super-wide screens: cap calendar and personal width so they don't stretch edge-to-edge */
     @media (min-width: 1800px) {
@@ -1276,20 +1309,25 @@
         <!-- Daily Focus / Top 3 Priorities — top row, full width on desktop -->
         <div id="personalFocusSection"></div>
 
-        <!-- Meal Tracker — left column on desktop -->
-        <div id="personalMealSection"></div>
-
-        <!-- Routine Checklists — right column on desktop -->
-        <div id="personalRoutineSection"></div>
-
-        <!-- Gym / Exercise Planner — bottom-left on desktop -->
-        <div id="personalGymSection"></div>
-
-        <!-- Side column: Hydration, Sleep, Mood — bottom-right on desktop -->
-        <div id="personalSideCol">
-          <div id="personalHydrationSection"></div>
-          <div id="personalSleepSection"></div>
-          <div id="personalMoodSection"></div>
+        <!-- Two-column area: each column flows independently so minimising
+             a widget in one column does NOT leave blank space in the other -->
+        <div id="personalColumns">
+          <div id="personalColLeft">
+            <!-- Meal Tracker — left column on desktop -->
+            <div id="personalMealSection"></div>
+            <!-- Gym / Exercise Planner — left column on desktop -->
+            <div id="personalGymSection"></div>
+          </div>
+          <div id="personalColRight">
+            <!-- Routine Checklists — right column on desktop -->
+            <div id="personalRoutineSection"></div>
+            <!-- Side column: Hydration, Sleep, Mood -->
+            <div id="personalSideCol">
+              <div id="personalHydrationSection"></div>
+              <div id="personalSleepSection"></div>
+              <div id="personalMoodSection"></div>
+            </div>
+          </div>
         </div>
 
         <!-- Toolbar -->
