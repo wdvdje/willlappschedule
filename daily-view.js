@@ -181,7 +181,9 @@
         endMin: eMin,
         hasTimes: hasTimes,
         color: PRIMARY_COLOR,
-        raw: e
+        raw: e,
+        preBuffer: parseInt(e.preBuffer, 10) || 0,
+        postBuffer: parseInt(e.postBuffer, 10) || 0
       });
     });
 
@@ -463,6 +465,48 @@
         });
 
         eventCol.appendChild(block);
+
+        // Render pre-buffer block (travel/prep time before the event)
+        if (item.preBuffer > 0 && item.hasTimes) {
+          var preStart = Math.max(item.startMin - item.preBuffer, rangeStartMin);
+          var preEnd = Math.min(item.startMin, rangeEndMin);
+          if (preEnd > preStart) {
+            var preTopPx = ((preStart - rangeStartMin) / totalMinutes) * (hours.length * HOUR_HEIGHT);
+            var preHeightPx = ((preEnd - preStart) / totalMinutes) * (hours.length * HOUR_HEIGHT);
+            if (preHeightPx >= 2) {
+              var preBuf = document.createElement('div');
+              preBuf.className = 'dv-buffer-block dv-buffer-pre';
+              preBuf.style.top = preTopPx + 'px';
+              preBuf.style.height = preHeightPx + 'px';
+              preBuf.style.left = leftPct + '%';
+              preBuf.style.width = (colWidth - 1) + '%';
+              preBuf.title = item.preBuffer + ' min travel/prep before ' + escapeHTML(item.title);
+              preBuf.innerHTML = '<span class="dv-buffer-label">🚗 ' + item.preBuffer + 'm</span>';
+              eventCol.appendChild(preBuf);
+            }
+          }
+        }
+
+        // Render post-buffer block (wind-down/travel time after the event)
+        if (item.postBuffer > 0 && item.hasTimes) {
+          var postStart = Math.max(item.endMin > item.startMin ? item.endMin : item.endMin + 1440, rangeStartMin);
+          var postEnd = Math.min(postStart + item.postBuffer, rangeEndMin);
+          if (postEnd > postStart) {
+            var postTopPx = ((postStart - rangeStartMin) / totalMinutes) * (hours.length * HOUR_HEIGHT);
+            var postHeightPx = ((postEnd - postStart) / totalMinutes) * (hours.length * HOUR_HEIGHT);
+            if (postHeightPx >= 2) {
+              var postBuf = document.createElement('div');
+              postBuf.className = 'dv-buffer-block dv-buffer-post';
+              postBuf.style.top = postTopPx + 'px';
+              postBuf.style.height = postHeightPx + 'px';
+              postBuf.style.left = leftPct + '%';
+              postBuf.style.width = (colWidth - 1) + '%';
+              postBuf.title = item.postBuffer + ' min wind-down after ' + escapeHTML(item.title);
+              postBuf.innerHTML = '<span class="dv-buffer-label">' + item.postBuffer + 'm</span>';
+              eventCol.appendChild(postBuf);
+            }
+          }
+        }
       });
 
       body.appendChild(eventCol);
