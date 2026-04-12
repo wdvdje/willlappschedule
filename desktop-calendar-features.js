@@ -223,11 +223,11 @@
       '#calDaySummaryPanel { display:none; }',
       '#calUpcomingPanel { display:none; }',
       '@media (min-width: 901px) {',
-      '  #calPageLayout { display:flex;gap:6px;align-items:stretch;max-width:100%;padding:0 4px;box-sizing:border-box; }',
+      '  #calPageLayout { display:flex;gap:6px;align-items:flex-start;max-width:100%;padding:0 4px;box-sizing:border-box; }',
       '  #calCenterPanel { flex:1;min-width:0; }',
       '  .cal-side-panel { display:flex;flex-direction:column;width:220px;flex-shrink:0;background:#fff;border-radius:12px;',
       '    box-shadow:0 2px 14px rgba(0,0,0,0.08);padding:10px 12px;',
-      '    font-size:0.83rem;',
+      '    font-size:0.83rem;overflow:hidden;max-height:calc(100vh - 100px);',
       '    transition:width 0.25s ease,padding 0.25s ease,opacity 0.25s ease; }',
       '  .cal-side-panel > div:last-child { flex:1;overflow-y:auto;min-height:0; }',
       '  body.dark-mode .cal-side-panel { background:#16213e;color:#e0e0e0; }',
@@ -245,6 +245,8 @@
       '  .cal-panel-expand-tab.visible { display:block; }',
       '  #calDaySummaryPanel { display:block; }',
       '  #calUpcomingPanel { display:block; }',
+      '  .day { overflow:visible; }',
+      '  .event-preview.task { display:none !important; }',
       '}',
       '.dcf-split-event { padding:5px 8px;border-radius:6px;margin-bottom:4px;border-left:4px solid;font-size:0.8rem;cursor:pointer;transition:background 0.15s; }',
       '.dcf-split-event:hover { filter:brightness(0.95); }',
@@ -327,6 +329,17 @@
     filterBar.insertAdjacentElement('afterend', bar);
   }
 
+  /* Sync side-panel heights to match the center calendar panel */
+  function syncPanelHeights() {
+    var center = document.getElementById('calCenterPanel');
+    if (!center || !isDesktop()) return;
+    var h = center.offsetHeight;
+    if (!h) return;
+    document.querySelectorAll('.cal-side-panel:not(.collapsed)').forEach(function (p) {
+      p.style.maxHeight = h + 'px';
+    });
+  }
+
   /* Patch generateCalendar once to add badges + recur icons + layer filtering */
   var _gcPatched = false;
   function patchGenerateCalendar() {
@@ -340,6 +353,7 @@
       try { applyWeatherBadges(); } catch (_) {}
       try { applySearchHighlight(); } catch (_) {}
       try { refreshCharts(); } catch (_) {}
+      try { syncPanelHeights(); } catch (_) {}
     };
     window.generateCalendar._dcfPatched = true;
   }
@@ -1423,6 +1437,7 @@
 
     /* Initial render */
     refreshUpcomingPanel();
+    syncPanelHeights();
   }
 
   function toggleDaySummaryPanel(collapse) {
@@ -2201,6 +2216,11 @@
     try { refreshUpcomingPanel(); } catch (_) {}
     try { renderStreak(); } catch (_) {}
     try { applyCountBadgesAndRecurIcons(); } catch (_) {}
+    try { syncPanelHeights(); } catch (_) {}
+  });
+
+  window.addEventListener('resize', function () {
+    try { syncPanelHeights(); } catch (_) {}
   });
 
   /* Refresh split panel whenever a day is selected */
