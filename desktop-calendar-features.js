@@ -182,7 +182,20 @@
       '.dcf-anim-fade { animation: dcfFadeIn 0.22s ease; }',
       '#calendar.dcf-anim-fade, #weekView.dcf-anim-fade, #twoWeekView.dcf-anim-fade, #yearView.dcf-anim-fade { animation: dcfFadeIn 0.22s ease; }',
       '.dv-event-block { transition: box-shadow 0.15s, opacity 0.15s; }',
-      '.dcf-count-badge { position:absolute;top:4px;right:4px;background:rgba(74,144,226,0.85);color:#fff;font-size:0.62rem;font-weight:700;border-radius:8px;padding:1px 5px;line-height:1.3;pointer-events:none;z-index:5; }',
+      '.dcf-count-badge { position:absolute;top:4px;right:4px;background:rgba(74,144,226,0.85);color:#fff;font-size:0.62rem;font-weight:700;border-radius:8px;padding:1px 5px;line-height:1.3;pointer-events:auto;z-index:5;cursor:default; }',
+      '.dcf-count-badge-tooltip { display:none;position:absolute;top:100%;right:0;margin-top:4px;background:#fff;color:#333;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.18);padding:8px 10px;font-size:0.75rem;font-weight:400;min-width:180px;max-width:260px;z-index:100;text-align:left;line-height:1.4; }',
+      '.dcf-count-badge:hover .dcf-count-badge-tooltip { display:block; }',
+      'body.dark-mode .dcf-count-badge-tooltip { background:#1e2d45;color:#e0e0e0;box-shadow:0 4px 16px rgba(0,0,0,0.4); }',
+      '.dcf-badge-tt-item { padding:2px 0;border-bottom:1px solid #f0f0f0; }',
+      '.dcf-badge-tt-item:last-child { border-bottom:none; }',
+      'body.dark-mode .dcf-badge-tt-item { border-bottom-color:#2a2a4a; }',
+      '.dcf-badge-tt-kind { display:inline-block;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;padding:0 4px;border-radius:3px;margin-right:4px;vertical-align:middle; }',
+      '.dcf-badge-tt-kind-event { background:#e8f0fe;color:#3367d6; }',
+      '.dcf-badge-tt-kind-task { background:#e6f4ea;color:#1e7e34; }',
+      '.dcf-badge-tt-kind-reminder { background:#fef3e0;color:#c77c00; }',
+      'body.dark-mode .dcf-badge-tt-kind-event { background:#1e3055;color:#7ab3f5; }',
+      'body.dark-mode .dcf-badge-tt-kind-task { background:#1a3020;color:#8fcd8f; }',
+      'body.dark-mode .dcf-badge-tt-kind-reminder { background:#3a2a10;color:#f0c060; }',
       '.dcf-recur-icon { font-size:0.65rem;opacity:0.8;vertical-align:middle;margin-left:2px; }',
       '.dcf-weather-badge { position:absolute;bottom:2px;right:3px;font-size:0.68rem;color:#555;pointer-events:none;z-index:4;background:rgba(255,255,255,0.85);border-radius:4px;padding:0 2px;line-height:1.4; }',
       'body.dark-mode .dcf-weather-badge { background:rgba(30,45,69,0.85);color:#aad; }',
@@ -214,8 +227,9 @@
       '  #calCenterPanel { flex:1;min-width:0; }',
       '  .cal-side-panel { display:flex;flex-direction:column;width:220px;flex-shrink:0;background:#fff;border-radius:12px;',
       '    box-shadow:0 2px 14px rgba(0,0,0,0.08);padding:10px 12px;',
-      '    overflow-y:auto;font-size:0.83rem;',
+      '    font-size:0.83rem;',
       '    transition:width 0.25s ease,padding 0.25s ease,opacity 0.25s ease; }',
+      '  .cal-side-panel > div:last-child { flex:1;overflow-y:auto;min-height:0; }',
       '  body.dark-mode .cal-side-panel { background:#16213e;color:#e0e0e0; }',
       '  .cal-side-panel h4 { margin:0 0 8px;font-size:0.9rem;color:#4a90e2;display:flex;align-items:center;justify-content:space-between; }',
       '  .cal-side-panel.collapsed { width:0;padding:0;overflow:hidden;opacity:0;pointer-events:none; }',
@@ -363,6 +377,29 @@
       if (dayTasks.length) parts.push(dayTasks.length + 'T');
       if (dayRems) parts.push(dayRems + 'R');
       badge.textContent = parts.join(' ');
+
+      /* Build hover tooltip with item list */
+      var tooltip = document.createElement('div');
+      tooltip.className = 'dcf-count-badge-tooltip';
+      var ttHtml = '';
+      dayEvts.forEach(function (ev) {
+        var timeStr = ev.time ? esc(ev.time) + ' ' : '';
+        var repeatIcon = (ev.repeat && ev.repeat !== 'none') ? ' 🔁' : '';
+        ttHtml += '<div class="dcf-badge-tt-item"><span class="dcf-badge-tt-kind dcf-badge-tt-kind-event">Event</span>' + timeStr + esc(ev.emoji || '📌') + ' ' + esc(ev.title || '') + repeatIcon + '</div>';
+      });
+      dayTasks.forEach(function (t) {
+        var doneIcon = t.done ? '✅' : '⬜';
+        var doneStyle = t.done ? ' style="text-decoration:line-through;opacity:0.65"' : '';
+        ttHtml += '<div class="dcf-badge-tt-item"' + doneStyle + '><span class="dcf-badge-tt-kind dcf-badge-tt-kind-task">Task</span>' + doneIcon + ' ' + esc(t.title || t.text || '') + '</div>';
+      });
+      var dayRemsList = rems[ymd] || [];
+      dayRemsList.forEach(function (r) {
+        var timeStr = r.time ? esc(r.time) + ' ' : '';
+        ttHtml += '<div class="dcf-badge-tt-item"><span class="dcf-badge-tt-kind dcf-badge-tt-kind-reminder">Reminder</span>' + timeStr + '🔔 ' + esc(r.text || '') + '</div>';
+      });
+      tooltip.innerHTML = ttHtml;
+      badge.appendChild(tooltip);
+
       cell.style.position = 'relative';
       cell.appendChild(badge);
 
