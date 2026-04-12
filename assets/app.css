@@ -2024,11 +2024,11 @@ body.dark-mode .mood-history-item { border-color:#2a2a4a; }
 
 .droutine-heatmap-cell.lvl4 { background:#6c3483; }
 
-.dgym-split { display:flex; gap:14px; }
+.dgym-split { display:flex; gap:14px; overflow:hidden; box-sizing:border-box; }
 
-.dgym-left { width:185px; flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+.dgym-left { width:185px; flex-shrink:0; display:flex; flex-direction:column; gap:6px; overflow:hidden; box-sizing:border-box; }
 
-.dgym-right { flex:1; min-width:0; }
+.dgym-right { flex:1; min-width:0; overflow:hidden; box-sizing:border-box; }
 
 .dgym-left-title { font-size:0.75rem; font-weight:700; color:#888; letter-spacing:0.04em; }
 

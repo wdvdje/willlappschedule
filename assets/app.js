@@ -385,6 +385,10 @@ function showJobModal(jobId) {
         if (otHoursEl) otHoursEl.value = job.overtimeHours != null ? job.overtimeHours : '';
         if (otMultEl)  otMultEl.value  = job.overtimeMultiplier != null ? job.overtimeMultiplier : '';
         _jobModalOffDays = Array.isArray(job.offDays) ? job.offDays.slice() : [];
+        var ppTypeEl = document.getElementById('jobPayPeriodType');
+        var ppStartEl = document.getElementById('jobPayPeriodStart');
+        if (ppTypeEl) ppTypeEl.value = (job.payPeriod && job.payPeriod.type) || '';
+        if (ppStartEl) ppStartEl.value = (job.payPeriod && job.payPeriod.startDate) || '';
         var heading = document.getElementById('jobModalHeading');
         if (heading) heading.textContent = 'Edit Job';
       }
@@ -469,11 +473,11 @@ function saveJobFromUI(){
       var id = parseInt(idField.value,10);
       var idx = jobs.findIndex(function(j){ return j.id===id; });
       if (idx!==-1){
-        jobs[idx] = Object.assign({}, jobs[idx], {name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier});
+        jobs[idx] = Object.assign({}, jobs[idx], {name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier, payPeriod: { type: document.getElementById('jobPayPeriodType').value, startDate: document.getElementById('jobPayPeriodStart').value }});
       }
     } else {
       var nid = jobs.length ? Math.max.apply(null, jobs.map(function(j){ return j.id; }))+1 : 1;
-      jobs.push({ id: nid, name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier });
+      jobs.push({ id: nid, name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier, payPeriod: { type: document.getElementById('jobPayPeriodType').value, startDate: document.getElementById('jobPayPeriodStart').value } });
     }
     setJobs(jobs);
     hideJobModal();
@@ -525,6 +529,10 @@ function clearJobForm(){
     if (otHours) otHours.value = '';
     if (otMult)  otMult.value  = '';
     _jobModalOffDays = [];
+    var ppType = document.getElementById('jobPayPeriodType');
+    var ppStart = document.getElementById('jobPayPeriodStart');
+    if (ppType) ppType.value = '';
+    if (ppStart) ppStart.value = '';
     renderJobOffDaysList();
   }catch(e){ /* ignore */ }
 }
@@ -5531,7 +5539,7 @@ function renderHomeDashboard() {
   html += '<p class="home-dash-title">🏡 Today\'s Chores</p>';
   html += '<div class="home-dash-stats">';
   // Progress ring
-  html += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">';
+  html += '<div class="progress-ring-wrap" style="flex-shrink:0">';
   html += '<svg viewBox="0 0 44 44" style="width:64px;height:64px">';
   html += '<circle class="ring-bg" cx="22" cy="22" r="18"/>';
   html += '<circle class="ring-fg" cx="22" cy="22" r="18" stroke="' + ringColor + '" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '" transform="rotate(-90 22 22)"/>';
