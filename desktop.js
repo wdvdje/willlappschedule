@@ -724,6 +724,7 @@
   // ---------------------------------------------------------------------------
 
   var _tooltipEl = null;
+  var _tooltipHideTimer = null;
 
   function ensureTooltip() {
     if (_tooltipEl) return _tooltipEl;
@@ -739,6 +740,7 @@
 
   function showTooltip(chip, ev) {
     if (!isDesktop()) return;
+    if (_tooltipHideTimer) { clearTimeout(_tooltipHideTimer); _tooltipHideTimer = null; }
     var tip = ensureTooltip();
     var domainColors = (typeof getDomainColors === 'function') ? getDomainColors() : { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6' };
     var domainLabels = { work: '💼 Work', home: '🏡 Home', personal: '👤 Personal' };
@@ -767,6 +769,16 @@
   }
 
   function hideTooltip() {
+    if (_tooltipHideTimer) { clearTimeout(_tooltipHideTimer); _tooltipHideTimer = null; }
+    _tooltipHideTimer = setTimeout(function () {
+      if (_tooltipEl) _tooltipEl.style.display = 'none';
+      _tooltipHideTimer = null;
+    }, 50);
+  }
+
+  /* Immediately hide tooltip (used on scroll/click) */
+  function hideTooltipImmediate() {
+    if (_tooltipHideTimer) { clearTimeout(_tooltipHideTimer); _tooltipHideTimer = null; }
     if (_tooltipEl) _tooltipEl.style.display = 'none';
   }
 
@@ -775,6 +787,10 @@
     if (!cal || !isDesktop()) return;
     var events = getEv();
     cal.querySelectorAll('.event-preview[data-event-id]').forEach(function (chip) {
+      /* Skip if already wired */
+      if (chip._dtTooltipWired) return;
+      chip._dtTooltipWired = true;
+
       var evId = chip.dataset.eventId;
       var ev = null;
       for (var i = 0; i < events.length; i++) {
@@ -784,7 +800,18 @@
       chip.style.cursor = 'pointer';
       chip.addEventListener('mouseenter', function () { showTooltip(chip, ev); });
       chip.addEventListener('mouseleave', hideTooltip);
+      /* Click to open the edit modal for this event */
+      chip.addEventListener('click', function (e) {
+        e.stopPropagation();
+        hideTooltipImmediate();
+        if (typeof window.editEvent === 'function') {
+          try { window.editEvent(ev.id); } catch (_) {}
+        }
+      });
     });
+
+    /* Hide tooltip on scroll or any click outside */
+    document.addEventListener('scroll', hideTooltipImmediate, true);
   }
 
   // ---------------------------------------------------------------------------
