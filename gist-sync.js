@@ -20,6 +20,10 @@
     'reminders', 'jobs', 'inbox',
     'USER_PROFILE', 'userName', 'userHome',
     'personalBuckets', 'homeBuckets',
+    'personalMeals', 'personalCalorieGoal',
+    'personalSleep', 'personalGym',
+    'personalFocus', 'personalRoutines', 'personalRoutineLog',
+    'personalHydration', 'personalMood',
   ];
   const GIST_FILENAME  = 'timescape-data.json';
   const SYNC_INTERVAL_MS = 5 * 60 * 1000; // background poll every 5 minutes
@@ -138,7 +142,12 @@
       }
 
       // Scalar / object keys – remote wins if it is the same age or newer
-      ['USER_PROFILE', 'userName', 'userHome'].forEach(function (key) {
+      ['USER_PROFILE', 'userName', 'userHome',
+       'personalMeals', 'personalCalorieGoal',
+       'personalSleep', 'personalGym',
+       'personalFocus', 'personalRoutines', 'personalRoutineLog',
+       'personalHydration', 'personalMood'
+      ].forEach(function (key) {
         if (!(key in remote)) return;
         if (remoteSyncedAt >= localSyncedAt) {
           var val = remote[key];

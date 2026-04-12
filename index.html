@@ -468,6 +468,126 @@
     .grocery-item-section { font-size:0.72rem; color:#4a90e2; background:#eaf4ff; border-radius:8px; padding:1px 6px; }
     .grocery-item-del { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:1rem; padding:2px 4px; }
     .grocery-clear-btn { font-size:0.78rem; background:none; border:none; color:#e74c3c; cursor:pointer; text-decoration:underline; margin-top:6px; }
+    /* ===== Personal Page Widgets ===== */
+    /* Shared personal widget card */
+    .pw-card { background:#fff; border-radius:12px; border:1px solid #e6e6e6; margin-bottom:14px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+    .pw-header { display:flex; align-items:center; padding:11px 14px; cursor:pointer; user-select:none; background:#f7f9fc; gap:6px; border-bottom:1px solid #eef0f3; }
+    .pw-header-title { flex:1; font-weight:700; font-size:0.95rem; display:flex; align-items:center; gap:6px; }
+    .pw-chevron { font-size:0.85rem; color:#aaa; min-width:14px; text-align:center; }
+    .pw-body { padding:10px 14px 14px; }
+    .pw-badge { font-size:0.75rem; border-radius:10px; padding:1px 8px; font-weight:600; display:inline-block; }
+
+    /* Meal Tracker */
+    .meal-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid #f0f0f0; }
+    .meal-row:last-child { border-bottom:none; }
+    .meal-icon { font-size:1.3rem; flex-shrink:0; width:30px; text-align:center; }
+    .meal-info { flex:1; min-width:0; }
+    .meal-label { font-weight:600; font-size:0.88rem; }
+    .meal-name { font-size:0.82rem; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .meal-cal { font-size:0.82rem; color:#888; font-weight:600; white-space:nowrap; }
+    .meal-edit-btn { background:none; border:none; cursor:pointer; font-size:0.95rem; padding:2px 4px; }
+    .meal-edit-btn:hover { transform:scale(1.1); }
+    .meal-progress { display:flex; align-items:center; gap:10px; margin-top:10px; padding-top:8px; border-top:1px solid #eee; }
+    .meal-progress-bar { flex:1; height:8px; background:#eee; border-radius:4px; overflow:hidden; }
+    .meal-progress-fill { height:100%; border-radius:4px; transition:width 0.3s; }
+    .meal-progress-text { font-size:0.82rem; color:#666; white-space:nowrap; font-weight:600; }
+    .meal-goal-row { display:flex; align-items:center; gap:6px; margin-top:6px; font-size:0.82rem; }
+    .meal-goal-input { width:72px; font-size:0.82rem; border:1px solid #d8e0ec; border-radius:6px; padding:3px 7px; text-align:center; }
+    .meal-edit-panel { background:#f0f5fb; border-radius:8px; padding:10px; margin-top:6px; border:1px solid #d8e6f5; }
+    .meal-edit-panel input { font-size:0.88rem; border:1px solid #d8e0ec; border-radius:6px; padding:5px 8px; }
+    .meal-edit-panel .meal-name-input { flex:1; min-width:100px; }
+    .meal-edit-panel .meal-cal-input { width:72px; text-align:center; }
+    .meal-save-btn { background:#27ae60; color:#fff; border:none; border-radius:8px; padding:5px 10px; cursor:pointer; font-size:0.82rem; }
+    .meal-cancel-btn { background:none; border:1px solid #ccc; border-radius:8px; padding:5px 10px; cursor:pointer; font-size:0.82rem; color:#666; }
+
+    /* Sleep / Bedtime */
+    .sleep-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:0.88rem; }
+    .sleep-row label { font-weight:600; min-width:80px; }
+    .sleep-row input[type="time"] { font-size:0.88rem; border:1px solid #d8e0ec; border-radius:6px; padding:4px 8px; }
+    .sleep-status { display:flex; align-items:center; gap:10px; margin-top:10px; padding:10px; background:#f5f7fa; border-radius:8px; }
+    .sleep-status-icon { font-size:1.5rem; }
+    .sleep-status-text { flex:1; }
+    .sleep-status-label { font-weight:600; font-size:0.88rem; }
+    .sleep-status-detail { font-size:0.78rem; color:#888; }
+    .sleep-log-btn { background:#9b59b6; color:#fff; border:none; border-radius:8px; padding:6px 14px; cursor:pointer; font-size:0.85rem; white-space:nowrap; }
+    .sleep-log-btn:hover { background:#7d3c98; }
+    .sleep-streak { margin-top:8px; font-size:0.82rem; color:#856404; background:#fff3cd; border-radius:8px; padding:6px 10px; display:flex; align-items:center; gap:4px; }
+
+    /* Gym / Exercise */
+    .gym-routine { margin-bottom:10px; }
+    .gym-routine-header { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+    .gym-routine-name { font-weight:600; font-size:0.95rem; }
+    .gym-exercise { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #f0f0f0; font-size:0.85rem; }
+    .gym-exercise:last-child { border-bottom:none; }
+    .gym-exercise-name { flex:1; }
+    .gym-exercise-detail { color:#888; font-size:0.78rem; white-space:nowrap; }
+    .gym-add-row { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+    .gym-add-row input, .gym-add-row select { font-size:0.82rem; border:1px solid #d8e0ec; border-radius:6px; padding:4px 8px; }
+    .gym-add-row .gym-name-input { flex:2; min-width:100px; }
+    .gym-add-row .gym-small-input { width:52px; text-align:center; }
+    .gym-add-btn { background:#4a90e2; color:#fff; border:none; border-radius:8px; padding:5px 10px; cursor:pointer; font-size:0.82rem; white-space:nowrap; }
+    .gym-routine-add { display:flex; gap:6px; margin-bottom:10px; }
+    .gym-routine-add input { flex:1; font-size:0.88rem; border:1px solid #d8e0ec; border-radius:6px; padding:5px 8px; }
+    .gym-routine-add button { background:#4a90e2; color:#fff; border:none; border-radius:8px; padding:5px 12px; cursor:pointer; font-size:0.85rem; white-space:nowrap; }
+    .gym-del-btn { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:0.95rem; padding:2px 4px; }
+    .gym-del-btn:hover { transform:scale(1.1); }
+    .gym-log-btn { background:#27ae60; color:#fff; border:none; border-radius:8px; padding:5px 12px; cursor:pointer; font-size:0.82rem; margin-top:6px; }
+    .gym-streak { font-size:0.82rem; color:#856404; background:#fff3cd; border-radius:8px; padding:6px 10px; display:flex; align-items:center; gap:4px; margin-top:8px; }
+
+    /* Daily Focus / Top 3 */
+    .focus-item { display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid #f0f0f0; font-size:0.88rem; }
+    .focus-item:last-child { border-bottom:none; }
+    .focus-item input[type="checkbox"] { width:18px; height:18px; cursor:pointer; flex-shrink:0; accent-color:#9b59b6; }
+    .focus-item-text { flex:1; }
+    .focus-item.done .focus-item-text { text-decoration:line-through; color:#aaa; }
+    .focus-add-row { display:flex; gap:6px; margin-top:8px; }
+    .focus-add-row input { flex:1; font-size:0.88rem; border:1px solid #d8e0ec; border-radius:6px; padding:5px 8px; }
+    .focus-add-btn { background:#9b59b6; color:#fff; border:none; border-radius:8px; padding:5px 12px; cursor:pointer; font-size:0.85rem; white-space:nowrap; }
+    .focus-del-btn { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:0.95rem; padding:2px 4px; }
+    .focus-clear { font-size:0.78rem; background:none; border:none; color:#888; cursor:pointer; text-decoration:underline; margin-top:4px; }
+
+    /* Routine Checklist */
+    .routine-section-label { font-weight:600; font-size:0.85rem; margin:8px 0 4px; color:#666; display:flex; align-items:center; gap:4px; }
+    .routine-item { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:0.85rem; }
+    .routine-item input[type="checkbox"] { width:16px; height:16px; cursor:pointer; flex-shrink:0; accent-color:#9b59b6; }
+    .routine-item.done span { text-decoration:line-through; color:#aaa; }
+    .routine-add-row { display:flex; gap:6px; margin-top:6px; }
+    .routine-add-row input { flex:1; font-size:0.82rem; border:1px solid #d8e0ec; border-radius:6px; padding:3px 7px; }
+    .routine-add-row select { font-size:0.82rem; border:1px solid #d8e0ec; border-radius:6px; padding:3px 6px; }
+    .routine-add-btn { background:#9b59b6; color:#fff; border:none; border-radius:8px; padding:4px 10px; cursor:pointer; font-size:0.8rem; white-space:nowrap; }
+    .routine-del-btn { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:0.9rem; padding:2px 4px; }
+
+    /* Hydration Tracker */
+    .hydration-display { display:flex; align-items:center; gap:14px; }
+    .hydration-glasses { display:flex; gap:4px; flex-wrap:wrap; flex:1; }
+    .hydration-glass { width:28px; height:34px; border:2px solid #b0c4de; border-radius:0 0 6px 6px; cursor:pointer; background:#f0f6ff; transition:all 0.15s; display:flex; align-items:flex-end; justify-content:center; overflow:hidden; }
+    .hydration-glass.filled { background:#4a90e2; border-color:#2568c3; }
+    .hydration-glass.filled .hydration-water { height:100%; }
+    .hydration-water { width:100%; background:#4a90e2; transition:height 0.2s; height:0; }
+    .hydration-count { font-size:1.2rem; font-weight:700; color:#4a90e2; white-space:nowrap; }
+    .hydration-goal-row { display:flex; align-items:center; gap:6px; margin-top:8px; font-size:0.82rem; }
+    .hydration-goal-input { width:52px; font-size:0.82rem; border:1px solid #d8e0ec; border-radius:6px; padding:3px 7px; text-align:center; }
+    .hydration-reset { font-size:0.78rem; background:none; border:none; color:#888; cursor:pointer; text-decoration:underline; }
+
+    /* Mood / Energy Check-in */
+    .mood-row { display:flex; gap:6px; justify-content:center; margin-bottom:10px; }
+    .mood-btn { font-size:1.5rem; background:none; border:2px solid transparent; border-radius:12px; padding:6px 10px; cursor:pointer; transition:all 0.15s; }
+    .mood-btn.selected { border-color:#9b59b6; background:rgba(155,89,182,0.1); transform:scale(1.15); }
+    .mood-btn:hover:not(.selected) { border-color:#ddd; transform:scale(1.08); }
+    .mood-energy-row { display:flex; gap:6px; justify-content:center; margin-bottom:10px; }
+    .mood-energy-btn { padding:5px 14px; border-radius:16px; border:1.5px solid #ddd; background:#fff; cursor:pointer; font-size:0.82rem; transition:all 0.12s; }
+    .mood-energy-btn.selected { border-color:#9b59b6; background:#9b59b6; color:#fff; }
+    .mood-energy-btn:hover:not(.selected) { border-color:#9b59b6; }
+    .mood-note-input { width:100%; font-size:0.85rem; border:1px solid #d8e0ec; border-radius:6px; padding:5px 8px; box-sizing:border-box; margin-top:6px; }
+    .mood-save-btn { background:#9b59b6; color:#fff; border:none; border-radius:8px; padding:6px 14px; cursor:pointer; font-size:0.85rem; margin-top:8px; }
+    .mood-history { margin-top:10px; }
+    .mood-history-item { display:flex; align-items:center; gap:8px; padding:5px 0; border-bottom:1px solid #f0f0f0; font-size:0.82rem; }
+    .mood-history-item:last-child { border-bottom:none; }
+    .mood-history-date { color:#888; font-size:0.78rem; min-width:60px; }
+    .mood-history-mood { font-size:1.1rem; }
+    .mood-history-energy { font-size:0.75rem; }
+    .mood-history-note { flex:1; color:#666; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
     /* Dark mode for new home features */
     body.dark-mode .home-dashboard,
     body.dark-mode .grocery-section { background:#16213e; border-color:#2a2a4a; }
@@ -489,6 +609,19 @@
     body.dark-mode .grocery-header { background:#16213e; }
     body.dark-mode .grocery-item { border-color:#2a2a4a; }
     body.dark-mode .energy-filter-btn { background:#1e2d45; color:#ccc; border-color:#2a2a4a; }
+    body.dark-mode .pw-card { background:#16213e; border-color:#2a2a4a; }
+    body.dark-mode .pw-header { background:#16213e; }
+    body.dark-mode .pw-body { background:#16213e; }
+    body.dark-mode .meal-row { border-color:#2a2a4a; }
+    body.dark-mode .meal-edit-panel { background:#1e2d45; border-color:#2a2a4a; }
+    body.dark-mode .meal-progress-bar { background:#1e2d45; }
+    body.dark-mode .sleep-status { background:#1e2d45; }
+    body.dark-mode .gym-exercise { border-color:#2a2a4a; }
+    body.dark-mode .focus-item { border-color:#2a2a4a; }
+    body.dark-mode .hydration-glass { border-color:#2a2a4a; background:#1e2d45; }
+    body.dark-mode .mood-btn.selected { background:rgba(155,89,182,0.25); }
+    body.dark-mode .mood-energy-btn { background:#1e2d45; color:#ccc; border-color:#2a2a4a; }
+    body.dark-mode .mood-history-item { border-color:#2a2a4a; }
 
     /* ===== Desktop: domain-colored event banners in calendar ===== */
     @media (min-width: 901px) {
@@ -867,6 +1000,28 @@
     <section id="page-personal" class="page hidden">
       <h2>👤 Personal</h2>
       <div style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
+        <!-- Daily Focus / Top 3 Priorities -->
+        <div id="personalFocusSection"></div>
+
+        <!-- Routine Checklists (Morning & Evening) -->
+        <div id="personalRoutineSection"></div>
+
+        <!-- Meal Tracker -->
+        <div id="personalMealSection"></div>
+
+        <!-- Hydration Tracker -->
+        <div id="personalHydrationSection"></div>
+
+        <!-- Sleep / Bedtime Manager -->
+        <div id="personalSleepSection"></div>
+
+        <!-- Gym / Exercise Planner -->
+        <div id="personalGymSection"></div>
+
+        <!-- Mood / Energy Check-in -->
+        <div id="personalMoodSection"></div>
+
+        <!-- Toolbar -->
         <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
           <button id="addPersonalBucketBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Category</button>
         </div>
