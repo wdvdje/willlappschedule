@@ -223,11 +223,12 @@
       '#calDaySummaryPanel { display:none; }',
       '#calUpcomingPanel { display:none; }',
       '@media (min-width: 901px) {',
-      '  #calPageLayout { display:flex;gap:6px;align-items:stretch;max-width:100%;padding:0 4px;box-sizing:border-box; }',
+      '  .day { overflow:visible; }',
+      '  #calPageLayout { display:flex;gap:6px;align-items:flex-start;max-width:100%;padding:0 4px;box-sizing:border-box; }',
       '  #calCenterPanel { flex:1;min-width:0; }',
       '  .cal-side-panel { display:flex;flex-direction:column;width:220px;flex-shrink:0;background:#fff;border-radius:12px;',
       '    box-shadow:0 2px 14px rgba(0,0,0,0.08);padding:10px 12px;',
-      '    font-size:0.83rem;',
+      '    font-size:0.83rem;overflow:hidden;',
       '    transition:width 0.25s ease,padding 0.25s ease,opacity 0.25s ease; }',
       '  .cal-side-panel > div:last-child { flex:1;overflow-y:auto;min-height:0; }',
       '  body.dark-mode .cal-side-panel { background:#16213e;color:#e0e0e0; }',
@@ -340,6 +341,7 @@
       try { applyWeatherBadges(); } catch (_) {}
       try { applySearchHighlight(); } catch (_) {}
       try { refreshCharts(); } catch (_) {}
+      try { syncPanelHeights(); } catch (_) {}
     };
     window.generateCalendar._dcfPatched = true;
   }
@@ -1600,6 +1602,24 @@
     wireItemClicks(content);
   }
 
+  /* Sync side panel heights with the calendar container */
+  function syncPanelHeights() {
+    if (!isDesktop()) return;
+    var calEl = document.getElementById('calendar');
+    var leftPanel = document.getElementById('calDaySummaryPanel');
+    var rightPanel = document.getElementById('calUpcomingPanel');
+    if (!calEl) return;
+    var calH = calEl.offsetHeight;
+    if (calH > 0) {
+      if (leftPanel && !leftPanel.classList.contains('collapsed')) {
+        leftPanel.style.maxHeight = calH + 'px';
+      }
+      if (rightPanel && !rightPanel.classList.contains('collapsed')) {
+        rightPanel.style.maxHeight = calH + 'px';
+      }
+    }
+  }
+
   /* Wire click-to-edit on panel items */
   function wireItemClicks(container) {
     container.querySelectorAll('[data-action]').forEach(function (el) {
@@ -2147,6 +2167,7 @@
 
     if (isDesktop()) {
       injectSplitPanel();
+      syncPanelHeights();
     }
 
     wireResizeHandles();
@@ -2178,6 +2199,7 @@
         if (isDesktop()) {
           injectSplitPanel();
           refreshUpcomingPanel();
+          syncPanelHeights();
           /* Hide the fixed agenda sidebar since upcoming is integrated */
           var agendaSidebar = document.getElementById('dtAgendaSidebar');
           if (agendaSidebar) agendaSidebar.style.display = 'none';
@@ -2201,11 +2223,17 @@
     try { refreshUpcomingPanel(); } catch (_) {}
     try { renderStreak(); } catch (_) {}
     try { applyCountBadgesAndRecurIcons(); } catch (_) {}
+    try { syncPanelHeights(); } catch (_) {}
   });
 
   /* Refresh split panel whenever a day is selected */
   window.addEventListener('dailyview:datechange', function () {
     try { refreshSplitPanel(); } catch (_) {}
+  });
+
+  /* Re-sync panel heights on window resize */
+  window.addEventListener('resize', function () {
+    try { syncPanelHeights(); } catch (_) {}
   });
 
   /* After generateCalendar runs, refresh split panel for selected day */
