@@ -868,12 +868,17 @@
     var KEY = 'sidebarCollapsed';
 
     function applySidebarState(collapsed) {
+      var collapsedW = getComputedStyle(document.documentElement).getPropertyValue('--ios-sidebar-w-collapsed').trim();
       if (collapsed) {
         sidebar.classList.add('collapsed');
-        document.documentElement.style.setProperty('--ios-sidebar-w', getComputedStyle(document.documentElement).getPropertyValue('--ios-sidebar-w-collapsed').trim());
+        document.documentElement.style.setProperty('--ios-sidebar-w', collapsedW);
+        btn.setAttribute('aria-label', 'Expand sidebar');
+        btn.setAttribute('title', 'Expand sidebar');
       } else {
         sidebar.classList.remove('collapsed');
-        document.documentElement.style.setProperty('--ios-sidebar-w', '220px');
+        document.documentElement.style.setProperty('--ios-sidebar-w', '');
+        btn.setAttribute('aria-label', 'Collapse sidebar');
+        btn.setAttribute('title', 'Collapse sidebar');
       }
     }
 
