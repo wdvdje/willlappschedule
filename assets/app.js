@@ -5920,7 +5920,7 @@ function buildPWCard(id, emoji, title, renderBody, storageKey) {
 function getPersonalMeals() {
   var data = safeParseStorage('personalMeals', {});
   var today = getTodayISO();
-  if (!data[today]) data[today] = { breakfast: { name: '', calories: 0 }, lunch: { name: '', calories: 0 }, dinner: { name: '', calories: 0 }, snacks: { name: '', calories: 0 } };
+  if (!data[today]) data[today] = { breakfast: { name: '', calories: 0, time: '' }, lunch: { name: '', calories: 0, time: '' }, dinner: { name: '', calories: 0, time: '' }, snacks: { name: '', calories: 0, time: '' } };
   return data;
 }
 function setPersonalMeals(data) { localStorage.setItem('personalMeals', JSON.stringify(data)); }
@@ -6059,7 +6059,7 @@ function renderMealTracker() {
 
   /* Use in-memory defaults for selected date if no meals saved yet (lazy — only persists on save) */
   if (!allMeals[selectedDate]) {
-    allMeals[selectedDate] = { breakfast: { name: '', calories: 0 }, lunch: { name: '', calories: 0 }, dinner: { name: '', calories: 0 }, snacks: { name: '', calories: 0 } };
+    allMeals[selectedDate] = { breakfast: { name: '', calories: 0, time: '' }, lunch: { name: '', calories: 0, time: '' }, dinner: { name: '', calories: 0, time: '' }, snacks: { name: '', calories: 0, time: '' } };
   }
 
   var meals = allMeals[selectedDate];
@@ -6100,7 +6100,7 @@ function renderMealTracker() {
       row.innerHTML =
         '<div class="meal-icon">' + mt.icon + '</div>' +
         '<div class="meal-info">' +
-          '<div class="meal-label">' + mt.label + '</div>' +
+          '<div class="meal-label">' + mt.label + (m.time ? ' <span style="font-size:0.78rem;color:#888">@ ' + escapeHTML(m.time) + '</span>' : '') + '</div>' +
           '<div class="meal-name">' + escapeHTML(m.name || 'Not planned') + '</div>' +
         '</div>' +
         '<div class="meal-cal">' + (m.calories ? m.calories + ' cal' : '—') + '</div>' +
@@ -6116,6 +6116,7 @@ function renderMealTracker() {
         '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
           '<input type="text" class="meal-name-input" placeholder="What are you eating?" value="' + escapeHTML(m.name || '') + '" />' +
           '<input type="number" class="meal-cal-input" placeholder="Cal" min="0" value="' + (m.calories || '') + '" />' +
+          '<input type="time" class="meal-time-input" placeholder="Time" value="' + escapeHTML(m.time || '') + '" title="When will you eat?" />' +
           '<button class="meal-save-btn" data-meal="' + mt.key + '">Save</button>' +
           '<button class="meal-cancel-btn" data-meal="' + mt.key + '">Cancel</button>' +
         '</div>';
@@ -6174,9 +6175,10 @@ function renderMealTracker() {
         if (!panel) return;
         var nameInput = panel.querySelector('.meal-name-input');
         var calInput = panel.querySelector('.meal-cal-input');
+        var timeInput = panel.querySelector('.meal-time-input');
         var data = getPersonalMeals();
         if (!data[selectedDate]) data[selectedDate] = {};
-        data[selectedDate][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0 };
+        data[selectedDate][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0, time: timeInput ? timeInput.value : '' };
         setPersonalMeals(data);
         syncMealWeekTasks();
         renderMealTracker();

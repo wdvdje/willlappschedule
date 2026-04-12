@@ -262,6 +262,32 @@
       });
     });
 
+    // meals with scheduled times – show as reminders on the daily view
+    var MEAL_LABELS = { breakfast: 'Eat Breakfast', lunch: 'Eat Lunch', dinner: 'Eat Dinner', snacks: 'Eat Snack' };
+    var MEAL_EMOJIS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snacks: '🍎' };
+    try {
+      var allMeals = JSON.parse(localStorage.getItem('personalMeals') || '{}') || {};
+      var dayMeals = allMeals[dateStr];
+      if (dayMeals) {
+        ['breakfast', 'lunch', 'dinner', 'snacks'].forEach(function(mk) {
+          var meal = dayMeals[mk];
+          if (!meal || !meal.name || !meal.time) return;
+          var s = toMinutes(meal.time, null);
+          if (s === null) return;
+          items.push({
+            kind: 'meal',
+            title: (MEAL_LABELS[mk] || 'Eat') + ': ' + meal.name,
+            emoji: MEAL_EMOJIS[mk] || '🍽️',
+            startMin: s,
+            endMin: s + REMINDER_DEFAULT_DURATION,
+            hasTimes: true,
+            color: domainColors.personal,
+            raw: { mealKey: mk, meal: meal }
+          });
+        });
+      }
+    } catch (_) {}
+
     return items;
   }
 

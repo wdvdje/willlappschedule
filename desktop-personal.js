@@ -371,7 +371,7 @@
       slot.innerHTML =
         '<div class="dmeal-slot-icon">' + mt.icon + '</div>' +
         '<div class="dmeal-slot-name">' + esc(m.name) + '</div>' +
-        '<div class="dmeal-slot-cal">' + (m.calories ? m.calories + ' cal' : '—') + '</div>';
+        '<div class="dmeal-slot-cal">' + (m.calories ? m.calories + ' cal' : '—') + (m.time ? ' · ' + esc(m.time) : '') + '</div>';
     } else {
       slot.innerHTML = '<div class="dmeal-slot-add">＋</div>';
     }
@@ -414,7 +414,7 @@
       var ALLOWED_MEAL_KEYS = ['breakfast', 'lunch', 'dinner', 'snacks'];
       if (src.isFav) {
         if (!meals[wd.iso]) meals[wd.iso] = {};
-        meals[wd.iso][mt.key] = { name: src.mealData.name, calories: src.mealData.calories || 0 };
+        meals[wd.iso][mt.key] = { name: src.mealData.name, calories: src.mealData.calories || 0, time: src.mealData.time || '' };
       } else {
         var srcDate = String(src.date || ''), srcKey = String(src.mealKey || '');
         // Only allow ISO date strings and known meal slot keys
@@ -423,8 +423,8 @@
         if (srcDate === wd.iso && srcKey === mt.key) return;
         if (!meals[srcDate]) meals[srcDate] = {};
         if (!meals[wd.iso])  meals[wd.iso]  = {};
-        var tmp = meals[wd.iso][mt.key] || { name: '', calories: 0 };
-        meals[wd.iso][mt.key] = meals[srcDate][srcKey] || { name: '', calories: 0 };
+        var tmp = meals[wd.iso][mt.key] || { name: '', calories: 0, time: '' };
+        meals[wd.iso][mt.key] = meals[srcDate][srcKey] || { name: '', calories: 0, time: '' };
         meals[srcDate][srcKey] = tmp;
       }
       setMeals(meals);
@@ -460,6 +460,13 @@
     calIn.value       = m.calories || '';
     pop.appendChild(calIn);
 
+    var timeIn = document.createElement('input');
+    timeIn.type        = 'time';
+    timeIn.title       = 'When will you eat?';
+    timeIn.value       = m.time || '';
+    timeIn.style.cssText = 'width:100%;font-size:0.85rem;padding:5px 8px;border:1px solid #d8e0ec;border-radius:6px;box-sizing:border-box';
+    pop.appendChild(timeIn);
+
     var btns = document.createElement('div');
     btns.className = 'dmeal-edit-popover-btns';
 
@@ -469,7 +476,7 @@
     saveBtn.addEventListener('click', function () {
       var meals = getMeals();
       if (!meals[dateIso]) meals[dateIso] = {};
-      meals[dateIso][mt.key] = { name: nameIn.value.trim(), calories: parseInt(calIn.value, 10) || 0 };
+      meals[dateIso][mt.key] = { name: nameIn.value.trim(), calories: parseInt(calIn.value, 10) || 0, time: timeIn.value || '' };
       setMeals(meals);
       pop.remove();
       renderDeskMeal();
