@@ -663,6 +663,87 @@ body.dark-mode .dcf-activity-bar { background: #16213e; }
 }
 body.dark-mode .dcf-chart-title { color: #aaa; }
 
+/* ── Chart mode toggle button ── */
+.dcf-chart-mode-btn {
+  background: #eef3fa;
+  border: 1px solid #c0d0e6;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #4a90e2;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.dcf-chart-mode-btn:hover { background: #4a90e2; color: #fff; }
+body.dark-mode .dcf-chart-mode-btn { background: #1e2d45; border-color: #2a3a5e; color: #7ab3f5; }
+body.dark-mode .dcf-chart-mode-btn:hover { background: #4a90e2; color: #fff; }
+
+/* ── Stacked bar legend ── */
+.dcf-stack-legend {
+  display: flex;
+  gap: 8px;
+  font-size: 0.68rem;
+  color: #666;
+  align-items: center;
+}
+.dcf-stack-legend span { display: flex; align-items: center; gap: 3px; white-space: nowrap; }
+.dcf-legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+body.dark-mode .dcf-stack-legend { color: #aaa; }
+
+/* ── Chart bar hover effect ── */
+.dcf-chart-bar { transition: opacity 0.12s; }
+.dcf-chart-bar:hover { opacity: 0.75; }
+
+/* ── Monthly stats row ── */
+.dcf-monthly-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.dcf-stat-card {
+  flex: 1;
+  min-width: 80px;
+  background: #f5f8fc;
+  border-radius: 8px;
+  padding: 6px 10px;
+  text-align: center;
+  border: 1px solid #e6ecf3;
+}
+.dcf-stat-value {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #333;
+  line-height: 1.3;
+}
+.dcf-stat-label {
+  font-size: 0.68rem;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.dcf-stat-sub {
+  font-size: 0.65rem;
+  color: #aaa;
+  margin-top: 1px;
+}
+body.dark-mode .dcf-stat-card { background: #1e2d45; border-color: #2a3a5e; }
+body.dark-mode .dcf-stat-value { color: #e0e0e0; }
+body.dark-mode .dcf-stat-label { color: #999; }
+body.dark-mode .dcf-stat-sub { color: #777; }
+
+/* ── Day labels on chart ── */
+.dcf-day-label { user-select: none; pointer-events: none; fill: #999; }
+body.dark-mode .dcf-day-label { fill: #666; }
+
 /* ── Layer toggle bar ── */
 .dcf-layer-bar {
   display: flex;

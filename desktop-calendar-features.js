@@ -785,13 +785,16 @@
 
   /* ══════════════════════════════════════════════════════
      13. ACTIVITY SUMMARY CHART  +  14. TIME ALLOCATION DONUT
+     Enhanced with: stacked bars (E/T/R), day labels,
+     click-to-navigate, weekly avg line, monthly summary
+     stats, and previous-month comparison.
   ══════════════════════════════════════════════════════ */
-  function renderActivityChart() {
-    var chartEl = document.getElementById('dcfActivitySvg');
-    var donutEl = document.getElementById('dcfDonutSvg');
-    if (!chartEl && !donutEl) return;
 
-    var yr = selYear(), mo = selMonth();
+  /* Chart display mode: 'stacked' (E/T/R breakdown) or 'total' */
+  var _chartMode = 'stacked';
+
+  /* Gather per-day breakdown for a given year/month */
+  function gatherMonthData(yr, mo) {
     var daysInMonth = new Date(yr, mo + 1, 0).getDate();
     var monthStart = yr + '-' + p2(mo + 1) + '-01';
     var monthEnd   = yr + '-' + p2(mo + 1) + '-' + p2(daysInMonth);
@@ -799,8 +802,7 @@
     var tasks = safeTasks();
     var rems = safeRems();
 
-    /* Build per-day counts */
-    var dayCounts = [];
+    var dayData = []; /* { e, t, r, total } per day */
     var domainTotals = { work: 0, personal: 0, home: 0 };
 
     for (var day = 1; day <= daysInMonth; day++) {
@@ -808,7 +810,7 @@
       var dayEvts = evts.filter(function (e) { return nd(e.date) === ymd; });
       var dayTasks = tasks.filter(function (t) { return nd(t.date) === ymd; });
       var dayRems = (rems[ymd] || []).length;
-      dayCounts.push(dayEvts.length + dayTasks.length + dayRems);
+      dayData.push({ e: dayEvts.length, t: dayTasks.length, r: dayRems, total: dayEvts.length + dayTasks.length + dayRems });
 
       dayEvts.forEach(function (e) {
         var dom = (e.domain || 'personal');
@@ -816,26 +818,132 @@
         else domainTotals.personal++;
       });
     }
+    return { dayData: dayData, domainTotals: domainTotals, daysInMonth: daysInMonth };
+  }
+
+  function renderActivityChart() {
+    var chartEl = document.getElementById('dcfActivitySvg');
+    var donutEl = document.getElementById('dcfDonutSvg');
+    if (!chartEl && !donutEl) return;
+
+    var yr = selYear(), mo = selMonth();
+    var data = gatherMonthData(yr, mo);
+    var dayData = data.dayData;
+    var domainTotals = data.domainTotals;
+    var daysInMonth = data.daysInMonth;
 
     /* Bar chart SVG */
     if (chartEl) {
-      var maxCount = Math.max(1, Math.max.apply(null, dayCounts));
-      var svgW = Math.max(300, daysInMonth * 14);
-      var svgH = 70;
-      var barW = Math.floor(svgW / daysInMonth) - 1;
+      var maxCount = Math.max(1, Math.max.apply(null, dayData.map(function (d) { return d.total; })));
+      var labelH = 14;   /* height reserved for day labels */
+      var svgW = Math.max(300, daysInMonth * 16);
+      var svgH = 100;
+      var chartArea = svgH - labelH;
+      var barW = Math.floor(svgW / daysInMonth) - 2;
       var todayStr = todayISO();
-      var bars = dayCounts.map(function (cnt, i) {
-        var barH = Math.max(2, Math.floor((cnt / maxCount) * (svgH - 18)));
-        var x = i * (barW + 1);
-        var y = svgH - 12 - barH;
-        var color = cnt === 0 ? '#ddd' : '#4a90e2';
+
+      var barsSvg = '';
+
+      /* Stacked bar colours */
+      var colEvt = '#4a90e2';  /* blue for events */
+      var colTask = '#27ae60'; /* green for tasks */
+      var colRem = '#e67e22';  /* orange for reminders */
+
+      /* Compute weekly averages and per-day bucket index in a single pass */
+      var weekSums = [];
+      var weekCounts = [];
+      var dayWeekBucket = []; /* bucket index per day */
+      dayData.forEach(function (d, i) {
+        var wk = Math.floor(i / 7);
+        dayWeekBucket.push(wk);
+        if (!weekSums[wk]) { weekSums[wk] = 0; weekCounts[wk] = 0; }
+        weekSums[wk] += d.total;
+        weekCounts[wk]++;
+      });
+
+      var avgLinePoints = [];
+      dayData.forEach(function (d, i) {
+        var x = i * (barW + 2);
         var ymd2 = yr + '-' + p2(mo + 1) + '-' + p2(i + 1);
-        if (ymd2 === todayStr) color = '#e74c3c';
-        return '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + barH +
-          '" fill="' + color + '" rx="2" title="' + (i + 1) + ': ' + cnt + ' items"><title>' + (i + 1) + ': ' + cnt + ' items</title></rect>';
-      }).join('');
+        var isToday = ymd2 === todayStr;
+        var totalH = Math.max(2, Math.floor((d.total / maxCount) * (chartArea - 6)));
+        var tipText = 'Day ' + (i + 1) + ': ' + d.e + ' event' + (d.e !== 1 ? 's' : '') + ', ' + d.t + ' task' + (d.t !== 1 ? 's' : '') + ', ' + d.r + ' reminder' + (d.r !== 1 ? 's' : '');
+
+        if (_chartMode === 'stacked' && d.total > 0) {
+          /* Stacked: events on bottom, tasks in middle, reminders on top */
+          var eH = Math.round((d.e / d.total) * totalH);
+          var tH = Math.round((d.t / d.total) * totalH);
+          var rH = totalH - eH - tH;
+          if (rH < 0) rH = 0;
+
+          var baseY = chartArea - totalH;
+          /* Events segment (bottom) */
+          if (eH > 0) {
+            barsSvg += '<rect class="dcf-chart-bar" x="' + x + '" y="' + (baseY + rH + tH) + '" width="' + barW + '" height="' + eH +
+              '" fill="' + (isToday ? '#c0392b' : colEvt) + '" rx="1"' +
+              ' data-day="' + (i + 1) + '"><title>' + tipText + '</title></rect>';
+          }
+          /* Tasks segment (middle) */
+          if (tH > 0) {
+            barsSvg += '<rect class="dcf-chart-bar" x="' + x + '" y="' + (baseY + rH) + '" width="' + barW + '" height="' + tH +
+              '" fill="' + (isToday ? '#e74c3c' : colTask) + '" rx="0"' +
+              ' data-day="' + (i + 1) + '"><title>' + tipText + '</title></rect>';
+          }
+          /* Reminders segment (top) */
+          if (rH > 0) {
+            barsSvg += '<rect class="dcf-chart-bar" x="' + x + '" y="' + baseY + '" width="' + barW + '" height="' + rH +
+              '" fill="' + (isToday ? '#ff6b6b' : colRem) + '" rx="1"' +
+              ' data-day="' + (i + 1) + '"><title>' + tipText + '</title></rect>';
+          }
+        } else {
+          /* Total mode or empty day */
+          var barH = totalH;
+          var y = chartArea - barH;
+          var color = d.total === 0 ? '#ddd' : (isToday ? '#e74c3c' : '#4a90e2');
+          barsSvg += '<rect class="dcf-chart-bar" x="' + x + '" y="' + y + '" width="' + barW + '" height="' + barH +
+            '" fill="' + color + '" rx="2" data-day="' + (i + 1) + '"><title>Day ' + (i + 1) + ': ' + d.total + ' item' + (d.total !== 1 ? 's' : '') + '</title></rect>';
+        }
+
+        /* Day number labels – show every day or every other day for 31-day months */
+        var showLabel = daysInMonth <= 28 || (i + 1) % 2 === 1;
+        if (showLabel) {
+          barsSvg += '<text x="' + (x + barW / 2) + '" y="' + (svgH - 1) + '" text-anchor="middle" font-size="7" class="dcf-day-label">' + (i + 1) + '</text>';
+        }
+
+        /* Build weekly average line point */
+        var wk = dayWeekBucket[i];
+        var avg = weekCounts[wk] > 0 ? weekSums[wk] / weekCounts[wk] : 0;
+        var lineX = x + barW / 2;
+        var lineY = chartArea - Math.floor((avg / maxCount) * (chartArea - 6));
+        avgLinePoints.push(lineX + ',' + lineY);
+      });
+      if (avgLinePoints.length > 1) {
+        barsSvg += '<polyline points="' + avgLinePoints.join(' ') + '" fill="none" stroke="#f39c12" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7">' +
+          '<title>Weekly average</title></polyline>';
+      }
+
       chartEl.setAttribute('viewBox', '0 0 ' + svgW + ' ' + svgH);
-      chartEl.innerHTML = bars;
+      chartEl.innerHTML = barsSvg;
+
+      /* Click-to-navigate: clicking a bar selects that day (wire once) */
+      if (!chartEl._dcfClickWired) {
+        chartEl._dcfClickWired = true;
+        chartEl.addEventListener('click', function (evt) {
+          var target = evt.target;
+          if (target.tagName === 'title') target = target.parentElement;
+          var dayNum = target && target.getAttribute('data-day');
+          if (!dayNum) return;
+          dayNum = parseInt(dayNum, 10);
+          if (isNaN(dayNum) || dayNum < 1) return;
+          window.selectedDay = dayNum;
+          try { generateCalendar(); } catch (_) {}
+          try { showReminders(dayNum); } catch (_) {}
+          try { refreshSplitPanel(); } catch (_) {}
+        });
+      }
+
+      /* Render monthly summary stats row */
+      renderMonthlyStats(dayData, yr, mo);
     }
 
     /* Donut chart SVG */
@@ -872,6 +980,62 @@
     }
   }
 
+  /* Render monthly summary stats below the activity chart */
+  function renderMonthlyStats(dayData, yr, mo) {
+    var statsEl = document.getElementById('dcfMonthlyStats');
+    if (!statsEl) return;
+
+    var totalItems = 0, totalEvents = 0, totalTasks = 0, totalRems = 0;
+    var busiestDay = 0, busiestCount = 0;
+    var activeDays = 0;
+    dayData.forEach(function (d, i) {
+      totalItems += d.total;
+      totalEvents += d.e;
+      totalTasks += d.t;
+      totalRems += d.r;
+      if (d.total > busiestCount) { busiestCount = d.total; busiestDay = i + 1; }
+      if (d.total > 0) activeDays++;
+    });
+    var avg = dayData.length > 0 ? (totalItems / dayData.length).toFixed(1) : '0';
+
+    /* Previous month comparison */
+    var prevMo = mo === 0 ? 11 : mo - 1;
+    var prevYr = mo === 0 ? yr - 1 : yr;
+    var prevData = gatherMonthData(prevYr, prevMo);
+    var prevTotal = 0;
+    prevData.dayData.forEach(function (d) { prevTotal += d.total; });
+    var prevAvg = prevData.daysInMonth > 0 ? (prevTotal / prevData.daysInMonth).toFixed(1) : '0';
+    var diff = totalItems - prevTotal;
+    var diffSign = diff > 0 ? '+' : '';
+    var diffColor = diff > 0 ? '#27ae60' : (diff < 0 ? '#e74c3c' : '#888');
+    var diffPct = prevTotal > 0 ? Math.round((diff / prevTotal) * 100) : 0;
+    var diffLabel = prevTotal === 0 && totalItems > 0 ? 'new' : (diffPct !== 0 ? diffSign + diffPct + '%' : 'same');
+
+    var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    statsEl.innerHTML =
+      '<div class="dcf-stat-card">' +
+        '<div class="dcf-stat-value">' + totalItems + '</div>' +
+        '<div class="dcf-stat-label">Total Items</div>' +
+        '<div class="dcf-stat-sub">' + totalEvents + 'E · ' + totalTasks + 'T · ' + totalRems + 'R</div>' +
+      '</div>' +
+      '<div class="dcf-stat-card">' +
+        '<div class="dcf-stat-value">' + avg + '</div>' +
+        '<div class="dcf-stat-label">Avg / Day</div>' +
+        '<div class="dcf-stat-sub">' + activeDays + ' of ' + dayData.length + ' active</div>' +
+      '</div>' +
+      '<div class="dcf-stat-card">' +
+        '<div class="dcf-stat-value">' + (busiestCount > 0 ? busiestDay : '—') + '</div>' +
+        '<div class="dcf-stat-label">Busiest Day</div>' +
+        '<div class="dcf-stat-sub">' + busiestCount + ' item' + (busiestCount !== 1 ? 's' : '') + '</div>' +
+      '</div>' +
+      '<div class="dcf-stat-card">' +
+        '<div class="dcf-stat-value" style="color:' + diffColor + '">' + diffSign + diff + '</div>' +
+        '<div class="dcf-stat-label">vs ' + monthNames[prevMo] + '</div>' +
+        '<div class="dcf-stat-sub" style="color:' + diffColor + '">' + diffLabel + ' · avg ' + prevAvg + '/d</div>' +
+      '</div>';
+  }
+
   function injectActivityChartRow() {
     if (document.getElementById('activityChartRow')) return;
     var calSummary = document.getElementById('calendarSummary');
@@ -884,24 +1048,64 @@
     /* Bar chart section */
     var barSec = document.createElement('div');
     barSec.style.flex = '2';
+    barSec.style.minWidth = '0';
+
+    /* Title row with mode toggle */
+    var titleRow = document.createElement('div');
+    titleRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap';
     var barTitle = document.createElement('div');
     barTitle.className = 'dcf-chart-title';
+    barTitle.style.margin = '0';
     barTitle.textContent = '📊 Daily Activity (items/day)';
+
+    /* Toggle button: stacked vs total */
+    var toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'dcf-chart-mode-btn';
+    toggleBtn.textContent = _chartMode === 'stacked' ? 'Stacked' : 'Total';
+    toggleBtn.title = 'Toggle between stacked (E/T/R breakdown) and total view';
+    toggleBtn.addEventListener('click', function () {
+      _chartMode = _chartMode === 'stacked' ? 'total' : 'stacked';
+      toggleBtn.textContent = _chartMode === 'stacked' ? 'Stacked' : 'Total';
+      renderActivityChart();
+    });
+
+    titleRow.appendChild(barTitle);
+    titleRow.appendChild(toggleBtn);
+
+    /* Stacked legend */
+    var stackLegend = document.createElement('div');
+    stackLegend.id = 'dcfStackLegend';
+    stackLegend.className = 'dcf-stack-legend';
+    stackLegend.innerHTML =
+      '<span><span class="dcf-legend-dot" style="background:#4a90e2"></span>Events</span>' +
+      '<span><span class="dcf-legend-dot" style="background:#27ae60"></span>Tasks</span>' +
+      '<span><span class="dcf-legend-dot" style="background:#e67e22"></span>Reminders</span>' +
+      '<span><span class="dcf-legend-dot" style="background:#f39c12;width:12px;height:2px;border-radius:1px"></span>Wk Avg</span>';
+    titleRow.appendChild(stackLegend);
+
+    barSec.appendChild(titleRow);
+
     var barSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     barSvg.id = 'dcfActivitySvg';
-    barSvg.style.cssText = 'width:100%;height:70px;display:block';
-    barSec.appendChild(barTitle);
+    barSvg.style.cssText = 'width:100%;height:100px;display:block;cursor:pointer';
     barSec.appendChild(barSvg);
+
+    /* Monthly stats row */
+    var statsRow = document.createElement('div');
+    statsRow.id = 'dcfMonthlyStats';
+    statsRow.className = 'dcf-monthly-stats';
+    barSec.appendChild(statsRow);
 
     /* Donut chart section */
     var donutSec = document.createElement('div');
-    donutSec.style.cssText = 'display:flex;flex-direction:column;align-items:center;min-width:80px';
+    donutSec.style.cssText = 'display:flex;flex-direction:column;align-items:center;min-width:100px';
     var donutTitle = document.createElement('div');
     donutTitle.className = 'dcf-chart-title';
     donutTitle.textContent = '🍩 By Domain';
     var donutSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     donutSvg.id = 'dcfDonutSvg';
-    donutSvg.style.cssText = 'width:80px;height:80px';
+    donutSvg.style.cssText = 'width:90px;height:90px';
     /* Legend */
     var legend = document.createElement('div');
     legend.id = 'dcfDonutLegend';
