@@ -2252,7 +2252,7 @@ function showView(view, updateHash = true){
     const candidate = (a.dataset && a.dataset.view) ? a.dataset.view : (href.indexOf('#')>-1 ? href.split('#').pop() : '');
     a.classList.toggle('active', candidate === view);
   });
-  if (view === 'today'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } try{ updateCompletionRing(); updateDayElapsedRing(); }catch(e){ console.warn(e); } }
+  if (view === 'today'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } try{ updateCompletionRing(); updateDayElapsedRing(); }catch(e){ console.warn(e); } try{ renderInboxWidget(); }catch(e){ console.warn(e); } }
   else if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } try{ renderCalendarSummary(); }catch(e){ console.warn(e); } }
   else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
@@ -2690,6 +2690,7 @@ function refreshAfterImport(){
   try { loadTasks(); } catch(_) {}
   try { renderJobs(); } catch(_) {}
   try { updateProfileUI(); } catch(_) {}
+  try { renderInboxWidget(); } catch(_) {}
   try { window.dispatchEvent(new CustomEvent('app:data:updated')); } catch(_) {}
   try { window.dispatchEvent(new Event('storage')); } catch(_) {}
 }
@@ -3428,6 +3429,91 @@ function renderInboxDailyItems(){
   list.innerHTML = html;
 }
 
+/* Render inbox preview widget on the Today dashboard */
+function renderInboxWidget(){
+  const container = document.getElementById('inboxWidgetList');
+  if (!container) return;
+
+  const todayStr = getTodayISO();
+
+  // Get tasks for today
+  const tasks = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) === todayStr; });
+  // Get reminders for today
+  const allRems = getReminders();
+  const todayReminders = allRems[todayStr] || [];
+
+  if (tasks.length === 0 && todayReminders.length === 0) {
+    container.innerHTML = '<p class="inbox-widget-empty">🎉 Nothing scheduled for today!</p>';
+    return;
+  }
+
+  var html = '';
+
+  // Render tasks
+  tasks.forEach(function(t){
+    var checked = t.done ? 'checked' : '';
+    var doneClass = t.done ? ' done' : '';
+    var timePart = t.time ? ' <span class="item-meta">[' + escapeHTML(t.time) + ']</span>' : '';
+    var priorityMap = {'1':'!','2':'!!','3':'!!!'};
+    var prioLabel = t.priority ? ' <span style="color:#e74c3c;font-size:0.78rem">' + (priorityMap[t.priority] || '') + '</span>' : '';
+    html += '<div class="inbox-widget-item task-item">'
+      + '<input type="checkbox" ' + checked + ' onchange="toggleInboxWidgetTaskDone(\'' + escapeHTML(t.id) + '\',this.checked)">'
+      + '<div class="item-content">'
+      + '<span class="item-title' + doneClass + '">✅ ' + escapeHTML(t.title || '') + '</span>' + timePart + prioLabel
+      + '</div></div>';
+  });
+
+  // Render reminders
+  todayReminders.forEach(function(r, idx){
+    var checked = r.done ? 'checked' : '';
+    var doneClass = r.done ? ' done' : '';
+    var timePart = r.time ? ' <span class="item-meta">[' + escapeHTML(r.time) + ']</span>' : '';
+    html += '<div class="inbox-widget-item reminder-item">'
+      + '<input type="checkbox" ' + checked + ' onchange="toggleInboxWidgetReminderDone(\'' + escapeHTML(todayStr) + '\',' + idx + ',this.checked)">'
+      + '<div class="item-content">'
+      + '<span class="item-title' + doneClass + '">🔔 ' + escapeHTML(r.text || r.title || '') + '</span>' + timePart
+      + '</div></div>';
+  });
+
+  container.innerHTML = html;
+}
+window.renderInboxWidget = renderInboxWidget;
+
+/* Toggle task done state from inbox widget on dashboard */
+function toggleInboxWidgetTaskDone(taskId, done){
+  const tasks = getTasks();
+  for (var i = 0; i < tasks.length; i++){
+    if (tasks[i] && String(tasks[i].id) === String(taskId)){
+      tasks[i].done = !!done;
+      break;
+    }
+  }
+  setTasks(tasks);
+  renderInboxWidget();
+  renderInboxDailyItems();
+  updateInboxBadge();
+  updateCompletionRing();
+  if (typeof window.dailyViewRefresh === 'function') try { window.dailyViewRefresh(); } catch(_){}
+  if (typeof loadTasks === 'function') try { loadTasks(); } catch(_){}
+}
+window.toggleInboxWidgetTaskDone = toggleInboxWidgetTaskDone;
+
+/* Toggle reminder done state from inbox widget on dashboard */
+function toggleInboxWidgetReminderDone(dateKey, index, done){
+  const r = getReminders();
+  if (r[dateKey] && r[dateKey][index]){
+    r[dateKey][index].done = !!done;
+    setReminders(r);
+  }
+  renderInboxWidget();
+  renderInboxDailyItems();
+  updateInboxBadge();
+  updateCompletionRing();
+  if (typeof window.dailyViewRefresh === 'function') try { window.dailyViewRefresh(); } catch(_){}
+  if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined') try { showReminders(selectedDay); } catch(_){}
+}
+window.toggleInboxWidgetReminderDone = toggleInboxWidgetReminderDone;
+
 /* Toggle task done state from inbox */
 function toggleInboxTaskDone(taskId, done){
   const tasks = getTasks();
@@ -3439,6 +3525,7 @@ function toggleInboxTaskDone(taskId, done){
   }
   setTasks(tasks);
   renderInboxDailyItems();
+  try { renderInboxWidget(); } catch(_){}
   updateInboxBadge();
   updateCompletionRing();
   // Re-render daily view and task list if visible
@@ -3455,6 +3542,7 @@ function toggleInboxReminderDone(dateKey, index, done){
     setReminders(r);
   }
   renderInboxDailyItems();
+  try { renderInboxWidget(); } catch(_){}
   updateInboxBadge();
   updateCompletionRing();
   // Re-render daily view and reminder bar if visible
@@ -6947,6 +7035,7 @@ document.addEventListener('DOMContentLoaded',function(){
   updateCompletionRing();
   updateWeeklySalary();
   renderDashboardWeather();
+  try { renderInboxWidget(); } catch(e) { console.warn('renderInboxWidget init error', e); }
   setInterval(function(){ updateDayElapsedRing(); updateCompletionRing(); }, 60000);
 
   /* Re-update rings when the daily-view date changes */
