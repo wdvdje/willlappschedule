@@ -5352,15 +5352,14 @@ function initCalendarAddItemPopup() {
   headerBtn.addEventListener('click', openModal);
   overlay.addEventListener('click', closeModal);
 
-  /* Show/hide header button based on current view — calendar only */
-  function updateAddBtnVisibility(view) {
-    headerBtn.style.display = (view === 'calendar') ? '' : 'none';
-  }
+  /* Show the header button on all main views */
+  headerBtn.style.display = '';
   window.addEventListener('view:show', function(e) {
-    updateAddBtnVisibility(e.detail && e.detail.view);
+    var view = e.detail && e.detail.view;
+    headerBtn.style.display = (view === 'settings' || view === 'inbox') ? 'none' : '';
   });
   var initHash = (location.hash && location.hash.length > 1) ? location.hash.slice(1) : 'today';
-  updateAddBtnVisibility(initHash);
+  headerBtn.style.display = (initHash === 'settings' || initHash === 'inbox') ? 'none' : '';
 
   /* Step 1 → Step 2 */
   step1.querySelectorAll('.cal-add-type-btn').forEach(function(btn) {
