@@ -226,11 +226,11 @@
   }
 
   function updateHeaderAndProfileStatus() {
-    const header = document.getElementById('appHeader');
+    const headerTitle = document.getElementById('appHeaderTitle');
     const profileStatus = document.getElementById('profileStatus');
     const name = resolveProfileName();
-    if (header) {
-      header.textContent = name ? `${name}'s Planner` : '📅 TimeScape Planner';
+    if (headerTitle) {
+      headerTitle.textContent = name ? `${name}'s Planner` : '📅 TimeScape Planner';
     }
     if (profileStatus) {
       profileStatus.textContent = name ? `Name set: ${name}` : 'Name not set';
