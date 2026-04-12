@@ -5506,6 +5506,8 @@ function setCalorieGoal(v) { localStorage.setItem('personalCalorieGoal', String(
 
 /* Track which day of the week is selected in the meal tracker */
 var _mealSelectedDate = null;
+var _MEAL_DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var _MEAL_DAY_FULL  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
 /* Return an array of { iso, label, dayName } for each day (Sun–Sat) of the current week */
 function getMealWeekDays() {
@@ -5514,14 +5516,13 @@ function getMealWeekDays() {
   var sun = new Date(today);
   sun.setDate(today.getDate() - dow);
   var days = [];
-  var dayLabels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   for (var i = 0; i < 7; i++) {
     var d = new Date(sun);
     d.setDate(sun.getDate() + i);
     days.push({
       iso: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()),
       label: pad2(d.getMonth() + 1) + '/' + pad2(d.getDate()),
-      dayName: dayLabels[i]
+      dayName: _MEAL_DAY_SHORT[i]
     });
   }
   return days;
@@ -5547,6 +5548,10 @@ function ensureEatingTrackerBucket() {
   var existing = buckets.find(function(b) { return b.name === 'Eating Tracker'; });
   if (existing) return existing.id;
   var newId = nextBucketId('personal');
+  /* Re-check after ID generation to guard against concurrent calls */
+  buckets = getBuckets('personal');
+  existing = buckets.find(function(b) { return b.name === 'Eating Tracker'; });
+  if (existing) return existing.id;
   buckets.push({ id: newId, name: 'Eating Tracker', emoji: '🍽️', collapsed: false });
   setBuckets('personal', buckets);
   return newId;
@@ -5558,7 +5563,6 @@ function syncMealWeekTasks() {
   var allMeals = getPersonalMeals();
   var bucketId = ensureEatingTrackerBucket();
   var tasks = getTasks();
-  var dayLabels = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
   /* Build a set of existing meal-task date keys for this week */
   var weekISOs = {};
@@ -5576,7 +5580,7 @@ function syncMealWeekTasks() {
   weekDays.forEach(function(wd) {
     var status = isMealDayComplete(allMeals, wd.iso);
     var d = new Date(wd.iso + 'T12:00:00');
-    var dayName = dayLabels[d.getDay()];
+    var dayName = _MEAL_DAY_FULL[d.getDay()];
 
     if (status !== 'complete') {
       /* Need a task for this day */
@@ -5630,10 +5634,9 @@ function renderMealTracker() {
   var selectedDate = _mealSelectedDate;
   var allMeals = getPersonalMeals();
 
-  /* Ensure selected date has a meals entry */
+  /* Use in-memory defaults for selected date if no meals saved yet (lazy — only persists on save) */
   if (!allMeals[selectedDate]) {
     allMeals[selectedDate] = { breakfast: { name: '', calories: 0 }, lunch: { name: '', calories: 0 }, dinner: { name: '', calories: 0 }, snacks: { name: '', calories: 0 } };
-    setPersonalMeals(allMeals);
   }
 
   var meals = allMeals[selectedDate];
