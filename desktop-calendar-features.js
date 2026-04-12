@@ -389,8 +389,8 @@
       });
       dayTasks.forEach(function (t) {
         var doneIcon = t.done ? '✅' : '⬜';
-        var doneStyle = t.done ? ' style="text-decoration:line-through;opacity:0.65"' : '';
-        ttHtml += '<div class="dcf-badge-tt-item"' + doneStyle + '><span class="dcf-badge-tt-kind dcf-badge-tt-kind-task">Task</span>' + doneIcon + ' ' + esc(t.title || t.text || '') + '</div>';
+        var doneCls = t.done ? ' style="text-decoration:line-through;opacity:0.65"' : '';
+        ttHtml += '<div class="dcf-badge-tt-item"' + doneCls + '><span class="dcf-badge-tt-kind dcf-badge-tt-kind-task">Task</span>' + doneIcon + ' ' + esc(t.title || t.text || '') + '</div>';
       });
       var dayRemsList = rems[ymd] || [];
       dayRemsList.forEach(function (r) {
