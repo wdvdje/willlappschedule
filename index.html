@@ -415,9 +415,9 @@
     .steps-add-btn { font-size:0.75rem; background:#4a90e2; color:#fff; border:none; border-radius:6px; padding:3px 8px; cursor:pointer; }
     .steps-toggle-btn { font-size:0.75rem; background:none; border:none; color:#4a90e2; cursor:pointer; padding:0; margin-top:3px; text-decoration:underline; }
     /* Chore Template Modal */
-    .chore-tpl-modal { position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:flex-end; justify-content:center; z-index:9999; }
+    .chore-tpl-modal { position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:center; justify-content:center; z-index:9999; }
     .chore-tpl-modal:not(.hidden) { display:flex; }
-    .chore-tpl-panel { background:#fff; border-radius:16px 16px 0 0; padding:16px; max-width:640px; width:100%; max-height:75vh; overflow-y:auto; box-shadow:0 -4px 24px rgba(0,0,0,0.15); }
+    .chore-tpl-panel { background:#fff; border-radius:16px; padding:16px; max-width:640px; width:calc(100% - 32px); max-height:75vh; overflow-y:auto; box-shadow:0 4px 24px rgba(0,0,0,0.18); margin-bottom:70px; }
     .chore-tpl-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
     .chore-tpl-title { font-size:1.05rem; font-weight:700; margin:0; }
     .chore-tpl-close { background:none; border:none; font-size:1.3rem; cursor:pointer; color:#888; padding:2px 6px; }
@@ -637,9 +637,12 @@
       </div>
 
       <!-- Category filter bar (dynamically populated from user buckets) -->
-      <div id="categoryFilterBar" style="max-width:100%;margin:0 auto 8px;padding:0 4px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:0.8rem;color:#666;margin-right:2px;font-weight:600">Domains:</span>
-        <button class="cat-filter-btn active" data-cat="all">All</button>
+      <div id="categoryFilterWrap" style="max-width:100%;margin:0 auto 8px;padding:0 4px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        <button id="categoryFilterToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="categoryFilterBar">🔍 Filter <span id="filterArrow" style="font-size:0.7rem">▸</span></button>
+        <div id="categoryFilterBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:0.8rem;color:#666;margin-right:2px;font-weight:600">Domains:</span>
+          <button class="cat-filter-btn active" data-cat="all">All</button>
+        </div>
       </div>
 
       <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
