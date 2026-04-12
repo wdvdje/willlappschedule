@@ -105,20 +105,38 @@
    */
   function getPhases() {
     var r = getRoutines();
-    if (r.phases && Array.isArray(r.phases) && r.phases.length > 0) return r.phases;
-    var phases = [];
-    ['morning', 'evening'].forEach(function (period) {
-      var steps = r[period] || [];
-      phases.push({
-        id: period,
-        name: period === 'morning' ? 'Morning' : 'Evening',
-        emoji: period === 'morning' ? '🌅' : '🌙',
-        startTime: period === 'morning' ? '06:30' : '21:00',
-        steps: steps.map(function (s) {
-          return typeof s === 'string' ? { text: s, duration: 0, notes: '' } : s;
-        })
+    var phases;
+    if (r.phases && Array.isArray(r.phases) && r.phases.length > 0) {
+      phases = r.phases;
+    } else {
+      phases = [];
+      ['morning', 'evening'].forEach(function (period) {
+        var steps = r[period] || [];
+        phases.push({
+          id: period,
+          name: period === 'morning' ? 'Morning' : 'Evening',
+          emoji: period === 'morning' ? '🌅' : '🌙',
+          startTime: period === 'morning' ? '06:30' : '21:00',
+          steps: steps.map(function (s) {
+            return typeof s === 'string' ? { text: s, duration: 0, notes: '' } : s;
+          })
+        });
       });
-    });
+    }
+    /* Apply today's sleep schedule overrides if available */
+    if (r.sleepScheduleTimes) {
+      var d = new Date();
+      var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+      var dayTimes = r.sleepScheduleTimes[dayName];
+      if (dayTimes) {
+        phases = phases.map(function(p) {
+          var copy = JSON.parse(JSON.stringify(p));
+          if (copy.id === 'morning' && dayTimes.morningStart) copy.startTime = dayTimes.morningStart;
+          if (copy.id === 'evening' && dayTimes.eveningStart) copy.startTime = dayTimes.eveningStart;
+          return copy;
+        });
+      }
+    }
     return phases;
   }
 

@@ -6217,8 +6217,40 @@ function renderMealTracker() {
    2. SLEEP / BEDTIME MANAGER
    ══════════════════════════════════════════════════════════════ */
 
-function getPersonalSleep() { return safeParseStorage('personalSleep', { targetBedtime: '22:30', targetWake: '07:00', log: {} }); }
+function getPersonalSleep() {
+  var data = safeParseStorage('personalSleep', { targetBedtime: '22:30', targetWake: '07:00', log: {} });
+  /* Migrate: ensure per-day schedule exists */
+  if (!data.schedule) {
+    var defaultBed = data.targetBedtime || '22:30';
+    var defaultWake = data.targetWake || '07:00';
+    data.schedule = {};
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(function(day) {
+      data.schedule[day] = { bedtime: defaultBed, wake: defaultWake };
+    });
+  }
+  return data;
+}
 function setPersonalSleep(data) { localStorage.setItem('personalSleep', JSON.stringify(data)); }
+
+/* Get the planned wake time for a given date ISO string */
+function getSleepWakeForDate(dateISO) {
+  var sleep = getPersonalSleep();
+  if (!sleep.schedule) return sleep.targetWake || '07:00';
+  var d = new Date(dateISO + 'T12:00:00');
+  var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  var daySchedule = sleep.schedule[dayName];
+  return daySchedule ? daySchedule.wake : (sleep.targetWake || '07:00');
+}
+
+/* Get the planned bedtime for a given date ISO string */
+function getSleepBedtimeForDate(dateISO) {
+  var sleep = getPersonalSleep();
+  if (!sleep.schedule) return sleep.targetBedtime || '22:30';
+  var d = new Date(dateISO + 'T12:00:00');
+  var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  var daySchedule = sleep.schedule[dayName];
+  return daySchedule ? daySchedule.bedtime : (sleep.targetBedtime || '22:30');
+}
 
 function renderSleepTracker() {
   var section = document.getElementById('personalSleepSection');
@@ -6228,22 +6260,72 @@ function renderSleepTracker() {
   var sleep = getPersonalSleep();
   var today = getTodayISO();
   var todayLog = sleep.log[today];
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   var card = buildPWCard('sleepCard', '😴', 'Bedtime Manager', function(body) {
-    // Target times
-    var targetRow = document.createElement('div');
-    targetRow.innerHTML =
-      '<div class="sleep-row">' +
-        '<label>🌙 Bedtime:</label>' +
-        '<input type="time" id="sleepTargetBed" value="' + (sleep.targetBedtime || '22:30') + '" />' +
-      '</div>' +
-      '<div class="sleep-row">' +
-        '<label>☀️ Wake up:</label>' +
-        '<input type="time" id="sleepTargetWake" value="' + (sleep.targetWake || '07:00') + '" />' +
-      '</div>';
-    body.appendChild(targetRow);
+    /* ── Per-day schedule grid ── */
+    var info = document.createElement('div');
+    info.style.cssText = 'font-size:0.82rem;color:#888;margin-bottom:8px';
+    info.textContent = 'Plan when you sleep and wake up each day of the week.';
+    body.appendChild(info);
 
-    // Status
+    var scheduleGrid = document.createElement('div');
+    scheduleGrid.style.cssText = 'display:grid;grid-template-columns:auto 1fr 1fr;gap:4px 8px;align-items:center;margin-bottom:12px';
+
+    /* Header row */
+    var hDay = document.createElement('div');
+    hDay.style.cssText = 'font-weight:600;font-size:0.8rem;color:#888';
+    hDay.textContent = 'Day';
+    var hBed = document.createElement('div');
+    hBed.style.cssText = 'font-weight:600;font-size:0.8rem;color:#888;text-align:center';
+    hBed.textContent = '🌙 Bedtime';
+    var hWake = document.createElement('div');
+    hWake.style.cssText = 'font-weight:600;font-size:0.8rem;color:#888;text-align:center';
+    hWake.textContent = '☀️ Wake';
+    scheduleGrid.appendChild(hDay);
+    scheduleGrid.appendChild(hBed);
+    scheduleGrid.appendChild(hWake);
+
+    DAYS.forEach(function(day) {
+      var ds = sleep.schedule[day] || { bedtime: '22:30', wake: '07:00' };
+      var dayLabel = document.createElement('div');
+      dayLabel.style.cssText = 'font-size:0.85rem;font-weight:600';
+      dayLabel.textContent = day;
+
+      var bedInput = document.createElement('input');
+      bedInput.type = 'time';
+      bedInput.value = ds.bedtime || '22:30';
+      bedInput.style.cssText = 'font-size:0.8rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;width:100%';
+      bedInput.dataset.day = day;
+      bedInput.dataset.field = 'bedtime';
+
+      var wakeInput = document.createElement('input');
+      wakeInput.type = 'time';
+      wakeInput.value = ds.wake || '07:00';
+      wakeInput.style.cssText = 'font-size:0.8rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;width:100%';
+      wakeInput.dataset.day = day;
+      wakeInput.dataset.field = 'wake';
+
+      scheduleGrid.appendChild(dayLabel);
+      scheduleGrid.appendChild(bedInput);
+      scheduleGrid.appendChild(wakeInput);
+
+      function onScheduleChange() {
+        var s = getPersonalSleep();
+        if (!s.schedule) s.schedule = {};
+        if (!s.schedule[day]) s.schedule[day] = {};
+        s.schedule[day].bedtime = bedInput.value;
+        s.schedule[day].wake = wakeInput.value;
+        setPersonalSleep(s);
+        /* Update routine phase times to match */
+        syncRoutineTimesFromSleep();
+      }
+      bedInput.addEventListener('change', onScheduleChange);
+      wakeInput.addEventListener('change', onScheduleChange);
+    });
+    body.appendChild(scheduleGrid);
+
+    // Status (today's logged sleep)
     var status = document.createElement('div');
     status.className = 'sleep-status';
     if (todayLog) {
@@ -6265,6 +6347,8 @@ function renderSleepTracker() {
           '<div class="sleep-status-detail">Bed: ' + (actualBed || '—') + ' → Wake: ' + (actualWake || '—') + (duration ? ' (' + duration + ')' : '') + '</div>' +
         '</div>';
     } else {
+      var todayDay = DAYS[new Date().getDay()];
+      var todaySched = sleep.schedule[todayDay] || { bedtime: '22:30', wake: '07:00' };
       status.innerHTML =
         '<div class="sleep-status-icon">🔲</div>' +
         '<div class="sleep-status-text">' +
@@ -6276,16 +6360,18 @@ function renderSleepTracker() {
     body.appendChild(status);
 
     // Log panel (hidden)
+    var todayDayForLog = DAYS[new Date().getDay()];
+    var todaySchedForLog = sleep.schedule[todayDayForLog] || { bedtime: '22:30', wake: '07:00' };
     var logPanel = document.createElement('div');
     logPanel.className = 'meal-edit-panel';
     logPanel.id = 'sleepLogPanel';
-    logPanel.style.display = todayLog ? 'none' : 'none';
+    logPanel.style.display = 'none';
     logPanel.innerHTML =
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
         '<label style="font-size:0.85rem">Bed:</label>' +
-        '<input type="time" id="sleepActualBed" value="' + (sleep.targetBedtime || '22:30') + '" />' +
+        '<input type="time" id="sleepActualBed" value="' + (todaySchedForLog.bedtime || '22:30') + '" />' +
         '<label style="font-size:0.85rem">Wake:</label>' +
-        '<input type="time" id="sleepActualWake" value="' + (sleep.targetWake || '07:00') + '" />' +
+        '<input type="time" id="sleepActualWake" value="' + (todaySchedForLog.wake || '07:00') + '" />' +
         '<button class="meal-save-btn" id="sleepSaveBtn">Save</button>' +
         '<button class="meal-cancel-btn" id="sleepCancelBtn">Cancel</button>' +
       '</div>';
@@ -6301,14 +6387,6 @@ function renderSleepTracker() {
     }
 
     // Wire events
-    var bedInput = body.querySelector('#sleepTargetBed');
-    var wakeInput = body.querySelector('#sleepTargetWake');
-    if (bedInput) bedInput.addEventListener('change', function() {
-      var s = getPersonalSleep(); s.targetBedtime = bedInput.value; setPersonalSleep(s);
-    });
-    if (wakeInput) wakeInput.addEventListener('change', function() {
-      var s = getPersonalSleep(); s.targetWake = wakeInput.value; setPersonalSleep(s);
-    });
     var logBtn = body.querySelector('#sleepLogBtn');
     if (logBtn) logBtn.addEventListener('click', function() {
       var p = document.getElementById('sleepLogPanel');
@@ -6331,6 +6409,56 @@ function renderSleepTracker() {
   }, 'pw_sleep');
 
   section.appendChild(card);
+}
+
+/**
+ * Sync routine phase start times based on bedtime manager schedule.
+ * Morning routine start time = wake time for the current day.
+ * Evening routine end time = bedtime for the current day, so
+ * evening start time = bedtime - total evening routine duration.
+ * This is stored as a per-day override in the routine data.
+ */
+function syncRoutineTimesFromSleep() {
+  var sleep = getPersonalSleep();
+  if (!sleep.schedule) return;
+  var routines = getPersonalRoutines();
+
+  /* Build per-day routine time overrides */
+  if (!routines.sleepScheduleTimes) routines.sleepScheduleTimes = {};
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  /* Calculate total duration of each routine period */
+  var morningDur = 0, eveningDur = 0;
+  if (routines.phases && Array.isArray(routines.phases)) {
+    routines.phases.forEach(function(phase) {
+      var dur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || 0); }, 0);
+      if (phase.id === 'morning') morningDur = dur;
+      if (phase.id === 'evening') eveningDur = dur;
+    });
+  } else {
+    (routines.morning || []).forEach(function() { morningDur += 15; });
+    (routines.evening || []).forEach(function() { eveningDur += 15; });
+  }
+
+  DAYS.forEach(function(day) {
+    var sched = sleep.schedule[day];
+    if (!sched) return;
+    routines.sleepScheduleTimes[day] = {
+      morningStart: sched.wake || '07:00',
+      eveningEnd: sched.bedtime || '22:30'
+    };
+    /* Compute evening start: bedtime minus total evening routine duration */
+    if (sched.bedtime && eveningDur > 0) {
+      var bedMin = timeToMinutes(sched.bedtime);
+      var evStart = bedMin - eveningDur;
+      if (evStart < 0) evStart += 1440;
+      var evH = Math.floor(evStart / 60);
+      var evM = evStart % 60;
+      routines.sleepScheduleTimes[day].eveningStart = pad2(evH) + ':' + pad2(evM);
+    }
+  });
+
+  setPersonalRoutines(routines);
 }
 
 function timeToMinutes(t) {
