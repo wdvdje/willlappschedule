@@ -17,55 +17,13 @@
   <header>
     <a href="index.html#inbox" class="header-btn" aria-label="Inbox"><span>📥</span><span style="font-size:0.75rem">Inbox</span></a>
     <span style="flex:1;text-align:center">📅 TimeScape Planner</span>
+    <button type="button" class="header-btn" id="headerAddItemBtn" aria-label="Add Item"><span>＋</span><span class="header-btn-label">Add</span></button>
     <a href="index.html#settings" class="header-btn" aria-label="Settings"><span>⚙️</span><span style="font-size:0.75rem">Settings</span></a>
   </header>
 
   <section class="events" style="max-width:640px;margin:18px auto;padding:0 12px;box-sizing:border-box">
     <h2 style="text-align:center">📅 Events</h2>
-    <form id="eventForm">
-      <input id="eventTitle" type="text" placeholder="Event title" required />
 
-      <div class="overlay-input" style="margin-top:8px">
-        <input id="eventDate" type="date" class="overlay-field" required />
-        <span class="overlay-label">Date</span>
-      </div>
-
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <div class="overlay-input" style="flex:1">
-          <input id="eventTime" type="time" class="overlay-field" />
-          <span class="overlay-label">Start time</span>
-        </div>
-        <div class="overlay-input" style="flex:1">
-          <input id="eventEndTime" type="time" class="overlay-field" />
-          <span class="overlay-label">End time</span>
-        </div>
-      </div>
-
-      <div class="places-suggestions" style="margin-top:8px">
-        <input id="eventLocation" type="text" placeholder="Location" autocomplete="off" autocorrect="off" autocapitalize="off" />
-        <div id="eventLocationList" class="suggestions-list" style="display:none"></div>
-      </div>
-      <input id="eventEmoji" type="text" placeholder="Emoji (e.g. 🎉)" style="margin-top:8px;width:36%" />
-      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-        <label style="min-width:90px;margin:0">Pre-buffer</label>
-        <select id="eventPreBuffer" style="width:120px">
-          <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
-          <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
-          <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
-          <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
-        </select>
-        <label style="min-width:90px;margin:0">Post-buffer</label>
-        <select id="eventPostBuffer" style="width:120px">
-          <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
-          <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
-          <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
-          <option value="50">50 min</option><option value="55">55 min</option><option value="60">60 min</option>
-        </select>
-      </div>
-      <div style="margin-top:12px;text-align:center">
-        <button id="addEventBtn" type="submit" style="width:160px">Add Event</button>
-      </div>
-    </form>
 
     <ul id="eventList" style="margin-top:12px;padding-left:0"></ul>
   </section>

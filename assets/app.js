@@ -5796,8 +5796,8 @@ document.addEventListener('DOMContentLoaded',function(){
     wireDomainForms();
     wireCalendarSummary();
     wireBucketPages();
-    initCalendarAddItemPopup();
   } catch(e) { console.warn('Feature wiring error', e); }
+  try { initCalendarAddItemPopup(); } catch(e) { console.warn('Add-item popup init error', e); }
   /* Refresh rings immediately and every 60s */
   updateDayElapsedRing();
   updateCompletionRing();

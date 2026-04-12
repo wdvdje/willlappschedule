@@ -17,6 +17,7 @@
   <header>
     <a href="index.html#inbox" class="header-btn" aria-label="Inbox"><span>📥</span><span style="font-size:0.75rem">Inbox</span></a>
     <span style="flex:1;text-align:center">📅 TimeScape Planner</span>
+    <button type="button" class="header-btn" id="headerAddItemBtn" aria-label="Add Item"><span>＋</span><span class="header-btn-label">Add</span></button>
     <a href="index.html#settings" class="header-btn" aria-label="Settings"><span>⚙️</span><span style="font-size:0.75rem">Settings</span></a>
   </header>
 
@@ -27,21 +28,7 @@
 
     <div id="reminderBar" aria-live="polite"></div>
 
-    <form id="reminderForm" style="margin-top:12px">
-      <div class="mobile-row" style="gap:8px;align-items:center">
-        <label class="mobile-label" for="reminderDate">Date</label>
-        <input id="reminderDate" type="date" />
-      </div>
-      <div style="margin-top:8px" class="mobile-row">
-        <label class="mobile-label" for="reminderInput">Reminder</label>
-        <input type="text" id="reminderInput" placeholder="Add reminder..." />
-      </div>
-      <div style="margin-top:8px" class="mobile-row">
-        <label class="mobile-label" for="reminderTime">Time</label>
-        <input type="time" id="reminderTime" style="width:36%" />
-        <button id="addReminderBtn" type="submit" style="width:auto;margin-left:8px">Add Reminder</button>
-      </div>
-    </form>
+
   </section>
 
   <!-- bottom ribbon navigation -->
