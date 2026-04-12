@@ -429,6 +429,13 @@
         }
         html += '<span class="' + titleClass + '">' + escapeHTML(item.title) + '</span>';
         if (timeStr) html += '<br><span class="dv-ev-time">' + escapeHTML(timeStr) + '</span>';
+        // Show buffer annotations as notes within the event block
+        if (item.hasTimes && (item.preBuffer > 0 || item.postBuffer > 0)) {
+          var bufParts = [];
+          if (item.preBuffer > 0) bufParts.push('🚗 ' + item.preBuffer + 'm before');
+          if (item.postBuffer > 0) bufParts.push(item.postBuffer + 'm after');
+          html += '<br><span class="dv-ev-buffer-note">' + bufParts.join(' · ') + '</span>';
+        }
         block.innerHTML = html;
 
         // Wire up checkbox for tasks and reminders
@@ -468,8 +475,8 @@
 
         // Render pre-buffer block (travel/prep time before the event)
         if (item.preBuffer > 0 && item.hasTimes) {
-          var preStart = Math.max(item.startMin - item.preBuffer, rangeStartMin);
-          var preEnd = Math.min(item.startMin, rangeEndMin);
+          var preEnd = s; // align to the event's visual start
+          var preStart = Math.max(preEnd - item.preBuffer, rangeStartMin);
           if (preEnd > preStart) {
             var preTopPx = ((preStart - rangeStartMin) / totalMinutes) * (hours.length * HOUR_HEIGHT);
             var preHeightPx = ((preEnd - preStart) / totalMinutes) * (hours.length * HOUR_HEIGHT);
@@ -489,7 +496,7 @@
 
         // Render post-buffer block (wind-down/travel time after the event)
         if (item.postBuffer > 0 && item.hasTimes) {
-          var postStart = Math.max(item.endMin > item.startMin ? item.endMin : item.endMin + 1440, rangeStartMin);
+          var postStart = e; // align to the event's visual end
           var postEnd = Math.min(postStart + item.postBuffer, rangeEndMin);
           if (postEnd > postStart) {
             var postTopPx = ((postStart - rangeStartMin) / totalMinutes) * (hours.length * HOUR_HEIGHT);

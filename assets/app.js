@@ -1045,8 +1045,8 @@ function editEvent(id){
   document.getElementById('editLocation').value = e.location || '';
   document.getElementById('editEmoji').value = e.emoji || '';
   if (document.getElementById('editCategory')) document.getElementById('editCategory').value = e.category || 'event';
-  document.getElementById('editPreBuffer').value = parseBufferMinutes(e.preBuffer || 5);
-  document.getElementById('editPostBuffer').value = parseBufferMinutes(e.postBuffer || 5);
+  document.getElementById('editPreBuffer').value = parseBufferMinutes(e.preBuffer || 0);
+  document.getElementById('editPostBuffer').value = parseBufferMinutes(e.postBuffer || 0);
   document.getElementById('editRepeat').value = e.repeat || 'none';
   document.getElementById('editRepeatUntil').value = e.repeatUntil || '';
   document.getElementById('editRepeatInterval').value = e.repeatInterval || 1;
