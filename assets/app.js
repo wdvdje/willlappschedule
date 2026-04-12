@@ -2320,6 +2320,7 @@ window.editEvent = editEvent;
 window.deleteEvent = deleteEvent;
 window.editReminder = editReminder;
 window.deleteReminder = deleteReminder;
+window.editTask = editTask;
 window.showView = showView;
 
 /* startup after DOM ready */
