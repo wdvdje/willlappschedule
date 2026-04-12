@@ -213,7 +213,7 @@ function migrateConsistencyData(){
       if (ev.postBuffer !== normPost) { ev.postBuffer = normPost; eventChanged = true; }
 
       const repeat = (ev.repeat || 'none').toString();
-      if (!['none','daily','2day','weekly','monthly','custom','weekday_ab'].includes(repeat)) {
+      if (!['none','daily','2day','weekday','weekly','monthly','custom','weekday_ab'].includes(repeat)) {
         ev.repeat = 'none';
         eventChanged = true;
       }
@@ -5077,7 +5077,7 @@ var DEFAULT_CHORE_TEMPLATES = [
   { emoji: '🪣', name: 'Mop floors',            repeat: 'monthly', energy: 'high',   defaultDate: 0 }
 ];
 
-var _REPEAT_LABELS = { daily: 'daily', '2day': 'every 2 days', weekly: 'weekly', monthly: 'monthly', none: 'once' };
+var _REPEAT_LABELS = { daily: 'daily', '2day': 'every 2 days', weekday: 'every weekday', weekly: 'weekly', monthly: 'monthly', none: 'once' };
 var _ENERGY_LABELS = { low: '🟢 Low', medium: '🟡 Medium', high: '🔴 High' };
 
 /* ── User-customisable chore template storage ────────────────── */
@@ -5435,6 +5435,7 @@ function renderChoreTemplateModalContent() {
       '<input type="text" id="newChoreTplName" placeholder="Chore name…" class="chore-tpl-name-input" />' +
       '<select id="newChoreTplRepeat" class="chore-tpl-sel">' +
         '<option value="daily">Daily</option><option value="2day">Every 2 days</option>' +
+        '<option value="weekday">Every weekday</option>' +
         '<option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option><option value="none">Once</option>' +
       '</select>' +
       '<select id="newChoreTplEnergy" class="chore-tpl-sel">' +
@@ -5510,7 +5511,7 @@ function renderChoreTemplateModalContent() {
 
         // populate selects
         var repSel = row.querySelector('.edit-repeat');
-        [['daily','Daily'],['2day','Every 2 days'],['weekly','Weekly'],['monthly','Monthly'],['none','Once']].forEach(function(p) {
+        [['daily','Daily'],['2day','Every 2 days'],['weekday','Every weekday'],['weekly','Weekly'],['monthly','Monthly'],['none','Once']].forEach(function(p) {
           var o = document.createElement('option'); o.value = p[0]; o.textContent = p[1];
           if (p[0] === tpl.repeat) o.selected = true;
           repSel.appendChild(o);

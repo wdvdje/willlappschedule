@@ -330,6 +330,10 @@
         // advance
         if (repeat === 'daily') d = addDaysISO(d, 1);
         else if (repeat === '2day') d = addDaysISO(d, 2);
+        else if (repeat === 'weekday') {
+          d = addDaysISO(d, 1);
+          while (true) { var wd = parseISO(d).getDay(); if (wd !== 0 && wd !== 6) break; d = addDaysISO(d, 1); }
+        }
         else if (repeat === 'weekly') d = addDaysISO(d, 7);
         else if (repeat === 'monthly') {
           d = addMonthsISO(d, 1);
