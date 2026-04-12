@@ -1557,8 +1557,12 @@
           } else if (action === 'edit-task' && typeof window.editTask === 'function') {
             window.editTask(parseInt(el.dataset.taskIdx, 10));
           } else if (action === 'edit-reminder' && typeof window.editReminder === 'function') {
-            var day = parseInt(el.dataset.remKey.split('-')[2], 10);
-            window.editReminder(day, parseInt(el.dataset.remIdx, 10));
+            var remKey = el.dataset.remKey || '';
+            var parts = remKey.split('-');
+            if (parts.length === 3) {
+              var day = parseInt(parts[2], 10);
+              window.editReminder(day, parseInt(el.dataset.remIdx, 10));
+            }
           }
         } catch (e) { console.warn('Panel item click error:', e); }
       });
