@@ -259,58 +259,57 @@
           weekIndex += 1;
         }
 
-        // Walk canonical slots with a persistent cumulative shift so that any
-        // day-off skip carries forward permanently to every subsequent occurrence.
-        // Slots before baseDate are skipped without affecting the shift: off-days
-        // before the event's own start date should not displace its schedule.
+        // Walk canonical slots tracking how many school days have been lost
+        // to off-days. For each canonical slot, advance that many school days
+        // forward (skipping weekends and off-days) to find the actual date.
         //
         // School A/B days form a continuous sequence of school days. A holiday
         // on ANY weekday — even one that was not itself a canonical event slot —
         // removes one day from the sequence and therefore shifts every subsequent
-        // occurrence forward by one. We handle this by scanning all weekdays
-        // strictly between consecutive canonical slots and counting any off-day
-        // found there as an additional cumulative shift before processing the
-        // next slot.
-        let cumulativeShift = 0;
+        // occurrence forward by one school day.
+        //
+        // Unlike a simple calendar-day shift, advancing by school days correctly
+        // handles weekend crossings: a 1-school-day shift from Friday lands on
+        // Monday (not Saturday), without permanently inflating the shift for
+        // subsequent slots.
+        let schoolDaysLost = 0;
         // scanFrom tracks where the inter-slot scan should begin (inclusive).
         // It starts at baseDate so that weekday holidays between baseDate and
         // the first canonical slot are counted, but days before baseDate are not.
         let scanFrom = baseDate;
         canonicalSlots.forEach(function(canonical) {
           if (canonical < baseDate) return;
-          // Count off-days on non-canonical weekdays in [scanFrom, canonical).
-          // Each such off-day removes one school day from the sequence and
-          // therefore shifts this and all later occurrences forward by one.
+          // Count off-days on weekdays in [scanFrom, canonical).
+          // Each such off-day removes one school day from the sequence.
           if (skipDates) {
             let scanDate = scanFrom;
             while (scanDate < canonical) {
               const sdow = parseISO(scanDate).getDay();
               if (sdow !== 0 && sdow !== 6 && skipDates[scanDate]) {
-                cumulativeShift++;
+                schoolDaysLost++;
               }
               scanDate = addDaysISO(scanDate, 1);
             }
           }
           // Next scan starts after this canonical slot so it is not re-scanned.
           scanFrom = addDaysISO(canonical, 1);
-          let candidate = addDaysISO(canonical, cumulativeShift);
-          // Advance past weekends and off-days, growing the cumulative shift each
-          // time. Cap at 60 iterations to cover any extended holiday block (e.g.
-          // a month of consecutive off-days bridging weekends).
+          // Check if the canonical date itself is an off-day (the inter-slot
+          // scan excludes the canonical date, so we check it separately).
+          if (skipDates && skipDates[canonical]) {
+            schoolDaysLost++;
+          }
+          // Advance schoolDaysLost school days from the canonical date.
+          // Each step skips weekends and off-days without permanently
+          // inflating the shift count.
+          let candidate = canonical;
+          let remaining = schoolDaysLost;
           let safety = 0;
-          while (safety++ < 60) {
+          while (remaining > 0 && safety++ < 200) {
+            candidate = addDaysISO(candidate, 1);
             const dow = parseISO(candidate).getDay();
-            if (dow === 0 || dow === 6) {
-              cumulativeShift++;
-              candidate = addDaysISO(canonical, cumulativeShift);
-              continue;
-            }
-            if (skipDates && skipDates[candidate]) {
-              cumulativeShift++;
-              candidate = addDaysISO(canonical, cumulativeShift);
-              continue;
-            }
-            break;
+            if (dow === 0 || dow === 6) continue;
+            if (skipDates && skipDates[candidate]) continue;
+            remaining--;
           }
           if (candidate > effectiveEnd) return;
           pushIfInRange(candidate);
