@@ -849,22 +849,25 @@
       var colTask = '#27ae60'; /* green for tasks */
       var colRem = '#e67e22';  /* orange for reminders */
 
-      /* Compute weekly averages (Mon–Sun buckets) */
+      /* Compute weekly averages and per-day bucket index in a single pass */
       var weekSums = [];
       var weekCounts = [];
+      var dayWeekBucket = []; /* bucket index per day */
       dayData.forEach(function (d, i) {
-        var dt = new Date(yr, mo, i + 1);
         var wk = Math.floor(i / 7);
+        dayWeekBucket.push(wk);
         if (!weekSums[wk]) { weekSums[wk] = 0; weekCounts[wk] = 0; }
         weekSums[wk] += d.total;
         weekCounts[wk]++;
       });
 
+      var avgLinePoints = [];
       dayData.forEach(function (d, i) {
         var x = i * (barW + 2);
         var ymd2 = yr + '-' + p2(mo + 1) + '-' + p2(i + 1);
         var isToday = ymd2 === todayStr;
         var totalH = Math.max(2, Math.floor((d.total / maxCount) * (chartArea - 6)));
+        var tipText = 'Day ' + (i + 1) + ': ' + d.e + ' event' + (d.e !== 1 ? 's' : '') + ', ' + d.t + ' task' + (d.t !== 1 ? 's' : '') + ', ' + d.r + ' reminder' + (d.r !== 1 ? 's' : '');
 
         if (_chartMode === 'stacked' && d.total > 0) {
           /* Stacked: events on bottom, tasks in middle, reminders on top */
@@ -878,19 +881,19 @@
           if (eH > 0) {
             barsSvg += '<rect class="dcf-chart-bar" x="' + x + '" y="' + (baseY + rH + tH) + '" width="' + barW + '" height="' + eH +
               '" fill="' + (isToday ? '#c0392b' : colEvt) + '" rx="1"' +
-              ' data-day="' + (i + 1) + '"><title>Day ' + (i + 1) + ': ' + d.e + ' event' + (d.e !== 1 ? 's' : '') + ', ' + d.t + ' task' + (d.t !== 1 ? 's' : '') + ', ' + d.r + ' reminder' + (d.r !== 1 ? 's' : '') + '</title></rect>';
+              ' data-day="' + (i + 1) + '"><title>' + tipText + '</title></rect>';
           }
           /* Tasks segment (middle) */
           if (tH > 0) {
             barsSvg += '<rect class="dcf-chart-bar" x="' + x + '" y="' + (baseY + rH) + '" width="' + barW + '" height="' + tH +
               '" fill="' + (isToday ? '#e74c3c' : colTask) + '" rx="0"' +
-              ' data-day="' + (i + 1) + '"><title>Day ' + (i + 1) + ': ' + d.e + ' event' + (d.e !== 1 ? 's' : '') + ', ' + d.t + ' task' + (d.t !== 1 ? 's' : '') + ', ' + d.r + ' reminder' + (d.r !== 1 ? 's' : '') + '</title></rect>';
+              ' data-day="' + (i + 1) + '"><title>' + tipText + '</title></rect>';
           }
           /* Reminders segment (top) */
           if (rH > 0) {
             barsSvg += '<rect class="dcf-chart-bar" x="' + x + '" y="' + baseY + '" width="' + barW + '" height="' + rH +
               '" fill="' + (isToday ? '#ff6b6b' : colRem) + '" rx="1"' +
-              ' data-day="' + (i + 1) + '"><title>Day ' + (i + 1) + ': ' + d.e + ' event' + (d.e !== 1 ? 's' : '') + ', ' + d.t + ' task' + (d.t !== 1 ? 's' : '') + ', ' + d.r + ' reminder' + (d.r !== 1 ? 's' : '') + '</title></rect>';
+              ' data-day="' + (i + 1) + '"><title>' + tipText + '</title></rect>';
           }
         } else {
           /* Total mode or empty day */
@@ -904,18 +907,15 @@
         /* Day number labels – show every day or every other day for 31-day months */
         var showLabel = daysInMonth <= 28 || (i + 1) % 2 === 1;
         if (showLabel) {
-          barsSvg += '<text x="' + (x + barW / 2) + '" y="' + (svgH - 1) + '" text-anchor="middle" font-size="7" fill="#999" class="dcf-day-label">' + (i + 1) + '</text>';
+          barsSvg += '<text x="' + (x + barW / 2) + '" y="' + (svgH - 1) + '" text-anchor="middle" font-size="7" class="dcf-day-label">' + (i + 1) + '</text>';
         }
-      });
 
-      /* Weekly average line */
-      var avgLinePoints = [];
-      dayData.forEach(function (d, i) {
-        var wk = Math.floor(i / 7);
+        /* Build weekly average line point */
+        var wk = dayWeekBucket[i];
         var avg = weekCounts[wk] > 0 ? weekSums[wk] / weekCounts[wk] : 0;
-        var x = i * (barW + 2) + barW / 2;
-        var y = chartArea - Math.floor((avg / maxCount) * (chartArea - 6));
-        avgLinePoints.push(x + ',' + y);
+        var lineX = x + barW / 2;
+        var lineY = chartArea - Math.floor((avg / maxCount) * (chartArea - 6));
+        avgLinePoints.push(lineX + ',' + lineY);
       });
       if (avgLinePoints.length > 1) {
         barsSvg += '<polyline points="' + avgLinePoints.join(' ') + '" fill="none" stroke="#f39c12" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.7">' +
@@ -1006,9 +1006,10 @@
     prevData.dayData.forEach(function (d) { prevTotal += d.total; });
     var prevAvg = prevData.daysInMonth > 0 ? (prevTotal / prevData.daysInMonth).toFixed(1) : '0';
     var diff = totalItems - prevTotal;
-    var diffPct = prevTotal > 0 ? Math.round((diff / prevTotal) * 100) : (totalItems > 0 ? 100 : 0);
     var diffSign = diff > 0 ? '+' : '';
     var diffColor = diff > 0 ? '#27ae60' : (diff < 0 ? '#e74c3c' : '#888');
+    var diffPct = prevTotal > 0 ? Math.round((diff / prevTotal) * 100) : 0;
+    var diffLabel = prevTotal === 0 && totalItems > 0 ? 'new' : (diffPct !== 0 ? diffSign + diffPct + '%' : 'same');
 
     var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -1024,14 +1025,14 @@
         '<div class="dcf-stat-sub">' + activeDays + ' of ' + dayData.length + ' active</div>' +
       '</div>' +
       '<div class="dcf-stat-card">' +
-        '<div class="dcf-stat-value">' + (busiestCount > 0 ? monthNames[mo] + ' ' + busiestDay : '—') + '</div>' +
+        '<div class="dcf-stat-value">' + (busiestCount > 0 ? busiestDay : '—') + '</div>' +
         '<div class="dcf-stat-label">Busiest Day</div>' +
         '<div class="dcf-stat-sub">' + busiestCount + ' item' + (busiestCount !== 1 ? 's' : '') + '</div>' +
       '</div>' +
       '<div class="dcf-stat-card">' +
         '<div class="dcf-stat-value" style="color:' + diffColor + '">' + diffSign + diff + '</div>' +
         '<div class="dcf-stat-label">vs ' + monthNames[prevMo] + '</div>' +
-        '<div class="dcf-stat-sub" style="color:' + diffColor + '">' + (diffPct !== 0 ? diffSign + diffPct + '%' : 'same') + ' · avg ' + prevAvg + '/d</div>' +
+        '<div class="dcf-stat-sub" style="color:' + diffColor + '">' + diffLabel + ' · avg ' + prevAvg + '/d</div>' +
       '</div>';
   }
 

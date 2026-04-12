@@ -741,7 +741,7 @@ body.dark-mode .dcf-stat-label { color: #999; }
 body.dark-mode .dcf-stat-sub { color: #777; }
 
 /* ── Day labels on chart ── */
-.dcf-day-label { user-select: none; pointer-events: none; }
+.dcf-day-label { user-select: none; pointer-events: none; fill: #999; }
 body.dark-mode .dcf-day-label { fill: #666; }
 
 /* ── Layer toggle bar ── */
