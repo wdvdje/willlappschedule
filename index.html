@@ -462,6 +462,8 @@
 
     /* ===== Desktop: domain-colored event banners in calendar ===== */
     @media (min-width: 901px) {
+      /* Calendar page: expand wider than other pages, near full viewport width */
+      #page-calendar { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; }
       .day { min-height: 90px; }
       .emoji-row { max-height: none; gap: 3px; flex-direction: column; align-items: stretch; overflow-y: auto; }
       .event-preview {
@@ -495,6 +497,13 @@
       .event-preview .ep-emoji { flex-shrink: 0; }
       .event-preview.reminder { --domain-color: #e67e22; --domain-bg: rgba(230,126,34,0.10); }
       .event-preview.task { --domain-color: #27ae60; --domain-bg: rgba(39,174,96,0.10); }
+    }
+    /* Super-wide screens: cap calendar width so it doesn't stretch edge-to-edge */
+    @media (min-width: 1800px) {
+      #page-calendar { max-width: calc(100vw - 280px); margin-left: auto; margin-right: auto; }
+    }
+    @media (min-width: 2400px) {
+      #page-calendar { max-width: calc(100vw - 400px); }
     }
   </style>
 </head>
@@ -599,7 +608,7 @@
       </div>
 
       <!-- Category filter bar (dynamically populated from user buckets) -->
-      <div id="categoryFilterBar" style="max-width:720px;margin:0 auto 8px;padding:0 4px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+      <div id="categoryFilterBar" style="max-width:100%;margin:0 auto 8px;padding:0 4px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
         <span style="font-size:0.8rem;color:#666;margin-right:2px;font-weight:600">Domains:</span>
         <button class="cat-filter-btn active" data-cat="all">All</button>
       </div>
