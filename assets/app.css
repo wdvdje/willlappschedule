@@ -397,6 +397,84 @@ body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
 /* ===== NEW: week view grid ===== */
 .week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; min-width:560px; background:#fff; border-radius:10px; box-shadow:0 1px 8px rgba(0,0,0,0.07); padding:8px; box-sizing:border-box; }
 .week-col { display:flex; flex-direction:column; min-height:120px; }
+
+/* Desktop 4+3 split week layout */
+@media (min-width: 901px) {
+  .week-grid {
+    grid-template-columns: repeat(4, 1fr);
+    min-width: 0;
+  }
+  .week-grid .week-col:nth-child(5),
+  .week-grid .week-col:nth-child(6),
+  .week-grid .week-col:nth-child(7) {
+    /* Push last 3 to right */
+  }
+  .week-grid {
+    justify-items: stretch;
+  }
+  .week-grid::after {
+    content: '';
+    grid-column: 1;
+    height: 0;
+  }
+  .week-row-split {
+    display: grid;
+    gap: 4px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    padding: 8px;
+    box-sizing: border-box;
+  }
+  .week-row-split.week-row-first {
+    grid-template-columns: repeat(4, 1fr);
+    justify-content: start;
+    border-radius: 10px 10px 4px 4px;
+    margin-bottom: 2px;
+    padding-bottom: 4px;
+  }
+  .week-row-split.week-row-second {
+    grid-template-columns: repeat(3, 1fr);
+    justify-content: end;
+    border-radius: 4px 4px 10px 10px;
+    padding-top: 4px;
+    margin-left: auto;
+    width: 75%;
+  }
+  .week-grid-wrapper {
+    width: 100%;
+  }
+  body.dark-mode .week-row-split { background: #16213e; }
+
+  /* 2-week grid same 4+3 split */
+  .dcf-2week-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    min-width: 0 !important;
+  }
+  .dcf-2week-row-split {
+    display: grid;
+    gap: 4px;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    padding: 8px;
+    box-sizing: border-box;
+  }
+  .dcf-2week-row-split.week-row-first {
+    grid-template-columns: repeat(4, 1fr);
+    border-radius: 10px 10px 4px 4px;
+    margin-bottom: 2px;
+    padding-bottom: 4px;
+  }
+  .dcf-2week-row-split.week-row-second {
+    grid-template-columns: repeat(3, 1fr);
+    border-radius: 4px 4px 10px 10px;
+    padding-top: 4px;
+    margin-left: auto;
+    width: 75%;
+  }
+  body.dark-mode .dcf-2week-row-split { background: #16213e; }
+}
 .week-col-header { font-weight:700; font-size:0.82rem; text-align:center; padding:4px 2px; border-radius:6px; margin-bottom:4px; }
 .week-col-header.today { background:#4a90e2; color:#fff; }
 .week-col-header.selected { outline:2px solid #4a90e2; }

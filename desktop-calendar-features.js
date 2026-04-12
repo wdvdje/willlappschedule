@@ -106,10 +106,13 @@
       'body.dark-mode .dv-hour-slot { border-color: #2a2a4a !important; }',
       'body.dark-mode .week-grid { background: #16213e !important; }',
       'body.dark-mode .week-col { background: #1e2d45 !important; }',
+      'body.dark-mode .week-row-split { background: #16213e !important; }',
+      'body.dark-mode .dcf-2week-row-split { background: #16213e !important; }',
       'body.dark-mode #dtAgendaSidebar, body.dark-mode .cal-side-panel { background: #16213e !important; color: #e0e0e0 !important; }',
       'body.dark-mode #calActivityRow { background: #16213e !important; }',
       'body.dark-mode .dcf-year-cell { background: #1e2d45 !important; }',
-      'body.dark-mode .dcf-streak-badge { background: #2a3a5e !important; color: #ffa !important; }'
+      'body.dark-mode .dcf-streak-badge { background: #2a3a5e !important; color: #ffa !important; }',
+      'body.dark-mode .dcf-day-timeline { color: #e0e0e0; }'
     ].join('\n');
     document.head.appendChild(style);
 
@@ -258,6 +261,22 @@
       'body.dark-mode .dcf-split-kind-reminder { background:#3a2a10;color:#f0c060; }',
       '.dcf-split-time { font-size:0.72rem;color:#888;display:block; }',
       'body.dark-mode .dcf-split-time { color:#aaa; }',
+      '.dcf-day-timeline { position:relative;display:flex; }',
+      '.dcf-day-timeline-gutter { width:36px;flex-shrink:0;position:relative; }',
+      '.dcf-day-timeline-gutter-lbl { position:absolute;right:4px;font-size:0.62rem;color:#999;font-weight:600;line-height:1; }',
+      '.dcf-day-timeline-body { flex:1;position:relative;border-left:1px solid #e8e8e8; }',
+      'body.dark-mode .dcf-day-timeline-body { border-left-color:#2a2a4a; }',
+      '.dcf-day-timeline-slot { position:absolute;left:0;right:0;border-bottom:1px solid #f0f0f0;height:0; }',
+      'body.dark-mode .dcf-day-timeline-slot { border-color:#2a2a4a; }',
+      '.dcf-day-timeline-half { position:absolute;left:0;right:0;border-bottom:1px dashed #f5f5f5;height:0; }',
+      'body.dark-mode .dcf-day-timeline-half { border-color:#222; }',
+      '.dcf-day-timeline-block { position:absolute;border-radius:4px;padding:2px 4px;overflow:hidden;cursor:pointer;font-size:0.7rem;line-height:1.2;border-left:3px solid;z-index:5;box-sizing:border-box; }',
+      '.dcf-day-timeline-block:hover { filter:brightness(0.95); }',
+      '.dcf-day-timeline-now { position:absolute;left:0;right:0;height:2px;background:#e74c3c;z-index:10;pointer-events:none; }',
+      '.dcf-day-timeline-now-dot { position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#e74c3c; }',
+      '.dcf-day-untimed-section { margin-top:8px;border-top:1px solid #eee;padding-top:6px; }',
+      'body.dark-mode .dcf-day-untimed-section { border-color:#2a2a4a; }',
+      '.dcf-day-untimed-header { font-size:0.65rem;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:4px; }',
       '.dcf-cmd-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10002;display:none;align-items:flex-start;justify-content:center;padding-top:80px; }',
       '.dcf-cmd-overlay.open { display:flex; }',
       '.dcf-cmd-panel { background:#fff;border-radius:14px;width:94%;max-width:580px;box-shadow:0 8px 40px rgba(0,0,0,0.22);overflow:hidden; }',
@@ -637,68 +656,95 @@
     var wrap = document.createElement('div');
     wrap.style.cssText = 'overflow-x:auto;max-width:100%;margin:0 auto 12px';
 
-    for (var week = 0; week < 2; week++) {
-      var grid = document.createElement('div');
-      grid.className = 'dcf-2week-grid';
-      grid.style.marginBottom = '6px';
+    function buildCol(d) {
+      var ymd = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+      var isToday = ymd === todayStr;
+      var isSelected = (d.getFullYear() === selYear() && d.getMonth() === selMonth() && d.getDate() === (window.selectedDay || 0));
+      var isWknd = d.getDay() === 0 || d.getDay() === 6;
 
-      for (var i = 0; i < 7; i++) {
-        var d = new Date(startDate);
-        d.setDate(startDate.getDate() + week * 7 + i);
-        var ymd = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
-        var isToday = ymd === todayStr;
-        var isSelected = (d.getFullYear() === selYear() && d.getMonth() === selMonth() && d.getDate() === (window.selectedDay || 0));
-        var isWknd = d.getDay() === 0 || d.getDay() === 6;
+      var col = document.createElement('div');
+      col.className = 'week-col';
+      col.style.background = isWknd ? '#f0ecfa' : '#f0f7ff';
+      col.style.borderRadius = '8px';
+      col.style.padding = '4px';
+      col.style.minHeight = '80px';
 
-        var col = document.createElement('div');
-        col.className = 'week-col';
-        col.style.background = isWknd ? '#f0ecfa' : '#f0f7ff';
-        col.style.borderRadius = '8px';
-        col.style.padding = '4px';
-        col.style.minHeight = '80px';
-
-        var hdr = document.createElement('div');
-        hdr.className = 'week-col-header' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
-        hdr.textContent = ['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()] + ' ' + d.getDate();
-        hdr.style.cursor = 'pointer';
-        (function (dd) {
-          hdr.addEventListener('click', function () {
-            window.selectedYear = dd.getFullYear();
-            window.selectedMonth = dd.getMonth();
-            window.selectedDay = dd.getDate();
-            render2WeekView();
-            try { showReminders(dd.getDate()); } catch (_) {}
-          });
-        })(d);
-        col.appendChild(hdr);
-
-        var dcs = safeDomainColors();
-        evts.filter(function (e) { return nd(e.date) === ymd; }).forEach(function (ev) {
-          var chip = document.createElement('div');
-          chip.className = 'week-chip event';
-          var repeatIcon = (ev.repeat && ev.repeat !== 'none') ? ' 🔁' : '';
-          chip.textContent = (ev.emoji || '') + ' ' + (ev.time ? ev.time + ' ' : '') + (ev.title || '') + repeatIcon;
-          chip.style.borderLeftColor = dcs[ev.domain || 'personal'] || '#4a90e2';
-          chip.title = ev.title || '';
-          col.appendChild(chip);
+      var hdr = document.createElement('div');
+      hdr.className = 'week-col-header' + (isToday ? ' today' : '') + (isSelected ? ' selected' : '');
+      hdr.textContent = ['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()] + ' ' + d.getDate();
+      hdr.style.cursor = 'pointer';
+      (function (dd) {
+        hdr.addEventListener('click', function () {
+          window.selectedYear = dd.getFullYear();
+          window.selectedMonth = dd.getMonth();
+          window.selectedDay = dd.getDate();
+          render2WeekView();
+          try { showReminders(dd.getDate()); } catch (_) {}
         });
-        tasks.filter(function (t) { return nd(t.date) === ymd; }).forEach(function (t) {
-          var chip = document.createElement('div');
-          chip.className = 'week-chip task';
-          chip.textContent = (t.done ? '✅' : '⬜') + ' ' + (t.title || t.text || '');
-          col.appendChild(chip);
-        });
-        var dayRems = rems[ymd] || [];
-        if (dayRems.length) {
-          var chip = document.createElement('div');
-          chip.className = 'week-chip reminder';
-          chip.textContent = '🔔 ' + dayRems.length + ' reminder' + (dayRems.length > 1 ? 's' : '');
-          col.appendChild(chip);
-        }
+      })(d);
+      col.appendChild(hdr);
 
-        grid.appendChild(col);
+      var dcs = safeDomainColors();
+      evts.filter(function (e) { return nd(e.date) === ymd; }).forEach(function (ev) {
+        var chip = document.createElement('div');
+        chip.className = 'week-chip event';
+        var repeatIcon = (ev.repeat && ev.repeat !== 'none') ? ' 🔁' : '';
+        chip.textContent = (ev.emoji || '') + ' ' + (ev.time ? ev.time + ' ' : '') + (ev.title || '') + repeatIcon;
+        chip.style.borderLeftColor = dcs[ev.domain || 'personal'] || '#4a90e2';
+        chip.title = ev.title || '';
+        col.appendChild(chip);
+      });
+      tasks.filter(function (t) { return nd(t.date) === ymd; }).forEach(function (t) {
+        var chip = document.createElement('div');
+        chip.className = 'week-chip task';
+        chip.textContent = (t.done ? '✅' : '⬜') + ' ' + (t.title || t.text || '');
+        col.appendChild(chip);
+      });
+      var dayRems = rems[ymd] || [];
+      if (dayRems.length) {
+        var chip = document.createElement('div');
+        chip.className = 'week-chip reminder';
+        chip.textContent = '🔔 ' + dayRems.length + ' reminder' + (dayRems.length > 1 ? 's' : '');
+        col.appendChild(chip);
       }
-      wrap.appendChild(grid);
+
+      return col;
+    }
+
+    for (var week = 0; week < 2; week++) {
+      if (isDesktop()) {
+        /* Desktop: 4+3 split */
+        var row1 = document.createElement('div');
+        row1.className = 'dcf-2week-row-split week-row-first';
+        var row2 = document.createElement('div');
+        row2.className = 'dcf-2week-row-split week-row-second';
+        for (var i = 0; i < 7; i++) {
+          var d = new Date(startDate);
+          d.setDate(startDate.getDate() + week * 7 + i);
+          var col = buildCol(d);
+          if (i < 4) row1.appendChild(col);
+          else row2.appendChild(col);
+        }
+        wrap.appendChild(row1);
+        wrap.appendChild(row2);
+        if (week === 0) {
+          /* Visual separator between the two weeks */
+          var sep = document.createElement('div');
+          sep.style.cssText = 'height:8px';
+          wrap.appendChild(sep);
+        }
+      } else {
+        /* Mobile: 7-col grid */
+        var grid = document.createElement('div');
+        grid.className = 'dcf-2week-grid';
+        grid.style.marginBottom = '6px';
+        for (var i = 0; i < 7; i++) {
+          var d = new Date(startDate);
+          d.setDate(startDate.getDate() + week * 7 + i);
+          grid.appendChild(buildCol(d));
+        }
+        wrap.appendChild(grid);
+      }
     }
 
     /* Week range label */
@@ -1571,34 +1617,253 @@
     var rems = safeRems()[ymd] || [];
     var dcs = safeDomainColors();
 
-    var html = '';
     if (!evts.length && !tasks.length && !rems.length) {
-      html = '<div style="color:#aaa;padding:8px 0;text-align:center">Nothing scheduled.</div>';
-    } else {
-      /* Sort events by time */
-      var items = [];
-      evts.forEach(function (e) { items.push({ kind: 'event', time: e.time || '23:59', title: e.title || '', color: dcs[e.domain || 'personal'] || '#4a90e2', emoji: e.emoji || '📌', endTime: e.endTime || '', repeat: e.repeat || 'none', eventId: e.id }); });
-      tasks.forEach(function (entry) { var t = entry.task; items.push({ kind: 'task', time: t.time || '23:59', title: t.title || t.text || '', color: '#27ae60', emoji: t.done ? '✅' : '⬜', done: t.done, taskIdx: entry.idx }); });
-      rems.forEach(function (r, ri) { items.push({ kind: 'reminder', time: r.time || '23:59', title: r.text || '', color: '#e67e22', emoji: '🔔', remKey: ymd, remIdx: ri }); });
-      items.sort(function (a, b) { return a.time.localeCompare(b.time); });
+      content.innerHTML = '<div style="color:#aaa;padding:8px 0;text-align:center">Nothing scheduled.</div>';
+      return;
+    }
 
-      items.forEach(function (item) {
-        var repeatIcon = (item.repeat && item.repeat !== 'none') ? ' 🔁' : '';
+    /* Build unified items list with minute-based times, mirroring daily-view.js */
+    var items = [];
+    function toMin(t) {
+      if (!t) return null;
+      var s = String(t).trim();
+      var m = s.match(/(\d{1,2}):(\d{2})/);
+      if (!m) return null;
+      return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    }
+    function fmtTime(minutes) {
+      var h = Math.floor((minutes % 1440) / 60);
+      var m = minutes % 60;
+      return p2(h) + ':' + p2(m);
+    }
+    function lighten(hex, alpha) {
+      if (!hex || hex[0] !== '#') return 'rgba(74,144,226,' + alpha + ')';
+      var r = parseInt(hex.substr(1, 2), 16);
+      var g = parseInt(hex.substr(3, 2), 16);
+      var b = parseInt(hex.substr(5, 2), 16);
+      return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+    }
+
+    evts.forEach(function (e) {
+      var s = toMin(e.time);
+      var en = toMin(e.endTime);
+      var hasTimes = s !== null;
+      if (s === null) s = 9 * 60;
+      if (en === null) en = s + 60;
+      if (en <= s) en = s + 60;
+      items.push({ kind: 'event', title: e.title || 'Event', emoji: e.emoji || '📌', startMin: s, endMin: en, hasTimes: hasTimes, color: dcs[e.domain || 'personal'] || '#4a90e2', eventId: e.id, repeat: e.repeat || 'none' });
+    });
+    tasks.forEach(function (entry) {
+      var t = entry.task;
+      var s = toMin(t.time);
+      if (s === null) return; /* skip untimed tasks from timeline – show below */
+      items.push({ kind: 'task', title: t.title || t.text || 'Task', emoji: t.done ? '✅' : '⬜', startMin: s, endMin: s + 30, hasTimes: true, color: '#27ae60', done: t.done, taskIdx: entry.idx });
+    });
+    rems.forEach(function (r, ri) {
+      var s = toMin(r.time);
+      if (s === null) return;
+      items.push({ kind: 'reminder', title: r.text || 'Reminder', emoji: '🔔', startMin: s, endMin: s + 15, hasTimes: true, color: '#e67e22', remKey: ymd, remIdx: ri });
+    });
+    items.sort(function (a, b) { return a.startMin - b.startMin; });
+
+    /* Determine visible hour range */
+    var rangeStart = 7, rangeEnd = 22; /* default 7 AM to 10 PM */
+    if (items.length > 0) {
+      var earliest = items[0].startMin;
+      var latest = items[items.length - 1].endMin;
+      rangeStart = Math.max(0, Math.floor(earliest / 60) - 1);
+      rangeEnd = Math.min(24, Math.ceil(latest / 60) + 1);
+      if (rangeEnd - rangeStart < 4) rangeEnd = rangeStart + 4;
+    }
+    var rangeStartMin = rangeStart * 60;
+    var rangeEndMin = rangeEnd * 60;
+    var totalHours = rangeEnd - rangeStart;
+    var HOUR_H = 40; /* px per hour in mini timeline */
+    var totalPx = totalHours * HOUR_H;
+
+    /* Column packing for overlapping items */
+    function layoutCols(arr) {
+      var columns = [];
+      arr.forEach(function (item) {
+        var placed = false;
+        for (var c = 0; c < columns.length; c++) {
+          var last = columns[c][columns[c].length - 1];
+          if (last.endMin <= item.startMin) { columns[c].push(item); item._col = c; placed = true; break; }
+        }
+        if (!placed) { item._col = columns.length; columns.push([item]); }
+      });
+      arr.forEach(function (item) {
+        var maxCol = item._col;
+        arr.forEach(function (other) {
+          if (other.startMin < item.endMin && other.endMin > item.startMin && other._col > maxCol) maxCol = other._col;
+        });
+        item._totalCols = maxCol + 1;
+      });
+      /* Normalize totalCols for overlapping groups */
+      var changed = true, passes = 0;
+      while (changed && passes < 8) {
+        changed = false; passes++;
+        arr.forEach(function (item) {
+          arr.forEach(function (other) {
+            if (other.startMin < item.endMin && other.endMin > item.startMin) {
+              var m = Math.max(item._totalCols, other._totalCols);
+              if (item._totalCols !== m) { item._totalCols = m; changed = true; }
+              if (other._totalCols !== m) { other._totalCols = m; changed = true; }
+            }
+          });
+        });
+      }
+    }
+    layoutCols(items);
+
+    /* Build the DOM */
+    content.innerHTML = '';
+    var grid = document.createElement('div');
+    grid.className = 'dcf-day-timeline';
+    grid.style.minHeight = totalPx + 'px';
+
+    /* Gutter (hour labels) */
+    var gutter = document.createElement('div');
+    gutter.className = 'dcf-day-timeline-gutter';
+    for (var h = rangeStart; h < rangeEnd; h++) {
+      var lbl = document.createElement('div');
+      lbl.className = 'dcf-day-timeline-gutter-lbl';
+      lbl.style.top = ((h - rangeStart) * HOUR_H) + 'px';
+      lbl.textContent = p2(h) + ':00';
+      gutter.appendChild(lbl);
+    }
+    grid.appendChild(gutter);
+
+    /* Body (slots + events) */
+    var body = document.createElement('div');
+    body.className = 'dcf-day-timeline-body';
+    body.style.minHeight = totalPx + 'px';
+    /* Hour slot lines */
+    for (var h = rangeStart; h < rangeEnd; h++) {
+      var slot = document.createElement('div');
+      slot.className = 'dcf-day-timeline-slot';
+      slot.style.top = ((h - rangeStart) * HOUR_H) + 'px';
+      body.appendChild(slot);
+      /* Half-hour line */
+      var half = document.createElement('div');
+      half.className = 'dcf-day-timeline-half';
+      half.style.top = ((h - rangeStart) * HOUR_H + HOUR_H / 2) + 'px';
+      body.appendChild(half);
+    }
+
+    /* Event blocks */
+    items.forEach(function (item) {
+      var s = Math.max(item.startMin, rangeStartMin);
+      var e = Math.min(item.endMin, rangeEndMin);
+      var topPx = ((s - rangeStartMin) / (rangeEndMin - rangeStartMin)) * totalPx;
+      var heightPx = Math.max(16, ((e - s) / (rangeEndMin - rangeStartMin)) * totalPx);
+      var colWidth = 100 / (item._totalCols || 1);
+      var leftPct = (item._col || 0) * colWidth;
+
+      var block = document.createElement('div');
+      block.className = 'dcf-day-timeline-block';
+      block.style.top = topPx + 'px';
+      block.style.height = heightPx + 'px';
+      block.style.left = leftPct + '%';
+      block.style.width = (colWidth - 2) + '%';
+      block.style.background = lighten(item.color, 0.18);
+      block.style.borderLeftColor = item.color;
+      if (item.done) block.style.opacity = '0.65';
+      block.title = item.title || '';
+
+      var inner = '';
+      inner += '<span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block">';
+      if (item.emoji) inner += item.emoji + ' ';
+      if (item.done) inner += '<span style="text-decoration:line-through">';
+      inner += esc(item.title);
+      if (item.done) inner += '</span>';
+      if (item.repeat && item.repeat !== 'none') inner += ' 🔁';
+      inner += '</span>';
+      if (item.hasTimes) {
+        inner += '<span class="dcf-split-time" style="font-size:0.6rem">' + fmtTime(item.startMin) + ' – ' + fmtTime(item.endMin) + '</span>';
+      }
+      block.innerHTML = inner;
+
+      /* Click to edit */
+      var dataAction = '';
+      if (item.kind === 'event') dataAction = 'edit-event';
+      else if (item.kind === 'task') dataAction = 'edit-task';
+      else if (item.kind === 'reminder') dataAction = 'edit-reminder';
+      block.dataset.action = dataAction;
+      if (item.eventId !== undefined) block.dataset.eventId = item.eventId;
+      if (item.taskIdx !== undefined) block.dataset.taskIdx = item.taskIdx;
+      if (item.remKey) { block.dataset.remKey = item.remKey; block.dataset.remIdx = item.remIdx; }
+
+      body.appendChild(block);
+    });
+
+    /* Current time indicator (only for today) */
+    if (ymd === todayISO()) {
+      var now = new Date();
+      var nowMin = now.getHours() * 60 + now.getMinutes();
+      if (nowMin >= rangeStartMin && nowMin < rangeEndMin) {
+        var nowPx = ((nowMin - rangeStartMin) / (rangeEndMin - rangeStartMin)) * totalPx;
+        var nowLine = document.createElement('div');
+        nowLine.className = 'dcf-day-timeline-now';
+        nowLine.style.top = nowPx + 'px';
+        var nowDot = document.createElement('div');
+        nowDot.className = 'dcf-day-timeline-now-dot';
+        nowLine.appendChild(nowDot);
+        body.appendChild(nowLine);
+      }
+    }
+
+    grid.appendChild(body);
+    content.appendChild(grid);
+
+    /* Untimed items below the timeline */
+    var untimedItems = [];
+    allTasks.forEach(function (t, idx) {
+      if (nd(t.date) !== ymd) return;
+      var s = toMin(t.time);
+      if (s !== null) return; /* already in timeline */
+      untimedItems.push({ kind: 'task', title: t.title || t.text || 'Task', emoji: t.done ? '✅' : '⬜', done: t.done, color: '#27ae60', taskIdx: idx });
+    });
+    rems.forEach(function (r, ri) {
+      var s = toMin(r.time);
+      if (s !== null) return;
+      untimedItems.push({ kind: 'reminder', title: r.text || 'Reminder', emoji: '🔔', color: '#e67e22', remKey: ymd, remIdx: ri });
+    });
+    /* Also add untimed events */
+    evts.forEach(function (e) {
+      var s = toMin(e.time);
+      if (s !== null) return;
+      untimedItems.push({ kind: 'event', title: e.title || 'Event', emoji: e.emoji || '📌', color: dcs[e.domain || 'personal'] || '#4a90e2', eventId: e.id, repeat: e.repeat || 'none' });
+    });
+
+    if (untimedItems.length > 0) {
+      var untimedDiv = document.createElement('div');
+      untimedDiv.className = 'dcf-day-untimed-section';
+      untimedDiv.innerHTML = '<div class="dcf-day-untimed-header">All Day / Untimed</div>';
+      untimedItems.forEach(function (item) {
         var doneStyle = item.done ? 'text-decoration:line-through;opacity:0.65;' : '';
         var dataAttrs = '';
         if (item.kind === 'event') dataAttrs = ' data-action="edit-event" data-event-id="' + item.eventId + '"';
         else if (item.kind === 'task') dataAttrs = ' data-action="edit-task" data-task-idx="' + item.taskIdx + '"';
         else if (item.kind === 'reminder') dataAttrs = ' data-action="edit-reminder" data-rem-key="' + esc(item.remKey) + '" data-rem-idx="' + item.remIdx + '"';
-        var kindLabel = '<span class="dcf-split-kind dcf-split-kind-' + item.kind + '">' + item.kind.charAt(0).toUpperCase() + item.kind.slice(1) + '</span>';
-        html += '<div class="dcf-split-event" style="border-left-color:' + item.color + ';background:' + hexToRgba2(item.color, 0.1) + ';' + doneStyle + '"' + dataAttrs + ' title="Click to edit">';
-        html += kindLabel + '<span style="font-weight:600">' + item.emoji + ' ' + esc(item.title) + repeatIcon + '</span>';
-        if (item.time && item.time !== '23:59') {
-          html += '<span class="dcf-split-time">' + esc(item.time) + (item.endTime ? ' – ' + esc(item.endTime) : '') + '</span>';
+        var el = document.createElement('div');
+        el.className = 'dcf-split-event';
+        el.style.cssText = 'border-left-color:' + item.color + ';background:' + lighten(item.color, 0.1) + ';' + doneStyle;
+        el.title = 'Click to edit';
+        el.innerHTML = '<span style="font-weight:600">' + item.emoji + ' ' + esc(item.title) + ((item.repeat && item.repeat !== 'none') ? ' 🔁' : '') + '</span>';
+        if (dataAttrs) {
+          var tmp = document.createElement('div');
+          tmp.innerHTML = '<div' + dataAttrs + '></div>';
+          var attrs = tmp.firstChild;
+          for (var a = 0; a < attrs.attributes.length; a++) {
+            el.setAttribute(attrs.attributes[a].name, attrs.attributes[a].value);
+          }
         }
-        html += '</div>';
+        untimedDiv.appendChild(el);
       });
+      content.appendChild(untimedDiv);
     }
-    content.innerHTML = html;
+
     wireItemClicks(content);
   }
 

@@ -3350,8 +3350,6 @@ function renderWeekView(){
   const container = document.getElementById('weekView');
   if (!container) return;
   const ws = getWeekStart(selectedYear, selectedMonth, selectedDay || 1);
-  const grid = document.createElement('div');
-  grid.className = 'week-grid';
   const today = new Date();
   const todayStr = today.getFullYear()+'-'+pad2(today.getMonth()+1)+'-'+pad2(today.getDate());
   const we = new Date(ws); we.setDate(ws.getDate()+6);
@@ -3361,7 +3359,9 @@ function renderWeekView(){
   const allTasks = getTasks();
   const allReminders = getReminders();
 
-  for (let i=0; i<7; i++){
+  const isDesk = window.matchMedia && window.matchMedia('(min-width: 901px)').matches;
+
+  function buildCol(i) {
     const d = new Date(ws); d.setDate(ws.getDate()+i);
     const ymd = d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
     const isToday = ymd === todayStr;
@@ -3400,10 +3400,37 @@ function renderWeekView(){
     const rems=allReminders[ymd]||[];
     if(rems.length){ const chip=document.createElement('div'); chip.className='week-chip reminder'; chip.textContent='\uD83D\uDD14 '+rems.length+' reminder'+(rems.length>1?'s':''); col.appendChild(chip); }
 
-    grid.appendChild(col);
+    return col;
   }
 
-  container.innerHTML=''; container.appendChild(grid);
+  container.innerHTML='';
+
+  if (isDesk) {
+    /* Desktop: 4 days on first row (left), 3 days on second row (right) */
+    const wrapper = document.createElement('div');
+    wrapper.className = 'week-grid-wrapper';
+    const row1 = document.createElement('div');
+    row1.className = 'week-row-split week-row-first';
+    const row2 = document.createElement('div');
+    row2.className = 'week-row-split week-row-second';
+    for (let i = 0; i < 7; i++) {
+      const col = buildCol(i);
+      if (i < 4) row1.appendChild(col);
+      else row2.appendChild(col);
+    }
+    wrapper.appendChild(row1);
+    wrapper.appendChild(row2);
+    container.appendChild(wrapper);
+  } else {
+    /* Mobile: original 7-column grid */
+    const grid = document.createElement('div');
+    grid.className = 'week-grid';
+    for (let i = 0; i < 7; i++) {
+      grid.appendChild(buildCol(i));
+    }
+    container.appendChild(grid);
+  }
+
   const ws2=new Date(ws); ws2.setDate(ws2.getDate()+6);
   const ml=document.getElementById('monthLabel');
   if(ml) ml.textContent=monthNames[ws.getMonth()]+' '+ws.getDate()+' \u2013 '+monthNames[ws2.getMonth()]+' '+ws2.getDate()+', '+ws2.getFullYear();
