@@ -4263,14 +4263,16 @@ function buildBucketAddArea(domain, bucketId) {
         '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="event">Add Event</button>'
       ].join('');
     } else if (t.key === 'task') {
-      var energySel = domain === 'home' ?
-        '<select class="bi-energy" style="width:110px"><option value="">⚡ Energy</option><option value="low">🟢 Easy</option><option value="medium">🟡 Medium</option><option value="high">🔴 Hard</option></select>' : '';
+      var energyOpts = domain === 'home' ?
+        ('<select class="bi-energy" style="width:110px"><option value="">⚡ Energy</option>' +
+          Object.keys(_ENERGY_LABELS).map(function(k){ return '<option value="'+k+'">'+_ENERGY_LABELS[k]+'</option>'; }).join('') +
+          '</select>') : '';
       form.innerHTML = [
         '<input type="text" placeholder="Task title" class="bi-title" style="width:100%;box-sizing:border-box;margin-top:0" />',
         '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">',
         '<input type="date" class="bi-date" style="flex:1;min-width:110px" />',
         '<select class="bi-priority" style="width:110px"><option value="1">! Low</option><option value="2" selected>!! Med</option><option value="3">!!! High</option></select>',
-        energySel,
+        energyOpts,
         '</div>',
         '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="task">Add Task</button>'
       ].join('');
@@ -4824,7 +4826,8 @@ function updateHomeStreak(bucketId) {
   if (s.lastDone === today) return;
   var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
   var yestISO = yesterday.toISOString().slice(0, 10);
-  if (s.lastDone === yestISO || s.lastDone === '') s.streak = (s.streak || 0) + 1;
+  if (s.lastDone === yestISO) s.streak = (s.streak || 0) + 1;
+  else if (s.lastDone === '') s.streak = 1;
   else s.streak = 1;
   s.lastDone = today;
   streaks[bucketId] = s;
@@ -4837,7 +4840,7 @@ var _homeEnergyFilter = 'all';
 /* ── Chore templates ─────────────────────────────────────────── */
 var CHORE_TEMPLATES = [
   { emoji: '🍽️', name: 'Dishes',               repeat: 'daily',   energy: 'low',    defaultDate: 0 },
-  { emoji: '💊', name: 'Take medication',       repeat: 'daily',   energy: 'low',    defaultDate: 0 },
+  { emoji: '💊', name: 'Take Medication',       repeat: 'daily',   energy: 'low',    defaultDate: 0 },
   { emoji: '📬', name: 'Check mail',            repeat: 'daily',   energy: 'low',    defaultDate: 0 },
   { emoji: '🐾', name: 'Feed pets',             repeat: 'daily',   energy: 'low',    defaultDate: 0 },
   { emoji: '👕', name: 'Laundry',               repeat: 'weekly',  energy: 'medium', defaultDate: 0 },
