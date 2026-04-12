@@ -1033,6 +1033,8 @@ function buildAdvSpecRow(spec) {
     '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
       '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">Start time</label><input type="time" class="advSpec-time" value="' + (spec.time || '') + '" style="width:100%"></div>' +
       '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">End time</label><input type="time" class="advSpec-endTime" value="' + (spec.endTime || '') + '" style="width:100%"></div>' +
+      '<div style="min-width:100px"><label style="font-size:0.85em">Pre-buffer</label><select class="advSpec-preBuffer" style="width:100%"><option value="0"' + ((spec.preBuffer || 0) === 0 ? ' selected' : '') + '>None</option><option value="5"' + (parseInt(spec.preBuffer,10) === 5 ? ' selected' : '') + '>5 min</option><option value="10"' + (parseInt(spec.preBuffer,10) === 10 ? ' selected' : '') + '>10 min</option><option value="15"' + (parseInt(spec.preBuffer,10) === 15 ? ' selected' : '') + '>15 min</option><option value="20"' + (parseInt(spec.preBuffer,10) === 20 ? ' selected' : '') + '>20 min</option><option value="25"' + (parseInt(spec.preBuffer,10) === 25 ? ' selected' : '') + '>25 min</option><option value="30"' + (parseInt(spec.preBuffer,10) === 30 ? ' selected' : '') + '>30 min</option></select></div>' +
+      '<div style="min-width:100px"><label style="font-size:0.85em">Post-buffer</label><select class="advSpec-postBuffer" style="width:100%"><option value="0"' + ((spec.postBuffer || 0) === 0 ? ' selected' : '') + '>None</option><option value="5"' + (parseInt(spec.postBuffer,10) === 5 ? ' selected' : '') + '>5 min</option><option value="10"' + (parseInt(spec.postBuffer,10) === 10 ? ' selected' : '') + '>10 min</option><option value="15"' + (parseInt(spec.postBuffer,10) === 15 ? ' selected' : '') + '>15 min</option><option value="20"' + (parseInt(spec.postBuffer,10) === 20 ? ' selected' : '') + '>20 min</option><option value="25"' + (parseInt(spec.postBuffer,10) === 25 ? ' selected' : '') + '>25 min</option><option value="30"' + (parseInt(spec.postBuffer,10) === 30 ? ' selected' : '') + '>30 min</option></select></div>' +
     '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">' +
       '<label style="min-width:60px;margin:0;font-size:0.85em">Repeat</label>' +
@@ -1098,6 +1100,10 @@ function readAdvancedSpecs(containerId) {
     var repeat = row.querySelector('.advSpec-repeat').value || 'none';
     var repeatUntil = row.querySelector('.advSpec-repeatUntil').value || '';
     var spec = { time: time, endTime: endTime, repeat: repeat, repeatUntil: repeatUntil };
+    var preEl = row.querySelector('.advSpec-preBuffer');
+    var postEl = row.querySelector('.advSpec-postBuffer');
+    spec.preBuffer = preEl ? (parseInt(preEl.value, 10) || 0) : 0;
+    spec.postBuffer = postEl ? (parseInt(postEl.value, 10) || 0) : 0;
     if (repeat === 'custom') {
       var n = parseInt(row.querySelector('.advSpec-repeatInterval').value, 10);
       spec.repeatInterval = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1;
