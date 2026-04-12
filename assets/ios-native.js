@@ -55,11 +55,19 @@
       mutations.forEach(function (m) {
         var el = m.target;
         if (el.classList.contains('page') && !el.classList.contains('hidden')) {
+          // Only animate once per show; the data attribute prevents
+          // an infinite loop (animationend removes the class which
+          // would re-trigger the observer).
+          if (el.dataset.pageAnimated) return;
+          el.dataset.pageAnimated = '1';
           el.classList.add('page-animating');
           el.addEventListener('animationend', function onEnd() {
             el.classList.remove('page-animating');
             el.removeEventListener('animationend', onEnd);
           });
+        } else if (el.classList.contains('hidden')) {
+          // Reset flag when page is hidden so the next show animates
+          delete el.dataset.pageAnimated;
         }
       });
     });

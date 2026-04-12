@@ -736,12 +736,17 @@
     if (typeof selectedMonth !== 'undefined') window.selectedMonth = month;
     if (typeof selectedDay !== 'undefined') window.selectedDay = day;
 
-    // Regenerate calendar to highlight selected day, then show reminders/day bars
-    if (typeof generateCalendar === 'function') {
-      try { generateCalendar(); } catch(e) { /* ignore */ }
-    }
-    if (typeof showReminders === 'function') {
-      try { showReminders(day); } catch(e) { /* ignore */ }
+    // Highlight the selected day in the calendar grid without
+    // regenerating the entire calendar or re-rendering reminders.
+    // The callers (refreshForSelectedDate, navigateDay, goToToday)
+    // already render the daily view; calling generateCalendar and
+    // showReminders here caused a redundant cascade that could block
+    // the main thread for several seconds on slower devices.
+    var calEl = getCalendarEl();
+    if (calEl) {
+      calEl.querySelectorAll('.day').forEach(function(c) {
+        c.classList.toggle('selected', parseInt(c.dataset.day, 10) === day);
+      });
     }
   }
 
@@ -752,14 +757,25 @@
   function navigateDay(offset) {
     currentViewDate = addDays(currentViewDate, offset);
     updateDateDisplay();
-    renderDailyView(currentViewDate);
+    // Call showReminders to update reminder bars & trigger daily view render
+    if (typeof showReminders === 'function') {
+      var day = parseInt(currentViewDate.split('-')[2], 10);
+      if (!isNaN(day)) {
+        try { showReminders(day); } catch(e) { console.warn('showReminders error', e); renderDailyView(currentViewDate); }
+      } else { renderDailyView(currentViewDate); }
+    } else { renderDailyView(currentViewDate); }
     notifyDateChange();
   }
 
   function goToToday() {
     currentViewDate = todayISO();
     updateDateDisplay();
-    renderDailyView(currentViewDate);
+    if (typeof showReminders === 'function') {
+      var day = parseInt(currentViewDate.split('-')[2], 10);
+      if (!isNaN(day)) {
+        try { showReminders(day); } catch(e) { console.warn('showReminders error', e); renderDailyView(currentViewDate); }
+      } else { renderDailyView(currentViewDate); }
+    } else { renderDailyView(currentViewDate); }
     notifyDateChange();
   }
 
@@ -781,7 +797,23 @@
 
   function refreshForSelectedDate() {
     updateDateDisplay();
-    renderDailyView(currentViewDate);
+    // Delegate rendering to showReminders (app.js) which updates reminder
+    // bars, holiday info, day progress AND triggers renderDailyView via
+    // renderDailyViewForDay → dailyViewSetDate.  Only fall back to a
+    // direct renderDailyView when showReminders is not yet available.
+    if (typeof showReminders === 'function') {
+      var day = parseInt(currentViewDate.split('-')[2], 10);
+      if (!isNaN(day)) {
+        try { showReminders(day); } catch(e) {
+          console.warn('showReminders error', e);
+          renderDailyView(currentViewDate);
+        }
+      } else {
+        renderDailyView(currentViewDate);
+      }
+    } else {
+      renderDailyView(currentViewDate);
+    }
     notifyDateChange();
   }
 
@@ -890,14 +922,18 @@
   })();
 
   // ── Initialize ──
-  document.addEventListener('DOMContentLoaded', function() {
+  var _dailyViewInitialized = false;
+  function initOnce() {
+    if (_dailyViewInitialized) return;
+    _dailyViewInitialized = true;
     wireNavButtons();
     refreshForSelectedDate();
-  });
+  }
 
-  // Also try immediately (in case DOMContentLoaded already fired)
-  setTimeout(function() {
-    wireNavButtons();
-    refreshForSelectedDate();
-  }, 200);
+  document.addEventListener('DOMContentLoaded', initOnce);
+
+  // Fallback in case DOMContentLoaded already fired before this script loaded
+  if (document.readyState !== 'loading') {
+    setTimeout(initOnce, 200);
+  }
 })();
