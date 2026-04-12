@@ -4115,37 +4115,73 @@ function wireMorningBriefing(){
     localStorage.setItem('morningBriefingEnabled',enabled?'1':'0');
     localStorage.setItem('morningBriefingTime',bt);
     scheduleMorningBriefing();
-    if(statusEl) statusEl.textContent=enabled?'Briefing set for '+bt+' daily.':'Morning briefing disabled.';
+    var msg = enabled ? 'Briefing set for '+bt+' daily.' : 'Morning briefing disabled.';
+    // Inform iOS PWA users about limitations
+    if(enabled && _isIOSPWA()){
+      msg += ' Note: on iOS, the app must be open at the scheduled time to deliver the notification.';
+    }
+    if(statusEl) statusEl.textContent=msg;
   });
   scheduleMorningBriefing();
 }
 
+/* Detect iOS standalone PWA mode */
+function _isIOSPWA(){
+  var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  return isIOS && isStandalone;
+}
+
+function _fireMorningBriefing(){
+  try{
+    var ts=new Date().toISOString().slice(0,10);
+    var evCount=getExpandedEvents(ts,ts).length;
+    var tkCount=getTasks().filter(function(t){ return !t.done&&normalizeDate(t.date)===ts; }).length;
+    var body=evCount+' event'+(evCount!==1?'s':'')+', '+tkCount+' task'+(tkCount!==1?'s':'')+' today';
+    if('Notification' in window&&Notification.permission==='granted'){
+      navigator.serviceWorker.getRegistration().then(function(reg){
+        if(reg&&reg.showNotification) reg.showNotification('\u2600\uFE0F Good morning! TimeScape',{body:body,tag:'morning-briefing'});
+        else try{ new Notification('\u2600\uFE0F Good morning! TimeScape',{body:body}); }catch(_){}
+      }).catch(function(){ try{ new Notification('\u2600\uFE0F Good morning! TimeScape',{body:body}); }catch(_){} });
+    }
+  }catch(_){}
+}
+
 function scheduleMorningBriefing(){
   if(localStorage.getItem('morningBriefingEnabled')!=='1') return;
-  const bt=localStorage.getItem('morningBriefingTime')||'08:00';
-  const parts=bt.split(':'); const hh=parseInt(parts[0],10)||8; const mm=parseInt(parts[1],10)||0;
-  const now4=new Date();
-  const target=new Date(now4.getFullYear(),now4.getMonth(),now4.getDate(),hh,mm,0,0);
-  if(target<=now4) target.setDate(target.getDate()+1);
-  const delay=target.getTime()-now4.getTime();
+  var bt=localStorage.getItem('morningBriefingTime')||'08:00';
+  var parts=bt.split(':'); var hh=parseInt(parts[0],10)||8; var mm=parseInt(parts[1],10)||0;
+  var now4=new Date();
+  var target=new Date(now4.getFullYear(),now4.getMonth(),now4.getDate(),hh,mm,0,0);
+
+  // If we just resumed past the target time (e.g. iOS PWA waking up), fire immediately
+  var firedKey = 'morningBriefingFired_' + now4.toISOString().slice(0,10);
+  if(target<=now4){
+    var diff = now4.getTime()-target.getTime();
+    // Fire if within a 30-minute window and not already fired today
+    if(diff < 30*60*1000 && !localStorage.getItem(firedKey)){
+      localStorage.setItem(firedKey, '1');
+      _fireMorningBriefing();
+    }
+    target.setDate(target.getDate()+1);
+  }
+  var delay=target.getTime()-now4.getTime();
   if(delay>0x7FFFFFFF) return; // setTimeout max delay (~24.8 days); will reschedule on next app open
   clearTimeout(window._morningBriefingTimer);
   window._morningBriefingTimer=setTimeout(function(){
-    try{
-      const ts=new Date().toISOString().slice(0,10);
-      const evCount=getExpandedEvents(ts,ts).length;
-      const tkCount=getTasks().filter(function(t){ return !t.done&&normalizeDate(t.date)===ts; }).length;
-      const body=evCount+' event'+(evCount!==1?'s':'')+', '+tkCount+' task'+(tkCount!==1?'s':'')+' today';
-      if('Notification' in window&&Notification.permission==='granted'){
-        navigator.serviceWorker.getRegistration().then(function(reg){
-          if(reg&&reg.showNotification) reg.showNotification('\u2600\uFE0F Good morning! TimeScape',{body:body,tag:'morning-briefing'});
-          else try{ new Notification('\u2600\uFE0F Good morning! TimeScape',{body:body}); }catch(_){}
-        }).catch(function(){ try{ new Notification('\u2600\uFE0F Good morning! TimeScape',{body:body}); }catch(_){} });
-      }
-    }catch(_){}
+    var todayKey = 'morningBriefingFired_' + new Date().toISOString().slice(0,10);
+    if(!localStorage.getItem(todayKey)){
+      localStorage.setItem(todayKey, '1');
+      _fireMorningBriefing();
+    }
     setTimeout(scheduleMorningBriefing,60000);
   },delay);
 }
+
+// Re-check morning briefing when app resumes from background (important for iOS PWA)
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden) scheduleMorningBriefing();
+});
 
 /* ============================================================
    DOMAIN PAGES: Personal, Home, Work

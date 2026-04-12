@@ -8,10 +8,24 @@
   function getDailyView() { return document.getElementById('dailyView'); }
   function getCalendarEl() { return document.getElementById('calendar'); }
 
-  const PRIMARY_COLOR = '#4a90e2';
-  const REMINDER_COLOR = '#e67e22';
-  const TASK_DEFAULT_COLOR = '#2ecc71';
-  const ROUTINE_COLOR = '#9b59b6';
+  // Fallback colors (used only when domain colors from settings are unavailable)
+  const FALLBACK_COLORS = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c' };
+
+  // Retrieve user-configured domain colors, falling back to defaults
+  function getDomainColorsLocal() {
+    if (typeof getDomainColors === 'function') return getDomainColors();
+    try {
+      var stored = JSON.parse(localStorage.getItem('domainColors') || '{}');
+      return Object.assign({}, FALLBACK_COLORS, stored);
+    } catch (_) { return Object.assign({}, FALLBACK_COLORS); }
+  }
+
+  // Determine the domain of an event, using the global helper when available
+  function getDomainLocal(item) {
+    if (typeof getDomainOfItem === 'function') return getDomainOfItem(item);
+    if (item && item.domain) return item.domain;
+    return 'personal';
+  }
   const HOUR_HEIGHT = 60; // px per hour slot
   const REMINDER_DEFAULT_DURATION = 15; // minutes
   const TASK_DEFAULT_DURATION = 30; // minutes
@@ -163,8 +177,9 @@
   function getDayItems(dateStr) {
     var items = [];
     var cats = loadTaskCategories();
+    var domainColors = getDomainColorsLocal();
 
-    // events
+    // events – use domain-aware color from settings
     var evs = expandEvents(dateStr, dateStr) ?? loadEvents().filter(function(e) { return e && e.date === dateStr; });
     evs.forEach(function(e) {
       var s = toMinutes(e.startTime, null);
@@ -173,6 +188,7 @@
       if (s === null) s = 9 * 60; // default 9am if no time
       if (eMin === null) eMin = s + 60;
       if (eMin <= s) eMin += 1440;
+      var domain = getDomainLocal(e);
       items.push({
         kind: 'event',
         title: e.title || 'Event',
@@ -180,14 +196,14 @@
         startMin: s,
         endMin: eMin,
         hasTimes: hasTimes,
-        color: PRIMARY_COLOR,
+        color: domainColors[domain] || domainColors.personal,
         raw: e,
         preBuffer: parseInt(e.preBuffer, 10) || 0,
         postBuffer: parseInt(e.postBuffer, 10) || 0
       });
     });
 
-    // reminders
+    // reminders – use personal domain color
     var rems = loadReminders().filter(function(r) { return r && r.date === dateStr; });
     rems.forEach(function(r) {
       var s = toMinutes(r.time || r.reminderTime, 9 * 60);
@@ -198,17 +214,18 @@
         startMin: s,
         endMin: s + REMINDER_DEFAULT_DURATION,
         hasTimes: !!(r.time || r.reminderTime),
-        color: REMINDER_COLOR,
+        color: domainColors[getDomainLocal(r)] || domainColors.personal,
         raw: r
       });
     });
 
-    // tasks with times
+    // tasks with times – use domain color, falling back to category color
     var tasks = loadTasksLS().filter(function(t) { return t && t.date === dateStr; });
     tasks.forEach(function(t) {
       var sRaw = toMinutes(t.time, null);
       if (sRaw === null) return;
-      var color = (t.category && cats[t.category] && cats[t.category].color) ? cats[t.category].color : TASK_DEFAULT_COLOR;
+      var domain = getDomainLocal(t);
+      var color = domainColors[domain] || ((t.category && cats[t.category] && cats[t.category].color) ? cats[t.category].color : domainColors.home);
       items.push({
         kind: 'task',
         title: t.title || 'Task',
@@ -221,7 +238,7 @@
       });
     });
 
-    // daily routine phases (shown every day)
+    // daily routine phases (shown every day) – use personal domain color
     var phases = loadRoutinePhases();
     phases.forEach(function(phase) {
       var s = toMinutes(phase.startTime, null);
@@ -233,7 +250,7 @@
         startMin: s,
         endMin: s + ROUTINE_DEFAULT_DURATION,
         hasTimes: true,
-        color: ROUTINE_COLOR,
+        color: domainColors.personal,
         raw: phase
       });
     });
@@ -400,8 +417,8 @@
         block.style.left = leftPct + '%';
         block.style.width = (colWidth - 1) + '%';
         block.style.right = 'auto';
-        block.style.background = lightenBg(item.color || PRIMARY_COLOR, 0.18);
-        block.style.borderLeftColor = item.color || PRIMARY_COLOR;
+        block.style.background = lightenBg(item.color || FALLBACK_COLORS.work, 0.18);
+        block.style.borderLeftColor = item.color || FALLBACK_COLORS.work;
         block.title = item.title || '';
 
         // Content
