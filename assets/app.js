@@ -385,6 +385,10 @@ function showJobModal(jobId) {
         if (otHoursEl) otHoursEl.value = job.overtimeHours != null ? job.overtimeHours : '';
         if (otMultEl)  otMultEl.value  = job.overtimeMultiplier != null ? job.overtimeMultiplier : '';
         _jobModalOffDays = Array.isArray(job.offDays) ? job.offDays.slice() : [];
+        var ppTypeEl = document.getElementById('jobPayPeriodType');
+        var ppStartEl = document.getElementById('jobPayPeriodStart');
+        if (ppTypeEl) ppTypeEl.value = (job.payPeriod && job.payPeriod.type) || '';
+        if (ppStartEl) ppStartEl.value = (job.payPeriod && job.payPeriod.startDate) || '';
         var heading = document.getElementById('jobModalHeading');
         if (heading) heading.textContent = 'Edit Job';
       }
@@ -469,11 +473,11 @@ function saveJobFromUI(){
       var id = parseInt(idField.value,10);
       var idx = jobs.findIndex(function(j){ return j.id===id; });
       if (idx!==-1){
-        jobs[idx] = Object.assign({}, jobs[idx], {name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier});
+        jobs[idx] = Object.assign({}, jobs[idx], {name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier, payPeriod: { type: document.getElementById('jobPayPeriodType').value, startDate: document.getElementById('jobPayPeriodStart').value }});
       }
     } else {
       var nid = jobs.length ? Math.max.apply(null, jobs.map(function(j){ return j.id; }))+1 : 1;
-      jobs.push({ id: nid, name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier });
+      jobs.push({ id: nid, name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier, payPeriod: { type: document.getElementById('jobPayPeriodType').value, startDate: document.getElementById('jobPayPeriodStart').value } });
     }
     setJobs(jobs);
     hideJobModal();
@@ -525,6 +529,10 @@ function clearJobForm(){
     if (otHours) otHours.value = '';
     if (otMult)  otMult.value  = '';
     _jobModalOffDays = [];
+    var ppType = document.getElementById('jobPayPeriodType');
+    var ppStart = document.getElementById('jobPayPeriodStart');
+    if (ppType) ppType.value = '';
+    if (ppStart) ppStart.value = '';
     renderJobOffDaysList();
   }catch(e){ /* ignore */ }
 }
@@ -657,9 +665,130 @@ function generateCalendar(){
     });
 
     cell.addEventListener('click', ()=> showReminders(day));
+
+    /* Mobile long-press: show daily summary modal */
+    (function(dayNum, cellEl){
+      var LONG_PRESS_MS = 500;
+      var MOBILE_MAX_PX = 900;
+      var _lpTimer = null;
+      var _lpFired = false;
+      cellEl.addEventListener('touchstart', function(e){
+        _lpFired = false;
+        var isMobile = window.innerWidth <= MOBILE_MAX_PX;
+        if (!isMobile) return;
+        _lpTimer = setTimeout(function(){
+          _lpFired = true;
+          showMobileDailySummary(selectedYear, selectedMonth, dayNum);
+        }, LONG_PRESS_MS);
+      }, {passive: true});
+      cellEl.addEventListener('touchend', function(e){
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+        if (_lpFired) { e.preventDefault(); }
+      });
+      cellEl.addEventListener('touchmove', function(){
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+      }, {passive: true});
+      cellEl.addEventListener('touchcancel', function(){
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+      }, {passive: true});
+    })(day, cell);
+
     if (selectedDay === day) cell.classList.add('selected');
     calendarEl.appendChild(cell);
   }
+}
+
+/* ── Mobile daily summary modal (long-press) ── */
+function showMobileDailySummary(year, month, day){
+  var existing = document.getElementById('mobileDaySummaryModal');
+  if (existing) existing.remove();
+
+  var ymd = year + '-' + pad2(month + 1) + '-' + pad2(day);
+  var dateObj = new Date(year, month, day);
+  var dateTitle = dateObj.toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+  // Gather data
+  var events = getExpandedEvents(ymd, ymd);
+  var tasks = getTasks().filter(function(t){ return normalizeDate(t.date) === ymd; });
+  var reminders = getReminders();
+  var dayReminders = reminders[ymd] || [];
+  var mmdd = pad2(month + 1) + '-' + pad2(day);
+  var holiday = (typeof getHoliday === 'function') ? getHoliday(mmdd, year) : null;
+  var domainColors = getDomainColors();
+
+  // Build content
+  var html = '';
+
+  if (holiday) {
+    html += '<div class="mds-section mds-holiday"><span>' + (holiday.emoji || '🏳️') + ' ' + escapeHTML(holiday.name) + '</span></div>';
+  }
+
+  // Events
+  if (events.length) {
+    html += '<div class="mds-section"><div class="mds-section-title">📅 Events</div>';
+    events.forEach(function(ev){
+      var domain = (typeof getDomainOfItem === 'function') ? getDomainOfItem(ev) : 'personal';
+      var color = domainColors[domain] || '#9b59b6';
+      var time = ev.time ? ('<span class="mds-time">' + escapeHTML(ev.time) + (ev.endTime ? ' – ' + escapeHTML(ev.endTime) : '') + '</span>') : '';
+      html += '<div class="mds-item" style="border-left-color:' + color + '">' +
+        (ev.emoji ? '<span class="mds-emoji">' + ev.emoji + '</span>' : '') +
+        '<div class="mds-item-body">' +
+        '<span class="mds-item-title">' + escapeHTML(ev.title || 'Untitled') + '</span>' +
+        time +
+        '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  // Tasks
+  if (tasks.length) {
+    html += '<div class="mds-section"><div class="mds-section-title">✅ Tasks</div>';
+    tasks.forEach(function(t){
+      var done = t.done || t.completed;
+      html += '<div class="mds-item mds-task' + (done ? ' mds-done' : '') + '">' +
+        '<span class="mds-check">' + (done ? '☑' : '☐') + '</span>' +
+        '<span class="mds-item-title">' + escapeHTML(t.text || t.title || '') + '</span>' +
+        (t.time ? '<span class="mds-time">' + escapeHTML(t.time) + '</span>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Reminders
+  if (dayReminders.length) {
+    html += '<div class="mds-section"><div class="mds-section-title">🔔 Reminders</div>';
+    dayReminders.forEach(function(r){
+      var done = r.done;
+      html += '<div class="mds-item mds-reminder' + (done ? ' mds-done' : '') + '">' +
+        '<span class="mds-item-title">' + escapeHTML(r.text || r.title || '') + '</span>' +
+        (r.time ? '<span class="mds-time">' + escapeHTML(r.time) + '</span>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  if (!events.length && !tasks.length && !dayReminders.length && !holiday) {
+    html += '<div class="mds-empty">No events, tasks, or reminders for this day.</div>';
+  }
+
+  // Create modal
+  var overlay = document.createElement('div');
+  overlay.id = 'mobileDaySummaryModal';
+  overlay.className = 'mobile-day-summary-modal';
+  overlay.innerHTML =
+    '<div class="mds-card">' +
+      '<div class="mds-header">' +
+        '<span class="mds-title">' + escapeHTML(dateTitle) + '</span>' +
+        '<button class="mds-close" aria-label="Close">&times;</button>' +
+      '</div>' +
+      '<div class="mds-body">' + html + '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  // Close handlers
+  overlay.querySelector('.mds-close').addEventListener('click', function(){ overlay.remove(); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
 }
 
 /* show reminders + events for a selected day */
@@ -3261,6 +3390,20 @@ function wireCategoryFilters(){
     };
   }
 
+  // Wire the View dropdown toggle button
+  var viewToggle = document.getElementById('viewDropdownToggle');
+  var viewBar = document.getElementById('viewDropdownBar');
+  var viewArrow = document.getElementById('viewArrow');
+  if (viewToggle && viewBar) {
+    viewToggle.onclick = function(e) {
+      e.stopPropagation();
+      var isOpen = viewBar.style.display === 'flex';
+      viewBar.style.display = isOpen ? 'none' : 'flex';
+      viewToggle.setAttribute('aria-expanded', String(!isOpen));
+      if (viewArrow) viewArrow.textContent = isOpen ? '▸' : '▾';
+    };
+  }
+
   // Re-render filter bar when data changes (buckets may have been added/removed)
   window.addEventListener('app:data:updated', renderCategoryFilterBar);
   window.addEventListener('storage', function(e) {
@@ -5396,7 +5539,7 @@ function renderHomeDashboard() {
   html += '<p class="home-dash-title">🏡 Today\'s Chores</p>';
   html += '<div class="home-dash-stats">';
   // Progress ring
-  html += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">';
+  html += '<div class="progress-ring-wrap" style="flex-shrink:0">';
   html += '<svg viewBox="0 0 44 44" style="width:64px;height:64px">';
   html += '<circle class="ring-bg" cx="22" cy="22" r="18"/>';
   html += '<circle class="ring-fg" cx="22" cy="22" r="18" stroke="' + ringColor + '" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '" transform="rotate(-90 22 22)"/>';
@@ -6008,80 +6151,9 @@ function isMealDayComplete(allMeals, dateISO) {
 }
 
 /* Ensure an "Eating Tracker" bucket exists in the personal domain; returns its id */
-function ensureEatingTrackerBucket() {
-  var buckets = getBuckets('personal');
-  var existing = buckets.find(function(b) { return b.name === 'Eating Tracker'; });
-  if (existing) return existing.id;
-  var newId = nextBucketId('personal');
-  /* Re-check after ID generation to guard against concurrent calls */
-  buckets = getBuckets('personal');
-  existing = buckets.find(function(b) { return b.name === 'Eating Tracker'; });
-  if (existing) return existing.id;
-  buckets.push({ id: newId, name: 'Eating Tracker', emoji: '🍽️', collapsed: false });
-  setBuckets('personal', buckets);
-  return newId;
-}
-
-/* Sync weekly meal tasks: create tasks for days with incomplete meals, remove completed ones */
-function syncMealWeekTasks() {
-  var weekDays = getMealWeekDays();
-  var allMeals = getPersonalMeals();
-  var bucketId = ensureEatingTrackerBucket();
-  var tasks = getTasks();
-
-  /* Build a set of existing meal-task date keys for this week */
-  var weekISOs = {};
-  weekDays.forEach(function(wd) { weekISOs[wd.iso] = true; });
-
-  /* Find existing meal-tracker tasks for this week */
-  var existingByDate = {};
-  tasks.forEach(function(t, idx) {
-    if (t._mealTrackerTask && weekISOs[t.date]) {
-      existingByDate[t.date] = { task: t, idx: idx };
-    }
-  });
-
-  var changed = false;
-  weekDays.forEach(function(wd) {
-    var status = isMealDayComplete(allMeals, wd.iso);
-    var d = new Date(wd.iso + 'T12:00:00');
-    var dayName = _MEAL_DAY_FULL[d.getDay()];
-
-    if (status !== 'complete') {
-      /* Need a task for this day */
-      if (!existingByDate[wd.iso]) {
-        tasks.push({
-          id: generateTaskId(),
-          title: 'Fill out meals for ' + dayName + ' (' + wd.label + ')',
-          category: 'personal',
-          domain: 'personal',
-          bucketId: bucketId,
-          date: wd.iso,
-          time: '',
-          priority: '1',
-          done: false,
-          _mealTrackerTask: true
-        });
-        changed = true;
-      } else if (existingByDate[wd.iso].task.done) {
-        /* Task was marked done but meals are incomplete again — reopen */
-        existingByDate[wd.iso].task.done = false;
-        changed = true;
-      }
-    } else {
-      /* Meals complete — mark task done if it exists */
-      if (existingByDate[wd.iso] && !existingByDate[wd.iso].task.done) {
-        existingByDate[wd.iso].task.done = true;
-        changed = true;
-      }
-    }
-  });
-
-  if (changed) {
-    setTasks(tasks);
-    try { updateInboxBadge(); } catch(e) {}
-  }
-}
+/* ensureEatingTrackerBucket and syncMealWeekTasks removed —
+   meal data lives in personalMeals localStorage and is displayed
+   within the Meal Planner widget itself, not as separate bucket tasks. */
 
 function renderMealTracker() {
   var section = document.getElementById('personalMealSection');
@@ -6222,7 +6294,6 @@ function renderMealTracker() {
         if (!data[selectedDate]) data[selectedDate] = {};
         data[selectedDate][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0, time: timeInput ? timeInput.value : '' };
         setPersonalMeals(data);
-        syncMealWeekTasks();
         renderMealTracker();
       });
     });
@@ -6241,9 +6312,6 @@ function renderMealTracker() {
   }, 'pw_meal');
 
   section.appendChild(card);
-
-  /* Sync meal tasks whenever the tracker renders */
-  syncMealWeekTasks();
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -7178,7 +7246,7 @@ function formatShortDate(dateStr) {
    8. BUDGET WIDGET
    ══════════════════════════════════════════════════════════════ */
 
-function getPersonalBudget() { return safeParseStorage('personalBudget', { bills: [], oneTimeExpenses: [], categories: [] }); }
+function getPersonalBudget() { return safeParseStorage('personalBudget', { bills: [], oneTimeExpenses: [], categories: [], payPeriods: [] }); }
 function setPersonalBudget(data) { localStorage.setItem('personalBudget', JSON.stringify(data)); }
 
 function calcBudgetJobIncome() {
@@ -7258,6 +7326,37 @@ function createBudgetBillReminder(bill) {
   }
 }
 
+function calcNextPayDate(startDate, type) {
+  var start = new Date(startDate + 'T00:00:00');
+  if (isNaN(start.getTime())) return new Date();
+  var now = new Date();
+  var next = new Date(start);
+
+  if (type === 'weekly') {
+    while (next < now) next.setDate(next.getDate() + 7);
+  } else if (type === 'biweekly') {
+    while (next < now) next.setDate(next.getDate() + 14);
+  } else if (type === 'semimonthly') {
+    // Pay on the start day and start day + ~15 days (1st/15th pattern)
+    var day = start.getDate();
+    var altDay = day <= 15 ? day + 15 : day - 15;
+    if (altDay < 1) altDay = 1;
+    if (altDay > 28) altDay = 28;
+    var d1 = Math.min(day, altDay);
+    var d2 = Math.max(day, altDay);
+    next = new Date(now.getFullYear(), now.getMonth(), d1);
+    if (next < now) {
+      next = new Date(now.getFullYear(), now.getMonth(), d2);
+    }
+    if (next < now) {
+      next = new Date(now.getFullYear(), now.getMonth() + 1, d1);
+    }
+  } else {
+    while (next < now) next.setMonth(next.getMonth() + 1);
+  }
+  return next;
+}
+
 function renderBudgetWidget() {
   var section = document.getElementById('personalBudgetSection');
   if (!section) return;
@@ -7319,8 +7418,9 @@ function renderBudgetWidget() {
       bRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.85rem;border-bottom:1px solid #f5f5f5';
       var catTag = bill.category ? '<span style="font-size:0.72rem;color:#888;margin-left:4px">(' + escapeHTML(bill.category) + ')</span>' : '';
       var dateTag = bill.dueDate ? '<span style="font-size:0.72rem;color:#4a90e2;margin-left:4px">📅 ' + escapeHTML(bill.dueDate) + '</span>' : '';
+      var repeatTag = (bill.repeat && bill.repeat !== 'monthly') ? '<span style="font-size:0.72rem;color:#9b59b6;margin-left:4px">🔄 ' + escapeHTML(bill.repeat) + '</span>' : '';
       bRow.innerHTML =
-        '<span>' + escapeHTML(bill.name) + catTag + dateTag + '</span>' +
+        '<span>' + escapeHTML(bill.name) + catTag + dateTag + repeatTag + '</span>' +
         '<span style="display:flex;align-items:center;gap:6px">' +
           '<span style="color:#e74c3c;font-weight:600">$' + (parseFloat(bill.amount) || 0).toFixed(2) + '</span>' +
           '<button class="budget-bill-del" data-bi="' + bi + '" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:#aaa;padding:2px" title="Remove">✕</button>' +
@@ -7338,9 +7438,67 @@ function renderBudgetWidget() {
       '<input type="number" id="budgetBillAmount" placeholder="Amount" min="0" step="0.01" style="width:80px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
       '<input type="date" id="budgetBillDate" title="Due date (creates a reminder)" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
       '<select id="budgetBillCategory" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' + catOptions + '</select>' +
+      '<select id="budgetBillRepeat" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' +
+        '<option value="monthly" selected>Monthly</option>' +
+        '<option value="weekly">Weekly</option>' +
+        '<option value="biweekly">Biweekly</option>' +
+        '<option value="quarterly">Quarterly</option>' +
+        '<option value="yearly">Yearly</option>' +
+      '</select>' +
       '<button id="budgetAddBillBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
     billsSection.appendChild(addBillRow);
     body.appendChild(billsSection);
+
+    /* ── Pay Periods ── */
+    var payPeriods = budget.payPeriods || [];
+    var ppSection = document.createElement('div');
+    ppSection.style.cssText = 'margin-bottom:10px';
+    ppSection.innerHTML = '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">💰 Pay Periods</div>';
+
+    payPeriods.forEach(function(pp, pi) {
+      var ppRow = document.createElement('div');
+      ppRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.85rem;border-bottom:1px solid #f5f5f5';
+      var nextPay = pp.startDate ? calcNextPayDate(pp.startDate, pp.type) : null;
+      var nextPayStr = nextPay ? nextPay.toISOString().slice(0, 10) : '';
+      var jobTag = pp.jobName ? '<span style="font-size:0.72rem;color:#888;margin-left:4px">(' + escapeHTML(pp.jobName) + ')</span>' : '';
+      var nextTag = nextPayStr ? '<span style="font-size:0.72rem;color:#27ae60;margin-left:4px">Next: ' + escapeHTML(nextPayStr) + '</span>' : '';
+      ppRow.innerHTML =
+        '<span>' + escapeHTML(pp.type || 'monthly') + jobTag +
+          '<span style="font-size:0.72rem;color:#4a90e2;margin-left:4px">📅 ' + escapeHTML(pp.startDate || '') + '</span>' +
+          nextTag +
+        '</span>' +
+        '<span style="display:flex;align-items:center;gap:6px">' +
+          '<span style="color:#27ae60;font-weight:600">$' + (parseFloat(pp.amount) || 0).toFixed(2) + '</span>' +
+          '<button class="budget-pp-del" data-pi="' + pi + '" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:#aaa;padding:2px" title="Remove">✕</button>' +
+        '</span>';
+      ppSection.appendChild(ppRow);
+    });
+
+    var addPPToggle = document.createElement('button');
+    addPPToggle.id = 'budgetAddPayPeriodToggle';
+    addPPToggle.style.cssText = 'background:none;border:1px dashed #ccc;border-radius:8px;padding:4px 10px;font-size:0.78rem;cursor:pointer;color:#888;margin-top:4px;width:100%';
+    addPPToggle.textContent = '＋ Add Pay Period';
+    ppSection.appendChild(addPPToggle);
+
+    var addPPForm = document.createElement('div');
+    addPPForm.id = 'budgetAddPPForm';
+    addPPForm.style.cssText = 'display:none;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';
+    var workBuckets = typeof getBuckets === 'function' ? getBuckets('work') : [];
+    var jobOptions = '<option value="">Job (optional)</option>';
+    workBuckets.forEach(function(wb) { jobOptions += '<option value="' + escapeHTML(wb.name) + '">' + (wb.emoji ? escapeHTML(wb.emoji) + ' ' : '') + escapeHTML(wb.name) + '</option>'; });
+    addPPForm.innerHTML =
+      '<select id="budgetPPType" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' +
+        '<option value="weekly">Weekly</option>' +
+        '<option value="biweekly" selected>Biweekly</option>' +
+        '<option value="semimonthly">Semi-monthly</option>' +
+        '<option value="monthly">Monthly</option>' +
+      '</select>' +
+      '<input type="date" id="budgetPPStart" title="First pay date" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="number" id="budgetPPAmount" placeholder="Amount" min="0" step="0.01" style="width:80px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<select id="budgetPPJob" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' + jobOptions + '</select>' +
+      '<button id="budgetAddPayPeriodBtn" style="background:#27ae60;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+    ppSection.appendChild(addPPForm);
+    body.appendChild(ppSection);
 
     /* ── One-Time Expenses ── */
     var oneTimeSection = document.createElement('div');
@@ -7482,15 +7640,18 @@ function renderBudgetWidget() {
       var amtInput = document.getElementById('budgetBillAmount');
       var dateInput = document.getElementById('budgetBillDate');
       var catInput = document.getElementById('budgetBillCategory');
+      var repeatInput = document.getElementById('budgetBillRepeat');
       var name = nameInput ? nameInput.value.trim() : '';
       var amount = amtInput ? parseFloat(amtInput.value) || 0 : 0;
       var dueDate = dateInput ? dateInput.value : '';
       var category = catInput ? catInput.value : '';
+      var repeat = repeatInput ? repeatInput.value : 'monthly';
       if (!name) return;
       var b = getPersonalBudget();
       var newBill = { name: name, amount: amount };
       if (dueDate) newBill.dueDate = dueDate;
       if (category) newBill.category = category;
+      newBill.repeat = repeat;
       b.bills.push(newBill);
       setPersonalBudget(b);
       // Create a reminder for the bill if a date was provided
@@ -7518,6 +7679,46 @@ function renderBudgetWidget() {
       if (date) newExpense.date = date;
       if (category) newExpense.category = category;
       b.oneTimeExpenses.push(newExpense);
+      setPersonalBudget(b);
+      renderBudgetWidget();
+    });
+
+    /* Wire pay period delete */
+    body.querySelectorAll('.budget-pp-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.pi, 10);
+        var b = getPersonalBudget();
+        if (!b.payPeriods) b.payPeriods = [];
+        b.payPeriods.splice(idx, 1);
+        setPersonalBudget(b);
+        renderBudgetWidget();
+      });
+    });
+
+    /* Wire add pay period toggle */
+    var ppToggle = body.querySelector('#budgetAddPayPeriodToggle');
+    if (ppToggle) ppToggle.addEventListener('click', function() {
+      var form = document.getElementById('budgetAddPPForm');
+      if (form) form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+    });
+
+    /* Wire add pay period */
+    var addPPBtn = body.querySelector('#budgetAddPayPeriodBtn');
+    if (addPPBtn) addPPBtn.addEventListener('click', function() {
+      var typeInput = document.getElementById('budgetPPType');
+      var startInput = document.getElementById('budgetPPStart');
+      var amtInput = document.getElementById('budgetPPAmount');
+      var jobInput = document.getElementById('budgetPPJob');
+      var type = typeInput ? typeInput.value : 'biweekly';
+      var startDate = startInput ? startInput.value : '';
+      var amount = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+      var jobName = jobInput ? jobInput.value : '';
+      if (!startDate || !amount) return;
+      var b = getPersonalBudget();
+      if (!b.payPeriods) b.payPeriods = [];
+      var newPP = { type: type, startDate: startDate, amount: amount };
+      if (jobName) newPP.jobName = jobName;
+      b.payPeriods.push(newPP);
       setPersonalBudget(b);
       renderBudgetWidget();
     });
@@ -7562,6 +7763,40 @@ function openBudgetAnalyticsModal(budget, jobIncome, billsTotal, oneTimeTotal, g
     '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.95rem;font-weight:700;border-top:2px solid #eee;margin-top:4px"><span>Net</span><span style="color:' + (net >= 0 ? '#27ae60' : '#e74c3c') + '">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span></div>';
   modal.appendChild(overview);
 
+  // Savings Rate
+  var savingsSection = document.createElement('div');
+  savingsSection.style.cssText = 'margin-bottom:16px;padding:10px;background:#f8f9fa;border-radius:8px';
+  var savingsRate = jobIncome > 0 ? ((jobIncome - totalExpenses) / jobIncome * 100) : 0;
+  var savingsColor = savingsRate >= 20 ? '#27ae60' : savingsRate >= 0 ? '#f39c12' : '#e74c3c';
+  var savingsLabel = savingsRate >= 20 ? '✅ Great' : savingsRate >= 0 ? '⚠️ Fair' : '🔴 Negative';
+  savingsSection.innerHTML =
+    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:6px">💹 Savings Rate</div>' +
+    '<div style="display:flex;align-items:center;gap:8px">' +
+      '<span style="font-size:1.4rem;font-weight:700;color:' + savingsColor + '">' + savingsRate.toFixed(1) + '%</span>' +
+      '<span style="font-size:0.82rem;color:#888">' + savingsLabel + '</span>' +
+    '</div>';
+  modal.appendChild(savingsSection);
+
+  // Monthly Cash Flow Chart
+  var cashFlowSection = document.createElement('div');
+  cashFlowSection.style.cssText = 'margin-bottom:16px';
+  var maxVal = Math.max(jobIncome, totalExpenses, 1);
+  var incomeBarW = Math.round((jobIncome / maxVal) * 100);
+  var expenseBarW = Math.round((totalExpenses / maxVal) * 100);
+  cashFlowSection.innerHTML =
+    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:8px">📊 Monthly Cash Flow</div>' +
+    '<div style="margin-bottom:6px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:0.82rem"><span style="width:60px">Income</span>' +
+        '<div style="flex:1;background:#eee;border-radius:4px;height:18px;overflow:hidden"><div style="width:' + incomeBarW + '%;height:100%;background:#27ae60;border-radius:4px;transition:width 0.3s"></div></div>' +
+        '<span style="font-size:0.78rem;color:#27ae60;min-width:70px;text-align:right">$' + jobIncome.toFixed(2) + '</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:6px;font-size:0.82rem"><span style="width:60px">Expenses</span>' +
+        '<div style="flex:1;background:#eee;border-radius:4px;height:18px;overflow:hidden"><div style="width:' + expenseBarW + '%;height:100%;background:#e74c3c;border-radius:4px;transition:width 0.3s"></div></div>' +
+        '<span style="font-size:0.78rem;color:#e74c3c;min-width:70px;text-align:right">$' + totalExpenses.toFixed(2) + '</span>' +
+      '</div>' +
+    '</div>';
+  modal.appendChild(cashFlowSection);
+
   // Expense breakdown bar
   var breakdownTitle = document.createElement('div');
   breakdownTitle.style.cssText = 'font-weight:600;font-size:0.92rem;margin-bottom:8px';
@@ -7605,7 +7840,7 @@ function openBudgetAnalyticsModal(budget, jobIncome, billsTotal, oneTimeTotal, g
     modal.appendChild(noData);
   }
 
-  // Category breakdown
+  // Category breakdown with colored bars
   var bills = budget.bills || [];
   var oneTimeExpenses = budget.oneTimeExpenses || [];
   var allExpenseItems = [];
@@ -7626,16 +7861,92 @@ function openBudgetAnalyticsModal(budget, jobIncome, billsTotal, oneTimeTotal, g
 
     var catColors = ['#e74c3c', '#3498db', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#2ecc71'];
     var catKeys = Object.keys(catTotals).sort(function(a, b) { return catTotals[b] - catTotals[a]; });
+    var catMax = catKeys.length > 0 ? catTotals[catKeys[0]] : 1;
     catKeys.forEach(function(cat, i) {
       var row = document.createElement('div');
-      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:0.85rem';
+      row.style.cssText = 'padding:4px 0;font-size:0.85rem';
       var color = catColors[i % catColors.length];
+      var catPct = totalExpenses > 0 ? Math.round((catTotals[cat] / totalExpenses) * 100) : 0;
+      var barW = catMax > 0 ? Math.round((catTotals[cat] / catMax) * 100) : 0;
       row.innerHTML =
-        '<div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:' + color + ';display:inline-block"></span>' + escapeHTML(cat) + '</div>' +
-        '<span style="font-weight:600">$' + catTotals[cat].toFixed(2) + '</span>';
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
+          '<div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:' + color + ';display:inline-block"></span>' + escapeHTML(cat) + '</div>' +
+          '<span style="font-weight:600">$' + catTotals[cat].toFixed(2) + ' <span style="font-weight:400;color:#888;font-size:0.78rem">(' + catPct + '%)</span></span>' +
+        '</div>' +
+        '<div style="background:#eee;border-radius:3px;height:8px;overflow:hidden"><div style="width:' + barW + '%;height:100%;background:' + color + ';border-radius:3px"></div></div>';
       modal.appendChild(row);
     });
   }
+
+  // Bills Timeline (next 30 days)
+  var timelineBills = (budget.bills || []).filter(function(b) { return b.dueDate; });
+  if (timelineBills.length > 0) {
+    var tlTitle = document.createElement('div');
+    tlTitle.style.cssText = 'font-weight:600;font-size:0.92rem;margin-bottom:8px;margin-top:12px;border-top:1px solid #eee;padding-top:12px';
+    tlTitle.textContent = '📅 Bills Timeline (Next 30 Days)';
+    modal.appendChild(tlTitle);
+
+    var now = new Date();
+    var thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    var upcoming = [];
+    timelineBills.forEach(function(bill) {
+      var dueDate = new Date(bill.dueDate + 'T00:00:00');
+      // For recurring bills, find the next occurrence
+      var repeat = bill.repeat || 'monthly';
+      var next = new Date(dueDate);
+      if (repeat === 'weekly') {
+        while (next < now) next.setDate(next.getDate() + 7);
+      } else if (repeat === 'biweekly') {
+        while (next < now) next.setDate(next.getDate() + 14);
+      } else if (repeat === 'quarterly') {
+        while (next < now) next.setMonth(next.getMonth() + 3);
+      } else if (repeat === 'yearly') {
+        while (next < now) next.setFullYear(next.getFullYear() + 1);
+      } else {
+        while (next < now) next.setMonth(next.getMonth() + 1);
+      }
+      if (next <= thirtyDays) {
+        upcoming.push({ name: bill.name, date: next, amount: parseFloat(bill.amount) || 0 });
+      }
+    });
+    upcoming.sort(function(a, b) { return a.date - b.date; });
+
+    if (upcoming.length > 0) {
+      upcoming.forEach(function(item) {
+        var daysUntil = Math.ceil((item.date - now) / (24 * 60 * 60 * 1000));
+        var urgency = daysUntil <= 3 ? '#e74c3c' : daysUntil <= 7 ? '#f39c12' : '#888';
+        var tlRow = document.createElement('div');
+        tlRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.82rem;border-bottom:1px solid #f5f5f5';
+        tlRow.innerHTML =
+          '<span>' + escapeHTML(item.name) + ' <span style="color:' + urgency + ';font-size:0.72rem">' + (daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : 'in ' + daysUntil + ' days') + '</span></span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + item.amount.toFixed(2) + '</span>';
+        modal.appendChild(tlRow);
+      });
+    } else {
+      var noUpcoming = document.createElement('div');
+      noUpcoming.style.cssText = 'color:#aaa;font-size:0.82rem;padding:4px 0';
+      noUpcoming.textContent = 'No bills due in the next 30 days.';
+      modal.appendChild(noUpcoming);
+    }
+  }
+
+  // Annual Projection
+  var annualSection = document.createElement('div');
+  annualSection.style.cssText = 'margin-top:12px;border-top:1px solid #eee;padding-top:12px';
+  var annualIncome = jobIncome * 12;
+  var annualRecurring = billsTotal * 12;
+  var annualOneTime = oneTimeTotal;
+  var annualGrocery = grocerySpend * 12;
+  var annualExpenses = annualRecurring + annualOneTime + annualGrocery;
+  var annualNet = annualIncome - annualExpenses;
+  annualSection.innerHTML =
+    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:8px">📈 Annual Projection</div>' +
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem"><span>Projected Income (12 mo)</span><span style="color:#27ae60;font-weight:600">$' + annualIncome.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem"><span>Recurring Bills (12 mo)</span><span style="color:#e74c3c">$' + annualRecurring.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem"><span>Groceries (12 mo)</span><span style="color:#e74c3c">$' + annualGrocery.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem"><span>One-Time Expenses</span><span style="color:#e74c3c">$' + annualOneTime.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:0.88rem;font-weight:700;border-top:1px solid #eee;margin-top:4px"><span>Net Annual</span><span style="color:' + (annualNet >= 0 ? '#27ae60' : '#e74c3c') + '">' + (annualNet >= 0 ? '+' : '') + '$' + annualNet.toFixed(2) + '</span></div>';
+  modal.appendChild(annualSection);
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);

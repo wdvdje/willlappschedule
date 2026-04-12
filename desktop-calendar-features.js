@@ -1297,7 +1297,7 @@
   ══════════════════════════════════════════════════════ */
   function injectGotoDate() {
     if (document.getElementById('dcfGotoRow')) return;
-    var controls = document.querySelector('#page-calendar .calendar-controls');
+    var controls = document.querySelector('#page-calendar .cal-controls-row') || document.querySelector('#page-calendar .calendar-controls');
     if (!controls) return;
     var row = document.createElement('div');
     row.id = 'dcfGotoRow';
@@ -2276,7 +2276,7 @@
      VIEW TOGGLE WIRING  (Year + 2-Week + Week Timeline)
   ══════════════════════════════════════════════════════ */
   function injectViewButtons() {
-    var viewToggleDiv = document.querySelector('#page-calendar .calendar-controls > div');
+    var viewToggleDiv = document.getElementById('viewDropdownBar');
     if (!viewToggleDiv) return;
 
     /* 2-Week button */

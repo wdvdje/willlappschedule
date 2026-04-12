@@ -135,22 +135,25 @@
 
     <!-- Calendar page -->
     <section id="page-calendar" class="page hidden">
-      <div class="calendar-controls">
-        <button id="prevBtn">&lt;</button>
-        <span id="monthLabel" aria-live="polite"></span>
-        <button id="nextBtn">&gt;</button>
-        <div style="display:flex;gap:4px;margin-left:10px">
-          <button id="viewMonthBtn" class="view-toggle-btn active" title="Month view">Month</button>
-          <button id="viewWeekBtn" class="view-toggle-btn" title="Week view">Week</button>
+      <div class="calendar-controls" style="flex-direction:column;align-items:center">
+        <div class="cal-month-nav" style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+          <button id="prevBtn" class="cal-nav-arrow">&lt;</button>
+          <span id="monthLabel" aria-live="polite" style="font-size:1.5rem;font-weight:700;min-width:200px;text-align:center"></span>
+          <button id="nextBtn" class="cal-nav-arrow">&gt;</button>
         </div>
-      </div>
-
-      <!-- Category filter bar (dynamically populated from user buckets) -->
-      <div id="categoryFilterWrap" style="max-width:100%;margin:0 auto 8px;padding:0 4px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-        <button id="categoryFilterToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="categoryFilterBar">🔍 Filter <span id="filterArrow" style="font-size:0.7rem">▸</span></button>
-        <div id="categoryFilterBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
-          <span style="font-size:0.8rem;color:#666;margin-right:2px;font-weight:600">Domains:</span>
-          <button class="cat-filter-btn active" data-cat="all">All</button>
+        <div class="cal-controls-row" style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap">
+          <!-- View dropdown toggle -->
+          <button id="viewDropdownToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="viewDropdownBar">📐 View <span id="viewArrow" style="font-size:0.7rem">▸</span></button>
+          <div id="viewDropdownBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
+            <button id="viewMonthBtn" class="view-toggle-btn active" title="Month view">Month</button>
+            <button id="viewWeekBtn" class="view-toggle-btn" title="Week view">Week</button>
+          </div>
+          <!-- Filter toggle -->
+          <button id="categoryFilterToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="categoryFilterBar">🔍 Filter <span id="filterArrow" style="font-size:0.7rem">▸</span></button>
+          <div id="categoryFilterBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:0.8rem;color:#666;margin-right:2px;font-weight:600">Domains:</span>
+            <button class="cat-filter-btn active" data-cat="all">All</button>
+          </div>
         </div>
       </div>
 
@@ -384,11 +387,12 @@
     <section id="page-personal" class="page hidden">
       <h2>👤 Personal</h2>
       <div id="personalGrid" style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
-        <!-- Daily Focus / Top 3 Priorities — top row, full width on desktop -->
-        <div id="personalFocusSection"></div>
-
-        <!-- Budget Widget -->
-        <div id="personalBudgetSection"></div>
+        <div class="personal-top-row">
+          <!-- Budget Widget -->
+          <div id="personalBudgetSection"></div>
+          <!-- Daily Focus / Top 3 Priorities -->
+          <div id="personalFocusSection"></div>
+        </div>
 
         <!-- Two-column area: each column flows independently so minimising
              a widget in one column does NOT leave blank space in the other -->
@@ -522,6 +526,22 @@
             <p style="color:#888;font-size:0.82rem;margin:3px 0 0">Leave blank to disable overtime tracking.</p>
           </div>
 
+          <!-- Pay Period -->
+          <div style="margin-top:12px;border-top:1px solid #eee;padding-top:10px">
+            <label style="display:block;font-weight:600">💰 Pay Period</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="jobPayPeriodType" style="flex:1">
+                <option value="">None</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Bi-weekly</option>
+                <option value="semimonthly">Semi-monthly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              <input id="jobPayPeriodStart" type="date" placeholder="First pay date" style="flex:1" />
+            </div>
+            <p style="font-size:0.78rem;color:#888;margin:4px 0 0">Set when you get paid. Syncs with Budget widget.</p>
+          </div>
+
           <!-- Per-Job Off-Days -->
           <div style="margin-top:12px;border-top:1px solid #eee;padding-top:10px">
             <label style="display:block;font-weight:600">Days Off</label>
@@ -591,11 +611,7 @@
           <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
         </section>
 
-        <!-- Jobs: now managed on the Work page -->
-        <section id="userJobs" style="margin-top:18px">
-          <h3>Jobs</h3>
-          <p style="color:#666;font-size:0.9rem">Jobs are now managed on the <a href="index.html#work" style="color:#4a90e2">💼 Work</a> page.</p>
-        </section>
+
 
         <!-- GitHub Gist sync (no extra account needed – uses existing GitHub login) -->
         <section id="gistSyncSettings" style="margin-top:18px">
@@ -841,7 +857,10 @@
 
   <!-- Desktop sidebar navigation (shown on desktop via CSS; mirrors bottom ribbon) -->
   <nav id="desktopSidebar" class="desktop-sidebar" role="navigation" aria-label="Desktop navigation">
-    <div class="sidebar-app-title">📅 TimeScape</div>
+    <div class="sidebar-header">
+      <div class="sidebar-app-title">📅 TimeScape</div>
+      <button id="sidebarCollapseBtn" class="sidebar-collapse-btn" aria-label="Toggle sidebar" title="Toggle sidebar">☰</button>
+    </div>
     <a href="#today"     class="sidebar-item" data-view="today">    <span class="sidebar-icon">🏠</span><span class="sidebar-label">Today</span></a>
     <a href="#calendar"  class="sidebar-item" data-view="calendar"> <span class="sidebar-icon">🗓️</span><span class="sidebar-label">Calendar</span></a>
     <a href="#inbox"     class="sidebar-item" data-view="inbox">    <span class="sidebar-icon">📥</span><span class="sidebar-label">Inbox</span></a>
@@ -852,9 +871,48 @@
     <div class="sidebar-divider"></div>
     <div class="sidebar-bottom">
       <a href="#tasks"    class="sidebar-item" data-view="tasks">   <span class="sidebar-icon">✅</span><span class="sidebar-label">Tasks</span></a>
+      <a href="#reminders" class="sidebar-item" data-view="reminders"><span class="sidebar-icon">🔔</span><span class="sidebar-label">Reminders</span></a>
       <a href="#settings" class="sidebar-item" data-view="settings"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">Settings</span></a>
     </div>
   </nav>
+
+  <!-- Sidebar collapse/expand logic -->
+  <script>
+  (function() {
+    var sidebar = document.getElementById('desktopSidebar');
+    var btn = document.getElementById('sidebarCollapseBtn');
+    if (!sidebar || !btn) return;
+    var KEY = 'sidebarCollapsed';
+
+    function applySidebarState(collapsed) {
+      var collapsedW = getComputedStyle(document.documentElement).getPropertyValue('--ios-sidebar-w-collapsed').trim();
+      if (collapsed) {
+        sidebar.classList.add('collapsed');
+        document.documentElement.style.setProperty('--ios-sidebar-w', collapsedW);
+        btn.setAttribute('aria-label', 'Expand sidebar');
+        btn.setAttribute('title', 'Expand sidebar');
+      } else {
+        sidebar.classList.remove('collapsed');
+        document.documentElement.style.setProperty('--ios-sidebar-w', '');
+        btn.setAttribute('aria-label', 'Collapse sidebar');
+        btn.setAttribute('title', 'Collapse sidebar');
+      }
+    }
+
+    // Restore saved state
+    try {
+      if (localStorage.getItem(KEY) === 'true') {
+        applySidebarState(true);
+      }
+    } catch(e) {}
+
+    btn.addEventListener('click', function() {
+      var isCollapsed = sidebar.classList.contains('collapsed');
+      applySidebarState(!isCollapsed);
+      try { localStorage.setItem(KEY, !isCollapsed ? 'true' : 'false'); } catch(e) {}
+    });
+  })();
+  </script>
 
   <!-- bottom ribbon navigation -->
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
