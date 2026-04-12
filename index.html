@@ -841,7 +841,10 @@
 
   <!-- Desktop sidebar navigation (shown on desktop via CSS; mirrors bottom ribbon) -->
   <nav id="desktopSidebar" class="desktop-sidebar" role="navigation" aria-label="Desktop navigation">
-    <div class="sidebar-app-title">📅 TimeScape</div>
+    <div class="sidebar-header">
+      <div class="sidebar-app-title">📅 TimeScape</div>
+      <button id="sidebarCollapseBtn" class="sidebar-collapse-btn" aria-label="Toggle sidebar" title="Toggle sidebar">☰</button>
+    </div>
     <a href="#today"     class="sidebar-item" data-view="today">    <span class="sidebar-icon">🏠</span><span class="sidebar-label">Today</span></a>
     <a href="#calendar"  class="sidebar-item" data-view="calendar"> <span class="sidebar-icon">🗓️</span><span class="sidebar-label">Calendar</span></a>
     <a href="#inbox"     class="sidebar-item" data-view="inbox">    <span class="sidebar-icon">📥</span><span class="sidebar-label">Inbox</span></a>
@@ -855,6 +858,39 @@
       <a href="#settings" class="sidebar-item" data-view="settings"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">Settings</span></a>
     </div>
   </nav>
+
+  <!-- Sidebar collapse/expand logic -->
+  <script>
+  (function() {
+    var sidebar = document.getElementById('desktopSidebar');
+    var btn = document.getElementById('sidebarCollapseBtn');
+    if (!sidebar || !btn) return;
+    var KEY = 'sidebarCollapsed';
+
+    function applySidebarState(collapsed) {
+      if (collapsed) {
+        sidebar.classList.add('collapsed');
+        document.documentElement.style.setProperty('--ios-sidebar-w', getComputedStyle(document.documentElement).getPropertyValue('--ios-sidebar-w-collapsed').trim());
+      } else {
+        sidebar.classList.remove('collapsed');
+        document.documentElement.style.setProperty('--ios-sidebar-w', '220px');
+      }
+    }
+
+    // Restore saved state
+    try {
+      if (localStorage.getItem(KEY) === 'true') {
+        applySidebarState(true);
+      }
+    } catch(e) {}
+
+    btn.addEventListener('click', function() {
+      var isCollapsed = sidebar.classList.contains('collapsed');
+      applySidebarState(!isCollapsed);
+      try { localStorage.setItem(KEY, !isCollapsed ? 'true' : 'false'); } catch(e) {}
+    });
+  })();
+  </script>
 
   <!-- bottom ribbon navigation -->
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">

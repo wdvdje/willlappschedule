@@ -41,6 +41,7 @@
   --ios-slow:          0.45s;
 
   --ios-sidebar-w:     220px;
+  --ios-sidebar-w-collapsed: 56px;
   --ios-tab-h:         calc(62px + env(safe-area-inset-bottom,0px));
   --ios-header-h:      calc(54px + env(safe-area-inset-top,0px));
 }
@@ -388,6 +389,78 @@ header .header-btn:active {
 
 .sidebar-bottom {
   margin-top: auto;
+}
+
+/* Sidebar header with title + collapse toggle */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+/* Collapse/expand toggle button */
+.sidebar-collapse-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--ios-r-sm);
+  background: transparent;
+  color: var(--ios-text-2);
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--ios-fast) var(--ios-ease);
+}
+.sidebar-collapse-btn:hover {
+  background: rgba(120,120,128,0.10);
+}
+
+@media (min-width: 901px) {
+  .sidebar-collapse-btn {
+    display: flex;
+  }
+
+  /* Smooth transitions on sidebar and content */
+  .desktop-sidebar {
+    transition: width var(--ios-normal) var(--ios-ease);
+  }
+  body > header,
+  #syncStatusBar,
+  body > main {
+    transition: margin-left var(--ios-normal) var(--ios-ease);
+  }
+  body > header,
+  #syncStatusBar {
+    transition: margin-left var(--ios-normal) var(--ios-ease),
+                left var(--ios-normal) var(--ios-ease);
+  }
+
+  /* Collapsed sidebar state */
+  .desktop-sidebar.collapsed {
+    width: var(--ios-sidebar-w-collapsed);
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  .desktop-sidebar.collapsed .sidebar-app-title {
+    display: none;
+  }
+  .desktop-sidebar.collapsed .sidebar-header {
+    justify-content: center;
+  }
+  .desktop-sidebar.collapsed .sidebar-label {
+    display: none;
+  }
+  .desktop-sidebar.collapsed .sidebar-item {
+    justify-content: center;
+    padding: 9px 0;
+  }
+  .desktop-sidebar.collapsed .sidebar-icon {
+    width: auto;
+  }
 }
 
 /* ── 8. Form inputs — iOS rounded style ────────────────────────── */
