@@ -71,7 +71,7 @@
       }
       if (e.location) lines.push('LOCATION:' + escICS(e.location));
       if (e.repeat && e.repeat !== 'none') {
-        var rruleMap = { daily:'DAILY', '2day':'DAILY;INTERVAL=2', weekly:'WEEKLY', monthly:'MONTHLY' };
+        var rruleMap = { daily:'DAILY', '2day':'DAILY;INTERVAL=2', weekday:'WEEKLY;BYDAY=MO,TU,WE,TH,FR', weekly:'WEEKLY', monthly:'MONTHLY' };
         var freq = rruleMap[e.repeat];
         if (!freq && e.repeat === 'custom' && e.repeatUnit) {
           var umap = { days:'DAILY', weeks:'WEEKLY', months:'MONTHLY', years:'YEARLY' };
@@ -644,6 +644,19 @@
       if (/\bevery\s+day\b|\bdaily\b/i.test(text) && !result.repeat) {
         result.repeat = 'daily';
         if (!result.date) result.date = new Date().toISOString().slice(0,10);
+        if (result.kind === 'unsorted') result.kind = 'event';
+      }
+
+      // "every weekday" / "weekdays" (Mon-Fri)
+      if (/\bevery\s+weekday\b|\bweekdays\b/i.test(text) && !result.repeat) {
+        result.repeat = 'weekday';
+        if (!result.date) {
+          var wd = new Date();
+          var dow = wd.getDay();
+          if (dow === 0) wd.setDate(wd.getDate() + 1);
+          else if (dow === 6) wd.setDate(wd.getDate() + 2);
+          result.date = wd.toISOString().slice(0,10);
+        }
         if (result.kind === 'unsorted') result.kind = 'event';
       }
 
