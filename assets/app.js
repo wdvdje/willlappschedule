@@ -660,14 +660,18 @@ function generateCalendar(){
 
     /* Mobile long-press: show daily summary modal */
     (function(dayNum, cellEl){
+      var LONG_PRESS_MS = 500;
+      var MOBILE_MAX_PX = 900;
       var _lpTimer = null;
       var _lpFired = false;
       cellEl.addEventListener('touchstart', function(e){
         _lpFired = false;
+        var isMobile = window.innerWidth <= MOBILE_MAX_PX;
+        if (!isMobile) return;
         _lpTimer = setTimeout(function(){
           _lpFired = true;
-          if (window.innerWidth <= 900) showMobileDailySummary(selectedYear, selectedMonth, dayNum);
-        }, 500);
+          showMobileDailySummary(selectedYear, selectedMonth, dayNum);
+        }, LONG_PRESS_MS);
       }, {passive: true});
       cellEl.addEventListener('touchend', function(e){
         if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
