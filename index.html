@@ -499,6 +499,17 @@
     .meal-edit-panel .meal-cal-input { width:72px; text-align:center; }
     .meal-save-btn { background:#27ae60; color:#fff; border:none; border-radius:8px; padding:5px 10px; cursor:pointer; font-size:0.82rem; }
     .meal-cancel-btn { background:none; border:1px solid #ccc; border-radius:8px; padding:5px 10px; cursor:pointer; font-size:0.82rem; color:#666; }
+    .meal-day-selector { display:flex; gap:4px; margin-bottom:10px; flex-wrap:wrap; }
+    .meal-day-btn { flex:1; min-width:36px; padding:6px 2px; border:1px solid #d8e0ec; border-radius:8px; background:#f7f9fc; cursor:pointer; font-size:0.78rem; text-align:center; font-weight:600; color:#555; transition:background 0.2s, border-color 0.2s; }
+    .meal-day-btn:hover { background:#e8f2fe; border-color:#4a90e2; }
+    .meal-day-btn.active { background:#9b59b6; color:#fff; border-color:#9b59b6; }
+    .meal-day-btn .meal-day-label { display:block; font-size:0.72rem; font-weight:400; opacity:0.8; }
+    .meal-week-status { display:flex; gap:4px; margin-top:10px; padding-top:8px; border-top:1px solid #eee; align-items:center; flex-wrap:wrap; }
+    .meal-week-dot { width:10px; height:10px; border-radius:50%; border:1px solid #ccc; flex-shrink:0; }
+    .meal-week-dot.complete { background:#27ae60; border-color:#27ae60; }
+    .meal-week-dot.partial { background:#f39c12; border-color:#f39c12; }
+    .meal-week-dot.empty { background:#eee; border-color:#ccc; }
+    .meal-week-label { font-size:0.78rem; color:#888; margin-left:4px; }
 
     /* Sleep / Bedtime */
     .sleep-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; font-size:0.88rem; }
@@ -615,6 +626,11 @@
     body.dark-mode .meal-row { border-color:#2a2a4a; }
     body.dark-mode .meal-edit-panel { background:#1e2d45; border-color:#2a2a4a; }
     body.dark-mode .meal-progress-bar { background:#1e2d45; }
+    body.dark-mode .meal-day-btn { background:#1e2d45; border-color:#2a2a4a; color:#ccc; }
+    body.dark-mode .meal-day-btn:hover { background:#253a5e; border-color:#4a90e2; }
+    body.dark-mode .meal-day-btn.active { background:#9b59b6; color:#fff; border-color:#9b59b6; }
+    body.dark-mode .meal-week-status { border-color:#2a2a4a; }
+    body.dark-mode .meal-week-dot.empty { background:#2a2a4a; border-color:#444; }
     body.dark-mode .sleep-status { background:#1e2d45; }
     body.dark-mode .gym-exercise { border-color:#2a2a4a; }
     body.dark-mode .focus-item { border-color:#2a2a4a; }
