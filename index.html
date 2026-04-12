@@ -502,7 +502,7 @@
   <header id="appHeader">
     <a href="#inbox" class="header-btn" id="headerInboxBtn" aria-label="Inbox"><span>📥</span><span class="header-btn-label" id="inboxNavLabel">Inbox</span></a>
     <span id="appHeaderTitle">📅 TimeScape Planner</span>
-    <button type="button" class="header-btn" id="headerAddItemBtn" aria-label="Add Item" style="display:none"><span>＋</span><span class="header-btn-label">Add</span></button>
+    <button type="button" class="header-btn" id="headerAddItemBtn" aria-label="Add Item"><span>＋</span><span class="header-btn-label">Add</span></button>
     <a href="#settings" class="header-btn" id="headerSettingsBtn" aria-label="Settings"><span>⚙️</span><span class="header-btn-label">Settings</span></a>
   </header>
   <div id="syncStatusBar" style="display:none;background:#2568c3;color:#fff;font-size:0.78rem;text-align:center;padding:3px 8px;letter-spacing:0.02em" aria-live="polite"></div>
@@ -599,7 +599,7 @@
       </div>
 
       <!-- Category filter bar (dynamically populated from user buckets) -->
-      <div id="categoryFilterBar" style="max-width:720px;margin:0 auto 8px;padding:0 12px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+      <div id="categoryFilterBar" style="max-width:720px;margin:0 auto 8px;padding:0 4px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
         <span style="font-size:0.8rem;color:#666;margin-right:2px;font-weight:600">Domains:</span>
         <button class="cat-filter-btn active" data-cat="all">All</button>
       </div>
@@ -731,7 +731,6 @@
         <input type="hidden" id="eventJobUnit" name="eventJobUnit" />
         <input type="hidden" id="eventJobEmoji" name="eventJobEmoji" />
         <input type="hidden" id="eventJobLocation" name="eventJobLocation" />
-        <div style="margin-top:8px"><button id="addEventBtn" type="submit">Add Event</button></div>
       </form>
       <ul id="eventList" style="margin-top:12px"></ul>
     </section>
@@ -752,7 +751,6 @@
         <div style="margin-top:8px" class="mobile-row">
           <label class="mobile-label" for="reminderTime">Time</label>
           <input type="time" id="reminderTime" style="width:36%" />
-          <button id="addReminderBtn" type="submit" style="width:auto;margin-left:8px">Add Reminder</button>
         </div>
         <div style="margin-top:8px" class="mobile-row">
           <label class="mobile-label" for="reminderNotify">Notify</label>
@@ -797,7 +795,6 @@
           <!-- note: quick category input now in modal (see #catModal below) -->
           <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
             <select id="taskPriority" style="width:120px"><option value="1">!</option><option value="2">!!</option><option value="3">!!!</option></select>
-            <button id="addTaskBtn" type="submit">Add</button>
           </div>
         </div>
       </form>
