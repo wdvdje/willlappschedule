@@ -242,6 +242,14 @@
           </div>
         </details>
 
+        <!-- Advanced Item Specifications: additional time/repeat schedules for the same event -->
+        <details id="eventAdvancedSpecs" style="margin-top:8px">
+          <summary style="cursor:pointer;font-weight:600">Advanced Item Specifications</summary>
+          <p style="margin:6px 0;font-size:0.85em;color:#888">Add additional time &amp; repeat schedules for this event (e.g. a class that meets A&nbsp;days at one time and B&nbsp;days at another).</p>
+          <div id="eventAdvSpecList"></div>
+          <button type="button" id="eventAddAdvSpec" class="small-btn" style="margin-top:6px">+ Add time / repeat schedule</button>
+        </details>
+
         <!-- Category -->
         <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
           <label style="min-width:90px;margin:0">Category</label>
@@ -737,6 +745,14 @@
           </select>
           <label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer"><input type="checkbox" id="editABSkipHolidays" /> Skip holidays &amp; off-days</label>
         </div>
+
+        <!-- Advanced Item Specifications in edit modal -->
+        <details id="editAdvancedSpecs" style="margin-top:8px">
+          <summary style="cursor:pointer;font-weight:600">Advanced Item Specifications</summary>
+          <p style="margin:6px 0;font-size:0.85em;color:#888">Additional time &amp; repeat schedules for this event.</p>
+          <div id="editAdvSpecList"></div>
+          <button type="button" id="editAddAdvSpec" class="small-btn" style="margin-top:6px">+ Add time / repeat schedule</button>
+        </details>
 
         <div id="editFieldsExtra" style="margin-top:8px">
           <div style="margin-top:8px">
