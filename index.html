@@ -135,22 +135,25 @@
 
     <!-- Calendar page -->
     <section id="page-calendar" class="page hidden">
-      <div class="calendar-controls">
-        <button id="prevBtn">&lt;</button>
-        <span id="monthLabel" aria-live="polite"></span>
-        <button id="nextBtn">&gt;</button>
-        <div style="display:flex;gap:4px;margin-left:10px">
-          <button id="viewMonthBtn" class="view-toggle-btn active" title="Month view">Month</button>
-          <button id="viewWeekBtn" class="view-toggle-btn" title="Week view">Week</button>
+      <div class="calendar-controls" style="flex-direction:column;align-items:center">
+        <div class="cal-month-nav" style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+          <button id="prevBtn" class="cal-nav-arrow">&lt;</button>
+          <span id="monthLabel" aria-live="polite" style="font-size:1.5rem;font-weight:700;min-width:200px;text-align:center"></span>
+          <button id="nextBtn" class="cal-nav-arrow">&gt;</button>
         </div>
-      </div>
-
-      <!-- Category filter bar (dynamically populated from user buckets) -->
-      <div id="categoryFilterWrap" style="max-width:100%;margin:0 auto 8px;padding:0 4px;box-sizing:border-box;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-        <button id="categoryFilterToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="categoryFilterBar">🔍 Filter <span id="filterArrow" style="font-size:0.7rem">▸</span></button>
-        <div id="categoryFilterBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
-          <span style="font-size:0.8rem;color:#666;margin-right:2px;font-weight:600">Domains:</span>
-          <button class="cat-filter-btn active" data-cat="all">All</button>
+        <div class="cal-controls-row" style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap">
+          <!-- View dropdown toggle -->
+          <button id="viewDropdownToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="viewDropdownBar">📐 View <span id="viewArrow" style="font-size:0.7rem">▸</span></button>
+          <div id="viewDropdownBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
+            <button id="viewMonthBtn" class="view-toggle-btn active" title="Month view">Month</button>
+            <button id="viewWeekBtn" class="view-toggle-btn" title="Week view">Week</button>
+          </div>
+          <!-- Filter toggle -->
+          <button id="categoryFilterToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="categoryFilterBar">🔍 Filter <span id="filterArrow" style="font-size:0.7rem">▸</span></button>
+          <div id="categoryFilterBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:0.8rem;color:#666;margin-right:2px;font-weight:600">Domains:</span>
+            <button class="cat-filter-btn active" data-cat="all">All</button>
+          </div>
         </div>
       </div>
 

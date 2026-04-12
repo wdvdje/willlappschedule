@@ -504,7 +504,7 @@ kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc; border-ra
   body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
   .page { max-width: none; }
   /* Calendar page: expand wider than other pages, near full viewport width */
-  #page-calendar { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; }
+  #page-calendar { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; overflow-x: hidden; }
   .day { min-height: 90px; overflow: visible; }
   .emoji-row { max-height: none; gap: 3px; flex-direction: column; align-items: stretch; overflow-y: auto; }
   .event-preview {
@@ -573,6 +573,20 @@ kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc; border-ra
 .view-toggle-btn.active { background: #4a90e2; color: #fff; border-color: #4a90e2; }
 .view-toggle-btn:hover:not(.active) { border-color: #4a90e2; background: #f0f6ff; }
 
+/* ── Calendar nav arrows (bigger month label layout) ── */
+.cal-nav-arrow {
+  background: #4a90e2;
+  color: #fff;
+  border: 1.5px solid transparent;
+  border-radius: 10px;
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: background 0.15s;
+}
+.cal-nav-arrow:hover { background: #357abd; }
+
 /* ── Activity chart / donut row ── */
 #activityChartRow { display: none; } /* hidden until calendar page shows */
 @media (min-width: 601px) { #activityChartRow { display: flex; } }
@@ -614,7 +628,7 @@ body.dark-mode kbd { background: #2a2a4a; border-color: #4a4a7a; color: #ccc; }
     padding: 0;
     box-sizing: border-box;
   }
-  #calCenterPanel { flex: 1; min-width: 0; }
+  #calCenterPanel { flex: 1; min-width: 0; overflow: hidden; }
   .cal-side-panel {
     display: flex;
     flex-direction: column;
@@ -684,7 +698,7 @@ body.dark-mode kbd { background: #2a2a4a; border-color: #4a4a7a; color: #ccc; }
   .cal-panel-expand-tab:hover { background: #f0f6ff; color: #4a90e2; }
   .cal-panel-expand-tab.visible { display: block; }
   /* Prevent calendar grid from being too wide when panel present */
-  #calCenterPanel .calendar { max-width: 100%; }
+  #calCenterPanel .calendar { max-width: 100%; overflow: hidden; }
   /* Activity chart should be full width inside center panel */
   #activityChartRow { max-width: 100%; }
   /* Hide the original calendarSummary on desktop when integrated */

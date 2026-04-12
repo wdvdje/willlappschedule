@@ -3382,6 +3382,20 @@ function wireCategoryFilters(){
     };
   }
 
+  // Wire the View dropdown toggle button
+  var viewToggle = document.getElementById('viewDropdownToggle');
+  var viewBar = document.getElementById('viewDropdownBar');
+  var viewArrow = document.getElementById('viewArrow');
+  if (viewToggle && viewBar) {
+    viewToggle.onclick = function(e) {
+      e.stopPropagation();
+      var isOpen = viewBar.style.display === 'flex';
+      viewBar.style.display = isOpen ? 'none' : 'flex';
+      viewToggle.setAttribute('aria-expanded', String(!isOpen));
+      if (viewArrow) viewArrow.textContent = isOpen ? '▸' : '▾';
+    };
+  }
+
   // Re-render filter bar when data changes (buckets may have been added/removed)
   window.addEventListener('app:data:updated', renderCategoryFilterBar);
   window.addEventListener('storage', function(e) {
