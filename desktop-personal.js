@@ -641,7 +641,30 @@
       var badge = document.createElement('span');
       badge.className   = 'dmeal-prep-count';
       if (counts[name] > 1) badge.textContent = '× ' + counts[name];
-      row.appendChild(cb); row.appendChild(label); row.appendChild(badge);
+
+      var grocBtn = document.createElement('button');
+      grocBtn.className = 'dmeal-prep-grocery-btn';
+      grocBtn.textContent = '＋🛒';
+      grocBtn.title = 'Add to Grocery List';
+      grocBtn.setAttribute('aria-label', 'Add ' + name + ' to Grocery List');
+      grocBtn.addEventListener('click', function () {
+        var list = getGroceryList();
+        var already = list.some(function (g) { return g.text === name; });
+        if (already) {
+          grocBtn.textContent = '✓';
+          grocBtn.style.color = '#888';
+          setTimeout(function () { grocBtn.textContent = '＋🛒'; grocBtn.style.color = ''; }, 1200);
+          return;
+        }
+        list.push({ id: nextGroceryId(), text: name, qty: '', section: '', inCart: false, added: getTodayISO() });
+        setGroceryList(list);
+        if (typeof renderGroceryList === 'function') renderGroceryList();
+        grocBtn.textContent = '✓ Added';
+        grocBtn.style.color = '#27ae60';
+        setTimeout(function () { grocBtn.textContent = '＋🛒'; grocBtn.style.color = ''; }, 1500);
+      });
+
+      row.appendChild(cb); row.appendChild(label); row.appendChild(badge); row.appendChild(grocBtn);
       panel.appendChild(row);
     });
     return panel;
