@@ -11,9 +11,11 @@
   const PRIMARY_COLOR = '#4a90e2';
   const REMINDER_COLOR = '#e67e22';
   const TASK_DEFAULT_COLOR = '#2ecc71';
+  const ROUTINE_COLOR = '#9b59b6';
   const HOUR_HEIGHT = 60; // px per hour slot
   const REMINDER_DEFAULT_DURATION = 15; // minutes
   const TASK_DEFAULT_DURATION = 30; // minutes
+  const ROUTINE_DEFAULT_DURATION = 15; // minutes
   const GUTTER_WIDTH = 56; // px, keep in sync with CSS .dv-gutter
   const MAX_LAYOUT_PASSES = 10;
   const SWIPE_THRESHOLD_PX = 60;
@@ -82,6 +84,30 @@
       var arr = JSON.parse(localStorage.getItem('taskCategories') || '[]') || [];
       var map = {}; arr.forEach(function(c) { if (c && c.id) map[c.id] = c; }); return map;
     } catch (_) { return {}; }
+  }
+
+  // ── Routine phases loader (compatible with old & new format) ──
+  function loadRoutinePhases() {
+    try {
+      var r = JSON.parse(localStorage.getItem('personalRoutines') || '{}') || {};
+      // New format: { phases: [...] }
+      if (r.phases && Array.isArray(r.phases) && r.phases.length > 0) return r.phases;
+      // Old format: { morning: [...], evening: [...] } – convert to phases
+      var phases = [];
+      ['morning', 'evening'].forEach(function (period) {
+        var steps = r[period] || [];
+        if (steps.length > 0) {
+          phases.push({
+            id: period,
+            name: period === 'morning' ? 'Morning' : 'Evening',
+            emoji: period === 'morning' ? '🌅' : '🌙',
+            startTime: period === 'morning' ? '06:30' : '21:00',
+            steps: steps
+          });
+        }
+      });
+      return phases;
+    } catch (_) { return []; }
   }
 
   // ── Time helpers ──
@@ -190,6 +216,23 @@
         hasTimes: true,
         color: color,
         raw: t
+      });
+    });
+
+    // daily routine phases (shown every day)
+    var phases = loadRoutinePhases();
+    phases.forEach(function(phase) {
+      var s = toMinutes(phase.startTime, null);
+      if (s === null) return;
+      items.push({
+        kind: 'routine',
+        title: 'Start ' + (phase.name || 'Routine'),
+        emoji: (phase.emoji || '📋').trim(),
+        startMin: s,
+        endMin: s + ROUTINE_DEFAULT_DURATION,
+        hasTimes: true,
+        color: ROUTINE_COLOR,
+        raw: phase
       });
     });
 
@@ -360,7 +403,7 @@
         block.title = item.title || '';
 
         // Content
-        var emojiStr = item.emoji ? item.emoji : (item.kind === 'event' ? '' : item.kind === 'reminder' ? '🔔' : '✅');
+        var emojiStr = item.emoji ? item.emoji : (item.kind === 'event' ? '' : item.kind === 'reminder' ? '🔔' : item.kind === 'routine' ? '📋' : '✅');
         var timeStr = '';
         if (item.hasTimes) {
           timeStr = formatTime(item.startMin);
@@ -402,6 +445,7 @@
         // Click to edit
         block.addEventListener('click', function(ev) {
           ev.stopPropagation();
+          if (item.kind === 'routine') return; // routines are not editable from daily view
           if (item.kind === 'event') {
             if (openEditModal) openEditModal(item.raw); else console.log('Edit event:', item.raw);
           } else {
@@ -633,7 +677,7 @@
   // ── Listen for data changes ──
   window.addEventListener('app:data:updated', refreshForSelectedDate);
   window.addEventListener('storage', function(e) {
-    if (!e || !e.key || ['reminders', 'tasks', 'events', 'taskCategories'].includes(e.key)) refreshForSelectedDate();
+    if (!e || !e.key || ['reminders', 'tasks', 'events', 'taskCategories', 'personalRoutines'].includes(e.key)) refreshForSelectedDate();
   });
 
   // Re-render when navigating to the Today view
