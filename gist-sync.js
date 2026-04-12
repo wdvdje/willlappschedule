@@ -24,6 +24,7 @@
     'personalSleep', 'personalGym',
     'personalFocus', 'personalRoutines', 'personalRoutineLog',
     'personalHydration', 'personalMood',
+    'personalMealFavorites', 'personalMealPrepLog',
   ];
   const GIST_FILENAME  = 'timescape-data.json';
   const SYNC_INTERVAL_MS = 5 * 60 * 1000; // background poll every 5 minutes
@@ -146,7 +147,8 @@
        'personalMeals', 'personalCalorieGoal',
        'personalSleep', 'personalGym',
        'personalFocus', 'personalRoutines', 'personalRoutineLog',
-       'personalHydration', 'personalMood'
+       'personalHydration', 'personalMood',
+       'personalMealFavorites', 'personalMealPrepLog'
       ].forEach(function (key) {
         if (!(key in remote)) return;
         if (remoteSyncedAt >= localSyncedAt) {
