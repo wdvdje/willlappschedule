@@ -7395,7 +7395,7 @@ function wireSiriShortcuts() {
         '<li>Create a new shortcut</li>' +
         '<li>Add <strong>"Get File"</strong> action — set to pick a <code>.json</code> file</li>' +
         '<li>Add <strong>"Base64 Encode"</strong> action on the file contents</li>' +
-        '<li>Add <strong>"Text"</strong> action with: <code>' + base + '?importData=</code> followed by the Base64 output</li>' +
+        '<li>Add <strong>"Text"</strong> action that combines: <code>' + base + '?importData=</code> with the Base64 output from the previous step</li>' +
         '<li>Add <strong>"Open URLs"</strong> action with the Text as input</li>' +
         '<li>Run the shortcut — your data will be imported automatically!</li>' +
       '</ol>' +
