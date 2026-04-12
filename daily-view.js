@@ -761,7 +761,7 @@
     if (typeof showReminders === 'function') {
       var day = parseInt(currentViewDate.split('-')[2], 10);
       if (!isNaN(day)) {
-        try { showReminders(day); } catch(_) { renderDailyView(currentViewDate); }
+        try { showReminders(day); } catch(e) { console.warn('showReminders error', e); renderDailyView(currentViewDate); }
       } else { renderDailyView(currentViewDate); }
     } else { renderDailyView(currentViewDate); }
     notifyDateChange();
@@ -773,7 +773,7 @@
     if (typeof showReminders === 'function') {
       var day = parseInt(currentViewDate.split('-')[2], 10);
       if (!isNaN(day)) {
-        try { showReminders(day); } catch(_) { renderDailyView(currentViewDate); }
+        try { showReminders(day); } catch(e) { console.warn('showReminders error', e); renderDailyView(currentViewDate); }
       } else { renderDailyView(currentViewDate); }
     } else { renderDailyView(currentViewDate); }
     notifyDateChange();
@@ -804,7 +804,8 @@
     if (typeof showReminders === 'function') {
       var day = parseInt(currentViewDate.split('-')[2], 10);
       if (!isNaN(day)) {
-        try { showReminders(day); } catch(_) {
+        try { showReminders(day); } catch(e) {
+          console.warn('showReminders error', e);
           renderDailyView(currentViewDate);
         }
       } else {
