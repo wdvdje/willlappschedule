@@ -69,6 +69,14 @@
       const rep = document.getElementById('editRepeat');
       if (rep) rep.dispatchEvent(new Event('change'));
     } catch (_) {}
+    // --- populate advanced item specifications if available ---
+    try {
+      if (typeof populateAdvancedSpecs === 'function') {
+        populateAdvancedSpecs('editAdvSpecList', ev.advancedSpecs || []);
+      } else if (window.populateAdvancedSpecs) {
+        window.populateAdvancedSpecs('editAdvSpecList', ev.advancedSpecs || []);
+      }
+    } catch (_) {}
     // --- copy job/category info (if present) into the main event form so it is visible/editable ---
     try {
       const mainCat = document.getElementById('eventCategory');
@@ -352,6 +360,168 @@
         }
         // stop when d built beyond reasonable date
         if (parseISO(d) > parseISO('2100-01-01')) break;
+      }
+
+      // ── Advanced Item Specifications: expand additional time/repeat schedules ──
+      if (Array.isArray(ev.advancedSpecs) && ev.advancedSpecs.length) {
+        ev.advancedSpecs.forEach(function(spec) {
+          var specRepeat = spec.repeat || 'none';
+          var specUntil = spec.repeatUntil || null;
+          var specCapUntil = addYearsISO(baseDate, 2);
+          var specEffEnd = minDateISO(endISO, minDateISO(specUntil, specCapUntil));
+
+          var pushSpecIfInRange = function(dISO) {
+            var dt = parseISO(dISO);
+            if (dt >= start && dt <= end) {
+              var occ = Object.assign({}, ev);
+              occ.occurrenceDate = dISO;
+              occ.date = dISO;
+              occ._baseId = ev.id || ev._id || null;
+              // Override time fields from the spec
+              occ.time = spec.time || '';
+              occ.startTime = spec.time || '';
+              occ.endTime = spec.endTime || '';
+              occ._advancedSpec = true;
+              out.push(occ);
+            }
+          };
+
+          if (!specRepeat || specRepeat === 'none') {
+            pushSpecIfInRange(baseDate);
+            return;
+          }
+
+          if (specRepeat === 'weekday_ab') {
+            var specStartDow = parseISO(baseDate).getDay();
+            if (specStartDow === 0 || specStartDow === 6) return;
+            var specFirstPattern = (String(spec.abWeek || 'a').toLowerCase() === 'b') ? 'b' : 'a';
+            var specMondays = startOfWeekMonday(baseDate);
+            var specADays = [1,3,5];
+            var specBDays = [2,4];
+
+            var specSkipDates = null;
+            if (spec.abSkipHolidays) {
+              specSkipDates = {};
+              function _sp2(n) { return n < 10 ? '0' + n : '' + n; }
+              function _snthWd(yr, mi, wd, n) {
+                var f = new Date(yr, mi, 1).getDay();
+                return 1 + ((7 + wd - f) % 7) + (n - 1) * 7;
+              }
+              function _slastWd(yr, mi, wd) {
+                var last = new Date(yr, mi + 1, 0);
+                return last.getDate() - ((7 + last.getDay() - wd) % 7);
+              }
+              var specStartYr = parseISO(baseDate).getFullYear();
+              var specEndYr = parseISO(specEffEnd).getFullYear();
+              for (var syr = specStartYr; syr <= specEndYr; syr++) {
+                [syr + '-01-01', syr + '-06-19', syr + '-07-04', syr + '-11-11', syr + '-12-25'].forEach(function(d) { specSkipDates[d] = true; });
+                specSkipDates[syr + '-01-' + _sp2(_snthWd(syr, 0, 1, 3))] = true;
+                specSkipDates[syr + '-02-' + _sp2(_snthWd(syr, 1, 1, 3))] = true;
+                specSkipDates[syr + '-05-' + _sp2(_slastWd(syr, 4, 1))] = true;
+                specSkipDates[syr + '-09-' + _sp2(_snthWd(syr, 8, 1, 1))] = true;
+                specSkipDates[syr + '-10-' + _sp2(_snthWd(syr, 9, 1, 2))] = true;
+                specSkipDates[syr + '-11-' + _sp2(_snthWd(syr, 10, 4, 4))] = true;
+              }
+              try {
+                var specUserOffDays = JSON.parse(localStorage.getItem('userOffDays') || '[]');
+                if (Array.isArray(specUserOffDays)) {
+                  specUserOffDays.forEach(function(d) {
+                    var ds = typeof d === 'string' ? d : (d && d.date ? d.date : '');
+                    if (ds) specSkipDates[ds] = true;
+                  });
+                }
+              } catch(_) {}
+            }
+
+            var specBucketOrJobId = (ev.bucketId !== undefined && ev.bucketId !== null) ? ev.bucketId : (ev.jobId ? ev.jobId : null);
+            if (specBucketOrJobId !== null) {
+              try {
+                var specJobs = JSON.parse(localStorage.getItem('jobs') || '[]');
+                var specNormId = (typeof specBucketOrJobId === 'string') ? parseInt(specBucketOrJobId, 10) : specBucketOrJobId;
+                var specLinkedJob = specJobs.find(function(j) { return j.id === specNormId; });
+                if (specLinkedJob && Array.isArray(specLinkedJob.offDays) && specLinkedJob.offDays.length) {
+                  if (!specSkipDates) specSkipDates = {};
+                  specLinkedJob.offDays.forEach(function(d) {
+                    var ds = typeof d === 'string' ? d : (d && d.date ? d.date : '');
+                    if (ds) specSkipDates[ds] = true;
+                  });
+                }
+              } catch(_) {}
+            }
+
+            var specCanonicalSlots = [];
+            var specWeekIndex = 0;
+            while (specWeekIndex < 200) {
+              var specWeekStart = addDaysISO(specMondays, specWeekIndex * 7);
+              if (specWeekStart > specEffEnd) break;
+              var specUseA = (specFirstPattern === 'a') ? (specWeekIndex % 2 === 0) : (specWeekIndex % 2 !== 0);
+              var specDayList = specUseA ? specADays : specBDays;
+              specDayList.forEach(function(weekdayNum) {
+                specCanonicalSlots.push(addDaysISO(specWeekStart, weekdayNum - 1));
+              });
+              specWeekIndex += 1;
+            }
+
+            var specSchoolDaysLost = 0;
+            var specScanFrom = baseDate;
+            specCanonicalSlots.forEach(function(canonical) {
+              if (canonical < baseDate) return;
+              if (specSkipDates) {
+                var scanDate = specScanFrom;
+                while (scanDate < canonical) {
+                  var sdow = parseISO(scanDate).getDay();
+                  if (sdow !== 0 && sdow !== 6 && specSkipDates[scanDate]) specSchoolDaysLost++;
+                  scanDate = addDaysISO(scanDate, 1);
+                }
+              }
+              specScanFrom = addDaysISO(canonical, 1);
+              if (specSkipDates && specSkipDates[canonical]) specSchoolDaysLost++;
+              var candidate = canonical;
+              var remaining = specSchoolDaysLost;
+              var safety = 0;
+              while (remaining > 0 && safety++ < 200) {
+                candidate = addDaysISO(candidate, 1);
+                var dow = parseISO(candidate).getDay();
+                if (dow === 0 || dow === 6) continue;
+                if (specSkipDates && specSkipDates[candidate]) continue;
+                remaining--;
+              }
+              if (candidate > specEffEnd) return;
+              pushSpecIfInRange(candidate);
+            });
+            return;
+          }
+
+          var sd = baseDate;
+          var specMaxLoop = 2000;
+          var specLoops = 0;
+          while (true) {
+            if (specLoops++ > specMaxLoop) break;
+            if (sd > specEffEnd) break;
+            pushSpecIfInRange(sd);
+            if (specRepeat === 'daily') sd = addDaysISO(sd, 1);
+            else if (specRepeat === '2day') sd = addDaysISO(sd, 2);
+            else if (specRepeat === 'weekday') {
+              sd = addDaysISO(sd, 1);
+              var swd = parseISO(sd).getDay();
+              if (swd === 6) sd = addDaysISO(sd, 2);
+              else if (swd === 0) sd = addDaysISO(sd, 1);
+            }
+            else if (specRepeat === 'weekly') sd = addDaysISO(sd, 7);
+            else if (specRepeat === 'monthly') sd = addMonthsISO(sd, 1);
+            else if (specRepeat === 'custom') {
+              var sn = Math.max(1, Math.min(30, parseInt(spec.repeatInterval, 10) || 1));
+              var sunit = ['days','weeks','months','years'].includes(spec.repeatUnit) ? spec.repeatUnit : 'days';
+              if (sunit === 'days') sd = addDaysISO(sd, sn);
+              else if (sunit === 'weeks') sd = addDaysISO(sd, sn * 7);
+              else if (sunit === 'months') sd = addMonthsISO(sd, sn);
+              else sd = addYearsISO(sd, sn);
+            } else {
+              break;
+            }
+            if (parseISO(sd) > parseISO('2100-01-01')) break;
+          }
+        });
       }
     });
     // sort by date asc

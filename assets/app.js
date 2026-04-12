@@ -1017,6 +1017,128 @@ function wireRepeatControls(){
   }
 }
 
+/* ─── Advanced Item Specifications helpers ─── */
+var _advSpecCounter = 0;
+
+function buildAdvSpecRow(spec) {
+  spec = spec || {};
+  var idx = _advSpecCounter++;
+  var div = document.createElement('div');
+  div.className = 'adv-spec-row';
+  div.dataset.advIdx = idx;
+  div.style.cssText = 'border:1px solid #ccc;border-radius:8px;padding:8px;margin-top:6px;position:relative;';
+
+  div.innerHTML =
+    '<button type="button" class="adv-spec-remove" style="position:absolute;top:4px;right:6px;background:none;border:none;font-size:1.1em;cursor:pointer;color:#e74c3c" title="Remove">&times;</button>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+      '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">Start time</label><input type="time" class="advSpec-time" value="' + (spec.time || '') + '" style="width:100%"></div>' +
+      '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">End time</label><input type="time" class="advSpec-endTime" value="' + (spec.endTime || '') + '" style="width:100%"></div>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">' +
+      '<label style="min-width:60px;margin:0;font-size:0.85em">Repeat</label>' +
+      '<select class="advSpec-repeat" style="width:160px">' +
+        '<option value="none"' + (spec.repeat === 'none' || !spec.repeat ? ' selected' : '') + '>None</option>' +
+        '<option value="daily"' + (spec.repeat === 'daily' ? ' selected' : '') + '>Every day</option>' +
+        '<option value="2day"' + (spec.repeat === '2day' ? ' selected' : '') + '>Every 2 days</option>' +
+        '<option value="weekday"' + (spec.repeat === 'weekday' ? ' selected' : '') + '>Every weekday (Mon-Fri)</option>' +
+        '<option value="weekly"' + (spec.repeat === 'weekly' ? ' selected' : '') + '>Every week</option>' +
+        '<option value="monthly"' + (spec.repeat === 'monthly' ? ' selected' : '') + '>Every month</option>' +
+        '<option value="custom"' + (spec.repeat === 'custom' ? ' selected' : '') + '>Custom interval</option>' +
+        '<option value="weekday_ab"' + (spec.repeat === 'weekday_ab' ? ' selected' : '') + '>A/B weekday pattern</option>' +
+      '</select>' +
+      '<label style="min-width:40px;margin:0;font-size:0.85em">Until</label>' +
+      '<input type="date" class="advSpec-repeatUntil" value="' + (spec.repeatUntil || '') + '" style="width:150px">' +
+    '</div>' +
+    '<div class="advSpec-customRow" style="' + (spec.repeat === 'custom' ? 'display:flex;' : 'display:none;') + 'gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+      '<label style="min-width:60px;margin:0;font-size:0.85em">Every</label>' +
+      '<input type="number" class="advSpec-repeatInterval" min="1" max="30" value="' + (spec.repeatInterval || 1) + '" style="width:70px">' +
+      '<select class="advSpec-repeatUnit" style="width:110px">' +
+        '<option value="days"' + (spec.repeatUnit === 'days' || !spec.repeatUnit ? ' selected' : '') + '>Days</option>' +
+        '<option value="weeks"' + (spec.repeatUnit === 'weeks' ? ' selected' : '') + '>Weeks</option>' +
+        '<option value="months"' + (spec.repeatUnit === 'months' ? ' selected' : '') + '>Months</option>' +
+        '<option value="years"' + (spec.repeatUnit === 'years' ? ' selected' : '') + '>Years</option>' +
+      '</select>' +
+    '</div>' +
+    '<div class="advSpec-abRow" style="' + (spec.repeat === 'weekday_ab' ? 'display:flex;' : 'display:none;') + 'gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+      '<label style="min-width:100px;margin:0;font-size:0.85em">Start template</label>' +
+      '<select class="advSpec-abWeek" style="width:190px">' +
+        '<option value="a"' + (spec.abWeek === 'a' || !spec.abWeek ? ' selected' : '') + '>A week (Mon/Wed/Fri)</option>' +
+        '<option value="b"' + (spec.abWeek === 'b' ? ' selected' : '') + '>B week (Tue/Thu)</option>' +
+      '</select>' +
+      '<label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer;font-size:0.85em"><input type="checkbox" class="advSpec-abSkipHolidays"' + (spec.abSkipHolidays ? ' checked' : '') + '> Skip holidays</label>' +
+    '</div>';
+
+  // Wire repeat change handler for this row
+  var repSel = div.querySelector('.advSpec-repeat');
+  repSel.addEventListener('change', function() {
+    var mode = repSel.value;
+    var cr = div.querySelector('.advSpec-customRow');
+    var ar = div.querySelector('.advSpec-abRow');
+    if (cr) cr.style.display = mode === 'custom' ? 'flex' : 'none';
+    if (ar) ar.style.display = mode === 'weekday_ab' ? 'flex' : 'none';
+  });
+
+  // Wire remove button
+  div.querySelector('.adv-spec-remove').addEventListener('click', function() {
+    div.remove();
+  });
+
+  return div;
+}
+
+function readAdvancedSpecs(containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return [];
+  var rows = container.querySelectorAll('.adv-spec-row');
+  var specs = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var time = row.querySelector('.advSpec-time').value || '';
+    var endTime = row.querySelector('.advSpec-endTime').value || '';
+    var repeat = row.querySelector('.advSpec-repeat').value || 'none';
+    var repeatUntil = row.querySelector('.advSpec-repeatUntil').value || '';
+    var spec = { time: time, endTime: endTime, repeat: repeat, repeatUntil: repeatUntil };
+    if (repeat === 'custom') {
+      var n = parseInt(row.querySelector('.advSpec-repeatInterval').value, 10);
+      spec.repeatInterval = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1;
+      spec.repeatUnit = row.querySelector('.advSpec-repeatUnit').value || 'days';
+    }
+    if (repeat === 'weekday_ab') {
+      spec.abWeek = row.querySelector('.advSpec-abWeek').value || 'a';
+      spec.abSkipHolidays = row.querySelector('.advSpec-abSkipHolidays').checked || false;
+    }
+    specs.push(spec);
+  }
+  return specs;
+}
+
+function populateAdvancedSpecs(containerId, specs) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  if (!Array.isArray(specs)) return;
+  for (var i = 0; i < specs.length; i++) {
+    container.appendChild(buildAdvSpecRow(specs[i]));
+  }
+}
+
+function wireAdvancedSpecButtons() {
+  var addBtn = document.getElementById('eventAddAdvSpec');
+  if (addBtn) {
+    addBtn.addEventListener('click', function() {
+      var list = document.getElementById('eventAdvSpecList');
+      if (list) list.appendChild(buildAdvSpecRow());
+    });
+  }
+  var editAddBtn = document.getElementById('editAddAdvSpec');
+  if (editAddBtn) {
+    editAddBtn.addEventListener('click', function() {
+      var list = document.getElementById('editAdvSpecList');
+      if (list) list.appendChild(buildAdvSpecRow());
+    });
+  }
+}
+
 /* Add event */
 function addEvent(e){
   if (e && e.preventDefault) e.preventDefault();
@@ -1056,6 +1178,9 @@ function addEvent(e){
     if (jobRate) newEvent.jobRate = jobRate;
     if (jobUnit) newEvent.jobUnit = jobUnit;
   }
+  // Read advanced item specifications (additional time/repeat schedules)
+  var advSpecs = readAdvancedSpecs('eventAdvSpecList');
+  if (advSpecs.length) newEvent.advancedSpecs = advSpecs;
   evs.push(newEvent);
   setEvents(evs);
   if (document.getElementById('eventTitle')) document.getElementById('eventTitle').value='';
@@ -1077,6 +1202,9 @@ function addEvent(e){
   if (document.getElementById('eventRepeatUnit')) document.getElementById('eventRepeatUnit').value='days';
   if (document.getElementById('eventABWeek')) document.getElementById('eventABWeek').value='a';
   if (document.getElementById('eventABSkipHolidays')) document.getElementById('eventABSkipHolidays').checked=false;
+  // Clear advanced specs list
+  var advSpecListEl = document.getElementById('eventAdvSpecList');
+  if (advSpecListEl) advSpecListEl.innerHTML = '';
   syncRepeatUI('event');
   renderEvents(); generateCalendar();
 }
@@ -1106,6 +1234,8 @@ function editEvent(id){
   var editSkipHol = document.getElementById('editABSkipHolidays');
   if (editSkipHol) editSkipHol.checked = !!e.abSkipHolidays;
   syncRepeatUI('edit');
+  // Populate advanced item specifications in edit modal
+  populateAdvancedSpecs('editAdvSpecList', e.advancedSpecs || []);
   const itemDomain = e.domain || getDomainOfItem(e);
   const editItemDomainEl = document.getElementById('editItemDomain');
   if (editItemDomainEl) editItemDomainEl.value = itemDomain;
@@ -1177,6 +1307,10 @@ function saveEditHandler(e){
       if (bval) evs[idx].bucketId = parseInt(bval, 10);
       else delete evs[idx].bucketId;
     }
+    // Save advanced item specifications
+    var editAdvSpecs = readAdvancedSpecs('editAdvSpecList');
+    if (editAdvSpecs.length) evs[idx].advancedSpecs = editAdvSpecs;
+    else delete evs[idx].advancedSpecs;
     setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
     pushUndo({ label: 'Edit to event "' + text + '" undone.', undo: function() {
       const cur = getEvents(); const ci = cur.findIndex(function(x){ return x.id === before.id; });
@@ -2342,6 +2476,7 @@ document.addEventListener('DOMContentLoaded', function(){
     try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); }
     try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }
     try{ wireRepeatControls(); }catch(e){ console.warn('wireRepeatControls failed', e); }
+    try{ wireAdvancedSpecButtons(); }catch(e){ console.warn('wireAdvancedSpecButtons failed', e); }
 
     // dayPartSelect removed – full 24h scrollable view is now used
   }catch(err){
