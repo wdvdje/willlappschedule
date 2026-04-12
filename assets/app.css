@@ -2359,8 +2359,22 @@ body.dark-mode .mds-empty { color: #666; }
   #page-personal { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; }
   #page-personal > h2 { max-width: none; margin-left: 0; margin-right: 0; padding: 0 8px; }
   #personalGrid {
-        max-width: none !important;
+        max-width: 900px;
         padding: 0 8px !important;
+      }
+  .personal-top-row {
+        display: flex;
+        gap: 16px;
+        align-items: flex-start;
+        margin-bottom: 16px;
+      }
+  .personal-top-row > #personalBudgetSection {
+        flex: 1;
+        min-width: 0;
+      }
+  .personal-top-row > #personalFocusSection {
+        flex: 1;
+        min-width: 0;
       }
   #personalColumns {
         display: flex;

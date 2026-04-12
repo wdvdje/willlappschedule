@@ -6143,80 +6143,9 @@ function isMealDayComplete(allMeals, dateISO) {
 }
 
 /* Ensure an "Eating Tracker" bucket exists in the personal domain; returns its id */
-function ensureEatingTrackerBucket() {
-  var buckets = getBuckets('personal');
-  var existing = buckets.find(function(b) { return b.name === 'Eating Tracker'; });
-  if (existing) return existing.id;
-  var newId = nextBucketId('personal');
-  /* Re-check after ID generation to guard against concurrent calls */
-  buckets = getBuckets('personal');
-  existing = buckets.find(function(b) { return b.name === 'Eating Tracker'; });
-  if (existing) return existing.id;
-  buckets.push({ id: newId, name: 'Eating Tracker', emoji: '🍽️', collapsed: false });
-  setBuckets('personal', buckets);
-  return newId;
-}
-
-/* Sync weekly meal tasks: create tasks for days with incomplete meals, remove completed ones */
-function syncMealWeekTasks() {
-  var weekDays = getMealWeekDays();
-  var allMeals = getPersonalMeals();
-  var bucketId = ensureEatingTrackerBucket();
-  var tasks = getTasks();
-
-  /* Build a set of existing meal-task date keys for this week */
-  var weekISOs = {};
-  weekDays.forEach(function(wd) { weekISOs[wd.iso] = true; });
-
-  /* Find existing meal-tracker tasks for this week */
-  var existingByDate = {};
-  tasks.forEach(function(t, idx) {
-    if (t._mealTrackerTask && weekISOs[t.date]) {
-      existingByDate[t.date] = { task: t, idx: idx };
-    }
-  });
-
-  var changed = false;
-  weekDays.forEach(function(wd) {
-    var status = isMealDayComplete(allMeals, wd.iso);
-    var d = new Date(wd.iso + 'T12:00:00');
-    var dayName = _MEAL_DAY_FULL[d.getDay()];
-
-    if (status !== 'complete') {
-      /* Need a task for this day */
-      if (!existingByDate[wd.iso]) {
-        tasks.push({
-          id: generateTaskId(),
-          title: 'Fill out meals for ' + dayName + ' (' + wd.label + ')',
-          category: 'personal',
-          domain: 'personal',
-          bucketId: bucketId,
-          date: wd.iso,
-          time: '',
-          priority: '1',
-          done: false,
-          _mealTrackerTask: true
-        });
-        changed = true;
-      } else if (existingByDate[wd.iso].task.done) {
-        /* Task was marked done but meals are incomplete again — reopen */
-        existingByDate[wd.iso].task.done = false;
-        changed = true;
-      }
-    } else {
-      /* Meals complete — mark task done if it exists */
-      if (existingByDate[wd.iso] && !existingByDate[wd.iso].task.done) {
-        existingByDate[wd.iso].task.done = true;
-        changed = true;
-      }
-    }
-  });
-
-  if (changed) {
-    setTasks(tasks);
-    try { updateInboxBadge(); } catch(e) {}
-  }
-}
+/* ensureEatingTrackerBucket and syncMealWeekTasks removed —
+   meal data lives in personalMeals localStorage and is displayed
+   within the Meal Planner widget itself, not as separate bucket tasks. */
 
 function renderMealTracker() {
   var section = document.getElementById('personalMealSection');
@@ -6357,7 +6286,6 @@ function renderMealTracker() {
         if (!data[selectedDate]) data[selectedDate] = {};
         data[selectedDate][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0, time: timeInput ? timeInput.value : '' };
         setPersonalMeals(data);
-        syncMealWeekTasks();
         renderMealTracker();
       });
     });
@@ -6376,9 +6304,6 @@ function renderMealTracker() {
   }, 'pw_meal');
 
   section.appendChild(card);
-
-  /* Sync meal tasks whenever the tracker renders */
-  syncMealWeekTasks();
 }
 
 /* ══════════════════════════════════════════════════════════════
