@@ -388,12 +388,12 @@
 
           if (!specRepeat || specRepeat === 'none') {
             pushSpecIfInRange(baseDate);
-            return;
+            return; // skip to next spec in forEach
           }
 
           if (specRepeat === 'weekday_ab') {
             var specStartDow = parseISO(baseDate).getDay();
-            if (specStartDow === 0 || specStartDow === 6) return;
+            if (specStartDow === 0 || specStartDow === 6) return; // skip spec: weekday_ab needs a weekday start
             var specFirstPattern = (String(spec.abWeek || 'a').toLowerCase() === 'b') ? 'b' : 'a';
             var specMondays = startOfWeekMonday(baseDate);
             var specADays = [1,3,5];
@@ -489,11 +489,11 @@
               if (candidate > specEffEnd) return;
               pushSpecIfInRange(candidate);
             });
-            return;
+            return; // done with weekday_ab spec, skip to next spec in forEach
           }
 
           var sd = baseDate;
-          var specMaxLoop = 2000;
+          var specMaxLoop = 2000; // safety cap matching base event expansion limit
           var specLoops = 0;
           while (true) {
             if (specLoops++ > specMaxLoop) break;
