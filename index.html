@@ -639,6 +639,202 @@
     body.dark-mode .mood-energy-btn { background:#1e2d45; color:#ccc; border-color:#2a2a4a; }
     body.dark-mode .mood-history-item { border-color:#2a2a4a; }
 
+    /* ===== Desktop Personal Page: Component Styles ===== */
+    /* These elements are only created by desktop-personal.js so they won't affect mobile */
+
+    /* Meal week grid */
+    .dmeal-layout { display:flex; gap:14px; }
+    .dmeal-grid-wrap { flex:1; min-width:0; }
+    .dmeal-week-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; margin-bottom:10px; }
+    .dmeal-day-col { display:flex; flex-direction:column; min-width:0; }
+    .dmeal-day-header { text-align:center; padding:4px 2px; border-radius:6px 6px 0 0; font-weight:700; font-size:0.78rem; background:#f7f9fc; border:1px solid #e0e6f0; border-bottom:none; color:#555; line-height:1.3; }
+    .dmeal-day-header.today { background:#9b59b6; color:#fff; border-color:#9b59b6; }
+    .dmeal-day-header .dmeal-date { font-size:0.68rem; font-weight:400; opacity:0.8; display:block; }
+    .dmeal-slot { border:1px solid #e0e6f0; border-top:none; padding:4px 5px; min-height:42px; cursor:pointer; background:#fff; transition:background 0.15s; position:relative; }
+    .dmeal-slot.empty { border-style:dashed; background:#fafbfc; }
+    .dmeal-slot.drag-over { background:#eaf4ff !important; border-color:#4a90e2 !important; border-style:solid !important; }
+    .dmeal-slot:hover { background:#f0f6ff; }
+    .dmeal-slot-icon { font-size:0.78rem; }
+    .dmeal-slot-name { font-size:0.7rem; font-weight:600; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .dmeal-slot-cal { font-size:0.65rem; color:#888; }
+    .dmeal-slot-add { font-size:1rem; color:#ccc; display:flex; align-items:center; justify-content:center; height:100%; min-height:30px; }
+    .dmeal-cal-bar { height:5px; border-radius:0 0 6px 6px; border:1px solid #e0e6f0; border-top:none; overflow:hidden; background:#eee; }
+    .dmeal-cal-bar-fill { height:100%; transition:width 0.3s; }
+    /* Meal edit popover */
+    .dmeal-edit-popover { position:fixed; background:#fff; border:1.5px solid #4a90e2; border-radius:10px; padding:10px; z-index:1500; box-shadow:0 6px 24px rgba(0,0,0,0.18); min-width:200px; }
+    .dmeal-edit-popover input { width:100%; box-sizing:border-box; font-size:0.82rem; padding:4px 7px; border:1px solid #d8e0ec; border-radius:6px; margin-bottom:5px; }
+    .dmeal-edit-popover-btns { display:flex; gap:4px; }
+    .dmeal-edit-save { background:#27ae60; color:#fff; border:none; border-radius:6px; padding:4px 10px; cursor:pointer; font-size:0.8rem; flex:1; }
+    .dmeal-edit-cancel { background:none; border:1px solid #ccc; border-radius:6px; padding:4px 8px; cursor:pointer; font-size:0.8rem; }
+    .dmeal-edit-fav { background:none; border:1px solid #f39c12; color:#f39c12; border-radius:6px; padding:4px 7px; cursor:pointer; font-size:0.8rem; }
+    /* Nutrition summary bar */
+    .dmeal-summary { display:flex; gap:10px; align-items:center; background:#f7f9fc; border-radius:8px; padding:8px 12px; margin-bottom:10px; }
+    .dmeal-summary-stat { display:flex; flex-direction:column; align-items:center; min-width:56px; }
+    .dmeal-summary-val { font-weight:700; font-size:0.95rem; color:#333; }
+    .dmeal-summary-lbl { font-size:0.67rem; color:#888; }
+    .dmeal-spark { display:flex; align-items:flex-end; gap:2px; height:30px; flex:1; }
+    .dmeal-spark-bar { flex:1; border-radius:2px 2px 0 0; min-width:4px; }
+    /* Favorites sidebar */
+    .dmeal-fav-sidebar { width:140px; flex-shrink:0; display:flex; flex-direction:column; gap:5px; }
+    .dmeal-fav-title { font-size:0.78rem; font-weight:700; color:#555; }
+    .dmeal-fav-item { background:#f7f9fc; border:1px solid #e0e6f0; border-radius:8px; padding:5px 8px; font-size:0.75rem; cursor:grab; transition:background 0.15s; position:relative; }
+    .dmeal-fav-item:hover { background:#eaf4ff; border-color:#4a90e2; }
+    .dmeal-fav-name { font-weight:600; color:#333; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .dmeal-fav-cal { color:#888; font-size:0.7rem; }
+    .dmeal-fav-del { position:absolute; top:3px; right:4px; background:none; border:none; color:#e74c3c; cursor:pointer; font-size:0.72rem; line-height:1; padding:0; }
+    .dmeal-fav-empty { color:#aaa; font-size:0.73rem; font-style:italic; text-align:center; padding:6px 0; }
+    .dmeal-fav-add-btn { background:#9b59b6; color:#fff; border:none; border-radius:7px; padding:4px 8px; font-size:0.75rem; cursor:pointer; width:100%; text-align:center; margin-top:2px; }
+    /* Meal prep checklist */
+    .dmeal-prep-toggle { background:none; border:none; font-size:0.8rem; color:#4a90e2; cursor:pointer; padding:4px 0; text-decoration:underline; }
+    .dmeal-prep-panel { background:#f7f9fc; border-radius:8px; padding:10px 12px; margin-top:6px; }
+    .dmeal-prep-item { display:flex; align-items:center; gap:6px; padding:3px 0; font-size:0.82rem; }
+    .dmeal-prep-item input[type="checkbox"] { accent-color:#9b59b6; cursor:pointer; flex-shrink:0; }
+    .dmeal-prep-count { font-size:0.7rem; color:#888; }
+
+    /* Routine timeline */
+    .droutine-phases { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; }
+    .droutine-phase { flex:1; min-width:170px; max-width:260px; display:flex; flex-direction:column; }
+    .droutine-phase-header { display:flex; align-items:center; gap:6px; padding:7px 10px; background:#f7f9fc; border-radius:10px 10px 0 0; border:1px solid #e0e6f0; border-bottom:none; }
+    .droutine-phase-name { font-weight:700; font-size:0.85rem; flex:1; }
+    .droutine-phase-meta { font-size:0.7rem; color:#888; }
+    .droutine-phase-body { border:1px solid #e0e6f0; border-radius:0 0 10px 10px; padding:8px; flex:1; background:#fff; }
+    .droutine-add-phase { min-width:80px; max-width:80px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px dashed #d0d8e8; border-radius:10px; padding:12px 6px; cursor:pointer; color:#aaa; font-size:0.78rem; gap:4px; background:#fafbfc; transition:border-color 0.15s,color 0.15s; flex-shrink:0; }
+    .droutine-add-phase:hover { border-color:#9b59b6; color:#9b59b6; }
+    /* Timeline nodes */
+    .droutine-timeline { position:relative; padding-left:18px; }
+    .droutine-timeline::before { content:''; position:absolute; left:8px; top:10px; bottom:10px; width:2px; background:#e0e6f0; border-radius:2px; }
+    .droutine-node { position:relative; margin-bottom:6px; }
+    .droutine-node-dot { position:absolute; left:-18px; top:9px; width:12px; height:12px; border-radius:50%; border:2px solid #9b59b6; background:#fff; transition:background 0.2s; z-index:1; }
+    .droutine-node.done .droutine-node-dot { background:#9b59b6; }
+    .droutine-node-card { background:#f7f9fc; border-radius:8px; padding:5px 7px; font-size:0.8rem; border:1px solid #e6e6e6; cursor:pointer; transition:border-color 0.15s,background 0.15s; user-select:none; }
+    .droutine-node.done .droutine-node-card { background:#f0faf0; border-color:#c3e6cb; }
+    .droutine-node-card:hover { border-color:#9b59b6; }
+    .droutine-node.drag-source { opacity:0.4; }
+    .droutine-node.drag-target { outline:2px solid #9b59b6; border-radius:8px; }
+    .droutine-node-top { display:flex; align-items:center; gap:5px; }
+    .droutine-drag-handle { color:#bbb; font-size:0.8rem; cursor:grab; flex-shrink:0; }
+    .droutine-node-cb { width:13px; height:13px; flex-shrink:0; accent-color:#9b59b6; cursor:pointer; }
+    .droutine-node-text { flex:1; font-weight:600; color:#333; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .droutine-node.done .droutine-node-text { text-decoration:line-through; color:#aaa; }
+    .droutine-node-dur { font-size:0.68rem; color:#888; white-space:nowrap; }
+    .droutine-node-del { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:0.78rem; padding:0 2px; opacity:0; transition:opacity 0.15s; flex-shrink:0; }
+    .droutine-node-card:hover .droutine-node-del { opacity:1; }
+    .droutine-add-step { display:flex; gap:4px; margin-top:6px; }
+    .droutine-add-step input { font-size:0.75rem; border:1px solid #d8e0ec; border-radius:6px; padding:3px 5px; }
+    .droutine-step-name-in { flex:1; min-width:0; }
+    .droutine-dur-in { width:36px; text-align:center; }
+    .droutine-add-step button { background:#9b59b6; color:#fff; border:none; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:0.78rem; white-space:nowrap; }
+    .droutine-phase-menu-btn { background:none; border:none; cursor:pointer; color:#bbb; font-size:0.88rem; padding:2px 4px; transition:color 0.15s; flex-shrink:0; }
+    .droutine-phase-menu-btn:hover { color:#555; }
+    /* 28-day heatmap */
+    .droutine-heatmap { margin-top:12px; }
+    .droutine-heatmap-title { font-size:0.77rem; font-weight:700; color:#888; margin-bottom:5px; }
+    .droutine-heatmap-grid { display:flex; gap:2px; flex-wrap:wrap; }
+    .droutine-heatmap-cell { width:14px; height:14px; border-radius:2px; background:#eee; cursor:default; transition:transform 0.1s; }
+    .droutine-heatmap-cell:hover { transform:scale(1.25); }
+    .droutine-heatmap-cell.lvl1 { background:#d5b8f0; }
+    .droutine-heatmap-cell.lvl2 { background:#b07cd6; }
+    .droutine-heatmap-cell.lvl3 { background:#9b59b6; }
+    .droutine-heatmap-cell.lvl4 { background:#6c3483; }
+
+    /* Gym split panel */
+    .dgym-split { display:flex; gap:14px; }
+    .dgym-left { width:185px; flex-shrink:0; display:flex; flex-direction:column; gap:6px; }
+    .dgym-right { flex:1; min-width:0; }
+    .dgym-left-title { font-size:0.75rem; font-weight:700; color:#888; letter-spacing:0.04em; }
+    .dgym-routine-item { padding:7px 10px; border-radius:8px; background:#f7f9fc; border:1px solid #e0e6f0; cursor:pointer; font-size:0.83rem; font-weight:600; transition:background 0.15s,border-color 0.15s; }
+    .dgym-routine-item:hover { background:#eaf4ff; border-color:#4a90e2; }
+    .dgym-routine-item.selected { background:#9b59b6; color:#fff; border-color:#9b59b6; }
+    .dgym-routine-item-name { display:block; }
+    .dgym-routine-item-days { font-size:0.7rem; font-weight:400; opacity:0.75; }
+    .dgym-add-routine { background:none; border:1.5px dashed #d0d8e8; border-radius:8px; padding:7px; cursor:pointer; font-size:0.78rem; color:#888; width:100%; text-align:center; transition:border-color 0.15s,color 0.15s; }
+    .dgym-add-routine:hover { border-color:#4a90e2; color:#4a90e2; }
+    /* Gym right panel */
+    .dgym-header { display:flex; align-items:center; gap:8px; padding:9px 12px; background:#f7f9fc; border-radius:10px; margin-bottom:10px; flex-wrap:wrap; }
+    .dgym-header-name { font-size:1rem; font-weight:700; flex:1; min-width:80px; }
+    .dgym-stat-badge { background:#fff; border:1px solid #e0e6f0; border-radius:8px; padding:3px 9px; font-size:0.75rem; color:#555; white-space:nowrap; }
+    .dgym-log-btn { background:#27ae60; color:#fff; border:none; border-radius:8px; padding:5px 12px; cursor:pointer; font-size:0.82rem; white-space:nowrap; }
+    .dgym-log-btn:disabled { opacity:0.55; cursor:default; }
+    .dgym-del-routine-btn { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:0.88rem; padding:2px 4px; }
+    /* Weekly schedule */
+    .dgym-schedule { margin-bottom:12px; }
+    .dgym-sched-title { font-size:0.78rem; font-weight:700; color:#555; margin-bottom:5px; letter-spacing:0.03em; }
+    .dgym-sched-week { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+    .dgym-sched-day { border:1px solid #e0e6f0; border-radius:8px; padding:5px 3px; font-size:0.73rem; text-align:center; background:#f7f9fc; cursor:pointer; transition:background 0.15s,border-color 0.15s; min-height:44px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+    .dgym-sched-day.has-routine { background:#f0eafd; border-color:#9b59b6; }
+    .dgym-sched-day.today { border-color:#4a90e2; border-width:2px; }
+    .dgym-sched-day:hover { background:#eaf4ff; border-color:#4a90e2; }
+    .dgym-sched-day-name { font-weight:700; color:#555; font-size:0.73rem; }
+    .dgym-sched-day.has-routine .dgym-sched-day-name { color:#9b59b6; }
+    .dgym-sched-routine-name { font-size:0.66rem; color:#9b59b6; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+    /* Exercise cards */
+    .dgym-exercises-title { font-size:0.78rem; font-weight:700; color:#555; margin-bottom:6px; letter-spacing:0.03em; }
+    .dgym-ex-card { background:#fff; border:1px solid #e0e6f0; border-radius:10px; padding:10px 12px; margin-bottom:8px; transition:border-color 0.15s; }
+    .dgym-ex-card:hover { border-color:#4a90e2; }
+    .dgym-ex-top { display:flex; align-items:center; gap:7px; margin-bottom:5px; }
+    .dgym-ex-name { font-weight:700; font-size:0.9rem; flex:1; }
+    .dgym-muscle-tag { font-size:0.68rem; border-radius:10px; padding:2px 8px; font-weight:600; flex-shrink:0; }
+    .dgym-ex-detail { font-size:0.77rem; color:#888; margin-bottom:6px; }
+    .dgym-set-tracker { display:flex; gap:5px; margin-bottom:6px; flex-wrap:wrap; }
+    .dgym-set-dot { width:26px; height:26px; border-radius:50%; border:2px solid #4a90e2; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:700; color:#4a90e2; transition:background 0.18s,border-color 0.18s; user-select:none; }
+    .dgym-set-dot.done { background:#4a90e2; color:#fff; }
+    .dgym-ex-del { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:0.82rem; padding:2px 4px; flex-shrink:0; }
+    /* Sparkline */
+    .dgym-sparkline { display:flex; align-items:center; gap:6px; margin-top:4px; }
+    .dgym-spark-trend { font-size:0.72rem; font-weight:600; }
+    .dgym-spark-trend.up { color:#27ae60; }
+    .dgym-spark-trend.flat { color:#f39c12; }
+    .dgym-spark-trend.down { color:#e74c3c; }
+    /* Add exercise form */
+    .dgym-add-ex-form { display:flex; gap:5px; flex-wrap:wrap; margin-top:8px; padding-top:8px; border-top:1px solid #f0f0f0; }
+    .dgym-add-ex-form input { font-size:0.78rem; border:1px solid #d8e0ec; border-radius:6px; padding:4px 6px; }
+    .dgym-add-ex-name { flex:2; min-width:90px; }
+    .dgym-add-ex-small { width:52px; text-align:center; }
+    .dgym-add-ex-btn { background:#4a90e2; color:#fff; border:none; border-radius:8px; padding:4px 10px; cursor:pointer; font-size:0.78rem; white-space:nowrap; }
+    /* Rest timer */
+    .dgym-rest-timer { background:#fff3cd; border:1.5px solid #f39c12; border-radius:10px; padding:8px 12px; margin-bottom:10px; display:flex; align-items:center; gap:10px; font-size:0.85rem; }
+    .dgym-rest-timer-text { flex:1; font-weight:600; }
+    .dgym-rest-timer-cancel { background:none; border:none; color:#e74c3c; cursor:pointer; font-size:0.85rem; font-weight:600; }
+    .dgym-rest-config { font-size:0.76rem; color:#888; margin-top:6px; }
+    .dgym-rest-config select { font-size:0.76rem; border:1px solid #d8e0ec; border-radius:5px; padding:2px 4px; margin-left:4px; }
+    /* Gym empty state */
+    .dgym-empty-form { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+    .dgym-empty-form input { font-size:0.85rem; border:1px solid #d8e0ec; border-radius:6px; padding:5px 10px; width:200px; }
+    .dgym-empty-form button { background:#4a90e2; color:#fff; border:none; border-radius:8px; padding:5px 14px; cursor:pointer; font-size:0.85rem; }
+
+    /* Dark mode for desktop personal components */
+    body.dark-mode .dmeal-day-header { background:#16213e; border-color:#2a2a4a; color:#ccc; }
+    body.dark-mode .dmeal-day-header.today { background:#6c3483; border-color:#6c3483; color:#fff; }
+    body.dark-mode .dmeal-slot { border-color:#2a2a4a; background:#16213e; }
+    body.dark-mode .dmeal-slot.empty { background:#1a1a2e; }
+    body.dark-mode .dmeal-slot:hover { background:#1e3a5e; }
+    body.dark-mode .dmeal-cal-bar { border-color:#2a2a4a; background:#1e2d45; }
+    body.dark-mode .dmeal-summary { background:#1e2d45; }
+    body.dark-mode .dmeal-fav-item { background:#1e2d45; border-color:#2a2a4a; color:#ccc; }
+    body.dark-mode .dmeal-prep-panel { background:#1e2d45; }
+    body.dark-mode .dmeal-edit-popover { background:#16213e; border-color:#4a90e2; color:#e0e0e0; }
+    body.dark-mode .dmeal-edit-popover input { background:#1e2d45; border-color:#2a2a4a; color:#e0e0e0; }
+    body.dark-mode .droutine-phase-header { background:#16213e; border-color:#2a2a4a; }
+    body.dark-mode .droutine-phase-body { border-color:#2a2a4a; background:#16213e; }
+    body.dark-mode .droutine-timeline::before { background:#2a2a4a; }
+    body.dark-mode .droutine-node-card { background:#1e2d45; border-color:#2a2a4a; color:#ccc; }
+    body.dark-mode .droutine-node.done .droutine-node-card { background:#1a2f1a; border-color:#2a4a2a; }
+    body.dark-mode .droutine-node-dot { border-color:#9b59b6; background:#16213e; }
+    body.dark-mode .droutine-heatmap-cell { background:#2a2a4a; }
+    body.dark-mode .droutine-add-phase { border-color:#2a2a4a; background:#1a1a2e; }
+    body.dark-mode .dgym-routine-item { background:#1e2d45; border-color:#2a2a4a; color:#ccc; }
+    body.dark-mode .dgym-routine-item.selected { background:#6c3483; border-color:#6c3483; color:#fff; }
+    body.dark-mode .dgym-header { background:#1e2d45; }
+    body.dark-mode .dgym-stat-badge { background:#16213e; border-color:#2a2a4a; color:#ccc; }
+    body.dark-mode .dgym-ex-card { background:#16213e; border-color:#2a2a4a; }
+    body.dark-mode .dgym-sched-day { background:#1e2d45; border-color:#2a2a4a; }
+    body.dark-mode .dgym-sched-day.has-routine { background:#2d1b4e; }
+    body.dark-mode .dgym-sched-day-name { color:#ccc; }
+    body.dark-mode .dgym-set-dot { background:#16213e; border-color:#4a90e2; color:#7ab8ff; }
+    body.dark-mode .dgym-set-dot.done { background:#2568c3; color:#fff; }
+    body.dark-mode .dgym-rest-timer { background:#2a1f00; border-color:#f39c12; }
+    body.dark-mode .dgym-add-ex-form { border-color:#2a2a4a; }
+
     /* ===== Desktop: domain-colored event banners in calendar ===== */
     @media (min-width: 901px) {
       /* Calendar page: expand wider than other pages, near full viewport width */
@@ -676,6 +872,30 @@
       .event-preview .ep-emoji { flex-shrink: 0; }
       .event-preview.reminder { --domain-color: #e67e22; --domain-bg: rgba(230,126,34,0.10); }
       .event-preview.task { --domain-color: #27ae60; --domain-bg: rgba(39,174,96,0.10); }
+
+      /* ===== Personal Page: Desktop Multi-Column Grid Layout ===== */
+      #page-personal > h2 { max-width: 1400px; margin-left: auto; margin-right: auto; padding: 0 8px; }
+      #personalGrid {
+        max-width: 1400px !important;
+        padding: 0 8px !important;
+        display: grid;
+        grid-template-areas:
+          "focus   focus"
+          "meal    routine"
+          "gym     side"
+          "toolbar toolbar"
+          "buckets buckets";
+        grid-template-columns: 2fr 1fr;
+        column-gap: 16px;
+        row-gap: 0;
+      }
+      #personalFocusSection   { grid-area: focus; }
+      #personalMealSection    { grid-area: meal; }
+      #personalRoutineSection { grid-area: routine; }
+      #personalGymSection     { grid-area: gym; }
+      #personalSideCol        { grid-area: side; }
+      #personalToolbar        { grid-area: toolbar; }
+      #domain-buckets-personal { grid-area: buckets; }
     }
     /* Super-wide screens: cap calendar width so it doesn't stretch edge-to-edge */
     @media (min-width: 1800px) {
@@ -1015,30 +1235,28 @@
     <!-- Personal domain page -->
     <section id="page-personal" class="page hidden">
       <h2>👤 Personal</h2>
-      <div style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
-        <!-- Daily Focus / Top 3 Priorities -->
+      <div id="personalGrid" style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
+        <!-- Daily Focus / Top 3 Priorities — top row, full width on desktop -->
         <div id="personalFocusSection"></div>
 
-        <!-- Routine Checklists (Morning & Evening) -->
-        <div id="personalRoutineSection"></div>
-
-        <!-- Meal Tracker -->
+        <!-- Meal Tracker — left column on desktop -->
         <div id="personalMealSection"></div>
 
-        <!-- Hydration Tracker -->
-        <div id="personalHydrationSection"></div>
+        <!-- Routine Checklists — right column on desktop -->
+        <div id="personalRoutineSection"></div>
 
-        <!-- Sleep / Bedtime Manager -->
-        <div id="personalSleepSection"></div>
-
-        <!-- Gym / Exercise Planner -->
+        <!-- Gym / Exercise Planner — bottom-left on desktop -->
         <div id="personalGymSection"></div>
 
-        <!-- Mood / Energy Check-in -->
-        <div id="personalMoodSection"></div>
+        <!-- Side column: Hydration, Sleep, Mood — bottom-right on desktop -->
+        <div id="personalSideCol">
+          <div id="personalHydrationSection"></div>
+          <div id="personalSleepSection"></div>
+          <div id="personalMoodSection"></div>
+        </div>
 
         <!-- Toolbar -->
-        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+        <div id="personalToolbar" style="display:flex;justify-content:flex-end;margin-bottom:12px">
           <button id="addPersonalBucketBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Category</button>
         </div>
         <div id="domain-buckets-personal"></div>
@@ -1604,6 +1822,8 @@
   <script src="./calendar-advanced.js"></script>
   <!-- desktop-specific advanced features (CSV export, earnings panel, task filter/sort, DnD week view, bulk operations) -->
   <script src="./desktop.js"></script>
+  <!-- desktop personal page enhancements (meal week grid, routine timeline, gym split panel) -->
+  <script src="./desktop-personal.js"></script>
   <!-- 20 advanced calendar features: year heatmap, animated transitions, time-block week view, weather overlay, count badges, dark mode, 2-week view, drag-resize, time-slot create, layer toggles, recurrence icons, smart scheduling, activity chart, donut chart, streak tracking, go-to-date, split panel, search highlighting, print CSS, command palette -->
   <script src="./desktop-calendar-features.js"></script>
 </body>
