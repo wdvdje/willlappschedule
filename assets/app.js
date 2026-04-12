@@ -2474,7 +2474,9 @@ function buildExportPayload(){
       personalRoutines: safeParseStorage('personalRoutines', {}),
       personalRoutineLog: safeParseStorage('personalRoutineLog', {}),
       personalHydration: safeParseStorage('personalHydration', {}),
-      personalMood: safeParseStorage('personalMood', [])
+      personalMood: safeParseStorage('personalMood', []),
+      personalMealFavorites: safeParseStorage('personalMealFavorites', []),
+      personalMealPrepLog: safeParseStorage('personalMealPrepLog', {})
     }
   };
 }
@@ -2514,8 +2516,21 @@ function parseImportPayload(parsed){
   const userOffDays = Array.isArray(data.userOffDays) ? data.userOffDays : undefined;
   const dayStartHour = data.dayStartHour != null ? data.dayStartHour : undefined;
   const dayEndHour = data.dayEndHour != null ? data.dayEndHour : undefined;
+  const personalMeals = (data.personalMeals && typeof data.personalMeals === 'object' && !Array.isArray(data.personalMeals)) ? data.personalMeals : undefined;
+  const personalCalorieGoal = data.personalCalorieGoal != null ? data.personalCalorieGoal : undefined;
+  const personalSleep = (data.personalSleep && typeof data.personalSleep === 'object' && !Array.isArray(data.personalSleep)) ? data.personalSleep : undefined;
+  const personalGym = (data.personalGym && typeof data.personalGym === 'object' && !Array.isArray(data.personalGym)) ? data.personalGym : undefined;
+  const personalFocus = (data.personalFocus && typeof data.personalFocus === 'object' && !Array.isArray(data.personalFocus)) ? data.personalFocus : undefined;
+  const personalRoutines = (data.personalRoutines && typeof data.personalRoutines === 'object' && !Array.isArray(data.personalRoutines)) ? data.personalRoutines : undefined;
+  const personalRoutineLog = (data.personalRoutineLog && typeof data.personalRoutineLog === 'object' && !Array.isArray(data.personalRoutineLog)) ? data.personalRoutineLog : undefined;
+  const personalHydration = (data.personalHydration && typeof data.personalHydration === 'object' && !Array.isArray(data.personalHydration)) ? data.personalHydration : undefined;
+  const personalMood = Array.isArray(data.personalMood) ? data.personalMood : undefined;
+  const personalMealFavorites = Array.isArray(data.personalMealFavorites) ? data.personalMealFavorites : undefined;
+  const personalMealPrepLog = (data.personalMealPrepLog && typeof data.personalMealPrepLog === 'object' && !Array.isArray(data.personalMealPrepLog)) ? data.personalMealPrepLog : undefined;
 
-  return { events, tasks, reminders, jobs, taskCategories, userProfile, personalBuckets, homeBuckets, domainColors, userOffDays, dayStartHour, dayEndHour };
+  return { events, tasks, reminders, jobs, taskCategories, userProfile, personalBuckets, homeBuckets, domainColors, userOffDays, dayStartHour, dayEndHour,
+    personalMeals, personalCalorieGoal, personalSleep, personalGym, personalFocus, personalRoutines, personalRoutineLog, personalHydration, personalMood,
+    personalMealFavorites, personalMealPrepLog };
 }
 
 function eventKey(x){
@@ -2633,10 +2648,11 @@ function applyImportData(importData, mode){
     if (Array.isArray(importData.homeBuckets)) localStorage.setItem('homeBuckets', JSON.stringify(importData.homeBuckets));
     if (importData.domainColors && typeof importData.domainColors === 'object' && Object.keys(importData.domainColors).length > 0) localStorage.setItem('domainColors', JSON.stringify(importData.domainColors));
     // Personal page widget data
-    ['personalMeals', 'personalSleep', 'personalGym', 'personalFocus', 'personalRoutines', 'personalRoutineLog', 'personalHydration'].forEach(function(key) {
+    ['personalMeals', 'personalSleep', 'personalGym', 'personalFocus', 'personalRoutines', 'personalRoutineLog', 'personalHydration', 'personalMealPrepLog'].forEach(function(key) {
       if (importData[key] && typeof importData[key] === 'object') localStorage.setItem(key, JSON.stringify(importData[key]));
     });
     if (Array.isArray(importData.personalMood)) localStorage.setItem('personalMood', JSON.stringify(importData.personalMood));
+    if (Array.isArray(importData.personalMealFavorites)) localStorage.setItem('personalMealFavorites', JSON.stringify(importData.personalMealFavorites));
     if (importData.personalCalorieGoal != null) localStorage.setItem('personalCalorieGoal', importData.personalCalorieGoal);
     writeUserProfile(importData.userProfile || readUserProfile());
     refreshAfterImport();
@@ -2735,6 +2751,21 @@ function applyImportData(importData, mode){
       if (!localDC[k]) localDC[k] = importData.domainColors[k];
     });
     localStorage.setItem('domainColors', JSON.stringify(localDC));
+  }
+  // Merge personal page widget data (imported wins for object keys not yet set locally; arrays are replaced if non-empty)
+  ['personalMeals', 'personalSleep', 'personalGym', 'personalFocus', 'personalRoutines', 'personalRoutineLog', 'personalHydration', 'personalMealPrepLog'].forEach(function(key) {
+    if (importData[key] && typeof importData[key] === 'object') {
+      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(importData[key]));
+    }
+  });
+  if (Array.isArray(importData.personalMood) && importData.personalMood.length && !localStorage.getItem('personalMood')) {
+    localStorage.setItem('personalMood', JSON.stringify(importData.personalMood));
+  }
+  if (Array.isArray(importData.personalMealFavorites) && importData.personalMealFavorites.length && !localStorage.getItem('personalMealFavorites')) {
+    localStorage.setItem('personalMealFavorites', JSON.stringify(importData.personalMealFavorites));
+  }
+  if (importData.personalCalorieGoal != null && !localStorage.getItem('personalCalorieGoal')) {
+    localStorage.setItem('personalCalorieGoal', importData.personalCalorieGoal);
   }
   refreshAfterImport();
 
