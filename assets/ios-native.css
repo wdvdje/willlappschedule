@@ -461,6 +461,10 @@ header .header-btn:active {
   .desktop-sidebar.collapsed .sidebar-icon {
     width: auto;
   }
+
+  #headerInboxBtn {
+    margin-left: 16px;
+  }
 }
 
 /* ── 8. Form inputs — iOS rounded style ────────────────────────── */
