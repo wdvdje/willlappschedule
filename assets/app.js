@@ -5504,14 +5504,142 @@ function setPersonalMeals(data) { localStorage.setItem('personalMeals', JSON.str
 function getCalorieGoal() { return parseInt(localStorage.getItem('personalCalorieGoal') || '2000', 10); }
 function setCalorieGoal(v) { localStorage.setItem('personalCalorieGoal', String(v)); }
 
+/* Track which day of the week is selected in the meal tracker */
+var _mealSelectedDate = null;
+var _MEAL_DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var _MEAL_DAY_FULL  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+/* Return an array of { iso, label, dayName } for each day (Sun–Sat) of the current week */
+function getMealWeekDays() {
+  var today = new Date();
+  var dow = today.getDay(); // 0=Sun
+  var sun = new Date(today);
+  sun.setDate(today.getDate() - dow);
+  var days = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(sun);
+    d.setDate(sun.getDate() + i);
+    days.push({
+      iso: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()),
+      label: pad2(d.getMonth() + 1) + '/' + pad2(d.getDate()),
+      dayName: _MEAL_DAY_SHORT[i]
+    });
+  }
+  return days;
+}
+
+/* Check if a day's meals are filled (all 4 meal names non-empty) */
+function isMealDayComplete(allMeals, dateISO) {
+  var day = allMeals[dateISO];
+  if (!day) return 'empty';
+  var keys = ['breakfast', 'lunch', 'dinner', 'snacks'];
+  var filled = 0;
+  keys.forEach(function(k) {
+    if (day[k] && day[k].name && day[k].name.trim()) filled++;
+  });
+  if (filled === 4) return 'complete';
+  if (filled > 0) return 'partial';
+  return 'empty';
+}
+
+/* Ensure an "Eating Tracker" bucket exists in the personal domain; returns its id */
+function ensureEatingTrackerBucket() {
+  var buckets = getBuckets('personal');
+  var existing = buckets.find(function(b) { return b.name === 'Eating Tracker'; });
+  if (existing) return existing.id;
+  var newId = nextBucketId('personal');
+  /* Re-check after ID generation to guard against concurrent calls */
+  buckets = getBuckets('personal');
+  existing = buckets.find(function(b) { return b.name === 'Eating Tracker'; });
+  if (existing) return existing.id;
+  buckets.push({ id: newId, name: 'Eating Tracker', emoji: '🍽️', collapsed: false });
+  setBuckets('personal', buckets);
+  return newId;
+}
+
+/* Sync weekly meal tasks: create tasks for days with incomplete meals, remove completed ones */
+function syncMealWeekTasks() {
+  var weekDays = getMealWeekDays();
+  var allMeals = getPersonalMeals();
+  var bucketId = ensureEatingTrackerBucket();
+  var tasks = getTasks();
+
+  /* Build a set of existing meal-task date keys for this week */
+  var weekISOs = {};
+  weekDays.forEach(function(wd) { weekISOs[wd.iso] = true; });
+
+  /* Find existing meal-tracker tasks for this week */
+  var existingByDate = {};
+  tasks.forEach(function(t, idx) {
+    if (t._mealTrackerTask && weekISOs[t.date]) {
+      existingByDate[t.date] = { task: t, idx: idx };
+    }
+  });
+
+  var changed = false;
+  weekDays.forEach(function(wd) {
+    var status = isMealDayComplete(allMeals, wd.iso);
+    var d = new Date(wd.iso + 'T12:00:00');
+    var dayName = _MEAL_DAY_FULL[d.getDay()];
+
+    if (status !== 'complete') {
+      /* Need a task for this day */
+      if (!existingByDate[wd.iso]) {
+        tasks.push({
+          id: generateTaskId(),
+          title: 'Fill out meals for ' + dayName + ' (' + wd.label + ')',
+          category: 'personal',
+          domain: 'personal',
+          bucketId: bucketId,
+          date: wd.iso,
+          time: '',
+          priority: '1',
+          done: false,
+          _mealTrackerTask: true
+        });
+        changed = true;
+      } else if (existingByDate[wd.iso].task.done) {
+        /* Task was marked done but meals are incomplete again — reopen */
+        existingByDate[wd.iso].task.done = false;
+        changed = true;
+      }
+    } else {
+      /* Meals complete — mark task done if it exists */
+      if (existingByDate[wd.iso] && !existingByDate[wd.iso].task.done) {
+        existingByDate[wd.iso].task.done = true;
+        changed = true;
+      }
+    }
+  });
+
+  if (changed) {
+    setTasks(tasks);
+    try { updateInboxBadge(); } catch(e) {}
+  }
+}
+
 function renderMealTracker() {
   var section = document.getElementById('personalMealSection');
   if (!section) return;
   section.innerHTML = '';
 
   var today = getTodayISO();
+  var weekDays = getMealWeekDays();
+
+  /* Default selected date to today */
+  if (!_mealSelectedDate || !weekDays.some(function(wd) { return wd.iso === _mealSelectedDate; })) {
+    _mealSelectedDate = today;
+  }
+
+  var selectedDate = _mealSelectedDate;
   var allMeals = getPersonalMeals();
-  var meals = allMeals[today];
+
+  /* Use in-memory defaults for selected date if no meals saved yet (lazy — only persists on save) */
+  if (!allMeals[selectedDate]) {
+    allMeals[selectedDate] = { breakfast: { name: '', calories: 0 }, lunch: { name: '', calories: 0 }, dinner: { name: '', calories: 0 }, snacks: { name: '', calories: 0 } };
+  }
+
+  var meals = allMeals[selectedDate];
   var goal = getCalorieGoal();
   var mealTypes = [
     { key: 'breakfast', icon: '🌅', label: 'Breakfast' },
@@ -5521,6 +5649,24 @@ function renderMealTracker() {
   ];
 
   var card = buildPWCard('mealCard', '🍽️', 'Meal Tracker', function(body) {
+    /* ── Day selector ── */
+    var daySelector = document.createElement('div');
+    daySelector.className = 'meal-day-selector';
+    weekDays.forEach(function(wd) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'meal-day-btn' + (wd.iso === selectedDate ? ' active' : '');
+      btn.innerHTML = '<span>' + wd.dayName + '</span><span class="meal-day-label">' + wd.label + '</span>';
+      if (wd.iso === today) btn.title = 'Today';
+      btn.addEventListener('click', function() {
+        _mealSelectedDate = wd.iso;
+        renderMealTracker();
+      });
+      daySelector.appendChild(btn);
+    });
+    body.appendChild(daySelector);
+
+    /* ── Meal rows for selected day ── */
     var totalCal = 0;
     mealTypes.forEach(function(mt) {
       var m = meals[mt.key] || { name: '', calories: 0 };
@@ -5572,6 +5718,24 @@ function renderMealTracker() {
       '<span>cal</span>';
     body.appendChild(goalRow);
 
+    /* ── Weekly completion status dots ── */
+    var weekStatus = document.createElement('div');
+    weekStatus.className = 'meal-week-status';
+    var completeCount = 0;
+    weekDays.forEach(function(wd) {
+      var status = isMealDayComplete(allMeals, wd.iso);
+      if (status === 'complete') completeCount++;
+      var dot = document.createElement('span');
+      dot.className = 'meal-week-dot ' + status;
+      dot.title = wd.dayName + ': ' + status;
+      weekStatus.appendChild(dot);
+    });
+    var weekLabel = document.createElement('span');
+    weekLabel.className = 'meal-week-label';
+    weekLabel.textContent = completeCount + '/7 days planned';
+    weekStatus.appendChild(weekLabel);
+    body.appendChild(weekStatus);
+
     // Wire events
     body.querySelectorAll('.meal-edit-btn').forEach(function(btn) {
       btn.addEventListener('click', function() {
@@ -5588,9 +5752,10 @@ function renderMealTracker() {
         var nameInput = panel.querySelector('.meal-name-input');
         var calInput = panel.querySelector('.meal-cal-input');
         var data = getPersonalMeals();
-        if (!data[today]) data[today] = {};
-        data[today][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0 };
+        if (!data[selectedDate]) data[selectedDate] = {};
+        data[selectedDate][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0 };
         setPersonalMeals(data);
+        syncMealWeekTasks();
         renderMealTracker();
       });
     });
@@ -5609,6 +5774,9 @@ function renderMealTracker() {
   }, 'pw_meal');
 
   section.appendChild(card);
+
+  /* Sync meal tasks whenever the tracker renders */
+  syncMealWeekTasks();
 }
 
 /* ══════════════════════════════════════════════════════════════
