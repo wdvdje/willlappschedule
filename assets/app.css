@@ -2132,3 +2132,14 @@ body.dark-mode .dgym-add-ex-form { border-color:#2a2a4a; }
 @media (min-width: 2400px) {
   #page-calendar, #page-personal { max-width: calc(100vw - 400px); }
 }
+
+/* ── prefers-reduced-motion: disable/reduce animations for accessibility ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .dcf-anim-fade { animation: none !important; }
+}

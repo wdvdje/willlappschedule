@@ -3,6 +3,19 @@ const monthNames = ["January","February","March","April","May","June","July","Au
 const weekdayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 function pad2(n){ return n<10 ? '0'+n : ''+n; }
+
+/* ── Haptic feedback helper (uses navigator.vibrate where available) ── */
+function haptic(pattern) {
+  try {
+    if (navigator.vibrate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      navigator.vibrate(pattern || 30);
+    }
+  } catch (_) {}
+}
+/* Preset patterns */
+haptic.complete = function() { haptic([30, 20, 30]); };
+haptic.delete   = function() { haptic(60); };
+haptic.timer    = function() { haptic([60, 40, 60, 40, 120]); };
 function generateTaskId(){ return 'task:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
 function safeParseStorage(key, fallback){
   try{ const raw = localStorage.getItem(key); if (!raw) return fallback; return JSON.parse(raw); }
@@ -668,6 +681,18 @@ function showReminders(day){
   if (rd){
     rd.textContent = new Date(selectedYear, selectedMonth, day).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     rd.style.display = 'block';
+    /* Share-day button (Web Share API) */
+    var existShareBtn = rd.parentNode && rd.parentNode.querySelector('#shareDayBtn');
+    if (!existShareBtn && navigator.share && rd.parentNode) {
+      var shareDayBtn = document.createElement('button');
+      shareDayBtn.id = 'shareDayBtn';
+      shareDayBtn.className = 'small-btn';
+      shareDayBtn.title = 'Share this day';
+      shareDayBtn.textContent = '↗ Share day';
+      shareDayBtn.style.cssText = 'margin-left:8px;font-size:0.78rem;vertical-align:middle';
+      shareDayBtn.addEventListener('click', function() { shareDaySchedule(selectedYear, selectedMonth, day); });
+      rd.insertAdjacentElement('afterend', shareDayBtn);
+    }
   }
 
   const mmdd = pad2(selectedMonth+1)+'-'+pad2(day);
@@ -778,6 +803,7 @@ function toggleReminderDone(day, index, done){
   if (!r[key] || !r[key][index]) return;
   r[key][index].done = !!done;
   setReminders(r);
+  if (done) haptic.complete();
   showReminders(day);
   updateCompletionRing();
 }
@@ -789,10 +815,19 @@ function loadTasks(){
   if (!list) return;
   list.innerHTML = '';
   const pmap = {'1':'!','2':'!!','3':'!!!'};
+  if (!tasks.length) {
+    const empty = document.createElement('li');
+    empty.className = 'empty-state-msg';
+    empty.innerHTML = '<span style="font-size:2rem;display:block;margin-bottom:8px">✅</span><strong>No tasks yet</strong><br><span style="color:#888;font-size:0.9rem">Tap <b>＋ Add</b> to create your first task.</span>';
+    empty.style.cssText = 'list-style:none;text-align:center;padding:32px 16px;color:#555';
+    list.appendChild(empty);
+    updateProgress(tasks); updateDashboard(tasks); updateDayProgress(selectedDay);
+    return;
+  }
   tasks.forEach((t,i)=>{
     const li = document.createElement('li');
     const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = !!t.done;
-    cb.addEventListener('change', ()=>{ const all=getTasks(); all[i].done = cb.checked; setTasks(all); updateProgress(all); updateDashboard(all); updateDayProgress(selectedDay); loadTasks(); });
+    cb.addEventListener('change', ()=>{ const all=getTasks(); all[i].done = cb.checked; setTasks(all); updateProgress(all); updateDashboard(all); updateDayProgress(selectedDay); if(cb.checked) haptic.complete(); loadTasks(); });
     const taskTitle = t.title || t.text || '';
     const span = document.createElement('span'); span.innerHTML = ` ${escapeHTML(taskTitle)} ${t.date?`[${t.date}]`:''} ${t.time?`[${t.time}]`:''} Priority:${pmap[t.priority]||t.priority}`; span.className = `category-${t.category||''}`;
     const editBtn = document.createElement('button'); editBtn.className='small-btn'; editBtn.textContent='Edit'; editBtn.addEventListener('click', ()=> editTask(i));
@@ -870,6 +905,15 @@ function renderEvents(){
 
   const combined = upcoming.map(x=>x.ev).concat(past.map(x=>x.ev));
 
+  if (!combined.length) {
+    var empty = document.createElement('li');
+    empty.className = 'empty-state-msg';
+    empty.innerHTML = '<span style="font-size:2rem;display:block;margin-bottom:8px">📅</span><strong>No events yet</strong><br><span style="color:#888;font-size:0.9rem">Tap the <b>＋ Add</b> button to create your first event.</span>';
+    empty.style.cssText = 'list-style:none;text-align:center;padding:32px 16px;color:#555';
+    list.appendChild(empty);
+    return;
+  }
+
   combined.forEach(e=>{
     const li = document.createElement('li');
     li.className = 'event-item';
@@ -892,7 +936,14 @@ function renderEvents(){
     actions.className = 'item-controls';
     const editBtn = document.createElement('button'); editBtn.className='small-btn'; editBtn.textContent='Edit'; editBtn.addEventListener('click', ()=> editEvent(e.id));
     const delBtn = document.createElement('button'); delBtn.className='small-btn'; delBtn.textContent='Delete'; delBtn.addEventListener('click', ()=> deleteEvent(e.id));
-    actions.appendChild(editBtn); actions.appendChild(delBtn);
+    /* Single-event ICS download */
+    const icsBtn = document.createElement('button'); icsBtn.className='small-btn'; icsBtn.textContent='📅'; icsBtn.title='Add to Apple Calendar'; icsBtn.addEventListener('click', ()=> downloadSingleEventICS(e));
+    /* Web Share */
+    if (navigator.share) {
+      const shareBtn = document.createElement('button'); shareBtn.className='small-btn'; shareBtn.textContent='↗'; shareBtn.title='Share event'; shareBtn.addEventListener('click', ()=> shareEvent(e));
+      actions.appendChild(shareBtn);
+    }
+    actions.appendChild(icsBtn); actions.appendChild(editBtn); actions.appendChild(delBtn);
 
     li.appendChild(bullet);
     li.appendChild(content);
@@ -1088,6 +1139,8 @@ function saveEditHandler(e){
   if (kind === 'event'){
     const id = parseInt(document.getElementById('editEventId').value,10);
     const evs = getEvents(); const idx = evs.findIndex(x=>x.id===id); if (idx===-1){ closeEditModal(); return; }
+    /* Capture snapshot for undo */
+    const before = Object.assign({}, evs[idx]);
     let repeatPayload;
     try {
       repeatPayload = readRepeatPayload('edit', date);
@@ -1125,11 +1178,16 @@ function saveEditHandler(e){
       else delete evs[idx].bucketId;
     }
     setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
+    pushUndo({ label: 'Edit to event "' + text + '" undone.', undo: function() {
+      const cur = getEvents(); const ci = cur.findIndex(function(x){ return x.id === before.id; });
+      if (ci !== -1) { cur[ci] = before; setEvents(cur); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
+    }});
     closeEditModal();
     return;
   } else if (kind==='task'){
     const idx = parseInt(document.getElementById('editTaskIndex').value,10);
     const tasks = getTasks(); if (!tasks[idx]) { closeEditModal(); return; }
+    const beforeTask = Object.assign({}, tasks[idx]);
     tasks[idx].title = text; tasks[idx].date = date; tasks[idx].time = time; tasks[idx].category = document.getElementById('editCategory').value; tasks[idx].priority = document.getElementById('editPriority').value;
     const editBucketElT = document.getElementById('editBucket');
     if (editBucketElT) {
@@ -1138,10 +1196,16 @@ function saveEditHandler(e){
       else delete tasks[idx].bucketId;
     }
     setTasks(tasks); loadTasks();
+    pushUndo({ label: 'Edit to task "' + text + '" undone.', undo: function() {
+      const cur = getTasks(); const ci = cur.findIndex(function(t){ return t.id === beforeTask.id; });
+      if (ci !== -1) { cur[ci] = beforeTask; setTasks(cur); loadTasks(); }
+    }});
   } else if (kind==='reminder'){
     const origKey = document.getElementById('editReminderKey').value;
     const ridx = parseInt(document.getElementById('editReminderIndex').value,10);
     const r = getReminders(); const arr = r[origKey] || []; const item = arr[ridx]; if (!item){ closeEditModal(); return; }
+    const beforeReminder = Object.assign({}, item);
+    const beforeKey = origKey;
     const newDate = date || origKey;
     arr.splice(ridx,1); if (!arr.length) delete r[origKey];
     if (!r[newDate]) r[newDate]=[];
@@ -1155,6 +1219,18 @@ function saveEditHandler(e){
     const parts = newDate.split('-');
     if (parts.length===3){ selectedYear = parseInt(parts[0],10); selectedMonth = parseInt(parts[1],10)-1; selectedDay = parseInt(parts[2],10); }
     generateCalendar(); showReminders(selectedDay);
+    pushUndo({ label: 'Edit to reminder "' + text + '" undone.', undo: function() {
+      const cur = getReminders();
+      /* Remove the edited version */
+      if (cur[newDate]) { cur[newDate] = cur[newDate].filter(function(x){ return x.text !== newR.text || x.time !== newR.time; }); if (!cur[newDate].length) delete cur[newDate]; }
+      /* Restore original */
+      if (!cur[beforeKey]) cur[beforeKey] = [];
+      cur[beforeKey].splice(ridx, 0, beforeReminder);
+      setReminders(cur);
+      const bp = beforeKey.split('-');
+      if (bp.length===3){ selectedYear=parseInt(bp[0],10); selectedMonth=parseInt(bp[1],10)-1; selectedDay=parseInt(bp[2],10); }
+      generateCalendar(); showReminders(selectedDay);
+    }});
   }
   closeEditModal();
   refreshVisibleDomainPages();
@@ -2500,6 +2576,70 @@ function downloadJson(filename, data){
   URL.revokeObjectURL(url);
 }
 
+/* ── Single-event ICS download (one tap → Apple Calendar on iOS) ── */
+function downloadSingleEventICS(ev) {
+  function escICS(s){ return (s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
+  function toICSDate(dateStr, timeStr){
+    if (!dateStr) return '';
+    var d = dateStr.replace(/-/g,'');
+    if (!timeStr) return d;
+    return d + 'T' + timeStr.replace(/:/g,'') + '00';
+  }
+  function datePlusOne(dateStr){
+    var d = new Date(dateStr + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    return d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate());
+  }
+  var uid = 'ev-' + (ev.id||Date.now()) + '@timescape.app';
+  var hasTime = !!ev.time;
+  var lines = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TimeScape Planner//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    'UID:' + uid,
+    'SUMMARY:' + escICS((ev.emoji ? ev.emoji + ' ' : '') + (ev.title||''))
+  ];
+  if (hasTime) {
+    lines.push('DTSTART:' + toICSDate(ev.date, ev.time));
+    lines.push('DTEND:' + toICSDate(ev.endDate||ev.date, ev.endTime||ev.time));
+  } else {
+    lines.push('DTSTART;VALUE=DATE:' + (ev.date||'').replace(/-/g,''));
+    lines.push('DTEND;VALUE=DATE:' + (ev.endDate ? ev.endDate.replace(/-/g,'') : datePlusOne(ev.date)));
+  }
+  if (ev.location) lines.push('LOCATION:' + escICS(ev.location));
+  lines.push('END:VEVENT','END:VCALENDAR');
+  var blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = (ev.title||'event').replace(/[^a-z0-9]/gi,'-').toLowerCase() + '.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ── Web Share API ── */
+function shareEvent(ev) {
+  var text = (ev.emoji ? ev.emoji + ' ' : '') + (ev.title||'');
+  if (ev.date) text += '\n📅 ' + ev.date;
+  if (ev.time) text += ' ' + ev.time + (ev.endTime ? '–'+ev.endTime : '');
+  if (ev.location) text += '\n📍 ' + ev.location;
+  navigator.share({ title: ev.title||'Event', text: text }).catch(function(){});
+}
+
+function shareDaySchedule(year, month, day) {
+  var dateKey = year + '-' + pad2(month+1) + '-' + pad2(day);
+  var dateLabel = new Date(year, month, day).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var lines = [dateLabel, ''];
+  var evs = getEvents().filter(function(e){ return e.date === dateKey; });
+  evs.sort(function(a,b){ return (a.time||'').localeCompare(b.time||''); });
+  evs.forEach(function(e){ lines.push((e.emoji||'📅')+' '+(e.time?e.time+' ':'')+e.title+(e.location?' @ '+e.location:'')); });
+  var reminders = (getReminders()[dateKey]||[]);
+  reminders.forEach(function(r){ lines.push('🔔 '+(r.time?r.time+' ':'')+r.text); });
+  var tasks = getTasks().filter(function(t){ return t.date === dateKey; });
+  tasks.forEach(function(t){ lines.push((t.done?'✅':'⬜')+' '+t.title); });
+  var text = lines.join('\n').trim() || dateLabel;
+  navigator.share({ title: 'Schedule for ' + dateLabel, text: text }).catch(function(){});
+}
+
 function parseImportPayload(parsed){
   if (!parsed || typeof parsed !== 'object') throw new Error('Invalid JSON payload');
   const data = parsed.data && typeof parsed.data === 'object' ? parsed.data : parsed;
@@ -3693,6 +3833,7 @@ function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) bt
     const item=getEvents().find(function(e){ return e.id===id; });
     if(!item){ origDE(id); return; }
     if(!confirm('Delete this event?')) return;
+    haptic.delete();
     setEvents(getEvents().filter(function(e){ return e.id!==id; }));
     renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
     pushUndo({ label:'Event "'+item.title+'" deleted.', undo:function(){ const cur=getEvents(); cur.push(item); setEvents(cur); } });
@@ -3704,6 +3845,7 @@ function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) bt
     const tasks=getTasks(); const item=tasks[i];
     if(!item){ origDT(i); return; }
     if(!confirm('Delete this task?')) return;
+    haptic.delete();
     setTasks(tasks.filter(function(_,idx){ return idx!==i; }));
     try{ loadTasks(); }catch(_){}
     const capturedIdx=i;
@@ -3717,6 +3859,7 @@ function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) bt
     const r=getReminders(); const item=r[key]&&r[key][index];
     if(!item){ origDR(day,index); return; }
     if(!confirm('Delete this reminder?')) return;
+    haptic.delete();
     r[key].splice(index,1); if(!r[key].length) delete r[key];
     setReminders(r); showReminders(day); generateCalendar();
     pushUndo({ label:'Reminder "'+item.text+'" deleted.', undo:function(){ const cur=getReminders(); if(!cur[key]) cur[key]=[]; cur[key].splice(index,0,item); setReminders(cur); } });
@@ -6965,6 +7108,95 @@ function initCalendarAddItemPopup() {
   }
 }
 
+/* ----- Clipboard copy utility ----- */
+function copyToClipboard(text, btn, successLabel) {
+  successLabel = successLabel || '✅ Copied!';
+  var original = btn.textContent;
+  function onCopied() { btn.textContent = successLabel; setTimeout(function(){ btn.textContent = original; }, 2000); }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(onCopied).catch(function() {
+      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); onCopied();
+    });
+  } else {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); onCopied();
+  }
+}
+
+/* ----- Siri Shortcuts / iOS Deep Links (Settings page) ----- */
+function wireSiriShortcuts() {
+  var container = document.getElementById('siriLinksList');
+  if (!container) return;
+  var base = location.origin + location.pathname;
+  var links = [
+    { emoji: '🏠', label: 'Open Today view',    hash: '#today' },
+    { emoji: '🗓️', label: 'Open Calendar',      hash: '#calendar' },
+    { emoji: '👤', label: 'Open Personal',       hash: '#personal' },
+    { emoji: '🏡', label: 'Open Home',           hash: '#home' },
+    { emoji: '💼', label: 'Open Work',           hash: '#work' },
+    { emoji: '📥', label: 'Open Inbox',          hash: '#inbox' },
+    { emoji: '⚙️', label: 'Open Settings',       hash: '#settings' }
+  ];
+  container.innerHTML = '';
+  links.forEach(function(item) {
+    var url = base + item.hash;
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;background:#f5f7fa;border-radius:8px;padding:8px 12px';
+    var lbl = document.createElement('span');
+    lbl.style.cssText = 'flex:1;font-size:0.88rem';
+    lbl.textContent = item.emoji + ' ' + item.label;
+    var urlSpan = document.createElement('code');
+    urlSpan.style.cssText = 'font-size:0.78rem;color:#333;background:#e8eaf0;padding:2px 6px;border-radius:4px;word-break:break-all;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    urlSpan.title = url;
+    urlSpan.textContent = url;
+    var copyBtn = document.createElement('button');
+    copyBtn.className = 'small-btn';
+    copyBtn.style.cssText = 'flex-shrink:0;font-size:0.75rem';
+    copyBtn.textContent = '📋 Copy';
+    copyBtn.addEventListener('click', function() { copyToClipboard(url, copyBtn); });
+    row.appendChild(lbl); row.appendChild(urlSpan); row.appendChild(copyBtn);
+    container.appendChild(row);
+  });
+}
+
+/* ----- First-run onboarding / Empty states ----- */
+function wireFirstRunOnboarding() {
+  var STORAGE_KEY = 'ts_onboarding_done';
+  if (localStorage.getItem(STORAGE_KEY)) return;
+
+  /* Show onboarding only when there's truly no data — read storage once */
+  var events = getEvents(), tasks = getTasks(), reminders = getReminders();
+  var hasData = events.length > 0 || tasks.length > 0 || Object.keys(reminders).length > 0;
+  if (hasData) { localStorage.setItem(STORAGE_KEY, '1'); return; }
+
+  /* Build modal */
+  var overlay = document.createElement('div');
+  overlay.id = 'onboardingOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:20000;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+
+  var panel = document.createElement('div');
+  panel.style.cssText = 'background:#fff;border-radius:20px;max-width:440px;width:100%;padding:28px 24px;box-shadow:0 8px 40px rgba(0,0,0,0.25);text-align:center';
+
+  panel.innerHTML =
+    '<div style="font-size:3rem;margin-bottom:12px">📅</div>' +
+    '<h2 style="margin:0 0 8px;font-size:1.3rem;color:#222">Welcome to TimeScape!</h2>' +
+    '<p style="color:#555;font-size:0.93rem;margin:0 0 20px;line-height:1.6">Here\'s how to get started in 3 quick steps:</p>' +
+    '<ol style="text-align:left;padding-left:20px;margin:0 0 20px;font-size:0.92rem;line-height:2;color:#333">' +
+      '<li>Tap the <strong>＋ Add</strong> button in the header to create your first event, task, or reminder.</li>' +
+      '<li>Use the <strong>bottom navigation</strong> to switch between Today, Calendar, Personal, Home, and Work views.</li>' +
+      '<li>Press <strong>?</strong> on a keyboard anytime to see all keyboard shortcuts.</li>' +
+    '</ol>' +
+    '<button id="onboardingDismiss" style="background:#4a90e2;color:#fff;border:none;border-radius:12px;padding:12px 32px;font-size:1rem;cursor:pointer;font-weight:600">Let\'s go! 🚀</button>';
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  document.getElementById('onboardingDismiss').addEventListener('click', function() {
+    overlay.remove();
+    localStorage.setItem(STORAGE_KEY, '1');
+  });
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) { overlay.remove(); localStorage.setItem(STORAGE_KEY, '1'); } });
+}
+
 /* ----- Init all new features on DOMContentLoaded ----- */
 document.addEventListener('DOMContentLoaded',function(){
   try {
@@ -6984,6 +7216,8 @@ document.addEventListener('DOMContentLoaded',function(){
     wireBucketPages();
   } catch(e) { console.warn('Feature wiring error', e); }
   try { initCalendarAddItemPopup(); } catch(e) { console.warn('Add-item popup init error', e); }
+  try { wireSiriShortcuts(); } catch(e) { console.warn('Siri shortcuts init error', e); }
+  try { wireFirstRunOnboarding(); } catch(e) { console.warn('Onboarding init error', e); }
   /* Refresh rings immediately and every 60s */
   updateDayElapsedRing();
   updateCompletionRing();

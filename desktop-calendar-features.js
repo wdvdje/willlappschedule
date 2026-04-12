@@ -132,6 +132,23 @@
       if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) applyDarkMode(true);
     }
 
+    /* Auto-follow system dark/light changes at runtime (e.g. sunset auto-switch) */
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var handler = function(e) {
+        /* Only follow system if the user has NOT manually set a preference */
+        if (localStorage.getItem('darkMode') === null) {
+          applyDarkMode(e.matches);
+        }
+      };
+      if (mq.addEventListener) {
+        mq.addEventListener('change', handler);
+      } else if (mq.addListener) {
+        /* Safari < 14 fallback */
+        mq.addListener(handler);
+      }
+    }
+
     /* Dark mode toggle is available in Settings page only */
     document.addEventListener('DOMContentLoaded', function () {
       /* Inject settings page toggle */
