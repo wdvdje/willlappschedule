@@ -1,0 +1,834 @@
+/* ═══════════════════════════════════════════════════════════════
+   ios-native.css  —  iOS 26 / macOS-style look & feel layer
+   Loaded after app.css; uses !important only where override is needed.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Design tokens ──────────────────────────────────────────── */
+:root {
+  --ios-accent:        #007AFF;
+  --ios-accent-dk:     #0062CC;
+  --ios-accent-bg:     rgba(0,122,255,0.12);
+  --ios-success:       #30D158;
+  --ios-success-dk:    #1E9940;
+  --ios-warning:       #FF9F0A;
+  --ios-danger:        #FF453A;
+
+  --ios-surface:       #FFFFFF;
+  --ios-surface-2:     #F2F2F7;
+  --ios-surface-3:     #E5E5EA;
+  --ios-glass:         rgba(242,242,247,0.82);
+  --ios-glass-blur:    saturate(180%) blur(22px);
+  --ios-border:        rgba(60,60,67,0.16);
+  --ios-shadow-sm:     0 1px 6px rgba(0,0,0,0.08);
+  --ios-shadow-md:     0 4px 20px rgba(0,0,0,0.10);
+  --ios-shadow-lg:     0 8px 40px rgba(0,0,0,0.16);
+
+  --ios-text:          #1C1C1E;
+  --ios-text-2:        #48484A;
+  --ios-text-3:        #8E8E93;
+  --ios-text-4:        #AEAEB2;
+
+  --ios-r-xs:          8px;
+  --ios-r-sm:          12px;
+  --ios-r-md:          16px;
+  --ios-r-lg:          22px;
+  --ios-r-xl:          28px;
+
+  --ios-spring:        cubic-bezier(0.34,1.56,0.64,1);
+  --ios-ease:          cubic-bezier(0.25,1,0.5,1);
+  --ios-fast:          0.16s;
+  --ios-normal:        0.30s;
+  --ios-slow:          0.45s;
+
+  --ios-sidebar-w:     220px;
+  --ios-tab-h:         calc(62px + env(safe-area-inset-bottom,0px));
+  --ios-header-h:      calc(54px + env(safe-area-inset-top,0px));
+}
+
+/* ── 2. Dark-mode tokens (system preference) ───────────────────── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ios-surface:    #1C1C1E;
+    --ios-surface-2:  #2C2C2E;
+    --ios-surface-3:  #3A3A3C;
+    --ios-glass:      rgba(28,28,30,0.85);
+    --ios-border:     rgba(255,255,255,0.14);
+    --ios-text:       #F2F2F7;
+    --ios-text-2:     #EBEBF5;
+    --ios-text-3:     #8E8E93;
+    --ios-text-4:     #636366;
+    --ios-accent-bg:  rgba(10,132,255,0.18);
+  }
+}
+
+/* ── 3. Global base ────────────────────────────────────────────── */
+body {
+  background: var(--ios-surface-2) !important;
+  color: var(--ios-text) !important;
+}
+
+/* ── 4. Sticky glass header ────────────────────────────────────── */
+header {
+  background: var(--ios-glass) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur) !important;
+  backdrop-filter: var(--ios-glass-blur) !important;
+  border-bottom: 1px solid var(--ios-border) !important;
+  color: var(--ios-text) !important;
+  /* Make header sticky so it stays at top while scrolling */
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 1000 !important;
+  box-shadow: none !important;
+}
+
+/* Sync status bar also gets glass */
+#syncStatusBar {
+  background: rgba(0,98,204,0.88) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+  position: sticky !important;
+  top: var(--ios-header-h) !important;
+  z-index: 999 !important;
+}
+
+/* Header title text */
+header #appHeaderTitle {
+  color: var(--ios-text) !important;
+  font-weight: 700 !important;
+}
+
+/* Header buttons — pill-style for glass header */
+header .header-btn {
+  background: rgba(120,120,128,0.12) !important;
+  border: none !important;
+  color: var(--ios-accent) !important;
+  border-radius: var(--ios-r-sm) !important;
+  transition: background var(--ios-fast) var(--ios-ease),
+              transform var(--ios-fast) var(--ios-spring) !important;
+}
+header .header-btn:hover {
+  background: rgba(120,120,128,0.20) !important;
+}
+header .header-btn:active {
+  transform: scale(0.93) !important;
+  opacity: 0.75 !important;
+}
+
+/* ── 5. Glass bottom tab bar + iOS-style pill indicator ─────────── */
+.bottom-ribbon {
+  background: var(--ios-glass) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur) !important;
+  backdrop-filter: var(--ios-glass-blur) !important;
+  border-top: 1px solid var(--ios-border) !important;
+  box-shadow: none !important;
+  padding: 4px 10px !important;
+  gap: 0 !important;
+}
+
+.bottom-ribbon .r-item {
+  border: none !important;
+  border-radius: var(--ios-r-sm) !important;
+  color: var(--ios-text-3) !important;
+  padding: 6px 4px !important;
+  transition: background var(--ios-fast) var(--ios-ease),
+              color var(--ios-fast) var(--ios-ease),
+              transform var(--ios-fast) var(--ios-spring) !important;
+  position: relative;
+}
+
+.bottom-ribbon .r-item:hover {
+  border: none !important;
+  background: rgba(120,120,128,0.10) !important;
+  color: var(--ios-text) !important;
+}
+
+.bottom-ribbon .r-item.active {
+  background: var(--ios-accent-bg) !important;
+  color: var(--ios-accent) !important;
+  border: none !important;
+}
+
+.bottom-ribbon .r-item .r-label {
+  color: inherit !important;
+}
+
+/* Tap press feedback */
+.bottom-ribbon .r-item:active {
+  transform: scale(0.88) !important;
+  opacity: 0.70 !important;
+}
+
+/* ── 6. Bottom-sheet modals ─────────────────────────────────────── */
+
+/* Shared sheet-handle pill */
+.sheet-handle {
+  display: block;
+  width: 36px;
+  height: 5px;
+  background: rgba(120,120,128,0.30);
+  border-radius: 3px;
+  margin: 8px auto 14px;
+  flex-shrink: 0;
+}
+
+/* --- #editModal as bottom sheet --- */
+#editModal:not(.hidden) {
+  align-items: flex-end !important;
+  justify-content: center !important;
+}
+
+#editModal .panel {
+  border-radius: var(--ios-r-lg) var(--ios-r-lg) 0 0 !important;
+  width: 100% !important;
+  max-width: 640px !important;
+  box-shadow: var(--ios-shadow-lg) !important;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom,0px)) !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Slide-up entrance animation */
+@keyframes ios-sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes ios-sheet-down {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+
+#editModal:not(.hidden) .panel {
+  animation: ios-sheet-up var(--ios-slow) var(--ios-ease) both;
+}
+
+/* --- #catModal as bottom sheet --- */
+#catModal {
+  align-items: flex-end !important;
+  justify-content: center !important;
+}
+#catModal > div {
+  border-radius: var(--ios-r-lg) var(--ios-r-lg) 0 0 !important;
+  width: 100% !important;
+  max-width: 640px !important;
+  padding: 0 16px calc(16px + env(safe-area-inset-bottom,0px)) !important;
+  box-shadow: var(--ios-shadow-lg) !important;
+}
+#catModal:not(.hidden) > div {
+  animation: ios-sheet-up var(--ios-slow) var(--ios-ease) both;
+}
+
+/* --- #jobModal as bottom sheet --- */
+#jobModal {
+  align-items: flex-end !important;
+  justify-content: center !important;
+}
+#jobModal > div {
+  border-radius: var(--ios-r-lg) var(--ios-r-lg) 0 0 !important;
+  width: 100% !important;
+  max-width: 640px !important;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom,0px)) !important;
+  max-height: 90vh !important;
+  overflow-y: auto;
+  box-shadow: var(--ios-shadow-lg) !important;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+#jobModal:not(.hidden) > div {
+  animation: ios-sheet-up var(--ios-slow) var(--ios-ease) both;
+}
+
+/* --- chore-template modal as bottom sheet --- */
+.chore-tpl-modal:not(.hidden) {
+  align-items: flex-end !important;
+  justify-content: center !important;
+}
+.chore-tpl-panel {
+  border-radius: var(--ios-r-lg) var(--ios-r-lg) 0 0 !important;
+  width: 100% !important;
+  max-width: 640px !important;
+  margin-bottom: 0 !important;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom,0px)) !important;
+  box-shadow: var(--ios-shadow-lg) !important;
+}
+.chore-tpl-modal:not(.hidden) .chore-tpl-panel {
+  animation: ios-sheet-up var(--ios-slow) var(--ios-ease) both;
+}
+
+/* ── 7. Desktop sidebar (macOS app panel) ────────────────────────── */
+.desktop-sidebar {
+  display: none;
+}
+
+@media (min-width: 901px) {
+  .desktop-sidebar {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--ios-sidebar-w);
+    background: var(--ios-glass);
+    -webkit-backdrop-filter: var(--ios-glass-blur);
+    backdrop-filter: var(--ios-glass-blur);
+    border-right: 1px solid var(--ios-border);
+    z-index: 1001; /* above sticky header */
+    padding: calc(env(safe-area-inset-top,0px) + 14px) 10px 14px;
+    gap: 2px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Push page content right to clear sidebar */
+  body > header,
+  #syncStatusBar {
+    margin-left: var(--ios-sidebar-w) !important;
+    /* header is sticky; left-offset from sidebar */
+    left: var(--ios-sidebar-w) !important;
+    right: 0 !important;
+  }
+  body > main {
+    margin-left: var(--ios-sidebar-w) !important;
+  }
+
+  /* No sticky offset needed for header on desktop; sidebar is the nav */
+  header {
+    /* let it stay sticky inside the right column */
+    position: sticky !important;
+    top: 0 !important;
+  }
+
+  /* Hide mobile bottom ribbon */
+  .bottom-ribbon {
+    display: none !important;
+  }
+
+  /* Remove bottom ribbon padding */
+  body {
+    padding-bottom: 0 !important;
+  }
+  main {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom,0px)) !important;
+  }
+
+  /* Header position fix for sticky inside offset context */
+  body > header {
+    /* sticky within the body flow; margin-left pushes it right */
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+  }
+}
+
+/* Sidebar app title */
+.sidebar-app-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ios-text);
+  padding: 4px 10px 18px;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sidebar nav items */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: var(--ios-r-sm);
+  text-decoration: none;
+  color: var(--ios-text-2);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--ios-fast) var(--ios-ease),
+              color var(--ios-fast) var(--ios-ease),
+              transform var(--ios-fast) var(--ios-spring);
+  user-select: none;
+}
+.sidebar-item:hover {
+  background: rgba(120,120,128,0.10);
+  color: var(--ios-text);
+}
+.sidebar-item.active {
+  background: var(--ios-accent-bg);
+  color: var(--ios-accent);
+  font-weight: 600;
+}
+.sidebar-item:active {
+  transform: scale(0.96);
+  opacity: 0.75;
+}
+
+.sidebar-icon {
+  font-size: 1.05rem;
+  flex-shrink: 0;
+  width: 22px;
+  text-align: center;
+}
+
+.sidebar-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--ios-border);
+  margin: 8px 6px;
+}
+
+.sidebar-bottom {
+  margin-top: auto;
+}
+
+/* ── 8. Form inputs — iOS rounded style ────────────────────────── */
+input[type="text"],
+input[type="date"],
+input[type="time"],
+input[type="password"],
+input[type="number"],
+input[type="email"],
+select,
+textarea {
+  border-radius: var(--ios-r-xs) !important;
+  border: 1.5px solid var(--ios-border) !important;
+  background: var(--ios-surface) !important;
+  color: var(--ios-text) !important;
+  transition: border-color var(--ios-fast) var(--ios-ease),
+              box-shadow var(--ios-fast) var(--ios-ease) !important;
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="email"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--ios-accent) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.16) !important;
+}
+
+/* ── 9. Tappable element press feedback ─────────────────────────── */
+button,
+.small-btn,
+.domain-add-btn,
+.cat-filter-btn,
+.view-toggle-btn,
+.dcf-layer-btn,
+.dcf-goto-btn,
+.cal-add-type-btn,
+.bucket-add-toggle,
+.chore-tpl-item,
+.sidebar-item,
+[role="button"] {
+  transition: transform var(--ios-fast) var(--ios-spring),
+              opacity var(--ios-fast) var(--ios-ease) !important;
+}
+
+button:active,
+.small-btn:active,
+.domain-add-btn:active,
+.cat-filter-btn:active,
+.view-toggle-btn:active,
+.dcf-layer-btn:active,
+.dcf-goto-btn:active,
+.cal-add-type-btn:active,
+.bucket-add-toggle:active,
+.chore-tpl-item:active,
+[role="button"]:active {
+  transform: scale(0.95) !important;
+  opacity: 0.78 !important;
+}
+
+/* Day cells */
+.day:active {
+  transform: scale(0.97) !important;
+}
+
+/* ── 10. Apple system blue replaces #4a90e2 for key UI ─────────── */
+/* Calendar controls */
+.calendar-controls button {
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+  border-radius: var(--ios-r-sm) !important;
+}
+.calendar-controls button:hover {
+  background: var(--ios-accent-dk) !important;
+}
+
+/* Day navigation today button */
+.day-nav-today-btn {
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+  border-radius: 20px !important;
+}
+.day-nav-today-btn:hover {
+  background: var(--ios-accent-dk) !important;
+}
+
+/* Day-nav prev/next buttons */
+.day-nav-btn {
+  color: var(--ios-accent) !important;
+  border-color: var(--ios-border) !important;
+}
+.day-nav-btn:hover {
+  background: var(--ios-accent-bg) !important;
+  border-color: var(--ios-accent) !important;
+}
+
+/* Calendar accent colors */
+.calendar-dayname { color: var(--ios-accent) !important; }
+.day.selected      { border-color: var(--ios-accent) !important; box-shadow: 0 0 0 2px var(--ios-accent-bg) !important; }
+.day.today         { outline-color: var(--ios-accent) !important; }
+.week-col-header.today { background: var(--ios-accent) !important; }
+
+/* Cat filter & view-toggle active */
+.cat-filter-btn.active,
+.view-toggle-btn.active,
+.dcf-layer-btn.active,
+.cal-domain-pill.active,
+.domain-tab.active,
+.bucket-type-tab.active,
+.we-mode-btn.active,
+.meal-day-btn.active { background: var(--ios-accent) !important; border-color: var(--ios-accent) !important; }
+
+/* Add / domain-add buttons */
+.domain-add-btn,
+.bucket-add-toggle { border-color: var(--ios-accent) !important; color: var(--ios-accent) !important; }
+
+/* Save / primary action buttons */
+#saveEdit,
+.gist-sync-save-btn,
+#saveProfileBtn,
+#gistSyncSaveBtn,
+#saveMorningBriefingBtn,
+#saveDomainColorsBtn,
+#exportDataBtn,
+#saveJobBtn,
+.grocery-add-btn,
+.dgym-log-btn,
+.dgym-empty-form button,
+.gym-log-btn,
+.steps-add-btn,
+.routine-add-btn,
+.focus-add-btn,
+.mood-save-btn,
+.sleep-log-btn,
+.dmeal-fav-add-btn,
+.droutine-add-step button,
+.dgym-add-ex-btn,
+.chore-tpl-add-btn,
+.dcf-goto-btn,
+.catAddBtn { background: var(--ios-accent) !important; color: #fff !important; border-color: transparent !important; }
+
+/* Quick-add bar */
+#quickAddInput {
+  border-radius: 24px !important;
+  background: var(--ios-surface) !important;
+  border: 1.5px solid var(--ios-border) !important;
+}
+#quickAddBtn {
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+  border-radius: 24px !important;
+  border: none !important;
+}
+#quickAddBtn:hover  { background: var(--ios-accent-dk) !important; }
+#quickAddBtn:active { transform: scale(0.94) !important; }
+
+/* ── 11. Cards — softer corners, lighter shadow ──────────────────── */
+.calendar {
+  border-radius: var(--ios-r-md) !important;
+  box-shadow: var(--ios-shadow-sm) !important;
+}
+
+.day {
+  border-radius: var(--ios-r-xs) !important;
+}
+
+.bucket-card,
+.pw-card,
+.inbox-widget,
+.home-dashboard,
+.grocery-section,
+.work-earnings-section,
+.weather-widget-section {
+  border-radius: var(--ios-r-md) !important;
+  box-shadow: var(--ios-shadow-sm) !important;
+  border: 1px solid var(--ios-border) !important;
+}
+
+.dv-event-block {
+  border-radius: var(--ios-r-xs) !important;
+}
+
+/* ── 12. Pull-to-refresh indicator ───────────────────────────────── */
+#pullRefreshIndicator {
+  position: fixed;
+  top: calc(env(safe-area-inset-top,0px) + 66px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-70px);
+  background: var(--ios-surface);
+  color: var(--ios-accent);
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: var(--ios-shadow-md);
+  z-index: 9980;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ios-fast) var(--ios-ease),
+              transform var(--ios-normal) var(--ios-ease);
+  will-change: transform, opacity;
+}
+#pullRefreshIndicator.ptr-pulling {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0px);
+}
+#pullRefreshIndicator.ptr-refreshing {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0px);
+}
+#pullRefreshIndicator.ptr-refreshing span {
+  display: inline-block;
+  animation: ptr-spin 0.7s linear infinite;
+}
+@keyframes ptr-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ── 13. Momentum scrolling on scroll containers ─────────────────── */
+.daily-view-timeline,
+.dcf-cmd-results,
+.cal-side-panel > div:last-child,
+#searchResults,
+#editModal .panel,
+#jobModal > div,
+main {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* ── 14. Page transition fade-in ─────────────────────────────────── */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page:not(.hidden).page-animating {
+  animation: page-enter 0.22s var(--ios-ease) both;
+}
+
+/* ── 15. Spring card hover effects ───────────────────────────────── */
+.day {
+  transition: transform var(--ios-fast) var(--ios-spring),
+              box-shadow var(--ios-fast) var(--ios-ease) !important;
+}
+.day:hover {
+  transform: scale(1.015);
+  box-shadow: var(--ios-shadow-md) !important;
+}
+
+.bucket-card {
+  transition: transform var(--ios-fast) var(--ios-spring),
+              box-shadow var(--ios-fast) var(--ios-ease);
+}
+.bucket-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ios-shadow-md) !important;
+}
+
+/* ── 16. Undo toast — glass pill ────────────────────────────────── */
+#undoToast {
+  background: rgba(44,44,46,0.92) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  backdrop-filter: blur(14px) !important;
+  border-radius: 24px !important;
+}
+
+/* ── 17. Search modal glass ─────────────────────────────────────── */
+#searchModal > div {
+  background: var(--ios-glass) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur) !important;
+  backdrop-filter: var(--ios-glass-blur) !important;
+  border-radius: var(--ios-r-md) !important;
+  border: 1px solid var(--ios-border) !important;
+}
+
+/* ── 18. Command palette glass ──────────────────────────────────── */
+.dcf-cmd-panel {
+  background: var(--ios-glass) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur) !important;
+  backdrop-filter: var(--ios-glass-blur) !important;
+  border-radius: var(--ios-r-md) !important;
+  border: 1px solid var(--ios-border) !important;
+}
+
+/* ── 19. Calendar add-item modal glass ──────────────────────────── */
+#calAddItemModal {
+  background: var(--ios-glass) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur) !important;
+  backdrop-filter: var(--ios-glass-blur) !important;
+  border-radius: var(--ios-r-md) !important;
+  border: 1px solid var(--ios-border) !important;
+}
+
+/* ── 20. Segmented control / pill style for domain tabs ─────────── */
+.domain-type-tabs,
+.bucket-type-tabs {
+  border-radius: var(--ios-r-sm) !important;
+  border-color: var(--ios-border) !important;
+  background: var(--ios-surface-2) !important;
+}
+.domain-tab,
+.bucket-type-tab {
+  border-right-color: var(--ios-border) !important;
+  background: transparent !important;
+  color: var(--ios-text-2) !important;
+}
+.domain-tab.active,
+.bucket-type-tab.active {
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+}
+
+/* ── 21. Dark mode: system preference auto-styling ──────────────── */
+/* These rules activate when the OS dark mode is on.
+   They mirror the manual body.dark-mode rules already in app.css. */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #000000 !important;
+  }
+  .calendar {
+    background: #1c1c1e !important;
+  }
+  .day {
+    background: #2c2c2e !important;
+    color: #f2f2f7 !important;
+    box-shadow: none !important;
+  }
+  .day.today {
+    outline-color: var(--ios-accent) !important;
+  }
+  .daily-view-timeline {
+    background: #1c1c1e !important;
+    border-color: #3a3a3c !important;
+  }
+  .dv-hour-slot { border-color: #2c2c2e !important; }
+  .dv-body      { border-color: #3a3a3c !important; }
+  .dv-gutter-label { color: #636366 !important; }
+
+  #editModal .panel,
+  #catModal > div,
+  #jobModal > div {
+    background: #2c2c2e !important;
+    color: #f2f2f7 !important;
+  }
+  #editModal .panel input,
+  #editModal .panel select,
+  #editModal .panel textarea,
+  #catModal > div input,
+  #catModal > div select,
+  #jobModal > div input,
+  #jobModal > div select {
+    background: #3a3a3c !important;
+    border-color: rgba(255,255,255,0.12) !important;
+    color: #f2f2f7 !important;
+  }
+
+  .bucket-card   { background: #1c1c1e !important; border-color: #3a3a3c !important; }
+  .bucket-header { background: #2c2c2e !important; border-color: #3a3a3c !important; }
+  .bucket-body   { background: #1c1c1e !important; }
+  .bucket-item   { background: #2c2c2e !important; border-color: #3a3a3c !important; }
+
+  .pw-card   { background: #1c1c1e !important; border-color: #3a3a3c !important; }
+  .pw-header { background: #2c2c2e !important; }
+  .pw-body   { background: #1c1c1e !important; }
+
+  .inbox-widget          { background: #1c1c1e !important; }
+  .inbox-widget-item     { border-color: #3a3a3c !important; }
+  .inbox-widget-item.task-item     { background: #1a2e1f !important; }
+  .inbox-widget-item.reminder-item { background: #2e2510 !important; }
+
+  .home-dashboard  { background: #1c1c1e !important; border-color: #3a3a3c !important; }
+  .home-stat-pill  { background: #2c2c2e !important; }
+  .grocery-section { background: #1c1c1e !important; border-color: #3a3a3c !important; }
+  .grocery-header  { background: #2c2c2e !important; }
+
+  .work-earnings-section { background: #1c1c1e !important; border-color: #3a3a3c !important; }
+  .earnings-job-card     { background: #2c2c2e !important; border-color: #3a3a3c !important; }
+
+  .reminder-bar { background: #2c1400 !important; }
+  .weather-widget-section { background: #1c1c1e !important; }
+  .weather-day-card { background: #2c2c2e !important; border-color: #3a3a3c !important; }
+
+  .chore-tpl-panel { background: #1c1c1e !important; color: #f2f2f7 !important; }
+  .chore-tpl-item  { background: #2c2c2e !important; border-color: #3a3a3c !important; }
+
+  .dcf-cmd-panel  { background: rgba(28,28,30,0.95) !important; }
+  .dcf-cmd-input  { color: #f2f2f7 !important; }
+  .dcf-cmd-item:hover,
+  .dcf-cmd-item.focused { background: #2c2c2e !important; }
+
+  #searchModal > div { background: rgba(28,28,30,0.95) !important; }
+  #searchInput       { color: #f2f2f7 !important; }
+
+  #calAddItemModal         { background: rgba(28,28,30,0.95) !important; color: #f2f2f7 !important; }
+  .cal-add-type-btn        { background: #2c2c2e !important; color: #f2f2f7 !important; border-color: #3a3a3c !important; }
+  .cal-add-type-btn:hover  { border-color: var(--ios-accent) !important; background: rgba(0,122,255,0.1) !important; }
+
+  .cal-side-panel  { background: #1c1c1e !important; color: #f2f2f7 !important; }
+
+  .dmeal-day-header { background: #1c1c1e !important; border-color: #3a3a3c !important; color: #ccc !important; }
+  .dmeal-slot       { background: #1c1c1e !important; border-color: #3a3a3c !important; }
+  .dmeal-slot.empty { background: #161618 !important; }
+  .dmeal-slot:hover { background: #2c2c2e !important; }
+  .dmeal-summary    { background: #2c2c2e !important; }
+  .dmeal-edit-popover { background: #2c2c2e !important; border-color: var(--ios-accent) !important; color: #f2f2f7 !important; }
+
+  .droutine-phase-header { background: #1c1c1e !important; border-color: #3a3a3c !important; }
+  .droutine-phase-body   { background: #1c1c1e !important; border-color: #3a3a3c !important; }
+  .droutine-node-card    { background: #2c2c2e !important; border-color: #3a3a3c !important; color: #ccc !important; }
+
+  .dgym-routine-item  { background: #2c2c2e !important; border-color: #3a3a3c !important; color: #ccc !important; }
+  .dgym-header        { background: #2c2c2e !important; }
+  .dgym-ex-card       { background: #1c1c1e !important; border-color: #3a3a3c !important; }
+  .dgym-sched-day     { background: #2c2c2e !important; border-color: #3a3a3c !important; }
+  .dgym-set-dot       { background: #1c1c1e !important; color: #7ab8ff !important; }
+
+  .sleep-status { background: #2c2c2e !important; }
+  .hydration-glass { background: #2c2c2e !important; border-color: #3a3a3c !important; }
+  .mood-energy-btn { background: #2c2c2e !important; border-color: #3a3a3c !important; color: #ccc !important; }
+
+  .dcf-stat-card  { background: #2c2c2e !important; border-color: #3a3a3c !important; }
+  .dcf-stat-value { color: #f2f2f7 !important; }
+  .dcf-activity-bar { background: #1c1c1e !important; }
+  .dcf-year-month { background: #1c1c1e !important; }
+
+  #shortcutHints { background: #2c2c2e !important; color: #f2f2f7 !important; }
+  kbd { background: #3a3a3c !important; border-color: #636366 !important; color: #ebebf5 !important; }
+}
+
+/* ── 22. Window Controls Overlay support (macOS PWA) ────────────── */
+@supports (padding: env(titlebar-area-height,0)) {
+  header {
+    padding-top: max(1rem, env(titlebar-area-height,0px)) !important;
+  }
+}

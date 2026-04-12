@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="theme-color" content="#4a90e2" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="TimeScape" />
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMzYiIHk9IjUyIiB3aWR0aD0iMTIwIiBoZWlnaHQ9Ijk2IiByeD0iOCIgZmlsbD0id2hpdGUiLz48cmVjdCB4PSIzNiIgeT0iNTIiIHdpZHRoPSIxMjAiIGhlaWdodD0iMjgiIHJ4PSI4IiBmaWxsPSIjMjU2OGMzIi8+PHJlY3QgeD0iNjQiIHk9IjQwIiB3aWR0aD0iMTIiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIvPjxyZWN0IHg9IjExNiIgeT0iNDAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9IndoaXRlIi8+PHJlY3QgeD0iNTAiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iODYiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMTIyIiB5PSI5NiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iIzRhOTBlMiIvPjxyZWN0IHg9IjUwIiB5PSIxMjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIGZpbGw9IiM0YTkwZTIiLz48cmVjdCB4PSI4NiIgeT0iMTI0IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PC9zdmc+" />
   <!-- iOS splash screens: prevent white flash on PWA launch for common iPhone sizes -->
@@ -29,8 +30,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <title>TimeScape Planner</title>
   <link rel="stylesheet" href="./assets/app.css" />
+  <link rel="stylesheet" href="./assets/ios-native.css" />
+  <!-- Prevent dark-mode flash: apply class before first paint -->
+  <script>try{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body&&document.body.classList.add('dark-mode')}catch(e){}</script>
 </head>
 <body>
+  <!-- Dark mode initialised in <head> above; also handled by ios-native.js -->
+  <script>try{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body.classList.add('dark-mode')}catch(e){}</script>
   <header id="appHeader">
     <a href="#inbox" class="header-btn" id="headerInboxBtn" aria-label="Inbox"><span>📥</span><span class="header-btn-label" id="inboxNavLabel">Inbox</span></a>
     <span id="appHeaderTitle">📅 TimeScape Planner</span>
@@ -830,6 +836,26 @@
     </div>
   </div>
 
+  <!-- Pull-to-refresh indicator -->
+  <div id="pullRefreshIndicator" aria-hidden="true"><span>↻</span></div>
+
+  <!-- Desktop sidebar navigation (shown on desktop via CSS; mirrors bottom ribbon) -->
+  <nav id="desktopSidebar" class="desktop-sidebar" role="navigation" aria-label="Desktop navigation">
+    <div class="sidebar-app-title">📅 TimeScape</div>
+    <a href="#today"     class="sidebar-item" data-view="today">    <span class="sidebar-icon">🏠</span><span class="sidebar-label">Today</span></a>
+    <a href="#calendar"  class="sidebar-item" data-view="calendar"> <span class="sidebar-icon">🗓️</span><span class="sidebar-label">Calendar</span></a>
+    <a href="#inbox"     class="sidebar-item" data-view="inbox">    <span class="sidebar-icon">📥</span><span class="sidebar-label">Inbox</span></a>
+    <div class="sidebar-divider"></div>
+    <a href="#personal"  class="sidebar-item" data-view="personal"> <span class="sidebar-icon">👤</span><span class="sidebar-label">Personal</span></a>
+    <a href="#home"      class="sidebar-item" data-view="home">     <span class="sidebar-icon">🏡</span><span class="sidebar-label">Home</span></a>
+    <a href="#work"      class="sidebar-item" data-view="work">     <span class="sidebar-icon">💼</span><span class="sidebar-label">Work</span></a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-bottom">
+      <a href="#tasks"    class="sidebar-item" data-view="tasks">   <span class="sidebar-icon">✅</span><span class="sidebar-label">Tasks</span></a>
+      <a href="#settings" class="sidebar-item" data-view="settings"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">Settings</span></a>
+    </div>
+  </nav>
+
   <!-- bottom ribbon navigation -->
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
     <a href="#personal" class="r-item" data-view="personal"><span>👤</span><span class="r-label">Personal</span></a>
@@ -995,5 +1021,7 @@
   <script src="./desktop-personal.js"></script>
   <!-- 20 advanced calendar features: year heatmap, animated transitions, time-block week view, weather overlay, count badges, dark mode, 2-week view, drag-resize, time-slot create, layer toggles, recurrence icons, smart scheduling, activity chart, donut chart, streak tracking, go-to-date, split panel, search highlighting, print CSS, command palette -->
   <script src="./desktop-calendar-features.js"></script>
+  <!-- iOS 26 / macOS native-feel: glass UI, bottom sheets, sidebar, haptics, dark mode, pull-to-refresh, badge API -->
+  <script src="./assets/ios-native.js" defer></script>
 </body>
 </html>
