@@ -1547,12 +1547,12 @@
   var ALL_PW_KEYS = ['pw_focus', 'pw_budget', 'pw_meal', 'pw_routine', 'pw_gym', 'pw_hydration', 'pw_sleep', 'pw_mood'];
 
   function initToggleAllWidgets() {
-    var toolbar = document.getElementById('personalToolbar');
-    if (!toolbar || document.getElementById('toggleAllWidgetsBtn')) return;
+    var personalGrid = document.getElementById('personalGrid');
+    if (!personalGrid || document.getElementById('toggleAllWidgetsBtn')) return;
     var btn = document.createElement('button');
     btn.id = 'toggleAllWidgetsBtn';
     btn.className = 'domain-add-btn';
-    btn.style.cssText = 'font-size:0.88rem;margin-right:8px';
+    btn.style.cssText = 'font-size:0.88rem;margin-bottom:10px';
     updateToggleBtnLabel(btn);
     btn.addEventListener('click', function () {
       var anyExpanded = ALL_PW_KEYS.some(function (k) { return !sp(k + '_collapsed', false); });
@@ -1569,7 +1569,7 @@
       });
       updateToggleBtnLabel(btn);
     });
-    toolbar.insertBefore(btn, toolbar.firstChild);
+    personalGrid.insertBefore(btn, personalGrid.firstChild);
   }
 
   function updateToggleBtnLabel(btn) {
