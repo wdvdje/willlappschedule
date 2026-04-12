@@ -4263,11 +4263,14 @@ function buildBucketAddArea(domain, bucketId) {
         '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="event">Add Event</button>'
       ].join('');
     } else if (t.key === 'task') {
+      var energySel = domain === 'home' ?
+        '<select class="bi-energy" style="width:110px"><option value="">⚡ Energy</option><option value="low">🟢 Easy</option><option value="medium">🟡 Medium</option><option value="high">🔴 Hard</option></select>' : '';
       form.innerHTML = [
         '<input type="text" placeholder="Task title" class="bi-title" style="width:100%;box-sizing:border-box;margin-top:0" />',
-        '<div style="display:flex;gap:6px;margin-top:6px">',
-        '<input type="date" class="bi-date" style="flex:1" />',
+        '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">',
+        '<input type="date" class="bi-date" style="flex:1;min-width:110px" />',
         '<select class="bi-priority" style="width:110px"><option value="1">! Low</option><option value="2" selected>!! Med</option><option value="3">!!! High</option></select>',
+        energySel,
         '</div>',
         '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="task">Add Task</button>'
       ].join('');
@@ -4366,8 +4369,11 @@ function addItemToBucket(domain, bucketId, type, formEl) {
   } else if (type === 'task') {
     const priorityEl = formEl.querySelector('.bi-priority');
     const priority = priorityEl ? priorityEl.value : '2';
+    const energyEl = formEl.querySelector('.bi-energy');
+    const energy = energyEl ? energyEl.value : '';
     const tasks = getTasks();
     const t = { id: generateTaskId(), title, category: domain, domain: domain, done: false, date, time, priority, emoji: jobDefaults.emoji };
+    if (domain === 'home' && energy) t.energy = energy;
     if (bId !== undefined) t.bucketId = bId;
     tasks.push(t);
     setTasks(tasks);
@@ -4405,6 +4411,28 @@ function buildBucketItemEl(item, domain) {
   const titleRow = document.createElement('div');
   titleRow.style.cssText = 'display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:2px';
 
+  /* For home tasks: show a done checkbox */
+  if (domain === 'home' && item.type === 'task') {
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!item.done;
+    cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0;margin-right:2px';
+    cb.title = item.done ? 'Mark as not done' : 'Mark as done';
+    cb.addEventListener('change', function() {
+      const tasks = getTasks();
+      const t = tasks.find(function(x) { return x.id === item.data.id; });
+      if (t) {
+        t.done = cb.checked;
+        setTasks(tasks);
+        if (cb.checked && t.bucketId != null) {
+          try { updateHomeStreak(t.bucketId); } catch(e) {}
+        }
+      }
+      try { renderBucketPage(domain); } catch(e) {}
+    });
+    titleRow.appendChild(cb);
+  }
+
   const badge = document.createElement('span');
   badge.textContent = typeEmoji;
   badge.style.fontSize = '0.9rem';
@@ -4417,6 +4445,14 @@ function buildBucketItemEl(item, domain) {
   titleRow.appendChild(badge);
   titleRow.appendChild(titleEl);
 
+  /* Energy badge for home tasks */
+  if (domain === 'home' && item.type === 'task' && item.data.energy) {
+    const energyBadge = document.createElement('span');
+    energyBadge.className = 'energy-badge ' + item.data.energy;
+    energyBadge.textContent = _ENERGY_LABELS[item.data.energy] || item.data.energy;
+    titleRow.appendChild(energyBadge);
+  }
+
   const meta = document.createElement('div');
   meta.style.cssText = 'font-size:0.78rem;color:#888';
   const prioMap = {'1':'!','2':'!!','3':'!!!'};
@@ -4425,10 +4461,86 @@ function buildBucketItemEl(item, domain) {
   if (item.time) parts.push(item.time + (item.endTime ? '–' + item.endTime : ''));
   if (item.location) parts.push('@ ' + item.location);
   if (item.priority) parts.push(prioMap[item.priority] || item.priority);
+  /* Show recurrence label for home tasks */
+  if (domain === 'home' && item.type === 'task' && item.data.repeat && item.data.repeat !== 'none') {
+    parts.push('🔁 ' + (_REPEAT_LABELS[item.data.repeat] || item.data.repeat));
+  }
   meta.textContent = parts.join(' · ');
 
   left.appendChild(titleRow);
   if (meta.textContent) left.appendChild(meta);
+
+  /* Sub-steps for home tasks */
+  if (domain === 'home' && item.type === 'task') {
+    const taskData = item.data;
+    const steps = Array.isArray(taskData.steps) ? taskData.steps : [];
+    const stepsWrap = document.createElement('div');
+
+    if (steps.length > 0) {
+      const ul = document.createElement('ul');
+      ul.className = 'steps-list';
+      steps.forEach(function(step, si) {
+        const li = document.createElement('li');
+        if (step.done) li.className = 'done-step';
+        const scb = document.createElement('input');
+        scb.type = 'checkbox';
+        scb.checked = !!step.done;
+        scb.addEventListener('change', function() {
+          toggleTaskStep(taskData.id, si, scb.checked);
+          try { renderBucketPage(domain); } catch(e) {}
+        });
+        const stepText = document.createElement('span');
+        stepText.textContent = step.text;
+        li.appendChild(scb);
+        li.appendChild(stepText);
+        ul.appendChild(li);
+      });
+      stepsWrap.appendChild(ul);
+    }
+
+    /* Add step input row */
+    const stepsAddRow = document.createElement('div');
+    stepsAddRow.className = 'steps-add-row';
+    stepsAddRow.style.display = 'none';
+    const stepInput = document.createElement('input');
+    stepInput.type = 'text';
+    stepInput.className = 'steps-add-input';
+    stepInput.placeholder = 'Add a step…';
+    const stepAddBtn = document.createElement('button');
+    stepAddBtn.className = 'steps-add-btn';
+    stepAddBtn.type = 'button';
+    stepAddBtn.textContent = '＋';
+    stepAddBtn.addEventListener('click', function() {
+      const text = stepInput.value.trim();
+      if (!text) return;
+      var tasks = getTasks();
+      var t = tasks.find(function(x) { return x.id === taskData.id; });
+      if (t) {
+        if (!Array.isArray(t.steps)) t.steps = [];
+        t.steps.push({ text: text, done: false });
+        setTasks(tasks);
+      }
+      try { renderBucketPage(domain); } catch(e) {}
+    });
+    stepInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); stepAddBtn.click(); }
+    });
+    stepsAddRow.appendChild(stepInput);
+    stepsAddRow.appendChild(stepAddBtn);
+    stepsWrap.appendChild(stepsAddRow);
+
+    const toggleStepsBtn = document.createElement('button');
+    toggleStepsBtn.className = 'steps-toggle-btn';
+    toggleStepsBtn.type = 'button';
+    toggleStepsBtn.textContent = steps.length > 0 ? '+ add step' : '+ add steps';
+    toggleStepsBtn.addEventListener('click', function() {
+      const isOpen = stepsAddRow.style.display !== 'none';
+      stepsAddRow.style.display = isOpen ? 'none' : 'flex';
+      if (!isOpen) setTimeout(function() { stepInput.focus(); }, 50);
+    });
+    stepsWrap.appendChild(toggleStepsBtn);
+    left.appendChild(stepsWrap);
+  }
 
   const actions = document.createElement('div');
   actions.style.cssText = 'display:flex;flex-direction:column;gap:3px;flex-shrink:0';
@@ -4508,6 +4620,20 @@ function buildBucketCard(domain, bucket, items) {
     cnt.textContent = '(' + items.length + ')';
     titleDiv.appendChild(cnt);
   }
+  /* Show streak badge for home domain buckets */
+  if (domain === 'home' && !isUncategorized && bucket.id != null) {
+    try {
+      const streaks = getHomeStreaks();
+      const s = streaks[bucket.id];
+      if (s && s.streak > 0) {
+        const streakBadge = document.createElement('span');
+        streakBadge.className = 'streak-badge';
+        streakBadge.title = s.streak + '-day completion streak';
+        streakBadge.textContent = '🔥 ' + s.streak;
+        titleDiv.appendChild(streakBadge);
+      }
+    } catch(e) {}
+  }
   header.appendChild(titleDiv);
 
   if (!isUncategorized) {
@@ -4577,6 +4703,13 @@ function renderBucketPage(domain) {
   const container = document.getElementById('domain-buckets-' + domain);
   if (!container) return;
 
+  /* Home-specific pre-render */
+  if (domain === 'home') {
+    try { renderHomeDashboard(); } catch(e) {}
+    try { renderGroceryList(); } catch(e) {}
+    try { renderHomeEnergyFilter(); } catch(e) {}
+  }
+
   container.innerHTML = '';
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -4603,6 +4736,8 @@ function renderBucketPage(domain) {
 
   getTasks().forEach(function(t, idx) {
     if (getDomainOfItem(t) !== domain) return;
+    /* Apply energy filter for home domain */
+    if (domain === 'home' && _homeEnergyFilter !== 'all' && t.energy && t.energy !== _homeEnergyFilter) return;
     pushItem(t.bucketId, {
       type: 'task', title: t.title || t.text || '', date: t.date || '',
       time: t.time || '', priority: t.priority, done: !!t.done,
@@ -4662,7 +4797,407 @@ function wireBucketPages() {
     const btn = document.getElementById('add' + cap + 'BucketBtn');
     if (btn) btn.addEventListener('click', function() { addBucket(domain); });
   });
+  wireHomePage();
 }
+
+/* ============================================================
+   HOME PAGE FEATURES: Dashboard, Streaks, Energy Tags,
+   Sub-steps, Chore Templates, Grocery List
+   ============================================================ */
+
+/* ── Grocery List storage ───────────────────────────────────── */
+function getGroceryList() { return safeParseStorage('groceryList', []); }
+function setGroceryList(v) { localStorage.setItem('groceryList', JSON.stringify(v)); }
+function nextGroceryId() {
+  const list = getGroceryList();
+  return list.length ? Math.max.apply(null, list.map(function(i) { return i.id || 0; })) + 1 : 1;
+}
+
+/* ── Home Streak storage ─────────────────────────────────────── */
+function getHomeStreaks() { return safeParseStorage('homeStreaks', {}); }
+function setHomeStreaks(v) { localStorage.setItem('homeStreaks', JSON.stringify(v)); }
+function updateHomeStreak(bucketId) {
+  if (bucketId == null) return;
+  var today = getTodayISO();
+  var streaks = getHomeStreaks();
+  var s = streaks[bucketId] || { lastDone: '', streak: 0 };
+  if (s.lastDone === today) return;
+  var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  var yestISO = yesterday.toISOString().slice(0, 10);
+  if (s.lastDone === yestISO || s.lastDone === '') s.streak = (s.streak || 0) + 1;
+  else s.streak = 1;
+  s.lastDone = today;
+  streaks[bucketId] = s;
+  setHomeStreaks(streaks);
+}
+
+/* ── Energy filter state ─────────────────────────────────────── */
+var _homeEnergyFilter = 'all';
+
+/* ── Chore templates ─────────────────────────────────────────── */
+var CHORE_TEMPLATES = [
+  { emoji: '🍽️', name: 'Dishes',               repeat: 'daily',   energy: 'low',    defaultDate: 0 },
+  { emoji: '💊', name: 'Take medication',       repeat: 'daily',   energy: 'low',    defaultDate: 0 },
+  { emoji: '📬', name: 'Check mail',            repeat: 'daily',   energy: 'low',    defaultDate: 0 },
+  { emoji: '🐾', name: 'Feed pets',             repeat: 'daily',   energy: 'low',    defaultDate: 0 },
+  { emoji: '👕', name: 'Laundry',               repeat: 'weekly',  energy: 'medium', defaultDate: 0 },
+  { emoji: '🧹', name: 'Sweep / Vacuum',        repeat: 'weekly',  energy: 'medium', defaultDate: 0 },
+  { emoji: '🗑️', name: 'Take out trash',       repeat: 'weekly',  energy: 'low',    defaultDate: 0 },
+  { emoji: '🧺', name: 'Put away laundry',      repeat: 'weekly',  energy: 'medium', defaultDate: 0 },
+  { emoji: '🪟', name: 'Wipe surfaces',         repeat: 'weekly',  energy: 'low',    defaultDate: 0 },
+  { emoji: '🛒', name: 'Groceries',             repeat: 'weekly',  energy: 'high',   defaultDate: 0 },
+  { emoji: '🧼', name: 'Clean bathroom',        repeat: 'weekly',  energy: 'high',   defaultDate: 0 },
+  { emoji: '🧽', name: 'Clean kitchen',         repeat: 'weekly',  energy: 'high',   defaultDate: 0 },
+  { emoji: '🌱', name: 'Water plants',          repeat: '2day',    energy: 'low',    defaultDate: 0 },
+  { emoji: '🪣', name: 'Mop floors',            repeat: 'monthly', energy: 'high',   defaultDate: 0 }
+];
+
+var _REPEAT_LABELS = { daily: 'daily', '2day': 'every 2 days', weekly: 'weekly', monthly: 'monthly', none: 'once' };
+var _ENERGY_LABELS = { low: '🟢 Low', medium: '🟡 Medium', high: '🔴 High' };
+
+/* ── Render Home Dashboard ───────────────────────────────────── */
+function renderHomeDashboard() {
+  var el = document.getElementById('homeDashboard');
+  if (!el) return;
+
+  var today = getTodayISO();
+  var allTasks = getTasks().filter(function(t) { return getDomainOfItem(t) === 'home'; });
+  var todayTasks = allTasks.filter(function(t) { return t.date === today; });
+  var doneTodayCount = todayTasks.filter(function(t) { return t.done; }).length;
+  var totalToday = todayTasks.length;
+  var overdueTasks = allTasks.filter(function(t) {
+    return t.date && t.date < today && !t.done;
+  });
+  var thisWeekEnd = new Date(); thisWeekEnd.setDate(thisWeekEnd.getDate() + 7);
+  var weekEndISO = thisWeekEnd.toISOString().slice(0, 10);
+  var upcomingTasks = allTasks.filter(function(t) {
+    return t.date && t.date > today && t.date <= weekEndISO && !t.done;
+  });
+
+  var pct = totalToday > 0 ? Math.round((doneTodayCount / totalToday) * 100) : 0;
+  var circumference = 113.1;
+  var offset = circumference - (pct / 100) * circumference;
+  var ringColor = pct === 100 ? '#27ae60' : '#4a90e2';
+
+  var html = '<div class="home-dashboard">';
+  html += '<p class="home-dash-title">🏡 Today\'s Chores</p>';
+  html += '<div class="home-dash-stats">';
+  // Progress ring
+  html += '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">';
+  html += '<svg viewBox="0 0 44 44" style="width:64px;height:64px">';
+  html += '<circle class="ring-bg" cx="22" cy="22" r="18"/>';
+  html += '<circle class="ring-fg" cx="22" cy="22" r="18" stroke="' + ringColor + '" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '" transform="rotate(-90 22 22)"/>';
+  html += '<text class="ring-pct" x="22" y="22">' + pct + '%</text>';
+  html += '</svg>';
+  html += '<span class="ring-label">Done</span>';
+  html += '</div>';
+  // Stat pills
+  html += '<div style="display:flex;flex-direction:column;gap:6px;flex:1">';
+  html += '<div style="display:flex;gap:6px">';
+  html += '<div class="home-stat-pill"><span class="home-stat-num done">' + doneTodayCount + '/' + totalToday + '</span><span class="home-stat-label">Today</span></div>';
+  html += '<div class="home-stat-pill"><span class="home-stat-num overdue">' + overdueTasks.length + '</span><span class="home-stat-label">Overdue</span></div>';
+  html += '<div class="home-stat-pill"><span class="home-stat-num">' + upcomingTasks.length + '</span><span class="home-stat-label">This week</span></div>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>'; // home-dash-stats
+
+  // Nudges for overdue tasks
+  if (overdueTasks.length > 0) {
+    html += '<div style="margin-top:8px">';
+    var nudges = overdueTasks.slice(0, 3);
+    nudges.forEach(function(t) {
+      var daysAgo = Math.round((new Date(today) - new Date(t.date)) / 86400000);
+      var label = daysAgo === 1 ? 'yesterday' : daysAgo + ' days ago';
+      html += '<div class="home-nudge"><span class="home-nudge-title">' + (t.emoji || '📋') + ' ' + escapeHTML(t.title || '') + '</span>';
+      html += ' <span style="font-weight:400">was due ' + label + '</span></div>';
+    });
+    if (overdueTasks.length > 3) {
+      html += '<div style="font-size:0.8rem;color:#888;margin-top:2px">…and ' + (overdueTasks.length - 3) + ' more overdue</div>';
+    }
+    html += '</div>';
+  }
+
+  html += '</div>'; // home-dashboard
+  el.innerHTML = html;
+}
+
+/* ── Render Energy Filter Bar ───────────────────────────────── */
+function renderHomeEnergyFilter() {
+  var bar = document.getElementById('homeEnergyFilter');
+  if (!bar) return;
+  bar.innerHTML = '';
+  var filters = [
+    { key: 'all',    label: 'All' },
+    { key: 'low',    label: '🟢 Easy' },
+    { key: 'medium', label: '🟡 Medium' },
+    { key: 'high',   label: '🔴 Hard' }
+  ];
+  filters.forEach(function(f) {
+    var btn = document.createElement('button');
+    btn.className = 'energy-filter-btn' + (_homeEnergyFilter === f.key ? ' active' : '');
+    btn.textContent = f.label;
+    btn.addEventListener('click', function() {
+      _homeEnergyFilter = f.key;
+      renderHomeEnergyFilter();
+      renderBucketPage('home');
+    });
+    bar.appendChild(btn);
+  });
+}
+
+/* ── Render Grocery List ─────────────────────────────────────── */
+function renderGroceryList() {
+  var section = document.getElementById('homeGrocerySection');
+  if (!section) return;
+  var list = getGroceryList();
+  var inCartCount = list.filter(function(i) { return i.inCart; }).length;
+  var pendingCount = list.length - inCartCount;
+
+  var el = document.createElement('div');
+  el.className = 'grocery-section';
+
+  // Header
+  var header = document.createElement('div');
+  header.className = 'grocery-header';
+  var headerTitle = document.createElement('div');
+  headerTitle.className = 'grocery-header-title';
+  headerTitle.innerHTML = '🛒 Grocery List <span style="font-size:0.75rem;color:#888;font-weight:400;margin-left:4px">(' + pendingCount + ' pending' + (inCartCount ? ', ' + inCartCount + ' in cart' : '') + ')</span>';
+  var chevron = document.createElement('span');
+  chevron.className = 'bucket-chevron';
+  var isCollapsed = safeParseStorage('groceryCollapsed', false);
+  chevron.textContent = isCollapsed ? '▸' : '▾';
+  header.appendChild(headerTitle);
+  header.appendChild(chevron);
+
+  // Body
+  var body = document.createElement('div');
+  body.className = 'grocery-body';
+  if (isCollapsed) body.style.display = 'none';
+
+  // Add form
+  var addRow = document.createElement('div');
+  addRow.className = 'grocery-add-row';
+  addRow.innerHTML = [
+    '<input type="text" id="groceryItemInput" class="grocery-add-input" placeholder="Item name…" autocomplete="off" />',
+    '<input type="text" id="groceryQtyInput" class="grocery-qty-input" placeholder="Qty" />',
+    '<select id="grocerySectionSel" class="grocery-section-sel">',
+    '<option value="">Section…</option>',
+    '<option value="Produce">🥦 Produce</option>',
+    '<option value="Dairy">🥛 Dairy</option>',
+    '<option value="Meat">🥩 Meat</option>',
+    '<option value="Bakery">🍞 Bakery</option>',
+    '<option value="Frozen">🧊 Frozen</option>',
+    '<option value="Pantry">🥫 Pantry</option>',
+    '<option value="Beverages">🧃 Beverages</option>',
+    '<option value="Household">🧹 Household</option>',
+    '<option value="Other">📦 Other</option>',
+    '</select>',
+    '<button class="grocery-add-btn" id="groceryAddBtn">＋ Add</button>'
+  ].join('');
+  body.appendChild(addRow);
+
+  // Item list
+  var ul = document.createElement('ul');
+  ul.className = 'grocery-items';
+  if (!list.length) {
+    var empty = document.createElement('li');
+    empty.style.cssText = 'color:#aaa;text-align:center;padding:10px 0;font-size:0.88rem';
+    empty.textContent = 'No items yet.';
+    ul.appendChild(empty);
+  } else {
+    list.forEach(function(item) {
+      var li = document.createElement('li');
+      li.className = 'grocery-item' + (item.inCart ? ' in-cart' : '');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!item.inCart;
+      cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0';
+      cb.title = item.inCart ? 'Remove from cart' : 'Mark in cart';
+      cb.addEventListener('change', function() {
+        var l = getGroceryList();
+        var idx = l.findIndex(function(x) { return x.id === item.id; });
+        if (idx !== -1) { l[idx].inCart = cb.checked; setGroceryList(l); }
+        renderGroceryList();
+      });
+      var textSpan = document.createElement('span');
+      textSpan.className = 'grocery-item-text';
+      textSpan.textContent = item.text;
+      var qtySpan = document.createElement('span');
+      qtySpan.className = 'grocery-item-qty';
+      qtySpan.textContent = item.qty || '';
+      var secSpan = document.createElement('span');
+      secSpan.className = 'grocery-item-section';
+      secSpan.style.display = item.section ? '' : 'none';
+      secSpan.textContent = item.section || '';
+      var delBtn = document.createElement('button');
+      delBtn.className = 'grocery-item-del';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Remove';
+      delBtn.addEventListener('click', function() {
+        var l = getGroceryList();
+        setGroceryList(l.filter(function(x) { return x.id !== item.id; }));
+        renderGroceryList();
+      });
+      li.appendChild(cb);
+      li.appendChild(textSpan);
+      if (item.qty) li.appendChild(qtySpan);
+      if (item.section) li.appendChild(secSpan);
+      li.appendChild(delBtn);
+      ul.appendChild(li);
+    });
+    if (inCartCount > 0) {
+      var clearBtn = document.createElement('button');
+      clearBtn.className = 'grocery-clear-btn';
+      clearBtn.textContent = 'Clear ' + inCartCount + ' in-cart item' + (inCartCount > 1 ? 's' : '');
+      clearBtn.addEventListener('click', function() {
+        setGroceryList(getGroceryList().filter(function(i) { return !i.inCart; }));
+        renderGroceryList();
+      });
+      body.appendChild(ul);
+      body.appendChild(clearBtn);
+      el.appendChild(header);
+      el.appendChild(body);
+      section.innerHTML = '';
+      section.appendChild(el);
+      wireGroceryList();
+      return;
+    }
+  }
+  body.appendChild(ul);
+  el.appendChild(header);
+  el.appendChild(body);
+  section.innerHTML = '';
+  section.appendChild(el);
+  wireGroceryList();
+
+  // Collapse toggle
+  header.addEventListener('click', function(e) {
+    if (e.target.closest('.grocery-add-row, .grocery-items, .grocery-add-btn')) return;
+    var collapsed = body.style.display === 'none';
+    body.style.display = collapsed ? '' : 'none';
+    chevron.textContent = collapsed ? '▾' : '▸';
+    localStorage.setItem('groceryCollapsed', JSON.stringify(!collapsed));
+  });
+}
+
+function wireGroceryList() {
+  var addBtn = document.getElementById('groceryAddBtn');
+  var inp = document.getElementById('groceryItemInput');
+  var qtyInp = document.getElementById('groceryQtyInput');
+  var secSel = document.getElementById('grocerySectionSel');
+
+  function doAdd() {
+    var text = inp ? inp.value.trim() : '';
+    if (!text) { if (inp) { inp.focus(); inp.style.outline = '2px solid #e74c3c'; setTimeout(function(){ inp.style.outline=''; }, 1200); } return; }
+    var qty = qtyInp ? qtyInp.value.trim() : '';
+    var section = secSel ? secSel.value : '';
+    var list = getGroceryList();
+    list.push({ id: nextGroceryId(), text: text, qty: qty, section: section, inCart: false, added: getTodayISO() });
+    setGroceryList(list);
+    renderGroceryList();
+  }
+
+  if (addBtn) addBtn.addEventListener('click', doAdd);
+  if (inp) inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+}
+
+/* ── Chore Template Modal ────────────────────────────────────── */
+function openChoreTemplateModal() {
+  var modal = document.getElementById('choreTemplateModal');
+  var grid = document.getElementById('choreTemplateGrid');
+  var bucketSel = document.getElementById('choreTemplateBucket');
+  if (!modal || !grid) return;
+
+  // Populate bucket dropdown
+  if (bucketSel) {
+    bucketSel.innerHTML = '<option value="">— Uncategorized —</option>';
+    getBuckets('home').forEach(function(b) {
+      var opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+      bucketSel.appendChild(opt);
+    });
+  }
+
+  // Build template grid
+  grid.innerHTML = '';
+  CHORE_TEMPLATES.forEach(function(tpl) {
+    var btn = document.createElement('button');
+    btn.className = 'chore-tpl-item';
+    btn.type = 'button';
+    btn.innerHTML = '<span class="tpl-emoji">' + tpl.emoji + '</span>' +
+      '<span><span class="tpl-name">' + escapeHTML(tpl.name) + '</span>' +
+      '<span class="tpl-meta">' + (_REPEAT_LABELS[tpl.repeat] || tpl.repeat) + ' · ' + _ENERGY_LABELS[tpl.energy] + '</span></span>';
+    btn.addEventListener('click', function() {
+      var bId = bucketSel ? (bucketSel.value ? parseInt(bucketSel.value, 10) : undefined) : undefined;
+      addChoreFromTemplate(tpl, bId);
+      modal.classList.add('hidden');
+    });
+    grid.appendChild(btn);
+  });
+
+  modal.classList.remove('hidden');
+}
+
+function addChoreFromTemplate(tpl, bucketId) {
+  var today = getTodayISO();
+  var tasks = getTasks();
+  var newTask = {
+    id: generateTaskId(),
+    title: tpl.name,
+    emoji: tpl.emoji,
+    category: 'home',
+    domain: 'home',
+    done: false,
+    date: today,
+    time: '',
+    priority: '2',
+    energy: tpl.energy,
+    steps: []
+  };
+  if (tpl.repeat !== 'none') newTask.repeat = tpl.repeat;
+  if (bucketId !== undefined && bucketId !== null) newTask.bucketId = bucketId;
+  tasks.push(newTask);
+  setTasks(tasks);
+  try { renderBucketPage('home'); } catch(e) {}
+  showUndoToast(tpl.emoji + ' ' + tpl.name + ' added!');
+}
+
+/* ── Sub-step helpers ────────────────────────────────────────── */
+function saveTaskSteps(taskId, steps) {
+  var tasks = getTasks();
+  var t = tasks.find(function(x) { return x.id === taskId; });
+  if (t) { t.steps = steps; setTasks(tasks); }
+}
+
+function toggleTaskStep(taskId, stepIdx, done) {
+  var tasks = getTasks();
+  var t = tasks.find(function(x) { return x.id === taskId; });
+  if (t && t.steps && t.steps[stepIdx] !== undefined) {
+    t.steps[stepIdx].done = done;
+    setTasks(tasks);
+  }
+}
+
+/* ── Wire Home Page ──────────────────────────────────────────── */
+function wireHomePage() {
+  // Chore template button
+  var tplBtn = document.getElementById('choreTemplateBtn');
+  if (tplBtn) tplBtn.addEventListener('click', openChoreTemplateModal);
+
+  // Chore template modal close
+  var closeBtn = document.getElementById('choreTemplateClose');
+  if (closeBtn) closeBtn.addEventListener('click', function() {
+    var modal = document.getElementById('choreTemplateModal');
+    if (modal) modal.classList.add('hidden');
+  });
+  var modal = document.getElementById('choreTemplateModal');
+  if (modal) modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.classList.add('hidden');
+  });
+}
+
+
 
 /* ----- Calendar Cross-Domain Summary ----- */
 let calSummaryDomainFilter = 'all';
