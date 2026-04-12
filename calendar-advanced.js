@@ -196,7 +196,7 @@
       if (status) { status.textContent = msg; status.style.display = 'block'; status.style.color = err ? '#e74c3c' : '#27ae60'; }
     }
     try {
-      var lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+      var lines = text.replace(/\r\n?/g,'\n').split('\n');
       /* Unfold continuation lines (RFC 5545) */
       var unfolded = [];
       lines.forEach(function(l){ if (l.match(/^[ \t]/) && unfolded.length) unfolded[unfolded.length-1] += l.slice(1); else unfolded.push(l); });

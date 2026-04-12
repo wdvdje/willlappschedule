@@ -2578,7 +2578,6 @@ function downloadJson(filename, data){
 
 /* ── Single-event ICS download (one tap → Apple Calendar on iOS) ── */
 function downloadSingleEventICS(ev) {
-  function p2(n){ return n < 10 ? '0' + n : '' + n; }
   function escICS(s){ return (s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
   function toICSDate(dateStr, timeStr){
     if (!dateStr) return '';
@@ -2589,7 +2588,7 @@ function downloadSingleEventICS(ev) {
   function datePlusOne(dateStr){
     var d = new Date(dateStr + 'T12:00:00');
     d.setDate(d.getDate() + 1);
-    return d.getFullYear() + p2(d.getMonth()+1) + p2(d.getDate());
+    return d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate());
   }
   var uid = 'ev-' + (ev.id||Date.now()) + '@timescape.app';
   var hasTime = !!ev.time;
@@ -7109,6 +7108,20 @@ function initCalendarAddItemPopup() {
   }
 }
 
+/* ----- Clipboard copy utility ----- */
+function copyToClipboard(text, btn, successLabel) {
+  successLabel = successLabel || '✅ Copied!';
+  var original = btn.textContent;
+  function onCopied() { btn.textContent = successLabel; setTimeout(function(){ btn.textContent = original; }, 2000); }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(onCopied).catch(function() {
+      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); onCopied();
+    });
+  } else {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); onCopied();
+  }
+}
+
 /* ----- Siri Shortcuts / iOS Deep Links (Settings page) ----- */
 function wireSiriShortcuts() {
   var container = document.getElementById('siriLinksList');
@@ -7139,10 +7152,7 @@ function wireSiriShortcuts() {
     copyBtn.className = 'small-btn';
     copyBtn.style.cssText = 'flex-shrink:0;font-size:0.75rem';
     copyBtn.textContent = '📋 Copy';
-    copyBtn.addEventListener('click', function() {
-      navigator.clipboard ? navigator.clipboard.writeText(url).then(function(){ copyBtn.textContent = '✅ Copied!'; setTimeout(function(){ copyBtn.textContent = '📋 Copy'; }, 2000); })
-                          : (function(){ var ta = document.createElement('textarea'); ta.value=url; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); copyBtn.textContent='✅ Copied!'; setTimeout(function(){ copyBtn.textContent='📋 Copy'; }, 2000); })();
-    });
+    copyBtn.addEventListener('click', function() { copyToClipboard(url, copyBtn); });
     row.appendChild(lbl); row.appendChild(urlSpan); row.appendChild(copyBtn);
     container.appendChild(row);
   });
@@ -7153,8 +7163,9 @@ function wireFirstRunOnboarding() {
   var STORAGE_KEY = 'ts_onboarding_done';
   if (localStorage.getItem(STORAGE_KEY)) return;
 
-  /* Show onboarding only when there's truly no data */
-  var hasData = getEvents().length > 0 || getTasks().length > 0 || Object.keys(getReminders()).length > 0;
+  /* Show onboarding only when there's truly no data — read storage once */
+  var events = getEvents(), tasks = getTasks(), reminders = getReminders();
+  var hasData = events.length > 0 || tasks.length > 0 || Object.keys(reminders).length > 0;
   if (hasData) { localStorage.setItem(STORAGE_KEY, '1'); return; }
 
   /* Build modal */

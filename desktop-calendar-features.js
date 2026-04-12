@@ -264,8 +264,7 @@
       'body.dark-mode .dcf-suggest-result { background:#1a3020;color:#8fcd8f;border-color:#27ae60; }',
       '.dcf-goto-row { display:flex;align-items:center;gap:6px; }',
       '.dcf-goto-input { width:140px !important;padding:5px 8px !important;border-radius:8px !important;font-size:0.82rem !important;margin:0 !important; }',
-      '.dcf-goto-btn { padding:5px 10px;border-radius:8px;background:#4a90e2;color:#fff;border:none;cursor:pointer;font-size:0.82rem; }',
-      '@media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:0.001ms !important;animation-iteration-count:1 !important;transition-duration:0.001ms !important; } .dcf-anim-fade { animation:none !important; } }'
+      '.dcf-goto-btn { padding:5px 10px;border-radius:8px;background:#4a90e2;color:#fff;border:none;cursor:pointer;font-size:0.82rem; }'
     ].join('\n');
     document.head.appendChild(style);
   })();
