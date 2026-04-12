@@ -1384,87 +1384,10 @@ function updateDayElapsedRing(){
   }
 }
 
-/* Weekly salary calculation based on jobs */
+/* Weekly salary display removed – earnings are shown in the Work page widget */
 function updateWeeklySalary(){
-  const el = document.getElementById('weeklySalaryDisplay');
-  if (!el) return;
-  try {
-    const todayStr = getTodayISO();
-    // Determine week range (Sunday–Saturday)
-    const todayDate = new Date(todayStr + 'T12:00:00');
-    const dow = todayDate.getDay();
-    const weekStartDate = new Date(todayDate);
-    weekStartDate.setDate(todayDate.getDate() - dow);
-    const weekEndDate = new Date(weekStartDate);
-    weekEndDate.setDate(weekStartDate.getDate() + 6);
-    const weekStartISO = weekStartDate.getFullYear()+'-'+pad2(weekStartDate.getMonth()+1)+'-'+pad2(weekStartDate.getDate());
-    const weekEndISO = weekEndDate.getFullYear()+'-'+pad2(weekEndDate.getMonth()+1)+'-'+pad2(weekEndDate.getDate());
-
-    const weekEvents = getExpandedEvents(weekStartISO, weekEndISO);
-    const jobs = getJobs();
-
-    // Build lookups by id and by name (for category:'job' events that only store jobName)
-    const jobById = {}, jobByName = {};
-    jobs.forEach(j => {
-      if (j.id != null) jobById[j.id] = j;
-      if (j.name) jobByName[j.name.toLowerCase()] = j;
-    });
-
-    let totalSalary = 0;
-    weekEvents.forEach(ev => {
-      // Mirror the filter from calcEarnings() in desktop.js:
-      // include category:'job' events and work-domain events linked to a bucket/job
-      const cat = (ev.category || 'event').toLowerCase();
-      const isJobCategory = (cat === 'job');
-      const isWorkWithBucket = ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
-      if (!isJobCategory && !isWorkWithBucket) return;
-
-      // Resolve the job using the same chain as calcEarnings():
-      //   jobId → bucketId → jobName → inline jobRate snapshot
-      let job = null;
-      const jid = ev.jobId || ev.eventJobId;
-      if (jid != null) {
-        const id = typeof jid === 'number' ? jid : parseInt(jid, 10);
-        job = jobById[id] || null;
-      }
-      if (!job && ev.bucketId != null) job = jobById[ev.bucketId] || null;
-      if (!job && ev.jobName) job = jobByName[(ev.jobName || '').toLowerCase()] || null;
-      if (!job && ev.jobRate) job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour' };
-      if (!job) return;
-
-      // If event has its own rate snapshot, use it; otherwise use job master rate
-      const rate = parseFloat(ev.jobRate || ev.eventJobRate || job.rate) || 0;
-      const unit = ev.jobUnit || ev.eventJobUnit || job.unit || 'hour';
-
-      if (unit === 'job' || unit === 'day') {
-        totalSalary += rate;
-      } else {
-        // hourly: only count when both start and end times are present
-        const startStr = ev.startTime || ev.time || '';
-        const endStr = ev.endTime || '';
-        if (startStr && endStr) {
-          const sp = startStr.match(/(\d{1,2}):(\d{2})/);
-          const ep = endStr.match(/(\d{1,2}):(\d{2})/);
-          if (sp && ep) {
-            let sm = parseInt(sp[1],10)*60+parseInt(sp[2],10);
-            let em = parseInt(ep[1],10)*60+parseInt(ep[2],10);
-            if (em <= sm) em += 1440; // handle overnight shifts
-            const hours = (em - sm) / 60;
-            totalSalary += rate * hours;
-          }
-        }
-      }
-    });
-
-    if (totalSalary > 0) {
-      el.innerHTML = '💰 Est. weekly salary: <strong>$' + totalSalary.toFixed(2) + '</strong> <span style="font-size:0.8rem;color:#4a90e2;margin-left:4px">View details ›</span>';
-      el.onclick = function(){ showView('work'); };
-      el.title = 'View detailed earnings on Work page';
-    } else {
-      el.innerHTML = '';
-      el.onclick = null;
-    }
-  } catch(e) { el.innerHTML = ''; console.warn('weeklySalary error', e); }
+  var el = document.getElementById('weeklySalaryDisplay');
+  if (el) { el.innerHTML = ''; el.onclick = null; }
 }
 
 /* ── Dashboard Weather Widget (Open-Meteo, no API key) ─────── */
