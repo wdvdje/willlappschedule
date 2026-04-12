@@ -6227,6 +6227,7 @@ function getPersonalSleep() {
     ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(function(day) {
       data.schedule[day] = { bedtime: defaultBed, wake: defaultWake };
     });
+    setPersonalSleep(data);
   }
   return data;
 }
@@ -6429,15 +6430,16 @@ function syncRoutineTimesFromSleep() {
 
   /* Calculate total duration of each routine period */
   var morningDur = 0, eveningDur = 0;
+  var DEFAULT_STEP_DURATION = 10; /* minutes per step when duration not specified */
   if (routines.phases && Array.isArray(routines.phases)) {
     routines.phases.forEach(function(phase) {
-      var dur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || 0); }, 0);
+      var dur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || DEFAULT_STEP_DURATION); }, 0);
       if (phase.id === 'morning') morningDur = dur;
       if (phase.id === 'evening') eveningDur = dur;
     });
   } else {
-    (routines.morning || []).forEach(function() { morningDur += 15; });
-    (routines.evening || []).forEach(function() { eveningDur += 15; });
+    (routines.morning || []).forEach(function() { morningDur += DEFAULT_STEP_DURATION; });
+    (routines.evening || []).forEach(function() { eveningDur += DEFAULT_STEP_DURATION; });
   }
 
   DAYS.forEach(function(day) {
@@ -7110,11 +7112,11 @@ function getPersonalBudget() { return safeParseStorage('personalBudget', { bills
 function setPersonalBudget(data) { localStorage.setItem('personalBudget', JSON.stringify(data)); }
 
 function calcBudgetJobIncome() {
-  /* Reuse jobs+events to compute monthly earnings estimate */
+  /* Calculate total job earnings from the last 30 days */
   var jobs = safeParseStorage('jobs', []);
   if (!jobs.length) return 0;
   var events = safeParseStorage('events', []);
-  /* Estimate monthly income: count job events in the last 30 days and project */
+  /* Count job events in the last 30 days */
   var now = new Date();
   var thirtyAgo = new Date(now);
   thirtyAgo.setDate(now.getDate() - 30);
