@@ -300,6 +300,7 @@
       try { applyLayerFilter(); } catch (_) {}
       try { applyWeatherBadges(); } catch (_) {}
       try { applySearchHighlight(); } catch (_) {}
+      try { refreshCharts(); } catch (_) {}
     };
     window.generateCalendar._dcfPatched = true;
   }
@@ -822,14 +823,14 @@
       var svgW = Math.max(300, daysInMonth * 14);
       var svgH = 70;
       var barW = Math.floor(svgW / daysInMonth) - 1;
+      var todayStr = todayISO();
       var bars = dayCounts.map(function (cnt, i) {
         var barH = Math.max(2, Math.floor((cnt / maxCount) * (svgH - 18)));
         var x = i * (barW + 1);
         var y = svgH - 12 - barH;
         var color = cnt === 0 ? '#ddd' : '#4a90e2';
-        var today = todayISO();
         var ymd2 = yr + '-' + p2(mo + 1) + '-' + p2(i + 1);
-        if (ymd2 === today) color = '#e74c3c';
+        if (ymd2 === todayStr) color = '#e74c3c';
         return '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + barH +
           '" fill="' + color + '" rx="2" title="' + (i + 1) + ': ' + cnt + ' items"><title>' + (i + 1) + ': ' + cnt + ' items</title></rect>';
       }).join('');
@@ -1835,7 +1836,7 @@
     wireViewButtons();
     injectLayerToggles();
     injectGotoDate();
-    injectActivityChartRow();
+    refreshCharts();
     injectStreakBadge();
     injectCommandPalette();
     injectSmartSchedule();
