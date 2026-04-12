@@ -2,7 +2,9 @@
   "name": "TimeScape Planner",
   "short_name": "TimeScape",
   "start_url": "index.html#calendar",
+  "id": "timescape-planner",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#f5f7fa",
   "theme_color": "#4a90e2",
   "icons": [
