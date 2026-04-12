@@ -4132,6 +4132,8 @@ function _isIOSPWA(){
   return isIOS && isStandalone;
 }
 
+var BRIEFING_CATCHUP_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+
 function _fireMorningBriefing(){
   try{
     var ts=new Date().toISOString().slice(0,10);
@@ -4159,7 +4161,7 @@ function scheduleMorningBriefing(){
   if(target<=now4){
     var diff = now4.getTime()-target.getTime();
     // Fire if within a 30-minute window and not already fired today
-    if(diff < 30*60*1000 && !localStorage.getItem(firedKey)){
+    if(diff < BRIEFING_CATCHUP_WINDOW_MS && !localStorage.getItem(firedKey)){
       localStorage.setItem(firedKey, '1');
       _fireMorningBriefing();
     }

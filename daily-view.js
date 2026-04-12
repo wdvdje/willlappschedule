@@ -10,12 +10,13 @@
 
   // Fallback colors (used only when domain colors from settings are unavailable)
   const FALLBACK_COLORS = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c' };
+  var DOMAIN_COLORS_STORAGE_KEY = 'domainColors';
 
   // Retrieve user-configured domain colors, falling back to defaults
   function getDomainColorsLocal() {
     if (typeof getDomainColors === 'function') return getDomainColors();
     try {
-      var stored = JSON.parse(localStorage.getItem('domainColors') || '{}');
+      var stored = JSON.parse(localStorage.getItem(DOMAIN_COLORS_STORAGE_KEY) || '{}');
       return Object.assign({}, FALLBACK_COLORS, stored);
     } catch (_) { return Object.assign({}, FALLBACK_COLORS); }
   }
@@ -25,6 +26,14 @@
     if (typeof getDomainOfItem === 'function') return getDomainOfItem(item);
     if (item && item.domain) return item.domain;
     return 'personal';
+  }
+
+  // Resolve a display color for an item: domain color > category color > fallback
+  function resolveItemColor(item, domainColors, cats) {
+    var domain = getDomainLocal(item);
+    if (domainColors[domain]) return domainColors[domain];
+    if (item.category && cats && cats[item.category] && cats[item.category].color) return cats[item.category].color;
+    return domainColors.personal || FALLBACK_COLORS.personal;
   }
   const HOUR_HEIGHT = 60; // px per hour slot
   const REMINDER_DEFAULT_DURATION = 15; // minutes
@@ -224,8 +233,6 @@
     tasks.forEach(function(t) {
       var sRaw = toMinutes(t.time, null);
       if (sRaw === null) return;
-      var domain = getDomainLocal(t);
-      var color = domainColors[domain] || ((t.category && cats[t.category] && cats[t.category].color) ? cats[t.category].color : domainColors.home);
       items.push({
         kind: 'task',
         title: t.title || 'Task',
@@ -233,7 +240,7 @@
         startMin: sRaw,
         endMin: sRaw + TASK_DEFAULT_DURATION,
         hasTimes: true,
-        color: color,
+        color: resolveItemColor(t, domainColors, cats),
         raw: t
       });
     });
