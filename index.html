@@ -690,6 +690,8 @@
     .dmeal-prep-item { display:flex; align-items:center; gap:6px; padding:3px 0; font-size:0.82rem; }
     .dmeal-prep-item input[type="checkbox"] { accent-color:#9b59b6; cursor:pointer; flex-shrink:0; }
     .dmeal-prep-count { font-size:0.7rem; color:#888; }
+    .dmeal-prep-grocery-btn { background:none; border:1px solid #4a90e2; color:#4a90e2; border-radius:6px; padding:1px 6px; font-size:0.7rem; cursor:pointer; white-space:nowrap; flex-shrink:0; transition:background 0.15s,color 0.15s; margin-left:auto; }
+    .dmeal-prep-grocery-btn:hover { background:#4a90e2; color:#fff; }
 
     /* Routine timeline */
     .droutine-phases { display:flex; gap:10px; overflow-x:auto; padding-bottom:4px; }
@@ -812,6 +814,8 @@
     body.dark-mode .dmeal-summary { background:#1e2d45; }
     body.dark-mode .dmeal-fav-item { background:#1e2d45; border-color:#2a2a4a; color:#ccc; }
     body.dark-mode .dmeal-prep-panel { background:#1e2d45; }
+    body.dark-mode .dmeal-prep-grocery-btn { border-color:#5a9ae2; color:#5a9ae2; }
+    body.dark-mode .dmeal-prep-grocery-btn:hover { background:#5a9ae2; color:#fff; }
     body.dark-mode .dmeal-edit-popover { background:#16213e; border-color:#4a90e2; color:#e0e0e0; }
     body.dark-mode .dmeal-edit-popover input { background:#1e2d45; border-color:#2a2a4a; color:#e0e0e0; }
     body.dark-mode .droutine-phase-header { background:#16213e; border-color:#2a2a4a; }
@@ -874,9 +878,10 @@
       .event-preview.task { --domain-color: #27ae60; --domain-bg: rgba(39,174,96,0.10); }
 
       /* ===== Personal Page: Desktop Multi-Column Grid Layout ===== */
-      #page-personal > h2 { max-width: 1400px; margin-left: auto; margin-right: auto; padding: 0 8px; }
+      #page-personal { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; }
+      #page-personal > h2 { max-width: none; margin-left: 0; margin-right: 0; padding: 0 8px; }
       #personalGrid {
-        max-width: 1400px !important;
+        max-width: none !important;
         padding: 0 8px !important;
         display: grid;
         grid-template-areas:
@@ -897,12 +902,12 @@
       #personalToolbar        { grid-area: toolbar; }
       #domain-buckets-personal { grid-area: buckets; }
     }
-    /* Super-wide screens: cap calendar width so it doesn't stretch edge-to-edge */
+    /* Super-wide screens: cap calendar and personal width so they don't stretch edge-to-edge */
     @media (min-width: 1800px) {
-      #page-calendar { max-width: calc(100vw - 280px); margin-left: auto; margin-right: auto; }
+      #page-calendar, #page-personal { max-width: calc(100vw - 280px); margin-left: auto; margin-right: auto; }
     }
     @media (min-width: 2400px) {
-      #page-calendar { max-width: calc(100vw - 400px); }
+      #page-calendar, #page-personal { max-width: calc(100vw - 400px); }
     }
   </style>
 </head>
