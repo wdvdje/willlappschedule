@@ -657,9 +657,126 @@ function generateCalendar(){
     });
 
     cell.addEventListener('click', ()=> showReminders(day));
+
+    /* Mobile long-press: show daily summary modal */
+    (function(dayNum, cellEl){
+      var _lpTimer = null;
+      var _lpFired = false;
+      cellEl.addEventListener('touchstart', function(e){
+        _lpFired = false;
+        _lpTimer = setTimeout(function(){
+          _lpFired = true;
+          if (window.innerWidth <= 900) showMobileDailySummary(selectedYear, selectedMonth, dayNum);
+        }, 500);
+      }, {passive: true});
+      cellEl.addEventListener('touchend', function(e){
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+        if (_lpFired) { e.preventDefault(); }
+      });
+      cellEl.addEventListener('touchmove', function(){
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+      }, {passive: true});
+      cellEl.addEventListener('touchcancel', function(){
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+      }, {passive: true});
+    })(day, cell);
+
     if (selectedDay === day) cell.classList.add('selected');
     calendarEl.appendChild(cell);
   }
+}
+
+/* ── Mobile daily summary modal (long-press) ── */
+function showMobileDailySummary(year, month, day){
+  var existing = document.getElementById('mobileDaySummaryModal');
+  if (existing) existing.remove();
+
+  var ymd = year + '-' + pad2(month + 1) + '-' + pad2(day);
+  var dateObj = new Date(year, month, day);
+  var dateTitle = dateObj.toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+  // Gather data
+  var events = getExpandedEvents(ymd, ymd);
+  var tasks = getTasks().filter(function(t){ return normalizeDate(t.date) === ymd; });
+  var reminders = getReminders();
+  var dayReminders = reminders[ymd] || [];
+  var mmdd = pad2(month + 1) + '-' + pad2(day);
+  var holiday = (typeof getHoliday === 'function') ? getHoliday(mmdd, year) : null;
+  var domainColors = getDomainColors();
+
+  // Build content
+  var html = '';
+
+  if (holiday) {
+    html += '<div class="mds-section mds-holiday"><span>' + (holiday.emoji || '🏳️') + ' ' + escapeHTML(holiday.name) + '</span></div>';
+  }
+
+  // Events
+  if (events.length) {
+    html += '<div class="mds-section"><div class="mds-section-title">📅 Events</div>';
+    events.forEach(function(ev){
+      var domain = (typeof getDomainOfItem === 'function') ? getDomainOfItem(ev) : 'personal';
+      var color = domainColors[domain] || '#9b59b6';
+      var time = ev.time ? ('<span class="mds-time">' + escapeHTML(ev.time) + (ev.endTime ? ' – ' + escapeHTML(ev.endTime) : '') + '</span>') : '';
+      html += '<div class="mds-item" style="border-left-color:' + color + '">' +
+        (ev.emoji ? '<span class="mds-emoji">' + ev.emoji + '</span>' : '') +
+        '<div class="mds-item-body">' +
+        '<span class="mds-item-title">' + escapeHTML(ev.title || 'Untitled') + '</span>' +
+        time +
+        '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  // Tasks
+  if (tasks.length) {
+    html += '<div class="mds-section"><div class="mds-section-title">✅ Tasks</div>';
+    tasks.forEach(function(t){
+      var done = t.done || t.completed;
+      html += '<div class="mds-item mds-task' + (done ? ' mds-done' : '') + '">' +
+        '<span class="mds-check">' + (done ? '☑' : '☐') + '</span>' +
+        '<span class="mds-item-title">' + escapeHTML(t.text || t.title || '') + '</span>' +
+        (t.time ? '<span class="mds-time">' + escapeHTML(t.time) + '</span>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Reminders
+  if (dayReminders.length) {
+    html += '<div class="mds-section"><div class="mds-section-title">🔔 Reminders</div>';
+    dayReminders.forEach(function(r){
+      var done = r.done;
+      html += '<div class="mds-item mds-reminder' + (done ? ' mds-done' : '') + '">' +
+        '<span class="mds-item-title">' + escapeHTML(r.text || r.title || '') + '</span>' +
+        (r.time ? '<span class="mds-time">' + escapeHTML(r.time) + '</span>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  if (!events.length && !tasks.length && !dayReminders.length && !holiday) {
+    html += '<div class="mds-empty">No events, tasks, or reminders for this day.</div>';
+  }
+
+  // Create modal
+  var overlay = document.createElement('div');
+  overlay.id = 'mobileDaySummaryModal';
+  overlay.className = 'mobile-day-summary-modal';
+  overlay.innerHTML =
+    '<div class="mds-card">' +
+      '<div class="mds-header">' +
+        '<span class="mds-title">' + escapeHTML(dateTitle) + '</span>' +
+        '<button class="mds-close" aria-label="Close">&times;</button>' +
+      '</div>' +
+      '<div class="mds-body">' + html + '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  // Close handlers
+  overlay.querySelector('.mds-close').addEventListener('click', function(){ overlay.remove(); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
 }
 
 /* show reminders + events for a selected day */
