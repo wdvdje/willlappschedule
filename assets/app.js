@@ -4863,8 +4863,8 @@ var CHORE_TPL_KEY = 'choreTemplatesCustom';
 
 function getChoreTemplates() {
   var stored = safeParseStorage(CHORE_TPL_KEY, null);
-  if (stored === null) return DEFAULT_CHORE_TEMPLATES.map(function(t, i) {
-    return { id: 'ctpl:' + i, emoji: t.emoji, name: t.name, repeat: t.repeat, energy: t.energy, defaultDate: t.defaultDate, defaultBucketId: undefined };
+  if (stored === null) return DEFAULT_CHORE_TEMPLATES.map(function(t) {
+    return { id: generateChoreTplId(), emoji: t.emoji, name: t.name, repeat: t.repeat, energy: t.energy, defaultDate: t.defaultDate, defaultBucketId: undefined };
   });
   return stored;
 }
@@ -5304,11 +5304,13 @@ function renderChoreTemplateModalContent() {
         });
 
         row.querySelector('.chore-tpl-save-btn').addEventListener('click', function() {
+          var editedName = (row.querySelector('.chore-tpl-name-input').value || '').trim();
+          if (!editedName) { row.querySelector('.chore-tpl-name-input').focus(); return; }
           var tpls = getChoreTemplates();
           var idx = tpls.findIndex(function(t) { return t.id === tpl.id; });
           if (idx === -1) { renderChoreTemplateModalContent(); return; }
           tpls[idx].emoji = (row.querySelector('.chore-tpl-emoji-input').value || '📋').trim();
-          tpls[idx].name = (row.querySelector('.chore-tpl-name-input').value || '').trim() || tpls[idx].name;
+          tpls[idx].name = editedName;
           tpls[idx].repeat = repSel.value;
           tpls[idx].energy = enSel.value;
           var bv = bkSel.value;
