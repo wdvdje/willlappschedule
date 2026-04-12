@@ -116,8 +116,6 @@
     function applyDarkMode(on) {
       document.body.classList.toggle('dark-mode', !!on);
       localStorage.setItem('darkMode', on ? '1' : '0');
-      var btn = document.getElementById('dcfDarkModeBtn');
-      if (btn) btn.textContent = on ? '☀️' : '🌙';
       var settingBtn = document.getElementById('dcfDarkModeSettingBtn');
       if (settingBtn) settingBtn.textContent = on ? '☀️ Disable Dark Mode' : '🌙 Enable Dark Mode';
     }
@@ -134,23 +132,8 @@
       if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) applyDarkMode(true);
     }
 
-    /* Inject header toggle button (moon icon, before settings gear) */
+    /* Dark mode toggle is available in Settings page only */
     document.addEventListener('DOMContentLoaded', function () {
-      var header = document.getElementById('appHeader');
-      if (header && !document.getElementById('dcfDarkModeBtn')) {
-        var btn = document.createElement('button');
-        btn.id = 'dcfDarkModeBtn';
-        btn.className = 'header-btn';
-        btn.title = 'Toggle dark mode';
-        btn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
-        btn.setAttribute('aria-label', 'Toggle dark mode');
-        btn.addEventListener('click', toggleDarkMode);
-        /* Insert between inbox and title */
-        var title = document.getElementById('appHeaderTitle');
-        if (title) header.insertBefore(btn, title);
-        else header.appendChild(btn);
-      }
-
       /* Inject settings page toggle */
       var settingsPage = document.getElementById('page-settings');
       if (settingsPage && !document.getElementById('dcfDarkModeSettingBtn')) {
