@@ -7205,8 +7205,8 @@ function initCalendarAddItemPopup() {
       /* Custom interval row (shown when repeat = custom) */
       html += '<div id="calAddCustomRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
         '<label style="font-size:0.82rem;font-weight:600;min-width:50px">Every</label>' +
-        '<input id="calAddRepeatInterval" type="number" min="1" max="30" value="1" style="width:70px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box" />' +
-        '<select id="calAddRepeatUnit" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box">' +
+        '<input id="calAddRepeatInterval" type="number" min="1" max="30" value="1" aria-label="Repeat interval number" style="width:70px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box" />' +
+        '<select id="calAddRepeatUnit" aria-label="Repeat interval unit" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box">' +
           '<option value="days">Days</option>' +
           '<option value="weeks">Weeks</option>' +
           '<option value="months">Months</option>' +
@@ -7216,7 +7216,7 @@ function initCalendarAddItemPopup() {
       /* A/B weekday pattern row (shown when repeat = weekday_ab) */
       html += '<div id="calAddAbRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
         '<label style="font-size:0.82rem;font-weight:600;min-width:100px">Start template</label>' +
-        '<select id="calAddAbWeek" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box">' +
+        '<select id="calAddAbWeek" aria-label="A/B week template" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box">' +
           '<option value="a">A week (Mon/Wed/Fri)</option>' +
           '<option value="b">B week (Tue/Thu)</option>' +
         '</select>' +
