@@ -810,8 +810,11 @@
       });
     });
 
-    /* Hide tooltip on scroll or any click outside */
-    document.addEventListener('scroll', hideTooltipImmediate, true);
+    /* Hide tooltip on scroll (register only once) */
+    if (!wireCalendarTooltips._scrollWired) {
+      wireCalendarTooltips._scrollWired = true;
+      document.addEventListener('scroll', hideTooltipImmediate, true);
+    }
   }
 
   // ---------------------------------------------------------------------------

@@ -261,6 +261,22 @@
       'body.dark-mode .dcf-split-kind-reminder { background:#3a2a10;color:#f0c060; }',
       '.dcf-split-time { font-size:0.72rem;color:#888;display:block; }',
       'body.dark-mode .dcf-split-time { color:#aaa; }',
+      '.dcf-day-timeline { position:relative;display:flex; }',
+      '.dcf-day-timeline-gutter { width:36px;flex-shrink:0;position:relative; }',
+      '.dcf-day-timeline-gutter-lbl { position:absolute;right:4px;font-size:0.62rem;color:#999;font-weight:600;line-height:1; }',
+      '.dcf-day-timeline-body { flex:1;position:relative;border-left:1px solid #e8e8e8; }',
+      'body.dark-mode .dcf-day-timeline-body { border-left-color:#2a2a4a; }',
+      '.dcf-day-timeline-slot { position:absolute;left:0;right:0;border-bottom:1px solid #f0f0f0;height:0; }',
+      'body.dark-mode .dcf-day-timeline-slot { border-color:#2a2a4a; }',
+      '.dcf-day-timeline-half { position:absolute;left:0;right:0;border-bottom:1px dashed #f5f5f5;height:0; }',
+      'body.dark-mode .dcf-day-timeline-half { border-color:#222; }',
+      '.dcf-day-timeline-block { position:absolute;border-radius:4px;padding:2px 4px;overflow:hidden;cursor:pointer;font-size:0.7rem;line-height:1.2;border-left:3px solid;z-index:5;box-sizing:border-box; }',
+      '.dcf-day-timeline-block:hover { filter:brightness(0.95); }',
+      '.dcf-day-timeline-now { position:absolute;left:0;right:0;height:2px;background:#e74c3c;z-index:10;pointer-events:none; }',
+      '.dcf-day-timeline-now-dot { position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#e74c3c; }',
+      '.dcf-day-untimed-section { margin-top:8px;border-top:1px solid #eee;padding-top:6px; }',
+      'body.dark-mode .dcf-day-untimed-section { border-color:#2a2a4a; }',
+      '.dcf-day-untimed-header { font-size:0.65rem;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:4px; }',
       '.dcf-cmd-overlay { position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10002;display:none;align-items:flex-start;justify-content:center;padding-top:80px; }',
       '.dcf-cmd-overlay.open { display:flex; }',
       '.dcf-cmd-panel { background:#fff;border-radius:14px;width:94%;max-width:580px;box-shadow:0 8px 40px rgba(0,0,0,0.22);overflow:hidden; }',
@@ -1704,14 +1720,14 @@
     content.innerHTML = '';
     var grid = document.createElement('div');
     grid.className = 'dcf-day-timeline';
-    grid.style.cssText = 'position:relative;display:flex;min-height:' + totalPx + 'px';
+    grid.style.minHeight = totalPx + 'px';
 
     /* Gutter (hour labels) */
     var gutter = document.createElement('div');
-    gutter.style.cssText = 'width:36px;flex-shrink:0;position:relative';
+    gutter.className = 'dcf-day-timeline-gutter';
     for (var h = rangeStart; h < rangeEnd; h++) {
       var lbl = document.createElement('div');
-      lbl.style.cssText = 'position:absolute;right:4px;font-size:0.62rem;color:#999;font-weight:600;line-height:1';
+      lbl.className = 'dcf-day-timeline-gutter-lbl';
       lbl.style.top = ((h - rangeStart) * HOUR_H) + 'px';
       lbl.textContent = p2(h) + ':00';
       gutter.appendChild(lbl);
@@ -1720,16 +1736,17 @@
 
     /* Body (slots + events) */
     var body = document.createElement('div');
-    body.style.cssText = 'flex:1;position:relative;border-left:1px solid #e8e8e8;min-height:' + totalPx + 'px';
+    body.className = 'dcf-day-timeline-body';
+    body.style.minHeight = totalPx + 'px';
     /* Hour slot lines */
     for (var h = rangeStart; h < rangeEnd; h++) {
       var slot = document.createElement('div');
-      slot.style.cssText = 'position:absolute;left:0;right:0;border-bottom:1px solid #f0f0f0;height:0';
+      slot.className = 'dcf-day-timeline-slot';
       slot.style.top = ((h - rangeStart) * HOUR_H) + 'px';
       body.appendChild(slot);
       /* Half-hour line */
       var half = document.createElement('div');
-      half.style.cssText = 'position:absolute;left:0;right:0;border-bottom:1px dashed #f5f5f5;height:0';
+      half.className = 'dcf-day-timeline-half';
       half.style.top = ((h - rangeStart) * HOUR_H + HOUR_H / 2) + 'px';
       body.appendChild(half);
     }
@@ -1744,7 +1761,7 @@
       var leftPct = (item._col || 0) * colWidth;
 
       var block = document.createElement('div');
-      block.style.cssText = 'position:absolute;border-radius:4px;padding:2px 4px;overflow:hidden;cursor:pointer;font-size:0.7rem;line-height:1.2;border-left:3px solid;z-index:5;box-sizing:border-box';
+      block.className = 'dcf-day-timeline-block';
       block.style.top = topPx + 'px';
       block.style.height = heightPx + 'px';
       block.style.left = leftPct + '%';
@@ -1763,7 +1780,7 @@
       if (item.repeat && item.repeat !== 'none') inner += ' 🔁';
       inner += '</span>';
       if (item.hasTimes) {
-        inner += '<span style="font-size:0.6rem;color:rgba(0,0,0,0.5);display:block">' + fmtTime(item.startMin) + ' – ' + fmtTime(item.endMin) + '</span>';
+        inner += '<span class="dcf-split-time" style="font-size:0.6rem">' + fmtTime(item.startMin) + ' – ' + fmtTime(item.endMin) + '</span>';
       }
       block.innerHTML = inner;
 
@@ -1787,10 +1804,10 @@
       if (nowMin >= rangeStartMin && nowMin < rangeEndMin) {
         var nowPx = ((nowMin - rangeStartMin) / (rangeEndMin - rangeStartMin)) * totalPx;
         var nowLine = document.createElement('div');
-        nowLine.style.cssText = 'position:absolute;left:0;right:0;height:2px;background:#e74c3c;z-index:10;pointer-events:none';
+        nowLine.className = 'dcf-day-timeline-now';
         nowLine.style.top = nowPx + 'px';
         var nowDot = document.createElement('div');
-        nowDot.style.cssText = 'position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#e74c3c';
+        nowDot.className = 'dcf-day-timeline-now-dot';
         nowLine.appendChild(nowDot);
         body.appendChild(nowLine);
       }
@@ -1821,8 +1838,8 @@
 
     if (untimedItems.length > 0) {
       var untimedDiv = document.createElement('div');
-      untimedDiv.style.cssText = 'margin-top:8px;border-top:1px solid #eee;padding-top:6px';
-      untimedDiv.innerHTML = '<div style="font-size:0.65rem;color:#999;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:4px">All Day / Untimed</div>';
+      untimedDiv.className = 'dcf-day-untimed-section';
+      untimedDiv.innerHTML = '<div class="dcf-day-untimed-header">All Day / Untimed</div>';
       untimedItems.forEach(function (item) {
         var doneStyle = item.done ? 'text-decoration:line-through;opacity:0.65;' : '';
         var dataAttrs = '';
