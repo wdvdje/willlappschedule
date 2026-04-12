@@ -408,16 +408,22 @@
       }
       if (!src) return;
       var meals = getMeals();
+      // Guard against prototype-polluting keys from drag data
+      var ALLOWED_MEAL_KEYS = ['breakfast', 'lunch', 'dinner', 'snacks'];
       if (src.isFav) {
         if (!meals[wd.iso]) meals[wd.iso] = {};
         meals[wd.iso][mt.key] = { name: src.mealData.name, calories: src.mealData.calories || 0 };
       } else {
-        if (src.date === wd.iso && src.mealKey === mt.key) return;
-        if (!meals[src.date]) meals[src.date] = {};
-        if (!meals[wd.iso])   meals[wd.iso]   = {};
+        var srcDate = String(src.date || ''), srcKey = String(src.mealKey || '');
+        // Only allow ISO date strings and known meal slot keys
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(srcDate)) return;
+        if (ALLOWED_MEAL_KEYS.indexOf(srcKey) < 0) return;
+        if (srcDate === wd.iso && srcKey === mt.key) return;
+        if (!meals[srcDate]) meals[srcDate] = {};
+        if (!meals[wd.iso])  meals[wd.iso]  = {};
         var tmp = meals[wd.iso][mt.key] || { name: '', calories: 0 };
-        meals[wd.iso][mt.key]         = meals[src.date][src.mealKey] || { name: '', calories: 0 };
-        meals[src.date][src.mealKey]  = tmp;
+        meals[wd.iso][mt.key] = meals[srcDate][srcKey] || { name: '', calories: 0 };
+        meals[srcDate][srcKey] = tmp;
       }
       setMeals(meals);
       renderDeskMeal();
@@ -864,6 +870,9 @@
       if (!src || (src.phaseIdx === pi && src.stepIdx === si)) return;
       var ps = getPhases();
       var srcStep = ps[src.phaseIdx].steps.splice(src.stepIdx, 1)[0];
+      // When moving within the same phase and the source came before the
+      // destination, splicing out the source shifts all later indices down
+      // by one — so we must decrement the destination index to compensate.
       var destIdx = (src.phaseIdx === pi && src.stepIdx < si) ? si - 1 : si;
       if (!ps[pi].steps) ps[pi].steps = [];
       ps[pi].steps.splice(destIdx, 0, srcStep);
@@ -1101,7 +1110,8 @@
       totalSets += sets;
       totalVol  += sets * reps * weight;
     });
-    var estMins = totalSets > 0 ? Math.round(totalSets * 1.5 + totalSets * _restDuration / 60) : 0;
+    var restContrib = _restDuration / 60;
+    var estMins = totalSets > 0 ? Math.round(totalSets * (1.5 + restContrib)) : 0;
 
     // Header
     var hdr = document.createElement('div');
@@ -1124,7 +1134,9 @@
         if (!ex.name) return;
         if (!g.exerciseHistory[ex.name]) g.exerciseHistory[ex.name] = [];
         g.exerciseHistory[ex.name].push({ date: t, weight: ex.weight || '', sets: ex.sets || '', reps: ex.reps || '' });
-        if (g.exerciseHistory[ex.name].length > 20) g.exerciseHistory[ex.name] = g.exerciseHistory[ex.name].slice(-20);
+        // Cap history at 20 entries — remove oldest without creating a new array
+        var hist = g.exerciseHistory[ex.name];
+        if (hist.length > 20) hist.splice(0, hist.length - 20);
       });
       setGym(g);
       renderDeskGym();
@@ -1486,26 +1498,33 @@
   }
 
   // Re-run init on personal page navigation (in case app.js loads after us)
-  window.addEventListener('view:show', function (e) {
-    if (!isDesktop()) return;
-    if (e.detail && e.detail.view === 'personal') {
-      initPersonalDesktop();
-      // If already patched the original will run both; if not patched yet we
-      // need to trigger our renders directly since renderPersonalWidgets was
-      // already called by app.js before we patched it.
-      if (!window._dpPatched) renderDesktopPersonalWidgets();
-    }
-  });
+  // Guard flags prevent duplicate listeners if the script ever executes twice.
+  if (!window._dpViewListener) {
+    window._dpViewListener = true;
+    window.addEventListener('view:show', function (e) {
+      if (!isDesktop()) return;
+      if (e.detail && e.detail.view === 'personal') {
+        initPersonalDesktop();
+        // If already patched the original will run both; if not patched yet we
+        // need to trigger our renders directly since renderPersonalWidgets was
+        // already called by app.js before we patched it.
+        if (!window._dpPatched) renderDesktopPersonalWidgets();
+      }
+    });
+  }
 
   // Handle resize into desktop breakpoint
-  window.matchMedia('(min-width: 901px)').addEventListener('change', function (mq) {
-    if (!mq.matches) return;
-    initPersonalDesktop();
-    var page = document.getElementById('page-personal');
-    if (page && !page.classList.contains('hidden')) {
-      if (typeof window.renderPersonalWidgets === 'function') window.renderPersonalWidgets();
-    }
-  });
+  if (!window._dpMediaListener) {
+    window._dpMediaListener = true;
+    window.matchMedia('(min-width: 901px)').addEventListener('change', function (mq) {
+      if (!mq.matches) return;
+      initPersonalDesktop();
+      var page = document.getElementById('page-personal');
+      if (page && !page.classList.contains('hidden')) {
+        if (typeof window.renderPersonalWidgets === 'function') window.renderPersonalWidgets();
+      }
+    });
+  }
 
   // Boot — delay slightly so app.js has time to define renderPersonalWidgets
   if (document.readyState === 'loading') {
