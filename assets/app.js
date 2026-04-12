@@ -3795,13 +3795,34 @@ function renderInbox(){
     const datePart=item.date?' <span style="color:#888;font-size:0.85rem">'+escapeHTML(item.date)+'</span>':'';
     const timePart=item.time?' <span style="color:#888;font-size:0.85rem">'+escapeHTML(item.time)+'</span>':'';
     const catPart=item.category?'<span style="background:'+(CAT_COLORS[item.category]||'#ccc')+';color:#fff;padding:1px 6px;border-radius:10px;font-size:0.75rem;margin-left:4px">'+escapeHTML(item.category)+'</span>':'';
+    var typeLabel = '';
+    if (item.type === 'event') typeLabel = '<span style="background:#4a90e2;color:#fff;padding:1px 6px;border-radius:10px;font-size:0.75rem;margin-left:4px">📅 Event</span>';
+    else if (item.type === 'task') typeLabel = '<span style="background:#27ae60;color:#fff;padding:1px 6px;border-radius:10px;font-size:0.75rem;margin-left:4px">✅ Task</span>';
+    else if (item.type === 'reminder') typeLabel = '<span style="background:#e67e22;color:#fff;padding:1px 6px;border-radius:10px;font-size:0.75rem;margin-left:4px">🔔 Reminder</span>';
+
+    var actionButtons = '';
+    if (item.type) {
+      /* Type is already known — show domain assignment buttons */
+      actionButtons =
+        '<button onclick="sortInboxItemToDomain('+i+',\'personal\')" style="border:1px solid #9b59b6;background:#f3e8fa;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">👤 Personal</button>'
+        +'<button onclick="sortInboxItemToDomain('+i+',\'home\')" style="border:1px solid #27ae60;background:#e8f8ef;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">🏡 Home</button>'
+        +'<button onclick="sortInboxItemToDomain('+i+',\'work\')" style="border:1px solid #4a90e2;background:#e8f2fe;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">💼 Work</button>';
+    } else {
+      /* Type is unknown — show type selection buttons */
+      actionButtons =
+        '<button onclick="sortInboxItem('+i+',\'event\')" style="border:1px solid #4a90e2;background:#e8f2fe;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\uD83D\uDCC5 Event</button>'
+        +'<button onclick="sortInboxItem('+i+',\'task\')" style="border:1px solid #27ae60;background:#e8f8ef;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\u2705 Task</button>'
+        +'<button onclick="sortInboxItem('+i+',\'reminder\')" style="border:1px solid #e67e22;background:#fef5e8;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\uD83D\uDD14 Reminder</button>';
+    }
+    actionButtons += '<button onclick="deleteInboxItem('+i+')" style="border:1px solid #e74c3c;background:#fde8e8;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\u274C Delete</button>';
+
+    var headerLabel = item.type ? ' <span style="font-size:0.82rem;color:#666">Choose domain:</span>' : '';
+
     return '<div style="background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">'
-      +'<div style="margin-bottom:6px"><b>'+escapeHTML(item.title)+'</b>'+datePart+timePart+catPart+'</div>'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
-      +'<button onclick="sortInboxItem('+i+',\'event\')" style="border:1px solid #4a90e2;background:#e8f2fe;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\uD83D\uDCC5 Event</button>'
-      +'<button onclick="sortInboxItem('+i+',\'task\')" style="border:1px solid #27ae60;background:#e8f8ef;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\u2705 Task</button>'
-      +'<button onclick="sortInboxItem('+i+',\'reminder\')" style="border:1px solid #e67e22;background:#fef5e8;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\uD83D\uDD14 Reminder</button>'
-      +'<button onclick="deleteInboxItem('+i+')" style="border:1px solid #e74c3c;background:#fde8e8;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\u274C Delete</button>'
+      +'<div style="margin-bottom:6px"><b>'+escapeHTML(item.title)+'</b>'+typeLabel+datePart+timePart+catPart+'</div>'
+      +headerLabel
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'
+      +actionButtons
       +'</div></div>';
   }).join('');
 }
@@ -3816,19 +3837,21 @@ function sortInboxItem(index,kind){
   if(kind==='event'){
     const evs=getEvents();
     const id=evs.length?Math.max.apply(null,evs.map(function(e){return e.id;}))+1:1;
-    evs.push({ id, title:item.title, date:item.date||new Date().toISOString().slice(0,10), time:item.time||'', endTime:'', location:'', emoji:'', category:item.category||'event', repeat:'none', repeatUntil:'', preBuffer:0, postBuffer:0 });
+    var ev={ id:id, title:item.title, date:item.date||new Date().toISOString().slice(0,10), time:item.time||'', endTime:item.endTime||'', location:item.location||'', emoji:item.emoji||'', category:item.category||'event', repeat:'none', repeatUntil:'', preBuffer:0, postBuffer:0 };
+    if (item.advancedSpecs && item.advancedSpecs.length) ev.advancedSpecs = item.advancedSpecs;
+    evs.push(ev);
     setEvents(evs);
     showUndoToast('\uD83D\uDCC5 Sorted as Event!');
   } else if(kind==='reminder'){
     const dateKey=item.date||new Date().toISOString().slice(0,10);
     const rems=getReminders();
     if(!rems[dateKey]) rems[dateKey]=[];
-    rems[dateKey].push({ text:item.title, time:item.time||'', notify:'none' });
+    rems[dateKey].push({ text:item.title, time:item.time||'', notify:'none', emoji:item.emoji||'' });
     setReminders(rems);
     showUndoToast('\uD83D\uDD14 Sorted as Reminder!');
   } else {
     const tasks=getTasks();
-    tasks.push({ title:item.title, category:item.category||'', done:false, date:item.date||'', time:item.time||'', priority:'2' });
+    tasks.push({ id:generateTaskId(), title:item.title, category:item.category||'', done:false, date:item.date||'', time:item.time||'', priority:item.priority||'2', emoji:item.emoji||'' });
     setTasks(tasks);
     showUndoToast('\u2705 Sorted as Task!');
   }
@@ -3841,6 +3864,46 @@ function sortInboxItem(index,kind){
   refreshVisibleDomainPages();
 }
 window.sortInboxItem=sortInboxItem;
+
+/* Sort an inbox item that already has a type into a specific domain */
+function sortInboxItemToDomain(index, domain) {
+  var inbox = getInbox();
+  if (index < 0 || index >= inbox.length) return;
+  var item = inbox[index];
+  var kind = item.type || 'event';
+  inbox.splice(index, 1);
+  setInbox(inbox);
+
+  if (kind === 'event') {
+    var evs = getEvents();
+    var id = evs.length ? Math.max.apply(null, evs.map(function(e) { return e.id; })) + 1 : 1;
+    var ev = { id: id, title: item.title, date: item.date || new Date().toISOString().slice(0, 10), time: item.time || '', startTime: item.time || '', endTime: item.endTime || '', location: item.location || '', emoji: item.emoji || '', category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
+    if (item.advancedSpecs && item.advancedSpecs.length) ev.advancedSpecs = item.advancedSpecs;
+    evs.push(ev);
+    setEvents(evs);
+    showUndoToast('\uD83D\uDCC5 Event added to ' + (DOMAIN_META[domain] ? DOMAIN_META[domain].label : domain) + '!');
+  } else if (kind === 'reminder') {
+    var dateKey = item.date || new Date().toISOString().slice(0, 10);
+    var rems = getReminders();
+    if (!rems[dateKey]) rems[dateKey] = [];
+    rems[dateKey].push({ text: item.title, time: item.time || '', notify: 'none', domain: domain, emoji: item.emoji || '' });
+    setReminders(rems);
+    showUndoToast('\uD83D\uDD14 Reminder added to ' + (DOMAIN_META[domain] ? DOMAIN_META[domain].label : domain) + '!');
+  } else {
+    var tasks = getTasks();
+    tasks.push({ id: generateTaskId(), title: item.title, category: domain, domain: domain, done: false, date: item.date || '', time: item.time || '', priority: item.priority || '2', emoji: item.emoji || '' });
+    setTasks(tasks);
+    showUndoToast('\u2705 Task added to ' + (DOMAIN_META[domain] ? DOMAIN_META[domain].label : domain) + '!');
+  }
+
+  updateInboxBadge(); renderInbox();
+  try { generateCalendar(); } catch(_) {}
+  try { if (selectedDay) showReminders(selectedDay); } catch(_) {}
+  try { renderEvents(); } catch(_) {}
+  try { loadTasks(); } catch(_) {}
+  refreshVisibleDomainPages();
+}
+window.sortInboxItemToDomain = sortInboxItemToDomain;
 
 function deleteInboxItem(index){
   const inbox=getInbox();
@@ -7085,6 +7148,13 @@ function initCalendarAddItemPopup() {
         '</div>';
       html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Location</label>' +
         '<input id="calAddLocation" type="text" placeholder="Location (optional)" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>';
+      /* Advanced Item Specifications */
+      html += '<details style="margin-top:4px;margin-bottom:8px">' +
+        '<summary style="cursor:pointer;font-weight:600;font-size:0.82rem">Advanced Item Specifications</summary>' +
+        '<p style="margin:4px 0;font-size:0.8em;color:#888">Add additional time &amp; repeat schedules for this event.</p>' +
+        '<div id="calAddAdvSpecList"></div>' +
+        '<button type="button" id="calAddAdvSpecBtn" class="small-btn" style="margin-top:4px;font-size:0.78rem">+ Add time / repeat schedule</button>' +
+        '</details>';
     } else if (type === 'task') {
       html += '<div style="display:flex;gap:6px;margin-bottom:8px">' +
         '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Date</label><input id="calAddDate" type="date" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
@@ -7115,6 +7185,15 @@ function initCalendarAddItemPopup() {
     var domSel = document.getElementById('calAddDomain');
     if (domSel) domSel.addEventListener('change', function() { updateBucketOptions(domSel.value); });
     updateBucketOptions(domSel ? domSel.value : 'inbox');
+
+    /* Wire advanced specs button (event only) */
+    var calAdvSpecBtn = document.getElementById('calAddAdvSpecBtn');
+    if (calAdvSpecBtn) {
+      calAdvSpecBtn.addEventListener('click', function() {
+        var list = document.getElementById('calAddAdvSpecList');
+        if (list) list.appendChild(buildAdvSpecRow());
+      });
+    }
 
     /* Wire Back */
     var backBtn = document.getElementById('calAddBack');
@@ -7190,6 +7269,8 @@ function initCalendarAddItemPopup() {
         var eli = document.getElementById('calAddLocation');
         if (eti && eti.value) inboxItem.endTime = eti.value;
         if (eli && eli.value.trim()) inboxItem.location = eli.value.trim();
+        var inboxAdvSpecs = readAdvancedSpecs('calAddAdvSpecList');
+        if (inboxAdvSpecs.length) inboxItem.advancedSpecs = inboxAdvSpecs;
       } else if (type === 'task') {
         var epi = document.getElementById('calAddPriority');
         if (epi) inboxItem.priority = epi.value;
@@ -7214,6 +7295,8 @@ function initCalendarAddItemPopup() {
       var id = evs.length ? Math.max.apply(null, evs.map(function(x) { return x.id; })) + 1 : 1;
       var ev = { id: id, title: title, date: evDate, time: time, startTime: time, endTime: endTime, location: location, emoji: emoji, category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
       if (bucketId !== undefined && !isNaN(bucketId)) ev.bucketId = bucketId;
+      var calAdvSpecs = readAdvancedSpecs('calAddAdvSpecList');
+      if (calAdvSpecs.length) ev.advancedSpecs = calAdvSpecs;
       evs.push(ev);
       setEvents(evs);
       showUndoToast('📅 Event added!');
@@ -7292,6 +7375,65 @@ function wireSiriShortcuts() {
     row.appendChild(lbl); row.appendChild(urlSpan); row.appendChild(copyBtn);
     container.appendChild(row);
   });
+
+  /* --- JSON Import via URL section --- */
+  var importSection = document.createElement('div');
+  importSection.style.cssText = 'margin-top:16px;padding:12px;background:#f0f4ff;border:1px solid #c4d4f0;border-radius:10px';
+  importSection.innerHTML =
+    '<h4 style="margin:0 0 6px;font-size:0.95rem">📲 Import JSON via iOS Shortcut</h4>' +
+    '<p style="margin:0 0 8px;font-size:0.85rem;color:#555;line-height:1.5">' +
+      'Create an iOS Shortcut that reads a JSON file and opens this URL to import data automatically:' +
+    '</p>' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+      '<code id="importShortcutUrl" style="flex:1;font-size:0.78rem;color:#333;background:#e8eaf0;padding:4px 8px;border-radius:4px;word-break:break-all">' + base + '?importData=BASE64_ENCODED_JSON</code>' +
+      '<button id="copyImportUrl" class="small-btn" style="flex-shrink:0;font-size:0.75rem">📋 Copy</button>' +
+    '</div>' +
+    '<details style="margin-top:6px">' +
+      '<summary style="cursor:pointer;font-size:0.85rem;font-weight:600;color:#4a90e2">📖 How to set up the iOS Shortcut</summary>' +
+      '<ol style="font-size:0.83rem;color:#444;line-height:1.8;padding-left:18px;margin:6px 0 0">' +
+        '<li>Open the <strong>Shortcuts</strong> app on your iPhone</li>' +
+        '<li>Create a new shortcut</li>' +
+        '<li>Add <strong>"Get File"</strong> action — set to pick a <code>.json</code> file</li>' +
+        '<li>Add <strong>"Base64 Encode"</strong> action on the file contents</li>' +
+        '<li>Add <strong>"Text"</strong> action with: <code>' + base + '?importData=</code> followed by the Base64 output</li>' +
+        '<li>Add <strong>"Open URLs"</strong> action with the Text as input</li>' +
+        '<li>Run the shortcut — your data will be imported automatically!</li>' +
+      '</ol>' +
+    '</details>';
+  container.appendChild(importSection);
+
+  var copyImportBtn = document.getElementById('copyImportUrl');
+  if (copyImportBtn) {
+    copyImportBtn.addEventListener('click', function() { copyToClipboard(base + '?importData=BASE64_ENCODED_JSON', copyImportBtn); });
+  }
+}
+
+/* ----- Handle URL-based JSON import (for iOS Shortcuts) ----- */
+function handleUrlImport() {
+  var params = new URLSearchParams(window.location.search);
+  var importB64 = params.get('importData');
+  if (!importB64) return;
+
+  try {
+    var jsonStr = atob(importB64);
+    var parsed = JSON.parse(jsonStr);
+    var importData = parseImportPayload(parsed);
+    var stats = applyImportData(importData, 'merge');
+    if (stats) {
+      var summary = summarizeImportResult(stats);
+      console.info('URL import summary:', summary);
+      showUndoToast('📲 Data imported successfully!');
+    }
+  } catch (err) {
+    console.warn('URL import failed', err);
+    alert('Import failed: ' + (err && err.message ? err.message : err));
+  }
+
+  /* Clean up the URL to remove the import parameter */
+  if (window.history && window.history.replaceState) {
+    var cleanUrl = window.location.origin + window.location.pathname + (window.location.hash || '#today');
+    window.history.replaceState({}, '', cleanUrl);
+  }
 }
 
 /* ----- First-run onboarding / Empty states ----- */
@@ -7353,6 +7495,7 @@ document.addEventListener('DOMContentLoaded',function(){
   } catch(e) { console.warn('Feature wiring error', e); }
   try { initCalendarAddItemPopup(); } catch(e) { console.warn('Add-item popup init error', e); }
   try { wireSiriShortcuts(); } catch(e) { console.warn('Siri shortcuts init error', e); }
+  try { handleUrlImport(); } catch(e) { console.warn('URL import error', e); }
   try { wireFirstRunOnboarding(); } catch(e) { console.warn('Onboarding init error', e); }
   /* Refresh rings immediately and every 60s */
   updateDayElapsedRing();
