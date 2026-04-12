@@ -7186,6 +7186,42 @@ function initCalendarAddItemPopup() {
         '</div>';
       html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Location</label>' +
         '<input id="calAddLocation" type="text" placeholder="Location (optional)" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>';
+      /* Repeat controls for the principal event */
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">' +
+        '<div style="flex:1;min-width:130px"><label style="font-size:0.82rem;font-weight:600">Repeat</label>' +
+        '<select id="calAddRepeat" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px">' +
+          '<option value="none">None</option>' +
+          '<option value="daily">Every day</option>' +
+          '<option value="2day">Every 2 days</option>' +
+          '<option value="weekday">Every weekday (Mon-Fri)</option>' +
+          '<option value="weekly">Every week</option>' +
+          '<option value="monthly">Every month</option>' +
+          '<option value="custom">Custom interval</option>' +
+          '<option value="weekday_ab">A/B weekday pattern</option>' +
+        '</select></div>' +
+        '<div style="flex:1;min-width:130px"><label style="font-size:0.82rem;font-weight:600">Until</label>' +
+        '<input id="calAddRepeatUntil" type="date" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+      '</div>';
+      /* Custom interval row (shown when repeat = custom) */
+      html += '<div id="calAddCustomRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
+        '<label style="font-size:0.82rem;font-weight:600;min-width:50px">Every</label>' +
+        '<input id="calAddRepeatInterval" type="number" min="1" max="30" value="1" aria-label="Repeat interval number" style="width:70px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box" />' +
+        '<select id="calAddRepeatUnit" aria-label="Repeat interval unit" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box">' +
+          '<option value="days">Days</option>' +
+          '<option value="weeks">Weeks</option>' +
+          '<option value="months">Months</option>' +
+          '<option value="years">Years</option>' +
+        '</select>' +
+      '</div>';
+      /* A/B weekday pattern row (shown when repeat = weekday_ab) */
+      html += '<div id="calAddAbRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
+        '<label style="font-size:0.82rem;font-weight:600;min-width:100px">Start template</label>' +
+        '<select id="calAddAbWeek" aria-label="A/B week template" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box">' +
+          '<option value="a">A week (Mon/Wed/Fri)</option>' +
+          '<option value="b">B week (Tue/Thu)</option>' +
+        '</select>' +
+        '<label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer;font-size:0.82rem"><input type="checkbox" id="calAddAbSkipHolidays"> Skip holidays</label>' +
+      '</div>';
       /* Advanced Item Specifications */
       html += '<details style="margin-top:4px;margin-bottom:8px">' +
         '<summary style="cursor:pointer;font-weight:600;font-size:0.82rem">Advanced Item Specifications</summary>' +
@@ -7223,6 +7259,18 @@ function initCalendarAddItemPopup() {
     var domSel = document.getElementById('calAddDomain');
     if (domSel) domSel.addEventListener('change', function() { updateBucketOptions(domSel.value); });
     updateBucketOptions(domSel ? domSel.value : 'inbox');
+
+    /* Wire principal repeat dropdown (event only) */
+    var calRepeatSel = document.getElementById('calAddRepeat');
+    if (calRepeatSel) {
+      calRepeatSel.addEventListener('change', function() {
+        var mode = calRepeatSel.value;
+        var cr = document.getElementById('calAddCustomRow');
+        var ar = document.getElementById('calAddAbRow');
+        if (cr) cr.style.display = mode === 'custom' ? 'flex' : 'none';
+        if (ar) ar.style.display = mode === 'weekday_ab' ? 'flex' : 'none';
+      });
+    }
 
     /* Wire advanced specs button (event only) */
     var calAdvSpecBtn = document.getElementById('calAddAdvSpecBtn');
@@ -7307,6 +7355,26 @@ function initCalendarAddItemPopup() {
         var eli = document.getElementById('calAddLocation');
         if (eti && eti.value) inboxItem.endTime = eti.value;
         if (eli && eli.value.trim()) inboxItem.location = eli.value.trim();
+        /* Principal repeat */
+        var inboxRepSel = document.getElementById('calAddRepeat');
+        var inboxRepVal = inboxRepSel ? inboxRepSel.value : 'none';
+        if (inboxRepVal && inboxRepVal !== 'none') {
+          inboxItem.repeat = inboxRepVal;
+          var inboxRU = document.getElementById('calAddRepeatUntil');
+          if (inboxRU && inboxRU.value) inboxItem.repeatUntil = inboxRU.value;
+          if (inboxRepVal === 'custom') {
+            var inboxRI = document.getElementById('calAddRepeatInterval');
+            var inboxRUnit = document.getElementById('calAddRepeatUnit');
+            inboxItem.repeatInterval = inboxRI ? Math.max(1, Math.min(30, parseInt(inboxRI.value, 10) || 1)) : 1;
+            inboxItem.repeatUnit = inboxRUnit ? inboxRUnit.value : 'days';
+          }
+          if (inboxRepVal === 'weekday_ab') {
+            var inboxAbW = document.getElementById('calAddAbWeek');
+            var inboxAbH = document.getElementById('calAddAbSkipHolidays');
+            inboxItem.abWeek = inboxAbW ? inboxAbW.value : 'a';
+            inboxItem.abSkipHolidays = inboxAbH ? inboxAbH.checked : false;
+          }
+        }
         var inboxAdvSpecs = readAdvancedSpecs('calAddAdvSpecList');
         if (inboxAdvSpecs.length) inboxItem.advancedSpecs = inboxAdvSpecs;
       } else if (type === 'task') {
@@ -7331,7 +7399,24 @@ function initCalendarAddItemPopup() {
       var evDate = date || new Date().toISOString().slice(0, 10);
       var evs = getEvents();
       var id = evs.length ? Math.max.apply(null, evs.map(function(x) { return x.id; })) + 1 : 1;
-      var ev = { id: id, title: title, date: evDate, time: time, startTime: time, endTime: endTime, location: location, emoji: emoji, category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
+      /* Read principal repeat values */
+      var repSel = document.getElementById('calAddRepeat');
+      var repVal = repSel ? repSel.value : 'none';
+      var repUntilInp = document.getElementById('calAddRepeatUntil');
+      var repUntil = repUntilInp ? repUntilInp.value : '';
+      var ev = { id: id, title: title, date: evDate, time: time, startTime: time, endTime: endTime, location: location, emoji: emoji, category: domain, domain: domain, repeat: repVal || 'none', repeatUntil: repUntil, preBuffer: 0, postBuffer: 0 };
+      if (repVal === 'custom') {
+        var riInp = document.getElementById('calAddRepeatInterval');
+        var ruInp = document.getElementById('calAddRepeatUnit');
+        ev.repeatInterval = riInp ? Math.max(1, Math.min(30, parseInt(riInp.value, 10) || 1)) : 1;
+        ev.repeatUnit = ruInp ? ruInp.value : 'days';
+      }
+      if (repVal === 'weekday_ab') {
+        var abWInp = document.getElementById('calAddAbWeek');
+        var abHInp = document.getElementById('calAddAbSkipHolidays');
+        ev.abWeek = abWInp ? abWInp.value : 'a';
+        ev.abSkipHolidays = abHInp ? abHInp.checked : false;
+      }
       if (bucketId !== undefined && !isNaN(bucketId)) ev.bucketId = bucketId;
       var calAdvSpecs = readAdvancedSpecs('calAddAdvSpecList');
       if (calAdvSpecs.length) ev.advancedSpecs = calAdvSpecs;
