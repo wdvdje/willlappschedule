@@ -110,25 +110,48 @@
   }
 
   // ── Routine phases loader (compatible with old & new format) ──
-  function loadRoutinePhases() {
+  // When dateStr is provided, adjusts morning/evening start times based on bedtime manager schedule.
+  function loadRoutinePhases(dateStr) {
     try {
       var r = JSON.parse(localStorage.getItem('personalRoutines') || '{}') || {};
+      var phases;
       // New format: { phases: [...] }
-      if (r.phases && Array.isArray(r.phases) && r.phases.length > 0) return r.phases;
-      // Old format: { morning: [...], evening: [...] } – convert to phases
-      var phases = [];
-      ['morning', 'evening'].forEach(function (period) {
-        var steps = r[period] || [];
-        if (steps.length > 0) {
-          phases.push({
-            id: period,
-            name: period === 'morning' ? 'Morning' : 'Evening',
-            emoji: period === 'morning' ? '🌅' : '🌙',
-            startTime: period === 'morning' ? '06:30' : '21:00',
-            steps: steps
+      if (r.phases && Array.isArray(r.phases) && r.phases.length > 0) {
+        phases = r.phases.map(function(p) { return JSON.parse(JSON.stringify(p)); }); // deep copy
+      } else {
+        // Old format: { morning: [...], evening: [...] } – convert to phases
+        phases = [];
+        ['morning', 'evening'].forEach(function (period) {
+          var steps = r[period] || [];
+          if (steps.length > 0) {
+            phases.push({
+              id: period,
+              name: period === 'morning' ? 'Morning' : 'Evening',
+              emoji: period === 'morning' ? '🌅' : '🌙',
+              startTime: period === 'morning' ? '06:30' : '21:00',
+              steps: steps
+            });
+          }
+        });
+      }
+
+      /* Apply per-day overrides from bedtime manager if available */
+      if (dateStr && r.sleepScheduleTimes) {
+        var d = new Date(dateStr + 'T12:00:00');
+        var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+        var dayTimes = r.sleepScheduleTimes[dayName];
+        if (dayTimes) {
+          phases.forEach(function(phase) {
+            if (phase.id === 'morning' && dayTimes.morningStart) {
+              phase.startTime = dayTimes.morningStart;
+            }
+            if (phase.id === 'evening' && dayTimes.eveningStart) {
+              phase.startTime = dayTimes.eveningStart;
+            }
           });
         }
-      });
+      }
+
       return phases;
     } catch (_) { return []; }
   }
@@ -246,7 +269,7 @@
     });
 
     // daily routine phases (shown every day) – use personal domain color
-    var phases = loadRoutinePhases();
+    var phases = loadRoutinePhases(dateStr);
     phases.forEach(function(phase) {
       var s = toMinutes(phase.startTime, null);
       if (s === null) return;
@@ -261,6 +284,32 @@
         raw: phase
       });
     });
+
+    // meals with scheduled times – show as reminders on the daily view
+    var MEAL_LABELS = { breakfast: 'Eat Breakfast', lunch: 'Eat Lunch', dinner: 'Eat Dinner', snacks: 'Eat Snack' };
+    var MEAL_EMOJIS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snacks: '🍎' };
+    try {
+      var allMeals = JSON.parse(localStorage.getItem('personalMeals') || '{}') || {};
+      var dayMeals = allMeals[dateStr];
+      if (dayMeals) {
+        ['breakfast', 'lunch', 'dinner', 'snacks'].forEach(function(mk) {
+          var meal = dayMeals[mk];
+          if (!meal || !meal.name || !meal.time) return;
+          var s = toMinutes(meal.time, null);
+          if (s === null) return;
+          items.push({
+            kind: 'meal',
+            title: (MEAL_LABELS[mk] || 'Eat') + ': ' + meal.name,
+            emoji: MEAL_EMOJIS[mk] || '🍽️',
+            startMin: s,
+            endMin: s + REMINDER_DEFAULT_DURATION,
+            hasTimes: true,
+            color: domainColors.personal,
+            raw: { mealKey: mk, meal: meal }
+          });
+        });
+      }
+    } catch (_) {}
 
     return items;
   }

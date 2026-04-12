@@ -5438,6 +5438,7 @@ function renderGroceryList() {
   var list = getGroceryList();
   var inCartCount = list.filter(function(i) { return i.inCart; }).length;
   var pendingCount = list.length - inCartCount;
+  var totalCost = list.reduce(function(sum, i) { return sum + (parseFloat(i.price) || 0); }, 0);
 
   var el = document.createElement('div');
   el.className = 'grocery-section';
@@ -5447,7 +5448,7 @@ function renderGroceryList() {
   header.className = 'grocery-header';
   var headerTitle = document.createElement('div');
   headerTitle.className = 'grocery-header-title';
-  headerTitle.innerHTML = '🛒 Grocery List <span style="font-size:0.75rem;color:#888;font-weight:400;margin-left:4px">(' + pendingCount + ' pending' + (inCartCount ? ', ' + inCartCount + ' in cart' : '') + ')</span>';
+  headerTitle.innerHTML = '🛒 Grocery List <span style="font-size:0.75rem;color:#888;font-weight:400;margin-left:4px">(' + pendingCount + ' pending' + (inCartCount ? ', ' + inCartCount + ' in cart' : '') + (totalCost > 0 ? ' · $' + totalCost.toFixed(2) : '') + ')</span>';
   var chevron = document.createElement('span');
   chevron.className = 'bucket-chevron';
   var isCollapsed = safeParseStorage('groceryCollapsed', false);
@@ -5466,6 +5467,7 @@ function renderGroceryList() {
   addRow.innerHTML = [
     '<input type="text" id="groceryItemInput" class="grocery-add-input" placeholder="Item name…" autocomplete="off" />',
     '<input type="text" id="groceryQtyInput" class="grocery-qty-input" placeholder="Qty" />',
+    '<input type="number" id="groceryPriceInput" class="grocery-price-input" placeholder="Price" min="0" step="0.01" style="width:60px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />',
     '<select id="grocerySectionSel" class="grocery-section-sel">',
     '<option value="">Section…</option>',
     '<option value="Produce">🥦 Produce</option>',
@@ -5511,6 +5513,10 @@ function renderGroceryList() {
       var qtySpan = document.createElement('span');
       qtySpan.className = 'grocery-item-qty';
       qtySpan.textContent = item.qty || '';
+      var priceSpan = document.createElement('span');
+      priceSpan.className = 'grocery-item-price';
+      priceSpan.style.cssText = 'font-size:0.78rem;color:#27ae60;font-weight:600;margin-left:4px;white-space:nowrap';
+      priceSpan.textContent = item.price ? '$' + parseFloat(item.price).toFixed(2) : '';
       var secSpan = document.createElement('span');
       secSpan.className = 'grocery-item-section';
       secSpan.style.display = item.section ? '' : 'none';
@@ -5527,6 +5533,7 @@ function renderGroceryList() {
       li.appendChild(cb);
       li.appendChild(textSpan);
       if (item.qty) li.appendChild(qtySpan);
+      if (item.price) li.appendChild(priceSpan);
       if (item.section) li.appendChild(secSpan);
       li.appendChild(delBtn);
       ul.appendChild(li);
@@ -5570,15 +5577,17 @@ function wireGroceryList() {
   var addBtn = document.getElementById('groceryAddBtn');
   var inp = document.getElementById('groceryItemInput');
   var qtyInp = document.getElementById('groceryQtyInput');
+  var priceInp = document.getElementById('groceryPriceInput');
   var secSel = document.getElementById('grocerySectionSel');
 
   function doAdd() {
     var text = inp ? inp.value.trim() : '';
     if (!text) { if (inp) { inp.focus(); inp.style.outline = '2px solid #e74c3c'; setTimeout(function(){ inp.style.outline=''; }, 1200); } return; }
     var qty = qtyInp ? qtyInp.value.trim() : '';
+    var price = priceInp ? parseFloat(priceInp.value) || 0 : 0;
     var section = secSel ? secSel.value : '';
     var list = getGroceryList();
-    list.push({ id: nextGroceryId(), text: text, qty: qty, section: section, inCart: false, added: getTodayISO() });
+    list.push({ id: nextGroceryId(), text: text, qty: qty, price: price, section: section, inCart: false, added: getTodayISO() });
     setGroceryList(list);
     renderGroceryList();
   }
@@ -5926,7 +5935,7 @@ function buildPWCard(id, emoji, title, renderBody, storageKey) {
 function getPersonalMeals() {
   var data = safeParseStorage('personalMeals', {});
   var today = getTodayISO();
-  if (!data[today]) data[today] = { breakfast: { name: '', calories: 0 }, lunch: { name: '', calories: 0 }, dinner: { name: '', calories: 0 }, snacks: { name: '', calories: 0 } };
+  if (!data[today]) data[today] = { breakfast: { name: '', calories: 0, time: '' }, lunch: { name: '', calories: 0, time: '' }, dinner: { name: '', calories: 0, time: '' }, snacks: { name: '', calories: 0, time: '' } };
   return data;
 }
 function setPersonalMeals(data) { localStorage.setItem('personalMeals', JSON.stringify(data)); }
@@ -6065,7 +6074,7 @@ function renderMealTracker() {
 
   /* Use in-memory defaults for selected date if no meals saved yet (lazy — only persists on save) */
   if (!allMeals[selectedDate]) {
-    allMeals[selectedDate] = { breakfast: { name: '', calories: 0 }, lunch: { name: '', calories: 0 }, dinner: { name: '', calories: 0 }, snacks: { name: '', calories: 0 } };
+    allMeals[selectedDate] = { breakfast: { name: '', calories: 0, time: '' }, lunch: { name: '', calories: 0, time: '' }, dinner: { name: '', calories: 0, time: '' }, snacks: { name: '', calories: 0, time: '' } };
   }
 
   var meals = allMeals[selectedDate];
@@ -6106,7 +6115,7 @@ function renderMealTracker() {
       row.innerHTML =
         '<div class="meal-icon">' + mt.icon + '</div>' +
         '<div class="meal-info">' +
-          '<div class="meal-label">' + mt.label + '</div>' +
+          '<div class="meal-label">' + mt.label + (m.time ? ' <span style="font-size:0.78rem;color:#888">@ ' + escapeHTML(m.time) + '</span>' : '') + '</div>' +
           '<div class="meal-name">' + escapeHTML(m.name || 'Not planned') + '</div>' +
         '</div>' +
         '<div class="meal-cal">' + (m.calories ? m.calories + ' cal' : '—') + '</div>' +
@@ -6122,6 +6131,7 @@ function renderMealTracker() {
         '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
           '<input type="text" class="meal-name-input" placeholder="What are you eating?" value="' + escapeHTML(m.name || '') + '" />' +
           '<input type="number" class="meal-cal-input" placeholder="Cal" min="0" value="' + (m.calories || '') + '" />' +
+          '<input type="time" class="meal-time-input" placeholder="Time" value="' + escapeHTML(m.time || '') + '" title="When will you eat?" />' +
           '<button class="meal-save-btn" data-meal="' + mt.key + '">Save</button>' +
           '<button class="meal-cancel-btn" data-meal="' + mt.key + '">Cancel</button>' +
         '</div>';
@@ -6180,9 +6190,10 @@ function renderMealTracker() {
         if (!panel) return;
         var nameInput = panel.querySelector('.meal-name-input');
         var calInput = panel.querySelector('.meal-cal-input');
+        var timeInput = panel.querySelector('.meal-time-input');
         var data = getPersonalMeals();
         if (!data[selectedDate]) data[selectedDate] = {};
-        data[selectedDate][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0 };
+        data[selectedDate][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0, time: timeInput ? timeInput.value : '' };
         setPersonalMeals(data);
         syncMealWeekTasks();
         renderMealTracker();
@@ -6212,8 +6223,41 @@ function renderMealTracker() {
    2. SLEEP / BEDTIME MANAGER
    ══════════════════════════════════════════════════════════════ */
 
-function getPersonalSleep() { return safeParseStorage('personalSleep', { targetBedtime: '22:30', targetWake: '07:00', log: {} }); }
+function getPersonalSleep() {
+  var data = safeParseStorage('personalSleep', { targetBedtime: '22:30', targetWake: '07:00', log: {} });
+  /* Migrate: ensure per-day schedule exists */
+  if (!data.schedule) {
+    var defaultBed = data.targetBedtime || '22:30';
+    var defaultWake = data.targetWake || '07:00';
+    data.schedule = {};
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(function(day) {
+      data.schedule[day] = { bedtime: defaultBed, wake: defaultWake };
+    });
+    setPersonalSleep(data);
+  }
+  return data;
+}
 function setPersonalSleep(data) { localStorage.setItem('personalSleep', JSON.stringify(data)); }
+
+/* Get the planned wake time for a given date ISO string */
+function getSleepWakeForDate(dateISO) {
+  var sleep = getPersonalSleep();
+  if (!sleep.schedule) return sleep.targetWake || '07:00';
+  var d = new Date(dateISO + 'T12:00:00');
+  var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  var daySchedule = sleep.schedule[dayName];
+  return daySchedule ? daySchedule.wake : (sleep.targetWake || '07:00');
+}
+
+/* Get the planned bedtime for a given date ISO string */
+function getSleepBedtimeForDate(dateISO) {
+  var sleep = getPersonalSleep();
+  if (!sleep.schedule) return sleep.targetBedtime || '22:30';
+  var d = new Date(dateISO + 'T12:00:00');
+  var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  var daySchedule = sleep.schedule[dayName];
+  return daySchedule ? daySchedule.bedtime : (sleep.targetBedtime || '22:30');
+}
 
 function renderSleepTracker() {
   var section = document.getElementById('personalSleepSection');
@@ -6223,22 +6267,72 @@ function renderSleepTracker() {
   var sleep = getPersonalSleep();
   var today = getTodayISO();
   var todayLog = sleep.log[today];
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
   var card = buildPWCard('sleepCard', '😴', 'Bedtime Manager', function(body) {
-    // Target times
-    var targetRow = document.createElement('div');
-    targetRow.innerHTML =
-      '<div class="sleep-row">' +
-        '<label>🌙 Bedtime:</label>' +
-        '<input type="time" id="sleepTargetBed" value="' + (sleep.targetBedtime || '22:30') + '" />' +
-      '</div>' +
-      '<div class="sleep-row">' +
-        '<label>☀️ Wake up:</label>' +
-        '<input type="time" id="sleepTargetWake" value="' + (sleep.targetWake || '07:00') + '" />' +
-      '</div>';
-    body.appendChild(targetRow);
+    /* ── Per-day schedule grid ── */
+    var info = document.createElement('div');
+    info.style.cssText = 'font-size:0.82rem;color:#888;margin-bottom:8px';
+    info.textContent = 'Plan when you sleep and wake up each day of the week.';
+    body.appendChild(info);
 
-    // Status
+    var scheduleGrid = document.createElement('div');
+    scheduleGrid.style.cssText = 'display:grid;grid-template-columns:auto 1fr 1fr;gap:4px 8px;align-items:center;margin-bottom:12px';
+
+    /* Header row */
+    var hDay = document.createElement('div');
+    hDay.style.cssText = 'font-weight:600;font-size:0.8rem;color:#888';
+    hDay.textContent = 'Day';
+    var hBed = document.createElement('div');
+    hBed.style.cssText = 'font-weight:600;font-size:0.8rem;color:#888;text-align:center';
+    hBed.textContent = '🌙 Bedtime';
+    var hWake = document.createElement('div');
+    hWake.style.cssText = 'font-weight:600;font-size:0.8rem;color:#888;text-align:center';
+    hWake.textContent = '☀️ Wake';
+    scheduleGrid.appendChild(hDay);
+    scheduleGrid.appendChild(hBed);
+    scheduleGrid.appendChild(hWake);
+
+    DAYS.forEach(function(day) {
+      var ds = sleep.schedule[day] || { bedtime: '22:30', wake: '07:00' };
+      var dayLabel = document.createElement('div');
+      dayLabel.style.cssText = 'font-size:0.85rem;font-weight:600';
+      dayLabel.textContent = day;
+
+      var bedInput = document.createElement('input');
+      bedInput.type = 'time';
+      bedInput.value = ds.bedtime || '22:30';
+      bedInput.style.cssText = 'font-size:0.8rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;width:100%';
+      bedInput.dataset.day = day;
+      bedInput.dataset.field = 'bedtime';
+
+      var wakeInput = document.createElement('input');
+      wakeInput.type = 'time';
+      wakeInput.value = ds.wake || '07:00';
+      wakeInput.style.cssText = 'font-size:0.8rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;width:100%';
+      wakeInput.dataset.day = day;
+      wakeInput.dataset.field = 'wake';
+
+      scheduleGrid.appendChild(dayLabel);
+      scheduleGrid.appendChild(bedInput);
+      scheduleGrid.appendChild(wakeInput);
+
+      function onScheduleChange() {
+        var s = getPersonalSleep();
+        if (!s.schedule) s.schedule = {};
+        if (!s.schedule[day]) s.schedule[day] = {};
+        s.schedule[day].bedtime = bedInput.value;
+        s.schedule[day].wake = wakeInput.value;
+        setPersonalSleep(s);
+        /* Update routine phase times to match */
+        syncRoutineTimesFromSleep();
+      }
+      bedInput.addEventListener('change', onScheduleChange);
+      wakeInput.addEventListener('change', onScheduleChange);
+    });
+    body.appendChild(scheduleGrid);
+
+    // Status (today's logged sleep)
     var status = document.createElement('div');
     status.className = 'sleep-status';
     if (todayLog) {
@@ -6260,6 +6354,8 @@ function renderSleepTracker() {
           '<div class="sleep-status-detail">Bed: ' + (actualBed || '—') + ' → Wake: ' + (actualWake || '—') + (duration ? ' (' + duration + ')' : '') + '</div>' +
         '</div>';
     } else {
+      var todayDay = DAYS[new Date().getDay()];
+      var todaySched = sleep.schedule[todayDay] || { bedtime: '22:30', wake: '07:00' };
       status.innerHTML =
         '<div class="sleep-status-icon">🔲</div>' +
         '<div class="sleep-status-text">' +
@@ -6271,16 +6367,18 @@ function renderSleepTracker() {
     body.appendChild(status);
 
     // Log panel (hidden)
+    var todayDayForLog = DAYS[new Date().getDay()];
+    var todaySchedForLog = sleep.schedule[todayDayForLog] || { bedtime: '22:30', wake: '07:00' };
     var logPanel = document.createElement('div');
     logPanel.className = 'meal-edit-panel';
     logPanel.id = 'sleepLogPanel';
-    logPanel.style.display = todayLog ? 'none' : 'none';
+    logPanel.style.display = 'none';
     logPanel.innerHTML =
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
         '<label style="font-size:0.85rem">Bed:</label>' +
-        '<input type="time" id="sleepActualBed" value="' + (sleep.targetBedtime || '22:30') + '" />' +
+        '<input type="time" id="sleepActualBed" value="' + (todaySchedForLog.bedtime || '22:30') + '" />' +
         '<label style="font-size:0.85rem">Wake:</label>' +
-        '<input type="time" id="sleepActualWake" value="' + (sleep.targetWake || '07:00') + '" />' +
+        '<input type="time" id="sleepActualWake" value="' + (todaySchedForLog.wake || '07:00') + '" />' +
         '<button class="meal-save-btn" id="sleepSaveBtn">Save</button>' +
         '<button class="meal-cancel-btn" id="sleepCancelBtn">Cancel</button>' +
       '</div>';
@@ -6296,14 +6394,6 @@ function renderSleepTracker() {
     }
 
     // Wire events
-    var bedInput = body.querySelector('#sleepTargetBed');
-    var wakeInput = body.querySelector('#sleepTargetWake');
-    if (bedInput) bedInput.addEventListener('change', function() {
-      var s = getPersonalSleep(); s.targetBedtime = bedInput.value; setPersonalSleep(s);
-    });
-    if (wakeInput) wakeInput.addEventListener('change', function() {
-      var s = getPersonalSleep(); s.targetWake = wakeInput.value; setPersonalSleep(s);
-    });
     var logBtn = body.querySelector('#sleepLogBtn');
     if (logBtn) logBtn.addEventListener('click', function() {
       var p = document.getElementById('sleepLogPanel');
@@ -6326,6 +6416,57 @@ function renderSleepTracker() {
   }, 'pw_sleep');
 
   section.appendChild(card);
+}
+
+/**
+ * Sync routine phase start times based on bedtime manager schedule.
+ * Morning routine start time = wake time for the current day.
+ * Evening routine end time = bedtime for the current day, so
+ * evening start time = bedtime - total evening routine duration.
+ * This is stored as a per-day override in the routine data.
+ */
+function syncRoutineTimesFromSleep() {
+  var sleep = getPersonalSleep();
+  if (!sleep.schedule) return;
+  var routines = getPersonalRoutines();
+
+  /* Build per-day routine time overrides */
+  if (!routines.sleepScheduleTimes) routines.sleepScheduleTimes = {};
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  /* Calculate total duration of each routine period */
+  var morningDur = 0, eveningDur = 0;
+  var DEFAULT_STEP_DURATION = 10; /* minutes per step when duration not specified */
+  if (routines.phases && Array.isArray(routines.phases)) {
+    routines.phases.forEach(function(phase) {
+      var dur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || DEFAULT_STEP_DURATION); }, 0);
+      if (phase.id === 'morning') morningDur = dur;
+      if (phase.id === 'evening') eveningDur = dur;
+    });
+  } else {
+    (routines.morning || []).forEach(function() { morningDur += DEFAULT_STEP_DURATION; });
+    (routines.evening || []).forEach(function() { eveningDur += DEFAULT_STEP_DURATION; });
+  }
+
+  DAYS.forEach(function(day) {
+    var sched = sleep.schedule[day];
+    if (!sched) return;
+    routines.sleepScheduleTimes[day] = {
+      morningStart: sched.wake || '07:00',
+      eveningEnd: sched.bedtime || '22:30'
+    };
+    /* Compute evening start: bedtime minus total evening routine duration */
+    if (sched.bedtime && eveningDur > 0) {
+      var bedMin = timeToMinutes(sched.bedtime);
+      var evStart = bedMin - eveningDur;
+      if (evStart < 0) evStart += 1440;
+      var evH = Math.floor(evStart / 60);
+      var evM = evStart % 60;
+      routines.sleepScheduleTimes[day].eveningStart = pad2(evH) + ':' + pad2(evM);
+    }
+  });
+
+  setPersonalRoutines(routines);
 }
 
 function timeToMinutes(t) {
@@ -6970,11 +7111,186 @@ function formatShortDate(dateStr) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   8. BUDGET WIDGET
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalBudget() { return safeParseStorage('personalBudget', { bills: [] }); }
+function setPersonalBudget(data) { localStorage.setItem('personalBudget', JSON.stringify(data)); }
+
+function calcBudgetJobIncome() {
+  /* Calculate total job earnings from the last 30 days */
+  var jobs = safeParseStorage('jobs', []);
+  if (!jobs.length) return 0;
+  var events = safeParseStorage('events', []);
+  /* Count job events in the last 30 days */
+  var now = new Date();
+  var thirtyAgo = new Date(now);
+  thirtyAgo.setDate(now.getDate() - 30);
+  var startISO = thirtyAgo.toISOString().slice(0, 10);
+  var endISO   = now.toISOString().slice(0, 10);
+  var expanded;
+  if (typeof getExpandedEvents === 'function') {
+    try { expanded = getExpandedEvents(startISO, endISO); } catch (_) { expanded = null; }
+  }
+  if (!expanded) expanded = events;
+
+  var byId = {}, byName = {};
+  jobs.forEach(function(j) {
+    if (j.id) byId[j.id] = j;
+    if (j.name) byName[j.name.toLowerCase()] = j;
+  });
+
+  var total = 0;
+  expanded.forEach(function(ev) {
+    var d = normalizeDate(ev.date);
+    if (!d || d < startISO || d > endISO) return;
+    var cat = (ev.category || '').toLowerCase();
+    var isJob = (cat === 'job') || ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
+    if (!isJob) return;
+    var job = null;
+    if (ev.jobId) job = byId[ev.jobId];
+    if (!job && ev.bucketId != null) job = byId[ev.bucketId];
+    if (!job && ev.jobName) job = byName[(ev.jobName || '').toLowerCase()];
+    if (!job && ev.jobRate)  job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour' };
+    if (!job) return;
+    var rate = parseFloat(job.rate || 0);
+    var unit = job.unit || 'hour';
+    if (unit === 'job' || unit === 'day') {
+      total += rate;
+    } else if (unit === 'hour' && ev.time && ev.endTime) {
+      var sm = timeToMinutes(ev.time), em = timeToMinutes(ev.endTime);
+      if (em <= sm) em += 1440;
+      total += rate * ((em - sm) / 60);
+    }
+  });
+  return total;
+}
+
+function calcBudgetGrocerySpending() {
+  var list = safeParseStorage('groceryList', []);
+  return list.reduce(function(sum, item) { return sum + (parseFloat(item.price) || 0); }, 0);
+}
+
+function renderBudgetWidget() {
+  var section = document.getElementById('personalBudgetSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var budget = getPersonalBudget();
+  var bills = budget.bills || [];
+
+  var card = buildPWCard('budgetCard', '💰', 'Budget', function(body) {
+    /* ── Income ── */
+    var incomeSection = document.createElement('div');
+    incomeSection.style.cssText = 'margin-bottom:10px';
+    var jobIncome = calcBudgetJobIncome();
+    incomeSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">📈 Income (last 30 days)</div>' +
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">' +
+        '<span>Job earnings</span>' +
+        '<span style="color:#27ae60;font-weight:600">$' + jobIncome.toFixed(2) + '</span>' +
+      '</div>';
+    body.appendChild(incomeSection);
+
+    /* ── Recurring bills ── */
+    var billsSection = document.createElement('div');
+    billsSection.style.cssText = 'margin-bottom:10px';
+    var billsTotal = bills.reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
+    billsSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">📋 Recurring Bills' +
+        '<span style="font-weight:400;font-size:0.78rem;color:#888;margin-left:6px">$' + billsTotal.toFixed(2) + '/mo</span>' +
+      '</div>';
+
+    bills.forEach(function(bill, bi) {
+      var bRow = document.createElement('div');
+      bRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.85rem;border-bottom:1px solid #f5f5f5';
+      bRow.innerHTML =
+        '<span>' + escapeHTML(bill.name) + '</span>' +
+        '<span style="display:flex;align-items:center;gap:6px">' +
+          '<span style="color:#e74c3c;font-weight:600">$' + (parseFloat(bill.amount) || 0).toFixed(2) + '</span>' +
+          '<button class="budget-bill-del" data-bi="' + bi + '" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:#aaa;padding:2px" title="Remove">✕</button>' +
+        '</span>';
+      billsSection.appendChild(bRow);
+    });
+
+    /* Add bill form */
+    var addBillRow = document.createElement('div');
+    addBillRow.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';
+    addBillRow.innerHTML =
+      '<input type="text" id="budgetBillName" placeholder="Bill name" style="flex:1;min-width:100px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="number" id="budgetBillAmount" placeholder="Amount" min="0" step="0.01" style="width:80px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<button id="budgetAddBillBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+    billsSection.appendChild(addBillRow);
+    body.appendChild(billsSection);
+
+    /* ── Expenses ── */
+    var grocerySpend = calcBudgetGrocerySpending();
+    var expenseSection = document.createElement('div');
+    expenseSection.style.cssText = 'margin-bottom:10px';
+    var totalExpenses = billsTotal + grocerySpend;
+    expenseSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">💸 Expenses</div>' +
+      (grocerySpend > 0 ?
+        '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem">' +
+          '<span>Groceries</span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + grocerySpend.toFixed(2) + '</span>' +
+        '</div>' : '') +
+      (billsTotal > 0 ?
+        '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem">' +
+          '<span>Recurring bills</span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + billsTotal.toFixed(2) + '</span>' +
+        '</div>' : '') +
+      '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:0.88rem;font-weight:700;border-top:1px solid #eee;margin-top:4px">' +
+        '<span>Total expenses</span>' +
+        '<span style="color:#e74c3c">$' + totalExpenses.toFixed(2) + '</span>' +
+      '</div>';
+    body.appendChild(expenseSection);
+
+    /* ── Net / summary ── */
+    var net = jobIncome - totalExpenses;
+    var netColor = net >= 0 ? '#27ae60' : '#e74c3c';
+    var summaryEl = document.createElement('div');
+    summaryEl.style.cssText = 'display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:0.95rem;font-weight:700';
+    summaryEl.innerHTML =
+      '<span>Net (30 days)</span>' +
+      '<span style="color:' + netColor + '">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span>';
+    body.appendChild(summaryEl);
+
+    /* ── Wire events ── */
+    body.querySelectorAll('.budget-bill-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.bi, 10);
+        var b = getPersonalBudget();
+        b.bills.splice(idx, 1);
+        setPersonalBudget(b);
+        renderBudgetWidget();
+      });
+    });
+
+    var addBillBtn = body.querySelector('#budgetAddBillBtn');
+    if (addBillBtn) addBillBtn.addEventListener('click', function() {
+      var nameInput = document.getElementById('budgetBillName');
+      var amtInput = document.getElementById('budgetBillAmount');
+      var name = nameInput ? nameInput.value.trim() : '';
+      var amount = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+      if (!name) return;
+      var b = getPersonalBudget();
+      b.bills.push({ name: name, amount: amount });
+      setPersonalBudget(b);
+      renderBudgetWidget();
+    });
+  }, 'pw_budget');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
    PERSONAL PAGE RENDER ORCHESTRATOR
    ══════════════════════════════════════════════════════════════ */
 
 function renderPersonalWidgets() {
   try { renderDailyFocus(); } catch(e) { console.warn('renderDailyFocus failed', e); }
+  try { renderBudgetWidget(); } catch(e) { console.warn('renderBudgetWidget failed', e); }
   try { renderRoutineChecklist(); } catch(e) { console.warn('renderRoutineChecklist failed', e); }
   try { renderMealTracker(); } catch(e) { console.warn('renderMealTracker failed', e); }
   try { renderHydrationTracker(); } catch(e) { console.warn('renderHydrationTracker failed', e); }
