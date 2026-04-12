@@ -646,9 +646,10 @@
       grocBtn.className = 'dmeal-prep-grocery-btn';
       grocBtn.textContent = '＋🛒';
       grocBtn.title = 'Add to Grocery List';
+      grocBtn.setAttribute('aria-label', 'Add ' + name + ' to Grocery List');
       grocBtn.addEventListener('click', function () {
         var list = getGroceryList();
-        var already = list.some(function (g) { return g.text === name && !g.inCart; });
+        var already = list.some(function (g) { return g.text === name; });
         if (already) {
           grocBtn.textContent = '✓';
           grocBtn.style.color = '#888';
