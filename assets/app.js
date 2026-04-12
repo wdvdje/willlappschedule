@@ -5432,6 +5432,7 @@ function renderGroceryList() {
   var list = getGroceryList();
   var inCartCount = list.filter(function(i) { return i.inCart; }).length;
   var pendingCount = list.length - inCartCount;
+  var totalCost = list.reduce(function(sum, i) { return sum + (parseFloat(i.price) || 0); }, 0);
 
   var el = document.createElement('div');
   el.className = 'grocery-section';
@@ -5441,7 +5442,7 @@ function renderGroceryList() {
   header.className = 'grocery-header';
   var headerTitle = document.createElement('div');
   headerTitle.className = 'grocery-header-title';
-  headerTitle.innerHTML = '🛒 Grocery List <span style="font-size:0.75rem;color:#888;font-weight:400;margin-left:4px">(' + pendingCount + ' pending' + (inCartCount ? ', ' + inCartCount + ' in cart' : '') + ')</span>';
+  headerTitle.innerHTML = '🛒 Grocery List <span style="font-size:0.75rem;color:#888;font-weight:400;margin-left:4px">(' + pendingCount + ' pending' + (inCartCount ? ', ' + inCartCount + ' in cart' : '') + (totalCost > 0 ? ' · $' + totalCost.toFixed(2) : '') + ')</span>';
   var chevron = document.createElement('span');
   chevron.className = 'bucket-chevron';
   var isCollapsed = safeParseStorage('groceryCollapsed', false);
@@ -5460,6 +5461,7 @@ function renderGroceryList() {
   addRow.innerHTML = [
     '<input type="text" id="groceryItemInput" class="grocery-add-input" placeholder="Item name…" autocomplete="off" />',
     '<input type="text" id="groceryQtyInput" class="grocery-qty-input" placeholder="Qty" />',
+    '<input type="number" id="groceryPriceInput" class="grocery-price-input" placeholder="Price" min="0" step="0.01" style="width:60px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />',
     '<select id="grocerySectionSel" class="grocery-section-sel">',
     '<option value="">Section…</option>',
     '<option value="Produce">🥦 Produce</option>',
@@ -5505,6 +5507,10 @@ function renderGroceryList() {
       var qtySpan = document.createElement('span');
       qtySpan.className = 'grocery-item-qty';
       qtySpan.textContent = item.qty || '';
+      var priceSpan = document.createElement('span');
+      priceSpan.className = 'grocery-item-price';
+      priceSpan.style.cssText = 'font-size:0.78rem;color:#27ae60;font-weight:600;margin-left:4px;white-space:nowrap';
+      priceSpan.textContent = item.price ? '$' + parseFloat(item.price).toFixed(2) : '';
       var secSpan = document.createElement('span');
       secSpan.className = 'grocery-item-section';
       secSpan.style.display = item.section ? '' : 'none';
@@ -5521,6 +5527,7 @@ function renderGroceryList() {
       li.appendChild(cb);
       li.appendChild(textSpan);
       if (item.qty) li.appendChild(qtySpan);
+      if (item.price) li.appendChild(priceSpan);
       if (item.section) li.appendChild(secSpan);
       li.appendChild(delBtn);
       ul.appendChild(li);
@@ -5564,15 +5571,17 @@ function wireGroceryList() {
   var addBtn = document.getElementById('groceryAddBtn');
   var inp = document.getElementById('groceryItemInput');
   var qtyInp = document.getElementById('groceryQtyInput');
+  var priceInp = document.getElementById('groceryPriceInput');
   var secSel = document.getElementById('grocerySectionSel');
 
   function doAdd() {
     var text = inp ? inp.value.trim() : '';
     if (!text) { if (inp) { inp.focus(); inp.style.outline = '2px solid #e74c3c'; setTimeout(function(){ inp.style.outline=''; }, 1200); } return; }
     var qty = qtyInp ? qtyInp.value.trim() : '';
+    var price = priceInp ? parseFloat(priceInp.value) || 0 : 0;
     var section = secSel ? secSel.value : '';
     var list = getGroceryList();
-    list.push({ id: nextGroceryId(), text: text, qty: qty, section: section, inCart: false, added: getTodayISO() });
+    list.push({ id: nextGroceryId(), text: text, qty: qty, price: price, section: section, inCart: false, added: getTodayISO() });
     setGroceryList(list);
     renderGroceryList();
   }
@@ -6966,11 +6975,186 @@ function formatShortDate(dateStr) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   8. BUDGET WIDGET
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalBudget() { return safeParseStorage('personalBudget', { bills: [] }); }
+function setPersonalBudget(data) { localStorage.setItem('personalBudget', JSON.stringify(data)); }
+
+function calcBudgetJobIncome() {
+  /* Reuse jobs+events to compute monthly earnings estimate */
+  var jobs = safeParseStorage('jobs', []);
+  if (!jobs.length) return 0;
+  var events = safeParseStorage('events', []);
+  /* Estimate monthly income: count job events in the last 30 days and project */
+  var now = new Date();
+  var thirtyAgo = new Date(now);
+  thirtyAgo.setDate(now.getDate() - 30);
+  var startISO = thirtyAgo.toISOString().slice(0, 10);
+  var endISO   = now.toISOString().slice(0, 10);
+  var expanded;
+  if (typeof getExpandedEvents === 'function') {
+    try { expanded = getExpandedEvents(startISO, endISO); } catch (_) { expanded = null; }
+  }
+  if (!expanded) expanded = events;
+
+  var byId = {}, byName = {};
+  jobs.forEach(function(j) {
+    if (j.id) byId[j.id] = j;
+    if (j.name) byName[j.name.toLowerCase()] = j;
+  });
+
+  var total = 0;
+  expanded.forEach(function(ev) {
+    var d = normalizeDate(ev.date);
+    if (!d || d < startISO || d > endISO) return;
+    var cat = (ev.category || '').toLowerCase();
+    var isJob = (cat === 'job') || ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
+    if (!isJob) return;
+    var job = null;
+    if (ev.jobId) job = byId[ev.jobId];
+    if (!job && ev.bucketId != null) job = byId[ev.bucketId];
+    if (!job && ev.jobName) job = byName[(ev.jobName || '').toLowerCase()];
+    if (!job && ev.jobRate)  job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour' };
+    if (!job) return;
+    var rate = parseFloat(job.rate || 0);
+    var unit = job.unit || 'hour';
+    if (unit === 'job' || unit === 'day') {
+      total += rate;
+    } else if (unit === 'hour' && ev.time && ev.endTime) {
+      var sm = timeToMinutes(ev.time), em = timeToMinutes(ev.endTime);
+      if (em <= sm) em += 1440;
+      total += rate * ((em - sm) / 60);
+    }
+  });
+  return total;
+}
+
+function calcBudgetGrocerySpending() {
+  var list = safeParseStorage('groceryList', []);
+  return list.reduce(function(sum, item) { return sum + (parseFloat(item.price) || 0); }, 0);
+}
+
+function renderBudgetWidget() {
+  var section = document.getElementById('personalBudgetSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var budget = getPersonalBudget();
+  var bills = budget.bills || [];
+
+  var card = buildPWCard('budgetCard', '💰', 'Budget', function(body) {
+    /* ── Income ── */
+    var incomeSection = document.createElement('div');
+    incomeSection.style.cssText = 'margin-bottom:10px';
+    var jobIncome = calcBudgetJobIncome();
+    incomeSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">📈 Income (last 30 days)</div>' +
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">' +
+        '<span>Job earnings</span>' +
+        '<span style="color:#27ae60;font-weight:600">$' + jobIncome.toFixed(2) + '</span>' +
+      '</div>';
+    body.appendChild(incomeSection);
+
+    /* ── Recurring bills ── */
+    var billsSection = document.createElement('div');
+    billsSection.style.cssText = 'margin-bottom:10px';
+    var billsTotal = bills.reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
+    billsSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">📋 Recurring Bills' +
+        '<span style="font-weight:400;font-size:0.78rem;color:#888;margin-left:6px">$' + billsTotal.toFixed(2) + '/mo</span>' +
+      '</div>';
+
+    bills.forEach(function(bill, bi) {
+      var bRow = document.createElement('div');
+      bRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.85rem;border-bottom:1px solid #f5f5f5';
+      bRow.innerHTML =
+        '<span>' + escapeHTML(bill.name) + '</span>' +
+        '<span style="display:flex;align-items:center;gap:6px">' +
+          '<span style="color:#e74c3c;font-weight:600">$' + (parseFloat(bill.amount) || 0).toFixed(2) + '</span>' +
+          '<button class="budget-bill-del" data-bi="' + bi + '" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:#aaa;padding:2px" title="Remove">✕</button>' +
+        '</span>';
+      billsSection.appendChild(bRow);
+    });
+
+    /* Add bill form */
+    var addBillRow = document.createElement('div');
+    addBillRow.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';
+    addBillRow.innerHTML =
+      '<input type="text" id="budgetBillName" placeholder="Bill name" style="flex:1;min-width:100px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="number" id="budgetBillAmount" placeholder="Amount" min="0" step="0.01" style="width:80px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<button id="budgetAddBillBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+    billsSection.appendChild(addBillRow);
+    body.appendChild(billsSection);
+
+    /* ── Expenses ── */
+    var grocerySpend = calcBudgetGrocerySpending();
+    var expenseSection = document.createElement('div');
+    expenseSection.style.cssText = 'margin-bottom:10px';
+    var totalExpenses = billsTotal + grocerySpend;
+    expenseSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">💸 Expenses</div>' +
+      (grocerySpend > 0 ?
+        '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem">' +
+          '<span>Groceries</span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + grocerySpend.toFixed(2) + '</span>' +
+        '</div>' : '') +
+      (billsTotal > 0 ?
+        '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem">' +
+          '<span>Recurring bills</span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + billsTotal.toFixed(2) + '</span>' +
+        '</div>' : '') +
+      '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:0.88rem;font-weight:700;border-top:1px solid #eee;margin-top:4px">' +
+        '<span>Total expenses</span>' +
+        '<span style="color:#e74c3c">$' + totalExpenses.toFixed(2) + '</span>' +
+      '</div>';
+    body.appendChild(expenseSection);
+
+    /* ── Net / summary ── */
+    var net = jobIncome - totalExpenses;
+    var netColor = net >= 0 ? '#27ae60' : '#e74c3c';
+    var summaryEl = document.createElement('div');
+    summaryEl.style.cssText = 'display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:0.95rem;font-weight:700';
+    summaryEl.innerHTML =
+      '<span>Net (30 days)</span>' +
+      '<span style="color:' + netColor + '">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span>';
+    body.appendChild(summaryEl);
+
+    /* ── Wire events ── */
+    body.querySelectorAll('.budget-bill-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.bi, 10);
+        var b = getPersonalBudget();
+        b.bills.splice(idx, 1);
+        setPersonalBudget(b);
+        renderBudgetWidget();
+      });
+    });
+
+    var addBillBtn = body.querySelector('#budgetAddBillBtn');
+    if (addBillBtn) addBillBtn.addEventListener('click', function() {
+      var nameInput = document.getElementById('budgetBillName');
+      var amtInput = document.getElementById('budgetBillAmount');
+      var name = nameInput ? nameInput.value.trim() : '';
+      var amount = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+      if (!name) return;
+      var b = getPersonalBudget();
+      b.bills.push({ name: name, amount: amount });
+      setPersonalBudget(b);
+      renderBudgetWidget();
+    });
+  }, 'pw_budget');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
    PERSONAL PAGE RENDER ORCHESTRATOR
    ══════════════════════════════════════════════════════════════ */
 
 function renderPersonalWidgets() {
   try { renderDailyFocus(); } catch(e) { console.warn('renderDailyFocus failed', e); }
+  try { renderBudgetWidget(); } catch(e) { console.warn('renderBudgetWidget failed', e); }
   try { renderRoutineChecklist(); } catch(e) { console.warn('renderRoutineChecklist failed', e); }
   try { renderMealTracker(); } catch(e) { console.warn('renderMealTracker failed', e); }
   try { renderHydrationTracker(); } catch(e) { console.warn('renderHydrationTracker failed', e); }

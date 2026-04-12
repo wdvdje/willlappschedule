@@ -25,6 +25,7 @@
     'personalFocus', 'personalRoutines', 'personalRoutineLog',
     'personalHydration', 'personalMood',
     'personalMealFavorites', 'personalMealPrepLog',
+    'personalBudget',
   ];
   const GIST_FILENAME  = 'timescape-data.json';
   const SYNC_INTERVAL_MS = 5 * 60 * 1000; // background poll every 5 minutes
