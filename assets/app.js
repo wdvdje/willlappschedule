@@ -2541,7 +2541,16 @@ function buildExportPayload(){
       dayEndHour: localStorage.getItem('dayEndHour') || null,
       personalBuckets: safeParseStorage('personalBuckets', []),
       homeBuckets: safeParseStorage('homeBuckets', []),
-      domainColors: safeParseStorage('domainColors', {})
+      domainColors: safeParseStorage('domainColors', {}),
+      personalMeals: safeParseStorage('personalMeals', {}),
+      personalCalorieGoal: localStorage.getItem('personalCalorieGoal') || null,
+      personalSleep: safeParseStorage('personalSleep', {}),
+      personalGym: safeParseStorage('personalGym', {}),
+      personalFocus: safeParseStorage('personalFocus', {}),
+      personalRoutines: safeParseStorage('personalRoutines', {}),
+      personalRoutineLog: safeParseStorage('personalRoutineLog', {}),
+      personalHydration: safeParseStorage('personalHydration', {}),
+      personalMood: safeParseStorage('personalMood', [])
     }
   };
 }
@@ -2698,6 +2707,12 @@ function applyImportData(importData, mode){
     if (Array.isArray(importData.personalBuckets)) localStorage.setItem('personalBuckets', JSON.stringify(importData.personalBuckets));
     if (Array.isArray(importData.homeBuckets)) localStorage.setItem('homeBuckets', JSON.stringify(importData.homeBuckets));
     if (importData.domainColors && typeof importData.domainColors === 'object' && Object.keys(importData.domainColors).length > 0) localStorage.setItem('domainColors', JSON.stringify(importData.domainColors));
+    // Personal page widget data
+    ['personalMeals', 'personalSleep', 'personalGym', 'personalFocus', 'personalRoutines', 'personalRoutineLog', 'personalHydration'].forEach(function(key) {
+      if (importData[key] && typeof importData[key] === 'object') localStorage.setItem(key, JSON.stringify(importData[key]));
+    });
+    if (Array.isArray(importData.personalMood)) localStorage.setItem('personalMood', JSON.stringify(importData.personalMood));
+    if (importData.personalCalorieGoal != null) localStorage.setItem('personalCalorieGoal', importData.personalCalorieGoal);
     writeUserProfile(importData.userProfile || readUserProfile());
     refreshAfterImport();
     return {
@@ -4728,6 +4743,11 @@ function renderBucketPage(domain) {
     try { renderHomeEnergyFilter(); } catch(e) {}
   }
 
+  /* Personal-specific pre-render */
+  if (domain === 'personal') {
+    try { renderPersonalWidgets(); } catch(e) { console.warn('renderPersonalWidgets failed', e); }
+  }
+
   container.innerHTML = '';
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -5428,7 +5448,943 @@ function wireHomePage() {
   });
 }
 
+/* ============================================================
+   PERSONAL PAGE FEATURES: Meal Tracker, Sleep Manager,
+   Gym Planner, Daily Focus, Routines, Hydration, Mood
+   ============================================================ */
 
+/* ── Helper: build collapsible personal widget card ─────────── */
+function buildPWCard(id, emoji, title, renderBody, storageKey) {
+  var card = document.createElement('div');
+  card.className = 'pw-card';
+  card.id = id;
+
+  var header = document.createElement('div');
+  header.className = 'pw-header';
+  var headerTitle = document.createElement('div');
+  headerTitle.className = 'pw-header-title';
+  headerTitle.textContent = emoji + ' ' + title;
+  var chevron = document.createElement('span');
+  chevron.className = 'pw-chevron';
+  var isCollapsed = safeParseStorage(storageKey + '_collapsed', false);
+  chevron.textContent = isCollapsed ? '▸' : '▾';
+  header.appendChild(headerTitle);
+  header.appendChild(chevron);
+
+  var body = document.createElement('div');
+  body.className = 'pw-body';
+  body.style.display = isCollapsed ? 'none' : '';
+
+  renderBody(body);
+
+  card.appendChild(header);
+  card.appendChild(body);
+
+  header.addEventListener('click', function() {
+    var nowCollapsed = body.style.display === 'none';
+    body.style.display = nowCollapsed ? '' : 'none';
+    chevron.textContent = nowCollapsed ? '▾' : '▸';
+    localStorage.setItem(storageKey + '_collapsed', JSON.stringify(!nowCollapsed));
+  });
+
+  return card;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   1. MEAL TRACKER
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalMeals() {
+  var data = safeParseStorage('personalMeals', {});
+  var today = getTodayISO();
+  if (!data[today]) data[today] = { breakfast: { name: '', calories: 0 }, lunch: { name: '', calories: 0 }, dinner: { name: '', calories: 0 }, snacks: { name: '', calories: 0 } };
+  return data;
+}
+function setPersonalMeals(data) { localStorage.setItem('personalMeals', JSON.stringify(data)); }
+function getCalorieGoal() { return parseInt(localStorage.getItem('personalCalorieGoal') || '2000', 10); }
+function setCalorieGoal(v) { localStorage.setItem('personalCalorieGoal', String(v)); }
+
+function renderMealTracker() {
+  var section = document.getElementById('personalMealSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var today = getTodayISO();
+  var allMeals = getPersonalMeals();
+  var meals = allMeals[today];
+  var goal = getCalorieGoal();
+  var mealTypes = [
+    { key: 'breakfast', icon: '🌅', label: 'Breakfast' },
+    { key: 'lunch', icon: '☀️', label: 'Lunch' },
+    { key: 'dinner', icon: '🌙', label: 'Dinner' },
+    { key: 'snacks', icon: '🍎', label: 'Snacks' }
+  ];
+
+  var card = buildPWCard('mealCard', '🍽️', 'Meal Tracker', function(body) {
+    var totalCal = 0;
+    mealTypes.forEach(function(mt) {
+      var m = meals[mt.key] || { name: '', calories: 0 };
+      totalCal += (parseInt(m.calories, 10) || 0);
+
+      var row = document.createElement('div');
+      row.className = 'meal-row';
+      row.innerHTML =
+        '<div class="meal-icon">' + mt.icon + '</div>' +
+        '<div class="meal-info">' +
+          '<div class="meal-label">' + mt.label + '</div>' +
+          '<div class="meal-name">' + escapeHTML(m.name || 'Not planned') + '</div>' +
+        '</div>' +
+        '<div class="meal-cal">' + (m.calories ? m.calories + ' cal' : '—') + '</div>' +
+        '<button class="meal-edit-btn" data-meal="' + mt.key + '">✏️</button>';
+      body.appendChild(row);
+
+      // Edit panel (hidden by default)
+      var panel = document.createElement('div');
+      panel.className = 'meal-edit-panel';
+      panel.id = 'mealEdit_' + mt.key;
+      panel.style.display = 'none';
+      panel.innerHTML =
+        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+          '<input type="text" class="meal-name-input" placeholder="What are you eating?" value="' + escapeHTML(m.name || '') + '" />' +
+          '<input type="number" class="meal-cal-input" placeholder="Cal" min="0" value="' + (m.calories || '') + '" />' +
+          '<button class="meal-save-btn" data-meal="' + mt.key + '">Save</button>' +
+          '<button class="meal-cancel-btn" data-meal="' + mt.key + '">Cancel</button>' +
+        '</div>';
+      body.appendChild(panel);
+    });
+
+    // Progress bar
+    var pct = goal > 0 ? Math.min(100, Math.round((totalCal / goal) * 100)) : 0;
+    var barColor = pct > 100 ? '#e74c3c' : pct >= 80 ? '#27ae60' : '#4a90e2';
+    var progress = document.createElement('div');
+    progress.className = 'meal-progress';
+    progress.innerHTML =
+      '<div class="meal-progress-bar"><div class="meal-progress-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+      '<div class="meal-progress-text">' + totalCal + ' / ' + goal + ' cal</div>';
+    body.appendChild(progress);
+
+    // Goal setting
+    var goalRow = document.createElement('div');
+    goalRow.className = 'meal-goal-row';
+    goalRow.innerHTML =
+      '<span>🎯 Daily goal:</span>' +
+      '<input type="number" class="meal-goal-input" id="mealGoalInput" value="' + goal + '" min="0" step="50" />' +
+      '<span>cal</span>';
+    body.appendChild(goalRow);
+
+    // Wire events
+    body.querySelectorAll('.meal-edit-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var key = btn.dataset.meal;
+        var p = document.getElementById('mealEdit_' + key);
+        if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+      });
+    });
+    body.querySelectorAll('.meal-save-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var key = btn.dataset.meal;
+        var panel = document.getElementById('mealEdit_' + key);
+        if (!panel) return;
+        var nameInput = panel.querySelector('.meal-name-input');
+        var calInput = panel.querySelector('.meal-cal-input');
+        var data = getPersonalMeals();
+        if (!data[today]) data[today] = {};
+        data[today][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0 };
+        setPersonalMeals(data);
+        renderMealTracker();
+      });
+    });
+    body.querySelectorAll('.meal-cancel-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var key = btn.dataset.meal;
+        var p = document.getElementById('mealEdit_' + key);
+        if (p) p.style.display = 'none';
+      });
+    });
+    var goalInput = body.querySelector('#mealGoalInput');
+    if (goalInput) goalInput.addEventListener('change', function() {
+      setCalorieGoal(parseInt(goalInput.value, 10) || 2000);
+      renderMealTracker();
+    });
+  }, 'pw_meal');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   2. SLEEP / BEDTIME MANAGER
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalSleep() { return safeParseStorage('personalSleep', { targetBedtime: '22:30', targetWake: '07:00', log: {} }); }
+function setPersonalSleep(data) { localStorage.setItem('personalSleep', JSON.stringify(data)); }
+
+function renderSleepTracker() {
+  var section = document.getElementById('personalSleepSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var sleep = getPersonalSleep();
+  var today = getTodayISO();
+  var todayLog = sleep.log[today];
+
+  var card = buildPWCard('sleepCard', '😴', 'Bedtime Manager', function(body) {
+    // Target times
+    var targetRow = document.createElement('div');
+    targetRow.innerHTML =
+      '<div class="sleep-row">' +
+        '<label>🌙 Bedtime:</label>' +
+        '<input type="time" id="sleepTargetBed" value="' + (sleep.targetBedtime || '22:30') + '" />' +
+      '</div>' +
+      '<div class="sleep-row">' +
+        '<label>☀️ Wake up:</label>' +
+        '<input type="time" id="sleepTargetWake" value="' + (sleep.targetWake || '07:00') + '" />' +
+      '</div>';
+    body.appendChild(targetRow);
+
+    // Status
+    var status = document.createElement('div');
+    status.className = 'sleep-status';
+    if (todayLog) {
+      var actualBed = todayLog.bedtime || '';
+      var actualWake = todayLog.wakeTime || '';
+      var duration = '';
+      if (actualBed && actualWake) {
+        var bedM = timeToMinutes(actualBed);
+        var wakeM = timeToMinutes(actualWake);
+        var diff = wakeM > bedM ? wakeM - bedM : (1440 - bedM) + wakeM;
+        var hrs = Math.floor(diff / 60);
+        var mins = diff % 60;
+        duration = hrs + 'h ' + mins + 'm';
+      }
+      status.innerHTML =
+        '<div class="sleep-status-icon">✅</div>' +
+        '<div class="sleep-status-text">' +
+          '<div class="sleep-status-label">Logged today</div>' +
+          '<div class="sleep-status-detail">Bed: ' + (actualBed || '—') + ' → Wake: ' + (actualWake || '—') + (duration ? ' (' + duration + ')' : '') + '</div>' +
+        '</div>';
+    } else {
+      status.innerHTML =
+        '<div class="sleep-status-icon">🔲</div>' +
+        '<div class="sleep-status-text">' +
+          '<div class="sleep-status-label">Not logged yet</div>' +
+          '<div class="sleep-status-detail">Log your sleep for today</div>' +
+        '</div>' +
+        '<button class="sleep-log-btn" id="sleepLogBtn">Log Sleep</button>';
+    }
+    body.appendChild(status);
+
+    // Log panel (hidden)
+    var logPanel = document.createElement('div');
+    logPanel.className = 'meal-edit-panel';
+    logPanel.id = 'sleepLogPanel';
+    logPanel.style.display = todayLog ? 'none' : 'none';
+    logPanel.innerHTML =
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+        '<label style="font-size:0.85rem">Bed:</label>' +
+        '<input type="time" id="sleepActualBed" value="' + (sleep.targetBedtime || '22:30') + '" />' +
+        '<label style="font-size:0.85rem">Wake:</label>' +
+        '<input type="time" id="sleepActualWake" value="' + (sleep.targetWake || '07:00') + '" />' +
+        '<button class="meal-save-btn" id="sleepSaveBtn">Save</button>' +
+        '<button class="meal-cancel-btn" id="sleepCancelBtn">Cancel</button>' +
+      '</div>';
+    body.appendChild(logPanel);
+
+    // Sleep consistency streak
+    var streak = calcSleepStreak(sleep);
+    if (streak > 0) {
+      var streakEl = document.createElement('div');
+      streakEl.className = 'sleep-streak';
+      streakEl.textContent = '🔥 ' + streak + '-day sleep logging streak!';
+      body.appendChild(streakEl);
+    }
+
+    // Wire events
+    var bedInput = body.querySelector('#sleepTargetBed');
+    var wakeInput = body.querySelector('#sleepTargetWake');
+    if (bedInput) bedInput.addEventListener('change', function() {
+      var s = getPersonalSleep(); s.targetBedtime = bedInput.value; setPersonalSleep(s);
+    });
+    if (wakeInput) wakeInput.addEventListener('change', function() {
+      var s = getPersonalSleep(); s.targetWake = wakeInput.value; setPersonalSleep(s);
+    });
+    var logBtn = body.querySelector('#sleepLogBtn');
+    if (logBtn) logBtn.addEventListener('click', function() {
+      var p = document.getElementById('sleepLogPanel');
+      if (p) p.style.display = 'block';
+    });
+    var saveBtn = body.querySelector('#sleepSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', function() {
+      var s = getPersonalSleep();
+      var actualBed = document.getElementById('sleepActualBed');
+      var actualWake = document.getElementById('sleepActualWake');
+      s.log[today] = { bedtime: actualBed ? actualBed.value : '', wakeTime: actualWake ? actualWake.value : '' };
+      setPersonalSleep(s);
+      renderSleepTracker();
+    });
+    var cancelBtn = body.querySelector('#sleepCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', function() {
+      var p = document.getElementById('sleepLogPanel');
+      if (p) p.style.display = 'none';
+    });
+  }, 'pw_sleep');
+
+  section.appendChild(card);
+}
+
+function timeToMinutes(t) {
+  if (!t) return 0;
+  var parts = t.split(':');
+  return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+}
+
+function calcSleepStreak(sleep) {
+  var streak = 0;
+  var d = new Date();
+  for (var i = 0; i < 365; i++) {
+    var ds = d.toISOString().slice(0, 10);
+    if (sleep.log[ds]) streak++;
+    else break;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   3. GYM / EXERCISE PLANNER
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalGym() { return safeParseStorage('personalGym', { routines: [], log: {} }); }
+function setPersonalGym(data) { localStorage.setItem('personalGym', JSON.stringify(data)); }
+
+function renderGymPlanner() {
+  var section = document.getElementById('personalGymSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var gym = getPersonalGym();
+  var today = getTodayISO();
+
+  var card = buildPWCard('gymCard', '💪', 'Gym / Exercise', function(body) {
+    // Add routine
+    var addRow = document.createElement('div');
+    addRow.className = 'gym-routine-add';
+    addRow.innerHTML =
+      '<input type="text" id="gymRoutineNameInput" placeholder="New routine name (e.g. Upper Body, Leg Day)" />' +
+      '<button id="gymAddRoutineBtn">＋ Add</button>';
+    body.appendChild(addRow);
+
+    // Routines
+    if (!gym.routines.length) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'color:#aaa;text-align:center;padding:12px 0;font-size:0.88rem';
+      empty.textContent = 'No routines yet. Create one above!';
+      body.appendChild(empty);
+    }
+
+    gym.routines.forEach(function(routine, ri) {
+      var rDiv = document.createElement('div');
+      rDiv.className = 'gym-routine';
+
+      var rHeader = document.createElement('div');
+      rHeader.className = 'gym-routine-header';
+      rHeader.innerHTML =
+        '<span class="gym-routine-name">🏋️ ' + escapeHTML(routine.name) + '</span>' +
+        '<button class="gym-del-btn" data-ri="' + ri + '" title="Delete routine">🗑️</button>';
+      rDiv.appendChild(rHeader);
+
+      // Exercises
+      (routine.exercises || []).forEach(function(ex, ei) {
+        var exRow = document.createElement('div');
+        exRow.className = 'gym-exercise';
+        exRow.innerHTML =
+          '<span class="gym-exercise-name">' + escapeHTML(ex.name) + '</span>' +
+          '<span class="gym-exercise-detail">' + (ex.sets || '—') + ' × ' + (ex.reps || '—') + (ex.weight ? ' @ ' + ex.weight : '') + '</span>' +
+          '<button class="gym-del-btn" data-ri="' + ri + '" data-ei="' + ei + '" title="Remove">✕</button>';
+        rDiv.appendChild(exRow);
+      });
+
+      // Add exercise form
+      var exAdd = document.createElement('div');
+      exAdd.className = 'gym-add-row';
+      exAdd.innerHTML =
+        '<input type="text" class="gym-name-input" placeholder="Exercise name" data-ri="' + ri + '" />' +
+        '<input type="number" class="gym-small-input" placeholder="Sets" min="1" data-ri="' + ri + '" />' +
+        '<input type="text" class="gym-small-input" placeholder="Reps" data-ri="' + ri + '" />' +
+        '<input type="text" class="gym-small-input" placeholder="Weight" data-ri="' + ri + '" style="width:60px" />' +
+        '<button class="gym-add-btn" data-ri="' + ri + '">＋</button>';
+      rDiv.appendChild(exAdd);
+
+      // Log workout button
+      var todayLogged = gym.log[today] && gym.log[today].indexOf(routine.name) >= 0;
+      var logBtn = document.createElement('button');
+      logBtn.className = 'gym-log-btn';
+      logBtn.textContent = todayLogged ? '✅ Logged today' : '📝 Log workout';
+      logBtn.disabled = todayLogged;
+      logBtn.style.opacity = todayLogged ? '0.6' : '1';
+      logBtn.dataset.ri = ri;
+      logBtn.dataset.rname = routine.name;
+      rDiv.appendChild(logBtn);
+
+      body.appendChild(rDiv);
+    });
+
+    // Gym streak
+    var streak = calcGymStreak(gym);
+    if (streak > 0) {
+      var streakEl = document.createElement('div');
+      streakEl.className = 'gym-streak';
+      streakEl.textContent = '🔥 ' + streak + '-day workout streak!';
+      body.appendChild(streakEl);
+    }
+
+    // Wire events
+    var addRoutineBtn = body.querySelector('#gymAddRoutineBtn');
+    if (addRoutineBtn) addRoutineBtn.addEventListener('click', function() {
+      var input = document.getElementById('gymRoutineNameInput');
+      var name = input ? input.value.trim() : '';
+      if (!name) { alert('Enter a routine name'); return; }
+      var g = getPersonalGym();
+      g.routines.push({ name: name, exercises: [] });
+      setPersonalGym(g);
+      renderGymPlanner();
+    });
+
+    body.querySelectorAll('.gym-routine-header .gym-del-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (!confirm('Delete this routine?')) return;
+        var g = getPersonalGym();
+        g.routines.splice(parseInt(btn.dataset.ri, 10), 1);
+        setPersonalGym(g);
+        renderGymPlanner();
+      });
+    });
+
+    body.querySelectorAll('.gym-exercise .gym-del-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var g = getPersonalGym();
+        var ri = parseInt(btn.dataset.ri, 10);
+        var ei = parseInt(btn.dataset.ei, 10);
+        g.routines[ri].exercises.splice(ei, 1);
+        setPersonalGym(g);
+        renderGymPlanner();
+      });
+    });
+
+    body.querySelectorAll('.gym-add-row .gym-add-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var ri = parseInt(btn.dataset.ri, 10);
+        var row = btn.parentElement;
+        var inputs = row.querySelectorAll('input');
+        var name = inputs[0].value.trim();
+        if (!name) { alert('Enter exercise name'); return; }
+        var g = getPersonalGym();
+        g.routines[ri].exercises.push({
+          name: name,
+          sets: inputs[1].value || '',
+          reps: inputs[2].value || '',
+          weight: inputs[3].value || ''
+        });
+        setPersonalGym(g);
+        renderGymPlanner();
+      });
+    });
+
+    body.querySelectorAll('.gym-log-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var g = getPersonalGym();
+        if (!g.log[today]) g.log[today] = [];
+        var rname = btn.dataset.rname;
+        if (g.log[today].indexOf(rname) < 0) g.log[today].push(rname);
+        setPersonalGym(g);
+        renderGymPlanner();
+      });
+    });
+  }, 'pw_gym');
+
+  section.appendChild(card);
+}
+
+function calcGymStreak(gym) {
+  var streak = 0;
+  var d = new Date();
+  for (var i = 0; i < 365; i++) {
+    var ds = d.toISOString().slice(0, 10);
+    if (gym.log[ds] && gym.log[ds].length > 0) {
+      streak++;
+    } else if (i === 0) {
+      // Today not logged yet — skip but continue checking previous days
+    } else {
+      break;
+    }
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4a. DAILY FOCUS / TOP 3 PRIORITIES
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalFocus() { return safeParseStorage('personalFocus', {}); }
+function setPersonalFocus(data) { localStorage.setItem('personalFocus', JSON.stringify(data)); }
+
+function renderDailyFocus() {
+  var section = document.getElementById('personalFocusSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var today = getTodayISO();
+  var allFocus = getPersonalFocus();
+  var items = allFocus[today] || [];
+
+  var card = buildPWCard('focusCard', '🎯', 'Today\'s Top Priorities', function(body) {
+    // Info text
+    var info = document.createElement('div');
+    info.style.cssText = 'font-size:0.82rem;color:#888;margin-bottom:8px';
+    info.textContent = 'Pick up to 3 must-do items to reduce overwhelm. Resets daily.';
+    body.appendChild(info);
+
+    // Items
+    items.forEach(function(item, idx) {
+      var row = document.createElement('div');
+      row.className = 'focus-item' + (item.done ? ' done' : '');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = item.done;
+      cb.addEventListener('change', function() {
+        var f = getPersonalFocus();
+        if (f[today] && f[today][idx]) f[today][idx].done = cb.checked;
+        setPersonalFocus(f);
+        renderDailyFocus();
+      });
+      var text = document.createElement('span');
+      text.className = 'focus-item-text';
+      text.textContent = item.text;
+      var del = document.createElement('button');
+      del.className = 'focus-del-btn';
+      del.textContent = '✕';
+      del.addEventListener('click', function() {
+        var f = getPersonalFocus();
+        if (f[today]) f[today].splice(idx, 1);
+        setPersonalFocus(f);
+        renderDailyFocus();
+      });
+      row.appendChild(cb);
+      row.appendChild(text);
+      row.appendChild(del);
+      body.appendChild(row);
+    });
+
+    // Add row (max 3)
+    if (items.length < 3) {
+      var addRow = document.createElement('div');
+      addRow.className = 'focus-add-row';
+      addRow.innerHTML =
+        '<input type="text" id="focusAddInput" placeholder="What\'s your #' + (items.length + 1) + ' priority?" />' +
+        '<button class="focus-add-btn" id="focusAddBtn">Add</button>';
+      body.appendChild(addRow);
+    }
+
+    // Completion message
+    if (items.length > 0 && items.every(function(i) { return i.done; })) {
+      var msg = document.createElement('div');
+      msg.style.cssText = 'text-align:center;padding:8px;font-size:0.9rem;color:#27ae60;font-weight:600;margin-top:6px';
+      msg.textContent = '🎉 All priorities completed! Great job!';
+      body.appendChild(msg);
+    }
+
+    // Wire
+    var addBtn = body.querySelector('#focusAddBtn');
+    if (addBtn) addBtn.addEventListener('click', function() {
+      var input = document.getElementById('focusAddInput');
+      var text = input ? input.value.trim() : '';
+      if (!text) return;
+      var f = getPersonalFocus();
+      if (!f[today]) f[today] = [];
+      if (f[today].length >= 3) { alert('Maximum 3 priorities per day'); return; }
+      f[today].push({ text: text, done: false });
+      setPersonalFocus(f);
+      renderDailyFocus();
+    });
+    var addInput = body.querySelector('#focusAddInput');
+    if (addInput) addInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); if (addBtn) addBtn.click(); }
+    });
+  }, 'pw_focus');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4b. ROUTINE CHECKLISTS (Morning & Evening)
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalRoutines() { return safeParseStorage('personalRoutines', { morning: [], evening: [] }); }
+function setPersonalRoutines(data) { localStorage.setItem('personalRoutines', JSON.stringify(data)); }
+function getPersonalRoutineLog() { return safeParseStorage('personalRoutineLog', {}); }
+function setPersonalRoutineLog(data) { localStorage.setItem('personalRoutineLog', JSON.stringify(data)); }
+
+function renderRoutineChecklist() {
+  var section = document.getElementById('personalRoutineSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var routines = getPersonalRoutines();
+  var today = getTodayISO();
+  var log = getPersonalRoutineLog();
+  if (!log[today]) log[today] = { morning: [], evening: [] };
+  var todayLog = log[today];
+
+  var card = buildPWCard('routineCard', '📋', 'Daily Routines', function(body) {
+    var info = document.createElement('div');
+    info.style.cssText = 'font-size:0.82rem;color:#888;margin-bottom:8px';
+    info.textContent = 'Build consistent morning & evening routines. Checked items reset each day.';
+    body.appendChild(info);
+
+    ['morning', 'evening'].forEach(function(period) {
+      var emoji = period === 'morning' ? '🌅' : '🌙';
+      var label = document.createElement('div');
+      label.className = 'routine-section-label';
+      label.textContent = emoji + ' ' + period.charAt(0).toUpperCase() + period.slice(1) + ' Routine';
+      body.appendChild(label);
+
+      var items = routines[period] || [];
+      var checked = todayLog[period] || [];
+
+      items.forEach(function(item, idx) {
+        var isDone = checked.indexOf(idx) >= 0;
+        var row = document.createElement('div');
+        row.className = 'routine-item' + (isDone ? ' done' : '');
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = isDone;
+        cb.addEventListener('change', function() {
+          var l = getPersonalRoutineLog();
+          if (!l[today]) l[today] = { morning: [], evening: [] };
+          if (!l[today][period]) l[today][period] = [];
+          if (cb.checked) {
+            if (l[today][period].indexOf(idx) < 0) l[today][period].push(idx);
+          } else {
+            l[today][period] = l[today][period].filter(function(i) { return i !== idx; });
+          }
+          setPersonalRoutineLog(l);
+          renderRoutineChecklist();
+        });
+        var sp = document.createElement('span');
+        sp.textContent = item;
+        var del = document.createElement('button');
+        del.className = 'routine-del-btn';
+        del.textContent = '✕';
+        del.addEventListener('click', function() {
+          var r = getPersonalRoutines();
+          r[period].splice(idx, 1);
+          setPersonalRoutines(r);
+          // Remap log indices: remove deleted index, shift higher indices down
+          var l = getPersonalRoutineLog();
+          if (l[today] && l[today][period]) {
+            l[today][period] = l[today][period]
+              .filter(function(i) { return i !== idx; })
+              .map(function(i) { return i > idx ? i - 1 : i; });
+            setPersonalRoutineLog(l);
+          }
+          renderRoutineChecklist();
+        });
+        row.appendChild(cb);
+        row.appendChild(sp);
+        row.appendChild(del);
+        body.appendChild(row);
+      });
+
+      // Progress
+      if (items.length > 0) {
+        var doneCount = checked.filter(function(i) { return i < items.length; }).length;
+        var pct = Math.round((doneCount / items.length) * 100);
+        var prog = document.createElement('div');
+        prog.style.cssText = 'font-size:0.78rem;color:' + (pct === 100 ? '#27ae60' : '#888') + ';margin:2px 0 6px;font-weight:600';
+        prog.textContent = pct === 100 ? '✅ Complete!' : doneCount + '/' + items.length + ' done';
+        body.appendChild(prog);
+      }
+    });
+
+    // Add item form
+    var addRow = document.createElement('div');
+    addRow.className = 'routine-add-row';
+    addRow.innerHTML =
+      '<input type="text" id="routineAddInput" placeholder="Add routine step…" />' +
+      '<select id="routineAddPeriod">' +
+        '<option value="morning">🌅 Morning</option>' +
+        '<option value="evening">🌙 Evening</option>' +
+      '</select>' +
+      '<button class="routine-add-btn" id="routineAddBtn">＋</button>';
+    body.appendChild(addRow);
+
+    var addBtn = body.querySelector('#routineAddBtn');
+    if (addBtn) addBtn.addEventListener('click', function() {
+      var input = document.getElementById('routineAddInput');
+      var periodSel = document.getElementById('routineAddPeriod');
+      var text = input ? input.value.trim() : '';
+      var period = periodSel ? periodSel.value : 'morning';
+      if (!text) return;
+      var r = getPersonalRoutines();
+      if (!r[period]) r[period] = [];
+      r[period].push(text);
+      setPersonalRoutines(r);
+      renderRoutineChecklist();
+    });
+    var addInput = body.querySelector('#routineAddInput');
+    if (addInput) addInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); if (addBtn) addBtn.click(); }
+    });
+  }, 'pw_routine');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4c. HYDRATION TRACKER
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalHydration() { return safeParseStorage('personalHydration', { goal: 8, log: {} }); }
+function setPersonalHydration(data) { localStorage.setItem('personalHydration', JSON.stringify(data)); }
+
+function renderHydrationTracker() {
+  var section = document.getElementById('personalHydrationSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var hydration = getPersonalHydration();
+  var today = getTodayISO();
+  var count = hydration.log[today] || 0;
+  var goal = hydration.goal || 8;
+
+  var card = buildPWCard('hydrationCard', '💧', 'Hydration', function(body) {
+    // Glass display
+    var display = document.createElement('div');
+    display.className = 'hydration-display';
+
+    var glasses = document.createElement('div');
+    glasses.className = 'hydration-glasses';
+    for (var i = 0; i < goal; i++) {
+      var glass = document.createElement('div');
+      glass.className = 'hydration-glass' + (i < count ? ' filled' : '');
+      glass.dataset.idx = i;
+      glass.innerHTML = '<div class="hydration-water"></div>';
+      glass.addEventListener('click', (function(idx) {
+        return function() {
+          var h = getPersonalHydration();
+          h.log[today] = idx + 1;
+          setPersonalHydration(h);
+          renderHydrationTracker();
+        };
+      })(i));
+      glasses.appendChild(glass);
+    }
+    display.appendChild(glasses);
+
+    var countEl = document.createElement('div');
+    countEl.className = 'hydration-count';
+    countEl.textContent = count + '/' + goal;
+    display.appendChild(countEl);
+    body.appendChild(display);
+
+    // Completed message
+    if (count >= goal) {
+      var msg = document.createElement('div');
+      msg.style.cssText = 'text-align:center;font-size:0.85rem;color:#27ae60;font-weight:600;margin-top:6px';
+      msg.textContent = '🎉 Hydration goal reached!';
+      body.appendChild(msg);
+    }
+
+    // Controls
+    var controls = document.createElement('div');
+    controls.className = 'hydration-goal-row';
+    controls.innerHTML =
+      '<span>🎯 Goal:</span>' +
+      '<input type="number" class="hydration-goal-input" id="hydrationGoalInput" value="' + goal + '" min="1" max="20" />' +
+      '<span>glasses</span>' +
+      '<button class="hydration-reset" id="hydrationResetBtn">Reset today</button>';
+    body.appendChild(controls);
+
+    // Wire
+    var goalInput = body.querySelector('#hydrationGoalInput');
+    if (goalInput) goalInput.addEventListener('change', function() {
+      var h = getPersonalHydration();
+      h.goal = parseInt(goalInput.value, 10) || 8;
+      setPersonalHydration(h);
+      renderHydrationTracker();
+    });
+    var resetBtn = body.querySelector('#hydrationResetBtn');
+    if (resetBtn) resetBtn.addEventListener('click', function() {
+      var h = getPersonalHydration();
+      h.log[today] = 0;
+      setPersonalHydration(h);
+      renderHydrationTracker();
+    });
+  }, 'pw_hydration');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4d. MOOD / ENERGY CHECK-IN
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalMood() { return safeParseStorage('personalMood', []); }
+function setPersonalMood(data) { localStorage.setItem('personalMood', JSON.stringify(data)); }
+
+function renderMoodCheckin() {
+  var section = document.getElementById('personalMoodSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var moods = getPersonalMood();
+  var today = getTodayISO();
+  var todayEntry = moods.find(function(m) { return m.date === today; });
+
+  var moodOptions = [
+    { emoji: '😊', label: 'Great' },
+    { emoji: '🙂', label: 'Good' },
+    { emoji: '😐', label: 'Okay' },
+    { emoji: '😟', label: 'Low' },
+    { emoji: '😢', label: 'Rough' }
+  ];
+  var energyOptions = ['🟢 High', '🟡 Medium', '🔴 Low'];
+
+  var card = buildPWCard('moodCard', '🧠', 'Mood & Energy Check-in', function(body) {
+    if (todayEntry) {
+      var checked = document.createElement('div');
+      checked.style.cssText = 'text-align:center;padding:8px';
+      checked.innerHTML =
+        '<div style="font-size:2rem">' + todayEntry.mood + '</div>' +
+        '<div style="font-size:0.88rem;font-weight:600;margin:4px 0">Feeling: ' + todayEntry.moodLabel + '</div>' +
+        '<div style="font-size:0.82rem;color:#888">Energy: ' + todayEntry.energy + '</div>' +
+        (todayEntry.note ? '<div style="font-size:0.82rem;color:#666;margin-top:4px;font-style:italic">"' + escapeHTML(todayEntry.note) + '"</div>' : '');
+      body.appendChild(checked);
+    } else {
+      // Mood selection
+      var moodLabel = document.createElement('div');
+      moodLabel.style.cssText = 'font-size:0.85rem;font-weight:600;text-align:center;margin-bottom:6px';
+      moodLabel.textContent = 'How are you feeling today?';
+      body.appendChild(moodLabel);
+
+      var moodRow = document.createElement('div');
+      moodRow.className = 'mood-row';
+      moodOptions.forEach(function(opt) {
+        var btn = document.createElement('button');
+        btn.className = 'mood-btn';
+        btn.textContent = opt.emoji;
+        btn.title = opt.label;
+        btn.dataset.mood = opt.emoji;
+        btn.dataset.label = opt.label;
+        btn.addEventListener('click', function() {
+          moodRow.querySelectorAll('.mood-btn').forEach(function(b) { b.classList.remove('selected'); });
+          btn.classList.add('selected');
+        });
+        moodRow.appendChild(btn);
+      });
+      body.appendChild(moodRow);
+
+      // Energy level
+      var energyLabel = document.createElement('div');
+      energyLabel.style.cssText = 'font-size:0.85rem;font-weight:600;text-align:center;margin-bottom:6px';
+      energyLabel.textContent = 'Energy level:';
+      body.appendChild(energyLabel);
+
+      var energyRow = document.createElement('div');
+      energyRow.className = 'mood-energy-row';
+      energyOptions.forEach(function(opt) {
+        var btn = document.createElement('button');
+        btn.className = 'mood-energy-btn';
+        btn.textContent = opt;
+        btn.dataset.energy = opt;
+        btn.addEventListener('click', function() {
+          energyRow.querySelectorAll('.mood-energy-btn').forEach(function(b) { b.classList.remove('selected'); });
+          btn.classList.add('selected');
+        });
+        energyRow.appendChild(btn);
+      });
+      body.appendChild(energyRow);
+
+      // Note
+      var noteInput = document.createElement('input');
+      noteInput.type = 'text';
+      noteInput.className = 'mood-note-input';
+      noteInput.placeholder = 'Optional: quick note about your day…';
+      noteInput.id = 'moodNoteInput';
+      body.appendChild(noteInput);
+
+      // Save
+      var saveBtn = document.createElement('button');
+      saveBtn.className = 'mood-save-btn';
+      saveBtn.textContent = '💾 Save Check-in';
+      saveBtn.addEventListener('click', function() {
+        var selectedMood = moodRow.querySelector('.mood-btn.selected');
+        var selectedEnergy = energyRow.querySelector('.mood-energy-btn.selected');
+        if (!selectedMood) { alert('Please select a mood'); return; }
+        if (!selectedEnergy) { alert('Please select an energy level'); return; }
+        var data = getPersonalMood();
+        data.unshift({
+          date: today,
+          mood: selectedMood.dataset.mood,
+          moodLabel: selectedMood.dataset.label,
+          energy: selectedEnergy.dataset.energy,
+          note: noteInput.value.trim()
+        });
+        // Keep only last 30 days
+        if (data.length > 30) data = data.slice(0, 30);
+        setPersonalMood(data);
+        renderMoodCheckin();
+      });
+      body.appendChild(saveBtn);
+    }
+
+    // History (last 7 entries)
+    var recent = moods.filter(function(m) { return m.date !== today || todayEntry; }).slice(0, 7);
+    if (recent.length > 0) {
+      var histLabel = document.createElement('div');
+      histLabel.style.cssText = 'font-size:0.85rem;font-weight:600;margin-top:12px;margin-bottom:4px';
+      histLabel.textContent = '📊 Recent History';
+      body.appendChild(histLabel);
+
+      var hist = document.createElement('div');
+      hist.className = 'mood-history';
+      recent.forEach(function(m) {
+        var row = document.createElement('div');
+        row.className = 'mood-history-item';
+        row.innerHTML =
+          '<span class="mood-history-date">' + formatShortDate(m.date) + '</span>' +
+          '<span class="mood-history-mood">' + m.mood + '</span>' +
+          '<span class="mood-history-energy">' + m.energy + '</span>' +
+          '<span class="mood-history-note">' + escapeHTML(m.note || '') + '</span>';
+        hist.appendChild(row);
+      });
+      body.appendChild(hist);
+    }
+  }, 'pw_mood');
+
+  section.appendChild(card);
+}
+
+function formatShortDate(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr + 'T00:00:00');
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PERSONAL PAGE RENDER ORCHESTRATOR
+   ══════════════════════════════════════════════════════════════ */
+
+function renderPersonalWidgets() {
+  try { renderDailyFocus(); } catch(e) { console.warn('renderDailyFocus failed', e); }
+  try { renderRoutineChecklist(); } catch(e) { console.warn('renderRoutineChecklist failed', e); }
+  try { renderMealTracker(); } catch(e) { console.warn('renderMealTracker failed', e); }
+  try { renderHydrationTracker(); } catch(e) { console.warn('renderHydrationTracker failed', e); }
+  try { renderSleepTracker(); } catch(e) { console.warn('renderSleepTracker failed', e); }
+  try { renderGymPlanner(); } catch(e) { console.warn('renderGymPlanner failed', e); }
+  try { renderMoodCheckin(); } catch(e) { console.warn('renderMoodCheckin failed', e); }
+}
 
 /* ----- Calendar Cross-Domain Summary ----- */
 let calSummaryDomainFilter = 'all';
