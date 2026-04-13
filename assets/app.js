@@ -3381,13 +3381,16 @@ function wireCategoryFilters(){
   var bar = document.getElementById('categoryFilterBar');
   var arrow = document.getElementById('filterArrow');
   if (toggleBtn && bar) {
-    toggleBtn.onclick = function(e) {
+    function handleFilterToggle(e) {
       e.stopPropagation();
+      if (e.type === 'touchend') e.preventDefault();
       var isOpen = bar.style.display === 'flex';
       bar.style.display = isOpen ? 'none' : 'flex';
       toggleBtn.setAttribute('aria-expanded', String(!isOpen));
       if (arrow) arrow.textContent = isOpen ? '▸' : '▾';
-    };
+    }
+    toggleBtn.addEventListener('click', handleFilterToggle);
+    toggleBtn.addEventListener('touchend', handleFilterToggle);
   }
 
   // Wire the View dropdown toggle button
@@ -3395,13 +3398,16 @@ function wireCategoryFilters(){
   var viewBar = document.getElementById('viewDropdownBar');
   var viewArrow = document.getElementById('viewArrow');
   if (viewToggle && viewBar) {
-    viewToggle.onclick = function(e) {
+    function handleViewToggle(e) {
       e.stopPropagation();
+      if (e.type === 'touchend') e.preventDefault();
       var isOpen = viewBar.style.display === 'flex';
       viewBar.style.display = isOpen ? 'none' : 'flex';
       viewToggle.setAttribute('aria-expanded', String(!isOpen));
       if (viewArrow) viewArrow.textContent = isOpen ? '▸' : '▾';
-    };
+    }
+    viewToggle.addEventListener('click', handleViewToggle);
+    viewToggle.addEventListener('touchend', handleViewToggle);
   }
 
   // Re-render filter bar when data changes (buckets may have been added/removed)
