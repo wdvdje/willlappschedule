@@ -330,6 +330,9 @@
       }
 
       // repeating: iterate from baseDate to end, advancing according to rule, stop at repeatUntil if present
+      // Build skip dates (holidays, user off-days, job/bucket off-days) for this event
+      var mainBucketOrJobId = (ev.bucketId !== undefined && ev.bucketId !== null) ? ev.bucketId : (ev.jobId ? ev.jobId : null);
+      var mainSkipDates = buildSkipDatesMap(ev.abSkipHolidays, baseDate, effectiveEnd, mainBucketOrJobId);
       let d = baseDate;
       const maxLoop = 2000; // safety cap
       let loops = 0;
@@ -337,8 +340,10 @@
         if (loops++ > maxLoop) break;
         // stop if beyond end or beyond repeatUntil
         if (d > effectiveEnd) break;
-        // push occurrence if >= start and <= end
-        pushIfInRange(d);
+        // push occurrence if >= start and <= end, and not a skipped day
+        if (!mainSkipDates || !mainSkipDates[d]) {
+          pushIfInRange(d);
+        }
         // advance
         if (repeat === 'daily') d = addDaysISO(d, 1);
         else if (repeat === '2day') d = addDaysISO(d, 2);
