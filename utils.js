@@ -145,7 +145,8 @@
     return a <= b ? a : b;
   }
 
-  // Build a map of dates to skip (federal holidays, user off-days, job off-days).
+  // Build a map of dates to skip (federal holidays, user off-days, job/bucket off-days).
+  // Checks jobs first, then personalBuckets and homeBuckets, for bucket-specific off-days.
   // Returns an object { 'YYYY-MM-DD': true, ... } or null if nothing to skip.
   function buildSkipDatesMap(abSkipHolidays, baseDateISO, effectiveEndISO, bucketOrJobId) {
     var skipDates = null;
@@ -184,15 +185,23 @@
         }
       } catch(_) {}
     }
-    // Job-specific off-days
+    // Job-specific and bucket-specific off-days
     if (bucketOrJobId !== null && bucketOrJobId !== undefined) {
       try {
-        var jobs = JSON.parse(localStorage.getItem('jobs') || '[]');
         var normId = (typeof bucketOrJobId === 'string') ? parseInt(bucketOrJobId, 10) : bucketOrJobId;
-        var linkedJob = jobs.find(function(j) { return j.id === normId; });
-        if (linkedJob && Array.isArray(linkedJob.offDays) && linkedJob.offDays.length) {
+        var jobs = JSON.parse(localStorage.getItem('jobs') || '[]');
+        var linkedItem = jobs.find(function(j) { return j.id === normId; }) || null;
+        // If not found in jobs, check personal and home buckets
+        if (!linkedItem) {
+          var bucketKeys = ['personalBuckets', 'homeBuckets'];
+          for (var bki = 0; bki < bucketKeys.length && !linkedItem; bki++) {
+            var blist = JSON.parse(localStorage.getItem(bucketKeys[bki]) || '[]');
+            linkedItem = blist.find(function(b) { return b.id === normId; }) || null;
+          }
+        }
+        if (linkedItem && Array.isArray(linkedItem.offDays) && linkedItem.offDays.length) {
           if (!skipDates) skipDates = {};
-          linkedJob.offDays.forEach(function(d) {
+          linkedItem.offDays.forEach(function(d) {
             var dateStr = typeof d === 'string' ? d : (d && d.date ? d.date : '');
             if (dateStr) skipDates[dateStr] = true;
           });
