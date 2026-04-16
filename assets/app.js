@@ -599,7 +599,7 @@ function generateCalendar(){
   const monthEnd   = selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(daysInMonth);
   const events = getExpandedEvents(monthStart, monthEnd);
 
-  for (let i=0;i<start;i++) calendarEl.appendChild(document.createElement('div'));
+  for (let i=0;i<start;i++){const ec=document.createElement('div');ec.className='day day-empty';calendarEl.appendChild(ec);}
 
   const theme = themes[selectedMonth] || themes[0];
 
@@ -695,6 +695,11 @@ function generateCalendar(){
 
     if (selectedDay === day) cell.classList.add('selected');
     calendarEl.appendChild(cell);
+  }
+  const totalCells = start + daysInMonth;
+  const remainder = totalCells % 7;
+  if (remainder !== 0) {
+    for (let i=0;i<7-remainder;i++){const ec=document.createElement('div');ec.className='day day-empty';calendarEl.appendChild(ec);}
   }
 }
 
