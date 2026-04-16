@@ -1753,7 +1753,7 @@ body.dark-mode .weather-day-desc { color:#888; }
 
 .hydration-reset { font-size:0.78rem; background:none; border:none; color:#888; cursor:pointer; text-decoration:underline; }
 
-.mood-row { display:flex; gap:6px; justify-content:center; margin-bottom:10px; }
+.mood-row { display:flex; gap:6px; justify-content:center; margin-bottom:10px; flex-wrap:wrap; }
 
 .mood-btn { font-size:1.5rem; background:none; border:2px solid transparent; border-radius:12px; padding:6px 10px; cursor:pointer; transition:all 0.15s; }
 
@@ -1761,7 +1761,7 @@ body.dark-mode .weather-day-desc { color:#888; }
 
 .mood-btn:hover:not(.selected) { border-color:#ddd; transform:scale(1.08); }
 
-.mood-energy-row { display:flex; gap:6px; justify-content:center; margin-bottom:10px; }
+.mood-energy-row { display:flex; gap:6px; justify-content:center; margin-bottom:10px; flex-wrap:wrap; }
 
 .mood-energy-btn { padding:5px 14px; border-radius:16px; border:1.5px solid #ddd; background:#fff; cursor:pointer; font-size:0.82rem; transition:all 0.12s; }
 
@@ -2369,17 +2369,18 @@ body.dark-mode .mds-empty { color: #666; }
   #page-personal { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; }
   #page-personal > h2 { max-width: none; margin-left: 0; margin-right: 0; padding: 0 8px; }
   #personalGrid {
-        max-width: 900px;
+        max-width: min(calc(100% - 16px), 1400px);
+        margin: 0 auto;
         padding: 0 8px !important;
       }
   .personal-top-row {
         display: flex;
-        gap: 16px;
+        gap: 14px;
         align-items: flex-start;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
       }
   .personal-top-row > #personalBudgetSection {
-        flex: 1;
+        flex: 1.3;
         min-width: 0;
       }
   .personal-top-row > #personalFocusSection {
@@ -2388,19 +2389,29 @@ body.dark-mode .mds-empty { color: #666; }
       }
   #personalColumns {
         display: flex;
-        gap: 16px;
+        gap: 14px;
         align-items: flex-start;
       }
   #personalColLeft  { flex: 2; min-width: 0; }
   #personalColRight { flex: 1; min-width: 0; }
+  #page-personal .pw-card { margin-bottom: 10px; }
+  #page-personal .pw-body { padding: 8px 12px 10px; }
+  #personalSideCol {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+  #personalSleepSection {
+        grid-column: 1 / -1;
+      }
 }
 
 @media (min-width: 1800px) {
-  #page-calendar, #page-personal { max-width: calc(100vw - var(--ios-sidebar-w) - 16px); margin-left: auto; margin-right: auto; }
+  #page-calendar { max-width: calc(100vw - var(--ios-sidebar-w) - 16px); margin-left: auto; margin-right: auto; }
 }
 
 @media (min-width: 2400px) {
-  #page-calendar, #page-personal { max-width: calc(100vw - var(--ios-sidebar-w) - 32px); }
+  #page-calendar { max-width: calc(100vw - var(--ios-sidebar-w) - 32px); }
 }
 
 /* ── prefers-reduced-motion: disable/reduce animations for accessibility ── */

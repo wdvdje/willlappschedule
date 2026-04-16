@@ -386,7 +386,7 @@
     <!-- Personal domain page -->
     <section id="page-personal" class="page hidden">
       <h2>👤 Personal</h2>
-      <div id="personalGrid" style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
+      <div id="personalGrid" style="margin:0 auto;padding:0 12px;box-sizing:border-box">
         <div class="personal-top-row">
           <!-- Budget Widget -->
           <div id="personalBudgetSection"></div>
@@ -398,18 +398,18 @@
              a widget in one column does NOT leave blank space in the other -->
         <div id="personalColumns">
           <div id="personalColLeft">
-            <!-- Meal Tracker — left column on desktop -->
+            <!-- Meal Tracker — left column (7-col grid benefits from wider layout) -->
             <div id="personalMealSection"></div>
-            <!-- Routine Checklists — left column on desktop -->
-            <div id="personalRoutineSection"></div>
+            <!-- Gym / Exercise Planner — left column (split panel benefits from wider layout) -->
+            <div id="personalGymSection"></div>
           </div>
           <div id="personalColRight">
-            <!-- Gym / Exercise Planner — right column on desktop -->
-            <div id="personalGymSection"></div>
-            <!-- Side column: Hydration, Sleep, Mood -->
+            <!-- Routine Checklists — right column (phases layout works at any width) -->
+            <div id="personalRoutineSection"></div>
+            <!-- Side column: Sleep (full-width), Hydration + Mood (side by side) -->
             <div id="personalSideCol">
-              <div id="personalHydrationSection"></div>
               <div id="personalSleepSection"></div>
+              <div id="personalHydrationSection"></div>
               <div id="personalMoodSection"></div>
             </div>
           </div>
