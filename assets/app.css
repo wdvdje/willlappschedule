@@ -13,6 +13,7 @@ header .header-btn .header-btn-label { font-size:0.75rem; }
 .day{background:#fff;border-radius:8px;padding:8px;min-height:64px;position:relative;cursor:pointer;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; flex-direction:column; align-items:stretch;}
 .day.selected{border:2px solid #4a90e2;box-shadow:0 2px 8px rgba(74,144,226,0.15)}
 .day.today{outline:2px solid #4a90e2;}
+.day.day-empty{pointer-events:none;cursor:default;box-shadow:none;background:#f7f8fa;}
 .day .day-number{font-weight:700;display:flex;gap:6px;align-items:center;justify-content:flex-start}
 .emoji-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding-top:6px;flex:1 1 auto;min-height:18px;max-height:48px;box-sizing:border-box}
 .event-preview{display:inline-flex;align-items:center;justify-content:center;line-height:1;border-radius:6px;padding:2px;background:transparent;user-select:none}
@@ -506,7 +507,8 @@ kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc; border-ra
   /* Calendar page: expand wider than other pages, near full viewport width */
   #page-calendar { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; overflow-x: hidden; }
   .day { min-height: 90px; overflow: visible; }
-  .emoji-row { max-height: none; gap: 3px; flex-direction: column; align-items: stretch; overflow-y: auto; }
+  .calendar { grid-auto-rows: minmax(90px, auto); }
+  .emoji-row { max-height: 60px; overflow-y: auto; gap: 3px; flex-direction: column; align-items: stretch; }
   .event-preview {
     display: flex;
     align-items: center;
@@ -632,8 +634,9 @@ body.dark-mode kbd { background: #2a2a4a; border-color: #4a4a7a; color: #ccc; }
   .cal-side-panel {
     display: flex;
     flex-direction: column;
-    width: 230px;
-    flex-shrink: 0;
+    width: 180px;
+    flex-shrink: 1;
+    min-width: 140px;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 2px 14px rgba(0,0,0,0.08);
@@ -709,6 +712,7 @@ body.dark-mode kbd { background: #2a2a4a; border-color: #4a4a7a; color: #ccc; }
 body.dark-mode .cal-side-panel { background: #16213e; color: #e0e0e0; }
 body.dark-mode .cal-panel-expand-tab { background: #16213e; color: #aaa; }
 body.dark-mode .cal-panel-expand-tab:hover { background: #1e3055; color: #7ab3f5; }
+body.dark-mode .day.day-empty { background: #1a2035; }
 
 /* ── Streak badge ── */
 .dcf-streak-badge {
