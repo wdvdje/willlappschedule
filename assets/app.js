@@ -3875,22 +3875,24 @@ function renderInboxDailyItems(){
 
   list.innerHTML = html;
 
-  // Async: populate driving times for events with locations
+  // Async: populate driving times for events with locations (rate-limited to 1 req/s per Nominatim policy)
   var profile = readUserProfile();
   if (profile.home && typeof profile.home.lat === 'number' && typeof profile.home.lng === 'number') {
-    dateEvents.forEach(function(ev, evIdx){
-      if (!ev.location) return;
-      var driveId = 'inbox-drive-' + evIdx;
-      var el = document.getElementById(driveId);
-      if (!el) return;
-      el.textContent = '\u23F3';
-      inboxFetchDrivingTime(profile.home.lat, profile.home.lng, ev.location).then(function(mins){
-        if (el && mins !== null) {
-          el.textContent = '\uD83D\uDE97 ~' + mins + ' min from home';
-        } else if (el) {
-          el.textContent = '';
-        }
-      }).catch(function(){ if (el) el.textContent = ''; });
+    var eventsWithLocation = dateEvents.filter(function(ev){ return !!ev.location; });
+    eventsWithLocation.forEach(function(ev, i){
+      var driveId = 'inbox-drive-' + dateEvents.indexOf(ev);
+      setTimeout(function(){
+        var el = document.getElementById(driveId);
+        if (!el) return;
+        el.textContent = '\u23F3';
+        inboxFetchDrivingTime(profile.home.lat, profile.home.lng, ev.location).then(function(mins){
+          if (el && mins !== null) {
+            el.textContent = '\uD83D\uDE97 ~' + mins + ' min from home';
+          } else if (el) {
+            el.textContent = '';
+          }
+        }).catch(function(){ if (el) el.textContent = ''; });
+      }, i * 1100); // stagger by 1.1 s to respect Nominatim 1 req/s limit
     });
   }
 }
@@ -3898,15 +3900,21 @@ function renderInboxDailyItems(){
 /* Geocode an address string via Nominatim, returning {lat, lng} or null */
 function inboxGeocodeAddress(address){
   var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(address);
-  return fetch(url, { headers: { 'Accept': 'application/json' } })
-    .then(function(r){ return r.json(); })
-    .then(function(results){
-      if (!results || !results.length) return null;
-      var lat = parseFloat(results[0].lat);
-      var lng = parseFloat(results[0].lon);
-      if (!isFinite(lat) || !isFinite(lng)) return null;
-      return { lat: lat, lng: lng };
-    });
+  return fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': 'TimeScapePlanner/1.0 (https://github.com/wdvdje/willlappschedule)'
+    }
+  }).then(function(r){
+    if (!r.ok) return null;
+    return r.json();
+  }).then(function(results){
+    if (!results || !results.length) return null;
+    var lat = parseFloat(results[0].lat);
+    var lng = parseFloat(results[0].lon);
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    return { lat: lat, lng: lng };
+  }).catch(function(){ return null; });
 }
 
 /* Fetch driving duration in minutes via OSRM between two lat/lng pairs */
@@ -3918,12 +3926,14 @@ function inboxFetchDrivingTime(fromLat, fromLng, toAddress){
       + dest.lng + ',' + dest.lat
       + '?overview=false';
     return fetch(url, { headers: { 'Accept': 'application/json' } })
-      .then(function(r){ return r.json(); })
-      .then(function(data){
+      .then(function(r){
+        if (!r.ok) return null;
+        return r.json();
+      }).then(function(data){
         if (!data || !data.routes || !data.routes.length) return null;
         var secs = data.routes[0].duration;
         return Math.ceil(secs / 60);
-      });
+      }).catch(function(){ return null; });
   });
 }
 
@@ -3946,7 +3956,7 @@ function renderInboxOverdueTasks(){
 
   var html = '';
   overdue.forEach(function(t){
-    var today = new Date(todayISO);
+    var today = new Date(todayISO + 'T12:00:00');
     var due = new Date(t.date + 'T12:00:00');
     var daysAgo = Math.round((today - due) / 86400000);
     var agoLabel = daysAgo === 1 ? 'yesterday' : daysAgo + ' days ago';
