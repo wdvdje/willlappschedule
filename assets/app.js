@@ -3781,15 +3781,17 @@ function updateInboxBadge(){
   const label=document.getElementById('inboxNavLabel');
   if(!label) return;
   const viewDate = getViewedDateISO();
+  const todayISO = getTodayISO();
   const tasks = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) === viewDate && !t.done; });
   const rems = (getReminders()[viewDate] || []).filter(function(r){ return !r.done; });
   const dailyCount = tasks.length + rems.length;
   const unsortedCount = getInbox().length;
-  const total = dailyCount + unsortedCount;
+  const overdueCount = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) < todayISO && !t.done; }).length;
+  const total = dailyCount + unsortedCount + overdueCount;
   label.textContent = total > 0 ? 'Inbox (' + total + ')' : 'Inbox';
 }
 
-/* Render daily items (tasks + reminders for viewed day) in the inbox */
+/* Render daily items (tasks + reminders + events for viewed day) in the inbox */
 function renderInboxDailyItems(){
   const list = document.getElementById('inboxDailyList');
   const empty = document.getElementById('inboxDailyEmpty');
@@ -3814,8 +3816,17 @@ function renderInboxDailyItems(){
   // Get reminders for this date
   const allRems = getReminders();
   const dateReminders = allRems[viewDate] || [];
+  // Get calendar events for this date (timed events)
+  var dateEvents = [];
+  try {
+    dateEvents = getEvents().filter(function(ev){
+      return ev.date && normalizeDate(ev.date) === viewDate;
+    });
+    // sort by time
+    dateEvents.sort(function(a, b){ return (a.time || '').localeCompare(b.time || ''); });
+  } catch(_) {}
 
-  if (tasks.length === 0 && dateReminders.length === 0) {
+  if (tasks.length === 0 && dateReminders.length === 0 && dateEvents.length === 0) {
     list.innerHTML = '';
     if (empty) empty.style.display = 'block';
     return;
@@ -3824,8 +3835,20 @@ function renderInboxDailyItems(){
 
   var html = '';
 
+  // Render calendar events
+  dateEvents.forEach(function(ev, evIdx){
+    var timePart = ev.time ? ' <span style="color:#888;font-size:0.85rem">[' + escapeHTML(ev.time) + (ev.endTime ? '–' + escapeHTML(ev.endTime) : '') + ']</span>' : '';
+    var locPart = ev.location ? ' <span style="color:#888;font-size:0.82rem">\uD83D\uDCCD ' + escapeHTML(ev.location) + '</span>' : '';
+    var driveId = ev.location ? 'inbox-drive-' + evIdx : '';
+    var drivePart = ev.location ? ' <span id="' + driveId + '" style="color:#2980b9;font-size:0.82rem;margin-left:4px"></span>' : '';
+    html += '<div style="background:#eaf3fb;border:1px solid #4a90e2;border-radius:10px;padding:10px 14px;margin-bottom:8px">'
+      + '<div style="font-weight:600">\uD83D\uDCC5 ' + escapeHTML(ev.emoji || '') + ' ' + escapeHTML(ev.title || '') + timePart + '</div>'
+      + '<div style="font-size:0.85rem;color:#555;margin-top:2px">' + locPart + drivePart + '</div>'
+      + '</div>';
+  });
+
   // Render tasks
-  tasks.forEach(function(t, idx){
+  tasks.forEach(function(t){
     var checked = t.done ? 'checked' : '';
     var doneStyle = t.done ? 'text-decoration:line-through;opacity:0.6' : '';
     var timePart = t.time ? ' <span style="color:#888;font-size:0.85rem">[' + escapeHTML(t.time) + ']</span>' : '';
@@ -3851,7 +3874,106 @@ function renderInboxDailyItems(){
   });
 
   list.innerHTML = html;
+
+  // Async: populate driving times for events with locations
+  var profile = readUserProfile();
+  if (profile.home && typeof profile.home.lat === 'number' && typeof profile.home.lng === 'number') {
+    dateEvents.forEach(function(ev, evIdx){
+      if (!ev.location) return;
+      var driveId = 'inbox-drive-' + evIdx;
+      var el = document.getElementById(driveId);
+      if (!el) return;
+      el.textContent = '\u23F3';
+      inboxFetchDrivingTime(profile.home.lat, profile.home.lng, ev.location).then(function(mins){
+        if (el && mins !== null) {
+          el.textContent = '\uD83D\uDE97 ~' + mins + ' min from home';
+        } else if (el) {
+          el.textContent = '';
+        }
+      }).catch(function(){ if (el) el.textContent = ''; });
+    });
+  }
 }
+
+/* Geocode an address string via Nominatim, returning {lat, lng} or null */
+function inboxGeocodeAddress(address){
+  var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(address);
+  return fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(function(r){ return r.json(); })
+    .then(function(results){
+      if (!results || !results.length) return null;
+      var lat = parseFloat(results[0].lat);
+      var lng = parseFloat(results[0].lon);
+      if (!isFinite(lat) || !isFinite(lng)) return null;
+      return { lat: lat, lng: lng };
+    });
+}
+
+/* Fetch driving duration in minutes via OSRM between two lat/lng pairs */
+function inboxFetchDrivingTime(fromLat, fromLng, toAddress){
+  return inboxGeocodeAddress(toAddress).then(function(dest){
+    if (!dest) return null;
+    var url = 'https://router.project-osrm.org/route/v1/driving/'
+      + fromLng + ',' + fromLat + ';'
+      + dest.lng + ',' + dest.lat
+      + '?overview=false';
+    return fetch(url, { headers: { 'Accept': 'application/json' } })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        if (!data || !data.routes || !data.routes.length) return null;
+        var secs = data.routes[0].duration;
+        return Math.ceil(secs / 60);
+      });
+  });
+}
+
+/* Render overdue tasks (incomplete tasks past their due date) in the inbox */
+function renderInboxOverdueTasks(){
+  var listEl = document.getElementById('inboxOverdueList');
+  var emptyEl = document.getElementById('inboxOverdueEmpty');
+  var headingEl = document.getElementById('inboxOverdueHeading');
+  if (!listEl) return;
+
+  var todayISO = getTodayISO();
+  var overdue = getTasks().filter(function(t){
+    return t.date && normalizeDate(t.date) < todayISO && !t.done;
+  }).sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
+
+  if (headingEl) headingEl.style.display = overdue.length > 0 ? 'block' : 'none';
+  if (emptyEl) emptyEl.style.display = overdue.length === 0 ? 'block' : 'none';
+
+  if (overdue.length === 0) { listEl.innerHTML = ''; return; }
+
+  var html = '';
+  overdue.forEach(function(t){
+    var today = new Date(todayISO);
+    var due = new Date(t.date + 'T12:00:00');
+    var daysAgo = Math.round((today - due) / 86400000);
+    var agoLabel = daysAgo === 1 ? 'yesterday' : daysAgo + ' days ago';
+    var priorityMap = {'1':'!','2':'!!','3':'!!!'};
+    var prioLabel = t.priority ? ' <span style="color:#e74c3c;font-size:0.8rem">' + (priorityMap[t.priority] || '') + '</span>' : '';
+    html += '<div style="background:#fdf0f0;border:1px solid #e74c3c;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+      + '<input type="checkbox" onchange="toggleInboxTaskDone(\'' + escapeHTML(t.id) + '\',this.checked)" style="width:18px;height:18px;cursor:pointer;flex-shrink:0">'
+      + '<div style="flex:1">'
+      + '<span style="font-weight:600">' + escapeHTML(t.title || '') + '</span>' + prioLabel
+      + ' <span style="color:#c0392b;font-size:0.82rem">· due ' + escapeHTML(agoLabel) + '</span>'
+      + '</div>'
+      + '<button class="small-btn" onclick="deleteOverdueTask(\'' + escapeHTML(t.id) + '\')" style="flex-shrink:0">Delete</button>'
+      + '</div>';
+  });
+  listEl.innerHTML = html;
+}
+
+/* Delete a task from the overdue list */
+function deleteOverdueTask(id){
+  var tasks = getTasks().filter(function(t){ return String(t.id) !== String(id); });
+  setTasks(tasks);
+  renderInboxOverdueTasks();
+  updateInboxBadge();
+  try { renderInboxWidget(); } catch(_){}
+}
+window.deleteOverdueTask = deleteOverdueTask;
+
 
 /* Render inbox preview widget on the Today dashboard */
 function renderInboxWidget(){
@@ -3915,6 +4037,7 @@ function toggleInboxWidgetTaskDone(taskId, done){
   setTasks(tasks);
   renderInboxWidget();
   renderInboxDailyItems();
+  renderInboxOverdueTasks();
   updateInboxBadge();
   updateCompletionRing();
   if (typeof window.dailyViewRefresh === 'function') try { window.dailyViewRefresh(); } catch(_){}
@@ -3948,6 +4071,7 @@ function toggleInboxTaskDone(taskId, done){
     }
   }
   setTasks(tasks);
+  renderInboxOverdueTasks();
   renderInboxDailyItems();
   try { renderInboxWidget(); } catch(_){}
   updateInboxBadge();
@@ -3977,6 +4101,7 @@ window.toggleInboxReminderDone = toggleInboxReminderDone;
 
 /* Render unsorted inbox items */
 function renderInbox(){
+  renderInboxOverdueTasks();
   renderInboxDailyItems();
 
   const list=document.getElementById('inboxList');

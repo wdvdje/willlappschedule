@@ -566,11 +566,18 @@
     <section id="page-inbox" class="page hidden">
       <h2 style="text-align:center">📥 Inbox</h2>
 
-      <!-- Daily Items: tasks + reminders for the viewed day -->
+      <!-- Overdue Tasks: incomplete tasks past their due date -->
       <div style="max-width:640px;margin:0 auto;padding:0 12px">
+        <h3 id="inboxOverdueHeading" style="margin:8px 0 6px;font-size:1rem;color:#c0392b;display:none">⚠️ Overdue Tasks</h3>
+        <div id="inboxOverdueList"></div>
+        <p id="inboxOverdueEmpty" style="text-align:center;color:#aaa;display:none;font-size:0.9rem">✅ No overdue tasks!</p>
+      </div>
+
+      <!-- Daily Items: tasks + reminders + events for the viewed day -->
+      <div style="max-width:640px;margin:8px auto 0;padding:0 12px">
         <h3 id="inboxDailyHeading" style="margin:8px 0 6px;font-size:1rem;color:#333">📋 Today's Items</h3>
         <div id="inboxDailyList"></div>
-        <p id="inboxDailyEmpty" style="text-align:center;color:#aaa;display:none;font-size:0.9rem">No tasks or reminders for this day.</p>
+        <p id="inboxDailyEmpty" style="text-align:center;color:#aaa;display:none;font-size:0.9rem">No tasks, reminders, or events for this day.</p>
       </div>
 
       <!-- Unsorted items (existing inbox) -->
