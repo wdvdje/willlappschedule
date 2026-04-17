@@ -2375,9 +2375,9 @@ body.dark-mode .mds-empty { color: #666; }
       }
   .personal-top-row {
         display: flex;
-        gap: 14px;
+        gap: 10px;
         align-items: flex-start;
-        margin-bottom: 12px;
+        margin-bottom: 8px;
       }
   .personal-top-row > #personalBudgetSection {
         flex: 1.3;
@@ -2389,17 +2389,18 @@ body.dark-mode .mds-empty { color: #666; }
       }
   #personalColumns {
         display: flex;
-        gap: 14px;
+        gap: 10px;
         align-items: flex-start;
       }
   #personalColLeft  { flex: 2; min-width: 0; }
   #personalColRight { flex: 1; min-width: 0; }
-  #page-personal .pw-card { margin-bottom: 10px; }
-  #page-personal .pw-body { padding: 8px 12px 10px; }
+  #page-personal .pw-card { margin-bottom: 6px; }
+  #page-personal .pw-header { padding: 8px 12px; }
+  #page-personal .pw-body { padding: 8px 12px 8px; }
   #personalSideCol {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 10px;
+        gap: 8px;
       }
   #personalSleepSection {
         grid-column: 1 / -1;
