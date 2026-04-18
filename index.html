@@ -734,6 +734,7 @@
         <input type="hidden" id="editReminderKey" />
         <input type="hidden" id="editReminderIndex" />
         <input type="hidden" id="editItemDomain" />
+        <input type="hidden" id="editOccurrenceDate" />
         <div style="margin-top:8px;">
           <label for="editText">Text / Title</label>
           <input id="editText" type="text" />
@@ -747,7 +748,8 @@
           <div style="width:140px"><label for="editEndTime">End time</label><input id="editEndTime" type="time" /></div>
         </div>
 
-        <!-- Repeat controls in edit modal -->
+        <!-- Repeat controls in edit modal (hidden when editing a single occurrence) -->
+        <div id="editRepeatSection">
         <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
           <label style="min-width:90px;margin:0">Repeat</label>
           <select id="editRepeat" style="width:160px">
@@ -783,6 +785,7 @@
           </select>
           <label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer"><input type="checkbox" id="editABSkipHolidays" /> Skip holidays &amp; off-days</label>
         </div>
+        </div><!-- end editRepeatSection -->
 
         <!-- Advanced Item Specifications in edit modal -->
         <details id="editAdvancedSpecs" style="margin-top:8px">

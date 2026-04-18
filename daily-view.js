@@ -529,7 +529,15 @@
           ev.stopPropagation();
           if (item.kind === 'routine') return; // routines are not editable from daily view
           if (item.kind === 'event') {
-            if (openEditModal) openEditModal(item.raw); else console.log('Edit event:', item.raw);
+            var evId = item.raw && (item.raw._baseId || item.raw.id);
+            var evOccDate = item.raw && item.raw.occurrenceDate;
+            if (typeof editEvent === 'function') {
+              editEvent(evId, evOccDate);
+            } else if (openEditModal) {
+              openEditModal(item.raw);
+            } else {
+              console.log('Edit event:', item.raw);
+            }
           } else {
             var modal = document.getElementById('editModal');
             if (!modal) return;
