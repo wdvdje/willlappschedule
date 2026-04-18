@@ -1359,38 +1359,66 @@ function addEvent(e){
 
 /* delete/edit events */
 function deleteEvent(id){ if(!confirm('Delete this event?')) return; let evs=getEvents(); evs = evs.filter(e=>e.id!==id); setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
-function editEvent(id){
+function editEvent(id, occurrenceDate){
   const evs = getEvents(); const idx = evs.findIndex(e=>e.id===id); if (idx===-1) return;
   const e = evs[idx];
+  const isRepeating = e.repeat && e.repeat !== 'none';
+
+  // When an occurrence date is provided for a repeating event, ask user which scope to edit
+  let editingThisOccurrence = false;
+  if (occurrenceDate && isRepeating) {
+    const editAll = confirm('This is a repeating event. Edit all events in the series?\n\nOK = Edit all events\nCancel = Edit just this occurrence');
+    editingThisOccurrence = !editAll;
+  }
+
+  // If editing a specific occurrence that already has an exception, pre-fill from it
+  const exc = editingThisOccurrence && e.repeatExceptions && e.repeatExceptions[occurrenceDate] ? e.repeatExceptions[occurrenceDate] : null;
+  const eff = exc ? Object.assign({}, e, exc) : e;
+
   document.getElementById('editKind').value='event';
   document.getElementById('editEventId').value = id;
-  document.getElementById('editText').value = e.title || '';
-  document.getElementById('editDate').value = e.date || '';
-  document.getElementById('editTime').value = e.time || '';
-  document.getElementById('editEndTime').value = e.endTime || '';
-  if (document.getElementById('editEndDate')) document.getElementById('editEndDate').value = e.endDate || '';
-  document.getElementById('editLocation').value = e.location || '';
-  document.getElementById('editEmoji').value = e.emoji || '';
-  if (document.getElementById('editCategory')) document.getElementById('editCategory').value = e.category || 'event';
-  document.getElementById('editPreBuffer').value = parseBufferMinutes(e.preBuffer || 0);
-  document.getElementById('editPostBuffer').value = parseBufferMinutes(e.postBuffer || 0);
-  document.getElementById('editRepeat').value = e.repeat || 'none';
-  document.getElementById('editRepeatUntil').value = e.repeatUntil || '';
-  document.getElementById('editRepeatInterval').value = e.repeatInterval || 1;
-  document.getElementById('editRepeatUnit').value = e.repeatUnit || 'days';
-  document.getElementById('editABWeek').value = e.abWeek || 'a';
-  var editSkipHol = document.getElementById('editABSkipHolidays');
-  if (editSkipHol) editSkipHol.checked = !!e.abSkipHolidays;
-  syncRepeatUI('edit');
-  // Populate advanced item specifications in edit modal
-  populateAdvancedSpecs('editAdvSpecList', e.advancedSpecs || []);
+  document.getElementById('editText').value = eff.title || '';
+  document.getElementById('editDate').value = editingThisOccurrence ? (occurrenceDate || eff.date || '') : (e.date || '');
+  document.getElementById('editTime').value = eff.time || '';
+  document.getElementById('editEndTime').value = eff.endTime || '';
+  if (document.getElementById('editEndDate')) document.getElementById('editEndDate').value = editingThisOccurrence ? '' : (e.endDate || '');
+  document.getElementById('editLocation').value = eff.location || '';
+  document.getElementById('editEmoji').value = eff.emoji || '';
+  if (document.getElementById('editCategory')) document.getElementById('editCategory').value = eff.category || 'event';
+  document.getElementById('editPreBuffer').value = parseBufferMinutes(eff.preBuffer || 0);
+  document.getElementById('editPostBuffer').value = parseBufferMinutes(eff.postBuffer || 0);
+
+  // Store the occurrence date (empty string = editing all)
+  const occEl = document.getElementById('editOccurrenceDate');
+  if (occEl) occEl.value = editingThisOccurrence ? (occurrenceDate || '') : '';
+
+  // Show/hide repeat section and advanced specs based on editing mode
+  const repSection = document.getElementById('editRepeatSection');
+  if (repSection) repSection.style.display = editingThisOccurrence ? 'none' : '';
+  const advSection = document.getElementById('editAdvancedSpecs');
+  if (advSection) advSection.style.display = editingThisOccurrence ? 'none' : '';
+
+  if (!editingThisOccurrence) {
+    document.getElementById('editRepeat').value = e.repeat || 'none';
+    document.getElementById('editRepeatUntil').value = e.repeatUntil || '';
+    document.getElementById('editRepeatInterval').value = e.repeatInterval || 1;
+    document.getElementById('editRepeatUnit').value = e.repeatUnit || 'days';
+    document.getElementById('editABWeek').value = e.abWeek || 'a';
+    var editSkipHol = document.getElementById('editABSkipHolidays');
+    if (editSkipHol) editSkipHol.checked = !!e.abSkipHolidays;
+    syncRepeatUI('edit');
+    // Populate advanced item specifications in edit modal
+    populateAdvancedSpecs('editAdvSpecList', e.advancedSpecs || []);
+  } else {
+    populateAdvancedSpecs('editAdvSpecList', []);
+  }
   const itemDomain = e.domain || getDomainOfItem(e);
   const editItemDomainEl = document.getElementById('editItemDomain');
   if (editItemDomainEl) editItemDomainEl.value = itemDomain;
   populateBucketSelect(document.getElementById('editBucket'), itemDomain, e.bucketId);
   const bRow = document.getElementById('editBucketRow');
   if (bRow) bRow.style.display = 'block';
-  showModalFieldsFor('event'); openEditModal('Edit Event');
+  showModalFieldsFor('event'); openEditModal(editingThisOccurrence ? 'Edit This Occurrence' : 'Edit Event');
 }
 
 /* modal helpers */
@@ -1417,6 +1445,32 @@ function saveEditHandler(e){
   if (kind === 'event'){
     const id = parseInt(document.getElementById('editEventId').value,10);
     const evs = getEvents(); const idx = evs.findIndex(x=>x.id===id); if (idx===-1){ closeEditModal(); return; }
+
+    // Handle single-occurrence edit: save as exception rather than modifying base event
+    const occEl = document.getElementById('editOccurrenceDate');
+    const occDate = occEl ? occEl.value.trim() : '';
+    if (occDate) {
+      const before = Object.assign({}, evs[idx]);
+      if (!evs[idx].repeatExceptions) evs[idx].repeatExceptions = {};
+      const exc = {
+        title: text, time: time, startTime: time, endTime: endTime,
+        location: document.getElementById('editLocation').value.trim(),
+        emoji: document.getElementById('editEmoji').value.trim(),
+        preBuffer: parseBufferMinutes(document.getElementById('editPreBuffer').value),
+        postBuffer: parseBufferMinutes(document.getElementById('editPostBuffer').value)
+      };
+      const excCatEl = document.getElementById('editCategory');
+      if (excCatEl) exc.category = excCatEl.value || 'event';
+      evs[idx].repeatExceptions[occDate] = exc;
+      setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
+      pushUndo({ label: 'Edit to occurrence of "' + evs[idx].title + '" undone.', undo: function() {
+        const cur = getEvents(); const ci = cur.findIndex(function(x){ return x.id === before.id; });
+        if (ci !== -1) { cur[ci] = before; setEvents(cur); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
+      }});
+      closeEditModal();
+      return;
+    }
+
     /* Capture snapshot for undo */
     const before = Object.assign({}, evs[idx]);
     let repeatPayload;
@@ -3551,7 +3605,7 @@ function renderWeekView(){
       chip.style.borderLeftColor=CAT_COLORS[ev.category||'event']||'#4a90e2';
       chip.textContent=(ev.emoji||'')+' '+(ev.time?ev.time+' ':'')+( ev.title||'');
       chip.title=ev.title||'';
-      (function(id){ chip.addEventListener('click',e=>{ e.stopPropagation(); editEvent(id); }); })(ev.id);
+      (function(evCopy){ chip.addEventListener('click',e=>{ e.stopPropagation(); editEvent(evCopy.id, evCopy.occurrenceDate); }); })(ev);
       col.appendChild(chip);
     });
     allTasks.filter(t=>normalizeDate(t.date)===ymd).forEach(t=>{
@@ -4357,9 +4411,39 @@ function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) bt
 /* Patch delete functions for undo support */
 (function patchDeleteFunctions(){
   const origDE=deleteEvent;
-  deleteEvent=function(id){
+  deleteEvent=function(id, occurrenceDate){
     const item=getEvents().find(function(e){ return e.id===id; });
     if(!item){ origDE(id); return; }
+    const isRepeating = item.repeat && item.repeat !== 'none';
+
+    if(occurrenceDate && isRepeating){
+      // Ask user: delete just this occurrence, or the whole series
+      const deleteAll=confirm('This is a repeating event.\n\nOK = Delete all events in the series\nCancel = Delete just this occurrence');
+      if(deleteAll){
+        if(!confirm('Delete all events in the series "' + (item.title||'') + '"?')) return;
+        haptic.delete();
+        setEvents(getEvents().filter(function(e){ return e.id!==id; }));
+        renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+        pushUndo({ label:'Event series "'+item.title+'" deleted.', undo:function(){ const cur=getEvents(); cur.push(item); setEvents(cur); } });
+      } else {
+        // Mark this single occurrence as skipped
+        haptic.delete();
+        const evs=getEvents(); const idx=evs.findIndex(function(e){ return e.id===id; });
+        if(idx!==-1){
+          if(!evs[idx].repeatExceptions) evs[idx].repeatExceptions={};
+          evs[idx].repeatExceptions[occurrenceDate]={_skipped:true};
+          const capturedBefore=Object.assign({},evs[idx]);
+          const capturedOccDate=occurrenceDate;
+          setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+          pushUndo({ label:'Removed occurrence of "'+item.title+'" on '+occurrenceDate+'.', undo:function(){
+            const cur=getEvents(); const ci=cur.findIndex(function(e){ return e.id===capturedBefore.id; });
+            if(ci!==-1){ if(cur[ci].repeatExceptions) delete cur[ci].repeatExceptions[capturedOccDate]; setEvents(cur); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay); }
+          }});
+        }
+      }
+      return;
+    }
+
     if(!confirm('Delete this event?')) return;
     haptic.delete();
     setEvents(getEvents().filter(function(e){ return e.id!==id; }));

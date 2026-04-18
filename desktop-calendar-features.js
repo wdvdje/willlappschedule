@@ -861,7 +861,7 @@
           var repeatIcon = (ev.repeat && ev.repeat !== 'none') ? ' 🔁' : '';
           block.textContent = (ev.emoji || '') + ' ' + (ev.title || '') + repeatIcon;
           block.title = (ev.time || '') + ' – ' + (ev.endTime || '') + ': ' + (ev.title || '');
-          (function (id) { block.addEventListener('click', function () { try { editEvent(id); } catch (_) {} }); })(ev.id);
+          (function (id, occDate) { block.addEventListener('click', function () { try { editEvent(id, occDate); } catch (_) {} }); })(ev.id, ev.occurrenceDate);
           cell.appendChild(block);
         });
 
@@ -1531,7 +1531,7 @@
       if (!d || d < todayStr || d > endStr) return;
       var domain = ev.domain || 'personal';
       if (domainFilter !== 'all' && domain !== domainFilter) return;
-      items.push({ kind: 'event', time: ev.time || '23:59', title: ev.title || '', color: dcs[domain] || '#4a90e2', emoji: ev.emoji || '📌', date: d, endTime: ev.endTime || '', repeat: ev.repeat || 'none', eventId: ev.id });
+      items.push({ kind: 'event', time: ev.time || '23:59', title: ev.title || '', color: dcs[domain] || '#4a90e2', emoji: ev.emoji || '📌', date: d, endTime: ev.endTime || '', repeat: ev.repeat || 'none', eventId: ev.id, occurrenceDate: ev.occurrenceDate || '' });
     });
 
     /* Gather tasks */
@@ -1577,7 +1577,7 @@
       var repeatIcon = (item.repeat && item.repeat !== 'none') ? ' 🔁' : '';
       var doneStyle = item.done ? 'text-decoration:line-through;opacity:0.65;' : '';
       var dataAttrs = '';
-      if (item.kind === 'event') dataAttrs = ' data-action="edit-event" data-event-id="' + item.eventId + '"';
+      if (item.kind === 'event') dataAttrs = ' data-action="edit-event" data-event-id="' + item.eventId + '" data-occurrence-date="' + esc(item.occurrenceDate || '') + '"';
       else if (item.kind === 'task') dataAttrs = ' data-action="edit-task" data-task-idx="' + item.taskIdx + '"';
       else if (item.kind === 'reminder') dataAttrs = ' data-action="edit-reminder" data-rem-key="' + esc(item.remKey) + '" data-rem-idx="' + item.remIdx + '"';
       var kindLabel = '<span class="dcf-split-kind dcf-split-kind-' + item.kind + '">' + item.kind.charAt(0).toUpperCase() + item.kind.slice(1) + '</span>';
@@ -1651,7 +1651,7 @@
       if (s === null) s = 9 * 60;
       if (en === null) en = s + 60;
       if (en <= s) en = s + 60;
-      items.push({ kind: 'event', title: e.title || 'Event', emoji: e.emoji || '📌', startMin: s, endMin: en, hasTimes: hasTimes, color: dcs[e.domain || 'personal'] || '#4a90e2', eventId: e.id, repeat: e.repeat || 'none' });
+      items.push({ kind: 'event', title: e.title || 'Event', emoji: e.emoji || '📌', startMin: s, endMin: en, hasTimes: hasTimes, color: dcs[e.domain || 'personal'] || '#4a90e2', eventId: e.id, repeat: e.repeat || 'none', occurrenceDate: e.occurrenceDate || '' });
     });
     tasks.forEach(function (entry) {
       var t = entry.task;
@@ -1833,7 +1833,7 @@
     evts.forEach(function (e) {
       var s = toMin(e.time);
       if (s !== null) return;
-      untimedItems.push({ kind: 'event', title: e.title || 'Event', emoji: e.emoji || '📌', color: dcs[e.domain || 'personal'] || '#4a90e2', eventId: e.id, repeat: e.repeat || 'none' });
+      untimedItems.push({ kind: 'event', title: e.title || 'Event', emoji: e.emoji || '📌', color: dcs[e.domain || 'personal'] || '#4a90e2', eventId: e.id, repeat: e.repeat || 'none', occurrenceDate: e.occurrenceDate || '' });
     });
 
     if (untimedItems.length > 0) {
@@ -1843,7 +1843,7 @@
       untimedItems.forEach(function (item) {
         var doneStyle = item.done ? 'text-decoration:line-through;opacity:0.65;' : '';
         var dataAttrs = '';
-        if (item.kind === 'event') dataAttrs = ' data-action="edit-event" data-event-id="' + item.eventId + '"';
+        if (item.kind === 'event') dataAttrs = ' data-action="edit-event" data-event-id="' + item.eventId + '" data-occurrence-date="' + esc(item.occurrenceDate || '') + '"';
         else if (item.kind === 'task') dataAttrs = ' data-action="edit-task" data-task-idx="' + item.taskIdx + '"';
         else if (item.kind === 'reminder') dataAttrs = ' data-action="edit-reminder" data-rem-key="' + esc(item.remKey) + '" data-rem-idx="' + item.remIdx + '"';
         var el = document.createElement('div');
@@ -1892,7 +1892,7 @@
         var action = el.dataset.action;
         try {
           if (action === 'edit-event' && typeof window.editEvent === 'function') {
-            window.editEvent(parseInt(el.dataset.eventId, 10));
+            window.editEvent(parseInt(el.dataset.eventId, 10), el.dataset.occurrenceDate || undefined);
           } else if (action === 'edit-task' && typeof window.editTask === 'function') {
             window.editTask(parseInt(el.dataset.taskIdx, 10));
           } else if (action === 'edit-reminder' && typeof window.editReminder === 'function') {

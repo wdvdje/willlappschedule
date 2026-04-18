@@ -59,7 +59,15 @@
     editBtn.className = 'small-btn';
     editBtn.textContent = 'Edit';
     editBtn.type = 'button';
-    editBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openEdit(ev); });
+    editBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof window.editEvent === 'function') {
+        window.editEvent(ev._baseId || ev.id, ev.occurrenceDate);
+      } else {
+        openEdit(ev);
+      }
+    });
     actions.appendChild(editBtn);
 
     li.appendChild(emojiSpan);

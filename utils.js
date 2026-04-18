@@ -55,6 +55,7 @@
     };
     setIf('editKind', 'event');
     setIf('editEventId', ev.id || '');
+    setIf('editOccurrenceDate', ''); // clear occurrence mode when using fallback path
     setIf('editText', ev.title || '');
     setIf('editDate', ev.date || '');
     setIf('editTime', ev.startTime || ev.time || '');
@@ -231,7 +232,11 @@
       const pushIfInRange = (dISO) => {
         const dt = parseISO(dISO);
         if (dt >= start && dt <= end) {
+          // Check for a per-occurrence exception override
+          const exc = ev.repeatExceptions && ev.repeatExceptions[dISO];
+          if (exc && exc._skipped) return; // this occurrence was individually deleted
           const occ = Object.assign({}, ev);
+          if (exc) Object.assign(occ, exc); // apply any field overrides for this occurrence
           occ.occurrenceDate = dISO;
           occ.date = dISO; // make date property be the occurrence date for downstream code
           occ._baseId = ev.id || ev._id || null;
