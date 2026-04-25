@@ -1045,6 +1045,9 @@
       });
     }
 
+    // Shared selector for tab-bar anchor items (excludes #moreTabBtn which has no data-view)
+    const _RIBBON_SEL = '.bottom-ribbon .r-item[data-view]';
+
     // Section-name map for dynamic header title
     const _viewTitles = {
       today: '🏠 Today', calendar: '🗓️ Calendar', tasks: '✅ Tasks',
@@ -1060,7 +1063,7 @@
       const el = document.querySelector('#page-' + view);
       if (el) el.classList.remove('hidden');
       // Update active state on tab bar anchor items (excludes #moreTabBtn)
-      document.querySelectorAll('.bottom-ribbon .r-item[data-view]').forEach(a => {
+      document.querySelectorAll(_RIBBON_SEL).forEach(a => {
         a.classList.toggle('active', a.dataset.view === view);
       });
       // Mark More button active when a secondary section is shown
@@ -1087,7 +1090,7 @@
 
     function wireRibbon() {
       // Wire only anchor items that declare a destination view
-      document.querySelectorAll('.bottom-ribbon .r-item[data-view]').forEach(a => {
+      document.querySelectorAll(_RIBBON_SEL).forEach(a => {
         a.addEventListener('click', (e) => {
           e.preventDefault();
           const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
@@ -1115,7 +1118,7 @@
         if (profileStatus) profileStatus.textContent = name ? ('Name set: ' + name) : 'Name not set';
         // Update sidebar app title with user name
         const sidebarTitle = document.querySelector('.sidebar-app-title');
-        if (sidebarTitle) sidebarTitle.textContent = name ? (name + '\u2019s Planner') : '📅 TimeScape';
+        if (sidebarTitle) sidebarTitle.textContent = name ? (name + '\u2019s Planner') : '\uD83D\uDCC5 TimeScape';
       } catch (e) { /* ignore */ }
     }
 

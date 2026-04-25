@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <script>location.replace('./index.html#events');</script>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="description" content="TimeScape Planner Events — create, browse, and manage all your upcoming events and appointments." />
   <meta name="keywords" content="events, appointments, schedule, planner, calendar, iOS" />
   <meta property="og:type" content="website" />
@@ -18,6 +20,9 @@
   <link rel="stylesheet" href="./assets/app.css" />
   <!-- Resolve og:image to absolute URL at runtime -->
   <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
+  <!-- Redirect to the SPA; noscript fallback for crawlers -->
+  <script>location.replace('./index.html#events');</script>
+  <noscript><meta http-equiv="refresh" content="0;url=./index.html#events" /></noscript>
 </head>
 <body>
   <header>

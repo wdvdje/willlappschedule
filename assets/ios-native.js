@@ -636,7 +636,9 @@
         haptics.select();
         var view = item.dataset.view || 'today';
         _closeSheet();
-        // Small delay so the sheet close animation starts before navigation
+        // Small delay (60 ms) so the sheet close animation has started visually
+        // before the SPA router swaps the page content — prevents a jarring flash
+        // where the new page appears beneath the still-open sheet.
         setTimeout(function () {
           if (location.hash.replace('#', '') !== view) {
             location.hash = view;
