@@ -1341,6 +1341,16 @@
 
     // Render either medium (widget) or full-view content into the app window
     function _renderAppContent(app, content, isFullscreen) {
+      // Restore any app-widget-pane elements back to their original home
+      // before clearing innerHTML, so they are not destroyed and can be
+      // re-used when switching back to medium view.
+      var detailContent = document.getElementById('appsDetailContent');
+      if (detailContent) {
+        content.querySelectorAll('.app-widget-pane').forEach(function(pane) {
+          pane.classList.add('hidden');
+          detailContent.appendChild(pane);
+        });
+      }
       content.innerHTML = '';
       if (isFullscreen) {
         var fullFn = _APP_FULL_RENDER_MAP[app];
