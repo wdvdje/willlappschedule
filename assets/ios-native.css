@@ -37,6 +37,18 @@
   --ios-text-3:        #8E8E93;
   --ios-text-4:        #AEAEB2;
 
+  /* Semantic accent colors */
+  --ios-purple:        #9B59B6;
+  --ios-amber:         #F39C12;
+
+  /* Alias tokens — keep component code DRY */
+  --ios-text-1:        var(--ios-text);
+  --ios-card-bg:       var(--ios-surface);
+  --ios-bg:            var(--ios-surface);
+  --ios-bg-2:          var(--ios-surface-2);
+  --ios-fill-1:        var(--ios-surface-2);
+  --ios-fill-2:        var(--ios-surface-3);
+
   --ios-r-xs:          10px;
   --ios-r-sm:          14px;
   --ios-r-md:          18px;
@@ -76,7 +88,29 @@
     --ios-text-3:        #8E8E93;
     --ios-text-4:        #636366;
     --ios-accent-bg:     rgba(10,132,255,0.18);
+    --ios-purple:        #BF5AF2;
+    --ios-amber:         #FFD60A;
   }
+}
+
+/* ── 2a. Dark-mode tokens (manual body class — mirrors system block) */
+body.dark-mode {
+  --ios-surface:       #1C1C1E;
+  --ios-surface-2:     #2C2C2E;
+  --ios-surface-3:     #3A3A3C;
+  --ios-glass:         rgba(28,28,30,0.78);
+  --ios-glass-card:    rgba(44,44,46,0.65);
+  --ios-glass-vibrant: rgba(58,58,60,0.82);
+  --ios-border:        rgba(255,255,255,0.12);
+  --ios-border-glass:  rgba(255,255,255,0.14);
+  --ios-shadow-glass:  0 8px 32px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.10);
+  --ios-text:          #F2F2F7;
+  --ios-text-2:        #EBEBF5;
+  --ios-text-3:        #8E8E93;
+  --ios-text-4:        #636366;
+  --ios-accent-bg:     rgba(10,132,255,0.18);
+  --ios-purple:        #BF5AF2;
+  --ios-amber:         #FFD60A;
 }
 
 /* ── 3. Global base ────────────────────────────────────────────── */
@@ -343,7 +377,7 @@ header .header-btn:active {
 }
 
 #editModal:not(.hidden) .panel {
-  animation: ios-sheet-up var(--ios-slow) var(--ios-ease) both;
+  animation: ios-sheet-up var(--ios-slow) var(--ios-spring-soft) both;
 }
 
 /* --- #catModal as bottom sheet --- */
@@ -2592,11 +2626,14 @@ main {
    ====================================================================== */
 
 .today-preview-widget {
-  background: var(--ios-card-bg, #fff);
-  border-radius: 14px;
+  background: var(--ios-glass-card);
+  -webkit-backdrop-filter: var(--ios-glass-blur-sm);
+  backdrop-filter: var(--ios-glass-blur-sm);
+  border: 1px solid var(--ios-border-glass);
+  border-radius: var(--ios-r-sm);
   padding: 12px 14px;
   margin-bottom: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  box-shadow: var(--ios-shadow-sm);
 }
 
 .today-preview-header {
@@ -2616,8 +2653,8 @@ main {
 
 /* Focus preview */
 .tdp-focus-items { display: flex; flex-direction: column; gap: 4px; }
-.tdp-focus-item { display: flex; align-items: center; gap: 7px; cursor: pointer; border-radius: 8px; padding: 4px 6px; transition: background .15s; }
-.tdp-focus-item:hover { background: rgba(74,144,226,.06); }
+.tdp-focus-item { display: flex; align-items: center; gap: 7px; cursor: pointer; border-radius: 8px; padding: 4px 6px; transition: background var(--ios-fast) var(--ios-ease); }
+.tdp-focus-item:hover { background: rgba(0,122,255,.06); }
 .tdp-focus-item.done .tdp-focus-text { text-decoration: line-through; color: var(--ios-text-3, #999); }
 .tdp-focus-cb { font-size: 1rem; }
 .tdp-focus-text { font-size: 0.82rem; }
