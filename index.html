@@ -1424,23 +1424,105 @@
       if (content) _renderAppContent(app, content, openFullscreen);
     }
 
+    var _pinnedAppsDragSrc = null;
+
+    function _savePinnedAppsOrder(apps) {
+      try { localStorage.setItem('pinnedAppsOrder', JSON.stringify(apps)); } catch(e) {}
+    }
+
+    function _getOrderedPinnedApps() {
+      var pinned = {};
+      try { pinned = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
+      var allPinned = Object.keys(pinned).filter(function(k) { return pinned[k]; });
+      var order = [];
+      try { order = JSON.parse(localStorage.getItem('pinnedAppsOrder') || '[]'); } catch(e) {}
+      // Keep only apps that are still pinned, in saved order, then append any new ones
+      var ordered = order.filter(function(k) { return allPinned.indexOf(k) !== -1; });
+      allPinned.forEach(function(k) { if (ordered.indexOf(k) === -1) ordered.push(k); });
+      return ordered;
+    }
+
     function renderTodayPinnedApps() {
       var col = document.getElementById('todayPinnedApps');
       if (!col) return;
-      var pinned = {};
-      try { pinned = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
-      var apps = Object.keys(pinned).filter(function(k) { return pinned[k]; });
+      var apps = _getOrderedPinnedApps();
       col.innerHTML = '';
       if (!apps.length) {
         col.innerHTML = '<p class="today-no-apps">No apps pinned yet.<br><small><button id="todayOpenAppsBtn" class="today-open-apps-link">⊞ Open Apps</button> to pin one.</small></p>';
         return;
       }
       apps.forEach(function(app) {
-        var card = document.createElement('button');
+        var card = document.createElement('div');
         card.className = 'today-pinned-app-card';
-        card.innerHTML = '<span class="today-pinned-app-icon">' + (_APP_EMOJI_MAP[app] || '⊞') +
-          '</span><span class="today-pinned-app-name">' + (_APP_TITLE_MAP[app] || app) + '</span>';
-        card.addEventListener('click', function() { openAppDetail(app); });
+        card.draggable = true;
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', (_APP_TITLE_MAP[app] || app) + ' — drag to reorder');
+        card.dataset.app = app;
+        card.innerHTML =
+          '<span class="today-pinned-app-drag-handle" aria-hidden="true">⠿</span>' +
+          '<span class="today-pinned-app-icon">' + (_APP_EMOJI_MAP[app] || '⊞') + '</span>' +
+          '<span class="today-pinned-app-name">' + (_APP_TITLE_MAP[app] || app) + '</span>';
+
+        // Click or keyboard activation opens the app (but not on drag handle)
+        card.addEventListener('click', function(e) {
+          if (e.target.classList.contains('today-pinned-app-drag-handle')) return;
+          openAppDetail(app);
+        });
+        card.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            openAppDetail(app);
+          }
+        });
+
+        // Drag-and-drop handlers
+        card.addEventListener('dragstart', function(e) {
+          _pinnedAppsDragSrc = card;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', app);
+          card.classList.add('today-pinned-app-card--dragging');
+        });
+        card.addEventListener('dragend', function() {
+          _pinnedAppsDragSrc = null;
+          card.classList.remove('today-pinned-app-card--dragging');
+          col.querySelectorAll('.today-pinned-app-card').forEach(function(c) {
+            c.classList.remove('today-pinned-app-card--over');
+          });
+        });
+        card.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (_pinnedAppsDragSrc && _pinnedAppsDragSrc !== card) {
+            col.querySelectorAll('.today-pinned-app-card').forEach(function(c) {
+              c.classList.remove('today-pinned-app-card--over');
+            });
+            card.classList.add('today-pinned-app-card--over');
+          }
+        });
+        card.addEventListener('dragleave', function() {
+          card.classList.remove('today-pinned-app-card--over');
+        });
+        card.addEventListener('drop', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          card.classList.remove('today-pinned-app-card--over');
+          if (!_pinnedAppsDragSrc || _pinnedAppsDragSrc === card) return;
+          var cards = Array.from(col.querySelectorAll('.today-pinned-app-card[data-app]'));
+          var fromIdx = cards.indexOf(_pinnedAppsDragSrc);
+          var toIdx   = cards.indexOf(card);
+          if (fromIdx === -1 || toIdx === -1) return;
+          // Reorder in DOM
+          if (fromIdx < toIdx) {
+            col.insertBefore(_pinnedAppsDragSrc, card.nextSibling);
+          } else {
+            col.insertBefore(_pinnedAppsDragSrc, card);
+          }
+          // Persist new order
+          var newOrder = Array.from(col.querySelectorAll('.today-pinned-app-card[data-app]')).map(function(c) { return c.dataset.app; });
+          _savePinnedAppsOrder(newOrder);
+        });
+
         col.appendChild(card);
       });
     }
