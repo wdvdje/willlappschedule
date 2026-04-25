@@ -784,6 +784,26 @@
       </div>
     </div><!-- end apps-modal-panel -->
   </div><!-- end appsModal -->
+
+  <!-- App Window Modal — opens when the user launches an individual app -->
+  <div id="appWindowModal" class="hidden" role="dialog" aria-modal="true" aria-label="App">
+    <div id="appWindowOverlay"></div>
+    <div id="appWindowPanel">
+      <div class="sheet-handle"></div>
+      <div class="app-window-header">
+        <button id="appWindowBackBtn" aria-label="Back to Apps">← Apps</button>
+        <h2 id="appWindowTitle"></h2>
+        <label class="app-window-pin-label" title="Show this app on the Today page">
+          <input type="checkbox" id="appWindowPinToggle" style="width:auto;margin:0" />
+          <span>Pin to Today</span>
+        </label>
+      </div>
+      <div id="appWindowContent">
+        <!-- Widget panes rendered here when an app is launched -->
+      </div>
+    </div>
+  </div><!-- end appWindowModal -->
+
   <div id="editModal" role="dialog" aria-modal="true" class="hidden">
     <div class="panel">
       <h3 id="editModalHeading">Edit</h3>
@@ -1174,38 +1194,53 @@
     function closeAppsModal() {
       var m = document.getElementById('appsModal');
       if (m) m.classList.add('hidden');
-      document.querySelectorAll('.app-widget-pane').forEach(function(el) {
-        el.classList.add('hidden');
-      });
+    }
+
+    function closeAppWindow() {
+      var w = document.getElementById('appWindowModal');
+      if (w) w.classList.add('hidden');
+      var content = document.getElementById('appWindowContent');
+      if (content) content.innerHTML = '';
     }
 
     function openAppDetail(app) {
-      var grid = document.getElementById('appsIconGrid');
-      var detail = document.getElementById('appsDetailPanel');
-      var titleEl = document.getElementById('appsDetailTitle');
-      if (grid) grid.classList.add('hidden');
-      if (detail) detail.classList.remove('hidden');
+      // Close the apps grid first so it feels like a new window opening
+      closeAppsModal();
+
+      var titleEl = document.getElementById('appWindowTitle');
       if (titleEl) titleEl.textContent = _APP_TITLE_MAP[app] || app;
 
-      document.querySelectorAll('.app-widget-pane').forEach(function(el) {
-        el.classList.add('hidden');
-      });
-      var containerId = _APP_CONTAINER_MAP[app];
-      var container = containerId ? document.getElementById(containerId) : null;
-      if (container) container.classList.remove('hidden');
-
-      var renderFn = _APP_RENDER_MAP[app];
-      if (renderFn && typeof window[renderFn] === 'function') {
-        try { window[renderFn](); } catch(e) { /* ignore */ }
-      }
-
-      var pinToggle = document.getElementById('appPinToggle');
+      // Set pin toggle state
+      var pinToggle = document.getElementById('appWindowPinToggle');
       if (pinToggle) {
         var pinned = {};
         try { pinned = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
         pinToggle.checked = !!pinned[app];
         pinToggle.dataset.app = app;
       }
+
+      // Render the widget into the app window content area
+      var content = document.getElementById('appWindowContent');
+      if (content) {
+        content.innerHTML = '';
+        var containerId = _APP_CONTAINER_MAP[app];
+        if (containerId) {
+          var existing = document.getElementById(containerId);
+          if (existing) {
+            // Move widget pane into app window
+            existing.classList.remove('hidden');
+            content.appendChild(existing);
+          }
+        }
+        var renderFn = _APP_RENDER_MAP[app];
+        if (renderFn && typeof window[renderFn] === 'function') {
+          try { window[renderFn](); } catch(e) { /* ignore */ }
+        }
+      }
+
+      // Show the app window modal
+      var w = document.getElementById('appWindowModal');
+      if (w) w.classList.remove('hidden');
     }
 
     function renderTodayPinnedApps() {
@@ -1225,7 +1260,7 @@
       var emojiMap = _APP_EMOJI_MAP;
         card.innerHTML = '<span class="today-pinned-app-icon">' + (emojiMap[app] || '⊞') +
           '</span><span class="today-pinned-app-name">' + (_APP_TITLE_MAP[app] || app) + '</span>';
-        card.addEventListener('click', function() { openAppsModal(); openAppDetail(app); });
+        card.addEventListener('click', function() { openAppDetail(app); });
         col.appendChild(card);
       });
     }
@@ -1269,23 +1304,26 @@
         });
       }
 
-      var backBtn = document.getElementById('appsDetailBack');
-      if (backBtn) backBtn.addEventListener('click', function() {
-        var grid = document.getElementById('appsIconGrid');
-        var detail = document.getElementById('appsDetailPanel');
-        if (grid) grid.classList.remove('hidden');
-        if (detail) detail.classList.add('hidden');
-        document.querySelectorAll('.app-widget-pane').forEach(function(el) { el.classList.add('hidden'); });
+      // App window modal: back button returns to apps grid
+      var appWindowBackBtn = document.getElementById('appWindowBackBtn');
+      if (appWindowBackBtn) appWindowBackBtn.addEventListener('click', function() {
+        closeAppWindow();
+        openAppsModal();
       });
 
-      var pinToggle = document.getElementById('appPinToggle');
-      if (pinToggle) {
-        pinToggle.addEventListener('change', function() {
-          var app = pinToggle.dataset.app;
+      // App window modal: clicking overlay closes the window entirely
+      var appWindowOverlay = document.getElementById('appWindowOverlay');
+      if (appWindowOverlay) appWindowOverlay.addEventListener('click', closeAppWindow);
+
+      // App window pin toggle
+      var appWindowPinToggle = document.getElementById('appWindowPinToggle');
+      if (appWindowPinToggle) {
+        appWindowPinToggle.addEventListener('change', function() {
+          var app = appWindowPinToggle.dataset.app;
           if (!app) return;
           var p = {};
           try { p = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
-          if (pinToggle.checked) p[app] = true; else delete p[app];
+          if (appWindowPinToggle.checked) p[app] = true; else delete p[app];
           try { localStorage.setItem('pinnedApps', JSON.stringify(p)); } catch(e) {}
           renderTodayPinnedApps();
         });
@@ -1295,6 +1333,8 @@
         if (e.key !== 'Escape') return;
         var sm = document.getElementById('settingsModal');
         if (sm && !sm.classList.contains('hidden')) { sm.classList.add('hidden'); return; }
+        var aw = document.getElementById('appWindowModal');
+        if (aw && !aw.classList.contains('hidden')) { closeAppWindow(); openAppsModal(); return; }
         var am = document.getElementById('appsModal');
         if (am && !am.classList.contains('hidden')) { closeAppsModal(); }
       });
