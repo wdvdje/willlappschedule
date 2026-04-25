@@ -1733,11 +1733,86 @@
     return items;
   }
 
+  // ---------------------------------------------------------------------------
+  // Layout Picker — lets users choose how the 4 top-row widgets are arranged
+  // ---------------------------------------------------------------------------
+  var LAYOUT_KEY = 'personalTopRowLayout';
+  var LAYOUT_DEFAULT = 'personal-layout-4col';
+  var LAYOUT_OPTIONS = [
+    { id: LAYOUT_DEFAULT,            label: '⊟ 4 Columns' },
+    { id: 'personal-layout-2x2',     label: '⊞ 2×2 Grid'  },
+    { id: 'personal-layout-stacked', label: '☰ Stacked'   }
+  ];
+
+  function getTopRowLayout() {
+    return localStorage.getItem(LAYOUT_KEY) || LAYOUT_DEFAULT;
+  }
+
+  function applyTopRowLayout(layoutId) {
+    var row = document.querySelector('.personal-top-row');
+    if (!row) return;
+    LAYOUT_OPTIONS.forEach(function (opt) {
+      // The default layout is handled by base CSS — no extra class needed
+      if (opt.id === LAYOUT_DEFAULT) {
+        row.classList.remove(opt.id);
+      } else {
+        row.classList.toggle(opt.id, opt.id === layoutId);
+      }
+    });
+  }
+
+  function initLayoutPicker() {
+    // Only show picker on desktop
+    if (!isDesktop()) return;
+
+    var grid = document.getElementById('personalGrid');
+    var topRow = document.querySelector('.personal-top-row');
+    if (!grid || !topRow) return;
+
+    // Remove any existing picker to avoid duplicates
+    var existing = document.getElementById('personalLayoutPicker');
+    if (existing) existing.remove();
+
+    var picker = document.createElement('div');
+    picker.id = 'personalLayoutPicker';
+
+    var label = document.createElement('span');
+    label.className = 'layout-picker-label';
+    label.textContent = 'Layout:';
+    picker.appendChild(label);
+
+    var saved = getTopRowLayout();
+
+    LAYOUT_OPTIONS.forEach(function (opt) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'layout-btn' + (opt.id === saved ? ' active' : '');
+      btn.textContent = opt.label;
+      btn.dataset.layout = opt.id;
+      btn.addEventListener('click', function () {
+        var chosen = btn.dataset.layout;
+        localStorage.setItem(LAYOUT_KEY, chosen);
+        picker.querySelectorAll('.layout-btn').forEach(function (b) {
+          b.classList.toggle('active', b.dataset.layout === chosen);
+        });
+        applyTopRowLayout(chosen);
+      });
+      picker.appendChild(btn);
+    });
+
+    // Insert picker just before the top row
+    grid.insertBefore(picker, topRow);
+
+    // Apply the saved layout immediately
+    applyTopRowLayout(saved);
+  }
+
   function renderAdvancedPersonalWidgets() {
     try { renderDeskMeal();    } catch (e) { console.warn('[dp] meal failed', e); }
     try { renderDeskRoutine(); } catch (e) { console.warn('[dp] routine failed', e); }
     try { renderDeskGym();     } catch (e) { console.warn('[dp] gym failed', e); }
     try { initToggleAllWidgets(); } catch (e) { console.warn('[dp] toggle-all failed', e); }
+    try { initLayoutPicker();  } catch (e) { console.warn('[dp] layout-picker failed', e); }
   }
 
   // Keep backward-compatible alias
