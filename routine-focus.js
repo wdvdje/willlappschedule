@@ -102,14 +102,26 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Build the focus overlay DOM
+  // Build the focus overlay DOM (backdrop + slide-up sheet)
   // ---------------------------------------------------------------------------
   function buildOverlay() {
+    /* Backdrop — dimmed scrim so user can see the app is still behind */
+    var backdrop = document.createElement('div');
+    backdrop.id = 'routineFocusBackdrop';
+    backdrop.addEventListener('click', close);
+    document.body.appendChild(backdrop);
+
+    /* Sheet — slides up from the bottom */
     var overlay = document.createElement('div');
     overlay.id = 'routineFocusOverlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-label', 'Routine Focus Mode');
+
+    /* Drag handle bar for visual cue */
+    var handle = document.createElement('div');
+    handle.className = 'rf-drag-handle';
+    overlay.appendChild(handle);
 
     /* Close on Escape */
     overlay._keyHandler = function (e) {
@@ -137,6 +149,7 @@
   }
 
   function getOverlay() { return document.getElementById('routineFocusOverlay'); }
+  function getBackdrop() { return document.getElementById('routineFocusBackdrop'); }
 
   // ---------------------------------------------------------------------------
   // Render current state into the overlay
@@ -157,9 +170,20 @@
 
     overlay.innerHTML = '';
 
+    /* Restore the drag handle after clearing innerHTML */
+    var handle = document.createElement('div');
+    handle.className = 'rf-drag-handle';
+    overlay.appendChild(handle);
+
     /* ---- top bar ---- */
     var topBar = document.createElement('div');
     topBar.className = 'rf-top-bar';
+
+    /* Focus mode badge — makes it immediately obvious this is a Focus overlay */
+    var modeBadge = document.createElement('div');
+    modeBadge.className = 'rf-mode-badge';
+    modeBadge.textContent = '🎯 Focus Mode';
+    topBar.appendChild(modeBadge);
 
     var progressTrack = document.createElement('div');
     progressTrack.className = 'rf-progress-track';
@@ -181,7 +205,7 @@
 
     var closeBtn = document.createElement('button');
     closeBtn.className = 'rf-close-btn';
-    closeBtn.textContent = '✕';
+    closeBtn.innerHTML = '✕ <span style="font-size:0.7rem;opacity:0.7">Exit Focus</span>';
     closeBtn.setAttribute('aria-label', 'Close Focus Mode');
     closeBtn.addEventListener('click', close);
     topBar.appendChild(closeBtn);
@@ -488,9 +512,11 @@
   // ---------------------------------------------------------------------------
   function open(opts) {
     opts = opts || {};
-    /* Remove any existing overlay */
+    /* Remove any existing overlay and backdrop */
     var existing = getOverlay();
     if (existing) existing.remove();
+    var existingBd = getBackdrop();
+    if (existingBd) existingBd.remove();
 
     _phases = getPhases();
 
@@ -530,6 +556,8 @@
       if (overlay._keyHandler) document.removeEventListener('keydown', overlay._keyHandler);
       overlay.remove();
     }
+    var backdrop = getBackdrop();
+    if (backdrop) backdrop.remove();
     document.body.style.overflow = '';
     /* Refresh any routine widgets that are visible */
     window.dispatchEvent(new CustomEvent('app:data:updated'));
@@ -539,19 +567,51 @@
   // Inject styles
   // ---------------------------------------------------------------------------
   var STYLES = [
+    /* Backdrop — dimmed scrim so app is visibly behind the sheet */
+    '#routineFocusBackdrop {',
+    '  position: fixed; inset: 0; z-index: 9999;',
+    '  background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);',
+    '  animation: rfBackdropIn 0.25s ease forwards;',
+    '}',
+    '@keyframes rfBackdropIn {',
+    '  from { opacity: 0; }',
+    '  to   { opacity: 1; }',
+    '}',
+    /* Sheet — slides up from bottom, leaving rounded top corners */
     '#routineFocusOverlay {',
-    '  position: fixed; inset: 0; z-index: 10000;',
+    '  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10000;',
+    '  max-height: 92vh;',
     '  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);',
     '  color: #fff; display: flex; flex-direction: column;',
     '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;',
+    '  border-radius: 20px 20px 0 0;',
     '  overflow-y: auto; -webkit-overflow-scrolling: touch;',
+    '  box-shadow: 0 -8px 40px rgba(0,0,0,0.45);',
+    '  animation: rfSheetIn 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;',
+    '}',
+    '@keyframes rfSheetIn {',
+    '  from { transform: translateY(100%); }',
+    '  to   { transform: translateY(0); }',
+    '}',
+    /* Drag handle pill at the top of the sheet */
+    '.rf-drag-handle {',
+    '  width: 40px; height: 5px; background: rgba(255,255,255,0.25);',
+    '  border-radius: 3px; margin: 10px auto 2px; flex-shrink: 0;',
     '}',
     '.rf-top-bar {',
     '  display: flex; align-items: center; gap: 8px;',
-    '  padding: 12px 16px 8px; flex-shrink: 0;',
+    '  padding: 6px 16px 8px; flex-shrink: 0; flex-wrap: wrap;',
+    '}',
+    /* Mode badge — immediately signals what this panel is */
+    '.rf-mode-badge {',
+    '  background: rgba(74,144,226,0.25); border: 1px solid rgba(74,144,226,0.5);',
+    '  color: #7eb8f7; border-radius: 20px; padding: 3px 10px;',
+    '  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.03em;',
+    '  white-space: nowrap; flex-shrink: 0;',
     '}',
     '.rf-progress-track {',
     '  flex: 1; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden;',
+    '  min-width: 60px;',
     '}',
     '.rf-progress-fill {',
     '  height: 100%; background: linear-gradient(90deg, #4a90e2, #7b68ee); border-radius: 3px;',
@@ -561,9 +621,9 @@
     '.rf-step-counter { font-size: 0.75rem; opacity: 0.65; white-space: nowrap; }',
     '.rf-close-btn {',
     '  background: rgba(255,255,255,0.12); border: none; color: #fff;',
-    '  width: 32px; height: 32px; border-radius: 50%; cursor: pointer;',
-    '  font-size: 1rem; display: flex; align-items: center; justify-content: center;',
-    '  flex-shrink: 0; transition: background 0.2s;',
+    '  height: 32px; border-radius: 16px; padding: 0 12px; cursor: pointer;',
+    '  font-size: 0.88rem; display: flex; align-items: center; gap: 4px;',
+    '  flex-shrink: 0; transition: background 0.2s; white-space: nowrap;',
     '}',
     '.rf-close-btn:hover { background: rgba(255,255,255,0.25); }',
     '.rf-phase-tabs {',
@@ -595,7 +655,7 @@
     '.rf-step-row-dur { font-size: 0.72rem; opacity: 0.7; }',
     '.rf-step-card {',
     '  flex: 1; display: flex; flex-direction: column; align-items: center;',
-    '  justify-content: center; padding: 20px 24px; text-align: center; min-height: 200px;',
+    '  justify-content: center; padding: 20px 24px; text-align: center; min-height: 180px;',
     '}',
     '.rf-step-emoji { font-size: 3rem; margin-bottom: 12px; }',
     '.rf-step-title {',
