@@ -219,6 +219,15 @@
             </div>
             <div id="todayMoodPreviewContent" class="today-preview-content"></div>
           </div>
+
+          <!-- 📓 Journal Preview -->
+          <div id="todayJournalWidget" class="today-right-widget today-preview-widget">
+            <div class="today-preview-header">
+              <span>📓 Journal</span>
+              <button type="button" class="today-widget-open-btn" data-app="journal">Open →</button>
+            </div>
+            <div id="todayJournalPreviewContent" class="today-preview-content"></div>
+          </div>
         </div>
       </div><!-- end todayAppsCol -->
       </div><!-- end todayLayout -->
@@ -812,6 +821,7 @@
         <button class="app-icon-btn" data-app="routine">   <span class="app-icon-emoji">🌅</span><span class="app-icon-label">Routine</span></button>
         <button class="app-icon-btn" data-app="weather">   <span class="app-icon-emoji">🌤️</span><span class="app-icon-label">Weather</span></button>
         <button class="app-icon-btn" data-app="jobs">      <span class="app-icon-emoji">💼</span><span class="app-icon-label">Jobs</span></button>
+        <button class="app-icon-btn" data-app="journal">   <span class="app-icon-emoji">📓</span><span class="app-icon-label">Journal</span></button>
       </div>
 
       <!-- App detail panel (shown when an app icon is tapped) -->
@@ -836,6 +846,7 @@
           <div id="personalMealSection"      class="app-widget-pane hidden"></div>
           <div id="personalGymSection"       class="app-widget-pane hidden"></div>
           <div id="personalRoutineSection"   class="app-widget-pane hidden"></div>
+          <div id="personalJournalSection"   class="app-widget-pane hidden"></div>
           <!-- Routine Analytics Stats (rendered by routine-analytics.js) -->
           <div id="personalRoutineStatsSection" class="app-widget-pane hidden"></div>
         </div>
@@ -1223,24 +1234,26 @@
       budget: '💰 Budget', hydration: '💧 Hydration', mood: '😊 Mood',
       focus: '🎯 Daily Focus', sleep: '😴 Sleep', meal: '🥗 Meal Planner',
       gym: '🏋️ Gym Planner', routine: '🌅 Daily Routine',
-      weather: '🌤️ Weather', jobs: '💼 Job Earnings'
+      weather: '🌤️ Weather', jobs: '💼 Job Earnings', journal: '📓 Journal'
     };
     var _APP_EMOJI_MAP = {
       budget: '💰', hydration: '💧', mood: '😊', focus: '🎯',
       sleep: '😴', meal: '🥗', gym: '🏋️', routine: '🌅',
-      weather: '🌤️', jobs: '💼'
+      weather: '🌤️', jobs: '💼', journal: '📓'
     };
     var _APP_CONTAINER_MAP = {
       budget: 'personalBudgetSection', hydration: 'personalHydrationSection',
       mood: 'personalMoodSection', focus: 'personalFocusSection',
       sleep: 'personalSleepBanner', meal: 'personalMealSection',
-      gym: 'personalGymSection', routine: 'personalRoutineSection'
+      gym: 'personalGymSection', routine: 'personalRoutineSection',
+      journal: 'personalJournalSection'
     };
     var _APP_RENDER_MAP = {
       budget: 'renderBudgetWidget', hydration: 'renderHydrationTracker',
       mood: 'renderMoodCheckin', focus: 'renderDailyFocus',
       sleep: 'renderSleepTracker', meal: 'renderMealTracker',
-      gym: 'renderGymPlanner', routine: 'renderRoutineChecklist'
+      gym: 'renderGymPlanner', routine: 'renderRoutineChecklist',
+      journal: 'renderJournalWidget'
     };
 
     function openAppsModal() {
@@ -1351,7 +1364,8 @@
       meal:    'renderMealAppFull',
       gym:     'renderGymAppFull',
       routine: 'renderRoutineAppFull',
-      budget:  'renderBudgetAppFull'
+      budget:  'renderBudgetAppFull',
+      journal: 'renderJournalAppFull'
     };
 
     // Render either medium (widget) or full-view content into the app window
@@ -1437,6 +1451,9 @@
       // Render content
       var content = document.getElementById('appWindowContent');
       if (content) _renderAppContent(app, content, openFullscreen);
+
+      // Expose so app scripts can open any app from within widgets
+      window.openAppDetail = openAppDetail;
     }
 
     var _pinnedAppsDragSrc = null;
@@ -1742,6 +1759,7 @@
       if (typeof renderTodayRoutinePreview   === 'function') try { renderTodayRoutinePreview();   } catch(_) {}
       if (typeof renderTodayMoodPreview      === 'function') try { renderTodayMoodPreview();      } catch(_) {}
       if (typeof renderTodayBudgetPreview    === 'function') try { renderTodayBudgetPreview();    } catch(_) {}
+      if (typeof renderTodayJournalPreview   === 'function') try { renderTodayJournalPreview();   } catch(_) {}
       // Re-render calendar and day details now that utils.js (expandEvents) is loaded
       try { if (typeof generateCalendar === 'function') generateCalendar(); } catch(_) {}
       try { if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined' && selectedDay) showReminders(selectedDay); } catch(_) {}
