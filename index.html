@@ -54,6 +54,8 @@
   <title>TimeScape Planner</title>
   <link rel="stylesheet" href="./assets/app.css" />
   <link rel="stylesheet" href="./assets/ios-native.css" />
+  <!-- Resolve og:image and JSON-LD image to absolute URL at runtime -->
+  <script>try{var _b=new URL('assets/icon.svg',location.href).href;document.querySelector('meta[property="og:image"]')&&document.querySelector('meta[property="og:image"]').setAttribute('content',_b);var _ld=document.querySelector('script[type="application/ld+json"]');if(_ld){var _d=JSON.parse(_ld.textContent);_d.image=_b;_ld.textContent=JSON.stringify(_d);}}catch(e){}</script>
   <!-- Prevent dark-mode flash: apply class before first paint -->
   <script>try{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body&&document.body.classList.add('dark-mode')}catch(e){}</script>
 </head>
