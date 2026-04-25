@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <!-- Apple Intelligence / Visual Intelligence hooks -->
+  <meta name="description" content="TimeScape Planner Events — create, browse, and manage all your upcoming events and appointments." />
+  <meta name="keywords" content="events, appointments, schedule, planner, calendar, iOS" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="TimeScape Planner — Events" />
+  <meta property="og:description" content="Create, browse, and manage all your upcoming events and appointments." />
+  <meta property="og:image" content="assets/icon.svg" />
   <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -12,6 +19,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <title>TimeScape Planner — Events</title>
   <link rel="stylesheet" href="./assets/app.css" />
+  <!-- Resolve og:image to absolute URL at runtime -->
+  <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
 </head>
 <body>
   <header>

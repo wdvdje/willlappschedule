@@ -6,6 +6,13 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="theme-color" content="#4a90e2" />
+  <!-- Apple Intelligence / Visual Intelligence hooks -->
+  <meta name="description" content="TimeScape Planner Calendar — view and manage your monthly and weekly schedule at a glance." />
+  <meta name="keywords" content="calendar, schedule, planner, monthly view, weekly view, iOS" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="TimeScape Planner — Calendar" />
+  <meta property="og:description" content="View and manage your monthly and weekly schedule at a glance." />
+  <meta property="og:image" content="assets/icon.svg" />
   <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,6 +20,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <title>TimeScape Planner — Calendar</title>
   <link rel="stylesheet" href="./assets/app.css" />
+  <!-- Resolve og:image to absolute URL at runtime -->
+  <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
 </head>
 <body>
   <header>

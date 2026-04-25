@@ -1374,3 +1374,76 @@ textarea:focus-visible {
   flex-shrink: 0;
   min-height: 36px;
 }
+
+/* ── 29. Scroll-Driven Animations — iOS 26 / WebKit ─────────────────
+   Uses animation-timeline: view() to tie entrance animations to the
+   element's position in the scroll viewport.  Wrapped in @supports so
+   browsers without the feature simply show elements at rest.
+   ──────────────────────────────────────────────────────────────────── */
+@supports (animation-timeline: view()) {
+  /* Shared fade-up keyframe */
+  @keyframes scroll-fade-up {
+    from { opacity: 0; transform: translateY(18px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)    scale(1); }
+  }
+
+  /* Shared fade-in keyframe (for items that shouldn't shift vertically) */
+  @keyframes scroll-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  /* Calendar day cells */
+  .day {
+    animation: scroll-fade-up linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 30%;
+  }
+
+  /* Bucket / summary cards */
+  .bucket-card,
+  .dashboard > *,
+  .summary-card {
+    animation: scroll-fade-up linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 35%;
+  }
+
+  /* Task / reminder list rows */
+  .task-item,
+  .reminder-item,
+  .event-item,
+  li.task-item,
+  li.reminder-item {
+    animation: scroll-fade-up linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 25%;
+  }
+
+  /* Section headings */
+  .page h2,
+  .page h3,
+  .section-header {
+    animation: scroll-fade-in linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 20%;
+  }
+
+  /* Respect reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .day,
+    .bucket-card,
+    .dashboard > *,
+    .summary-card,
+    .task-item,
+    .reminder-item,
+    .event-item,
+    li.task-item,
+    li.reminder-item,
+    .page h2,
+    .page h3,
+    .section-header {
+      animation: none;
+    }
+  }
+}
