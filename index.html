@@ -713,6 +713,45 @@
           <div id="dataBackupStatus" style="margin-top:8px;color:#666;font-size:0.95rem">No backup action yet</div>
         </section>
 
+        <!-- iCloud Drive Sync -->
+        <section id="icloudSyncSettings" style="margin-top:18px">
+          <h3>☁️ iCloud Drive Sync</h3>
+
+          <!-- macOS Safari (Tier 1 — folder-based auto-sync) -->
+          <div id="icloudMacSection" style="display:none">
+            <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">
+              Connect an iCloud Drive folder once. Your data will sync automatically in the background every time it changes.
+            </p>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+              <button id="icloudConnectBtn" class="small-btn" style="background:#4a90e2;color:#fff">Connect iCloud Drive Folder</button>
+              <button id="icloudDisconnectBtn" class="small-btn">Disconnect</button>
+            </div>
+            <div id="icloudMacStatus" style="margin-top:8px;color:#666;font-size:0.9rem">No folder connected.</div>
+            <!-- Re-authorize prompt (shown when permission is 'prompt') -->
+            <div id="icloudReauthPrompt" style="display:none;margin-top:8px;padding:8px 10px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;font-size:0.9rem">
+              ⚠️ Permission needed to continue syncing.
+              <button id="icloudReauthBtn" class="small-btn" style="margin-left:8px;background:#f0a500;color:#fff">Re-authorize</button>
+            </div>
+          </div>
+
+          <!-- iOS/iPadOS (Tier 2 — manual file exchange) -->
+          <div id="icloudIosSection" style="display:none">
+            <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">
+              Export your data as a JSON file to save to iCloud Drive via the Files app, or import a previously saved file.
+            </p>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+              <button id="icloudExportBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export to Files / iCloud Drive</button>
+              <button id="icloudImportBtn" class="small-btn">Import from Files / iCloud Drive</button>
+            </div>
+            <div id="icloudIosStatus" style="margin-top:8px;color:#666;font-size:0.9rem"></div>
+          </div>
+
+          <!-- No API available -->
+          <div id="icloudNoApiSection" style="display:none;padding:8px 10px;background:#f5f5f5;border-radius:6px;font-size:0.9rem;color:#666;margin-top:8px">
+            ℹ️ iCloud Drive sync is not available in this browser. For best results, use Safari on macOS or iOS.
+          </div>
+        </section>
+
         <!-- Morning Briefing -->
         <section id="morningBriefingSettings" style="margin-top:18px">
           <h3>Morning Briefing</h3>
@@ -1797,5 +1836,7 @@
   <script src="./desktop-calendar-features.js"></script>
   <!-- iOS 26 / macOS native-feel: glass UI, bottom sheets, sidebar, haptics, dark mode, pull-to-refresh, badge API -->
   <script src="./assets/ios-native.js" defer></script>
+  <!-- iCloud Drive sync via File System Access API -->
+  <script src="./icloud-sync.js"></script>
 </body>
 </html>
