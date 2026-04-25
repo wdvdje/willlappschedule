@@ -10689,3 +10689,746 @@ window.renderGymAppFull       = renderGymAppFull;
 window.renderRoutineAppFull   = renderRoutineAppFull;
 window.renderBudgetAppFull    = renderBudgetAppFull;
 window.renderJobsAppFull      = renderJobsAppFull;
+
+/* ══════════════════════════════════════════════════════════════
+   JOURNAL APP
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Data helpers ── */
+function getJournalEntries() { return safeParseStorage('journalEntries', []); }
+function setJournalEntries(v) { try { localStorage.setItem('journalEntries', JSON.stringify(v)); } catch(_) {} }
+function getJournalFolders() { return safeParseStorage('journalFolders', []); }
+function setJournalFolders(v) { try { localStorage.setItem('journalFolders', JSON.stringify(v)); } catch(_) {} }
+function generateJournalId() { return 'j:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
+
+/* ── Streak counter ── */
+function calcJournalStreak() {
+  var entries = getJournalEntries();
+  if (!entries.length) return 0;
+  var days = new Set(entries.map(function(e) {
+    var d = new Date(e.createdAt || 0);
+    return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+  }));
+  var streak = 0;
+  var d = new Date();
+  while (true) {
+    var iso = d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+    if (!days.has(iso)) break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+/* ── Today preview widget ── */
+function renderTodayJournalPreview() {
+  var el = document.getElementById('todayJournalPreviewContent');
+  if (!el) return;
+  var entries = getJournalEntries();
+  if (!entries.length) {
+    el.innerHTML = '<p style="font-size:0.82rem;color:var(--ios-text-3,#aaa);text-align:center;padding:6px 0">No entries yet.</p>';
+    return;
+  }
+  var recent = entries.slice().sort(function(a, b) { return (b.createdAt||0) - (a.createdAt||0); }).slice(0, 3);
+  el.innerHTML = recent.map(function(e) {
+    var d = new Date(e.createdAt || Date.now());
+    var dateStr = monthNames[d.getMonth()].slice(0, 3) + ' ' + d.getDate();
+    var preview = e.title || (e.body || '').replace(/<[^>]+>/g, '').slice(0, 40) || 'Untitled';
+    return '<div style="font-size:0.82rem;padding:3px 0;border-bottom:1px solid var(--ios-border,#f0f0f0);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' +
+      '<span style="color:var(--ios-text-3,#999);margin-right:5px">' + escapeHTML(dateStr) + '</span>' +
+      (e.mood ? e.mood + ' ' : '') +
+      escapeHTML(preview) +
+      '</div>';
+  }).join('');
+}
+
+/* ── Medium widget ── */
+function renderJournalWidget() {
+  var section = document.getElementById('personalJournalSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var entries = getJournalEntries();
+  var folders = getJournalFolders();
+  var _selectedMood = '😐';
+
+  var card = buildPWCard('journalCard', '📓', 'Journal', function(body) {
+    /* Quick-add area */
+    var qa = document.createElement('div');
+    qa.style.cssText = 'margin-bottom:12px';
+    qa.innerHTML =
+      '<input type="text" id="jwTitleInp" placeholder="Entry title…" ' +
+        'style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:8px;padding:6px 10px;font-size:0.88rem;margin-bottom:6px;outline:none" />' +
+      '<textarea id="jwBodyInp" placeholder="Write something…" rows="3" ' +
+        'style="width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:8px;padding:6px 10px;font-size:0.88rem;resize:none;outline:none"></textarea>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">' +
+        '<span id="jwMoodToggle" style="font-size:1.15rem;cursor:pointer" title="Set mood">😐</span>' +
+        '<div id="jwMoodPicker" style="display:none;gap:5px">' +
+          '<span class="jw-mood-opt" data-mood="😊" style="font-size:1.2rem;cursor:pointer" title="Happy">😊</span>' +
+          '<span class="jw-mood-opt" data-mood="😐" style="font-size:1.2rem;cursor:pointer" title="Neutral">😐</span>' +
+          '<span class="jw-mood-opt" data-mood="😟" style="font-size:1.2rem;cursor:pointer" title="Sad">😟</span>' +
+          '<span class="jw-mood-opt" data-mood="😠" style="font-size:1.2rem;cursor:pointer" title="Angry">😠</span>' +
+          '<span class="jw-mood-opt" data-mood="🥳" style="font-size:1.2rem;cursor:pointer" title="Excited">🥳</span>' +
+          '<span class="jw-mood-opt" data-mood="😴" style="font-size:1.2rem;cursor:pointer" title="Tired">😴</span>' +
+        '</div>' +
+        '<button id="jwSaveBtn" style="margin-left:auto;background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.82rem;cursor:pointer;font-weight:600">＋ Save</button>' +
+      '</div>';
+    body.appendChild(qa);
+
+    /* Recent entries list */
+    var recentDiv = document.createElement('div');
+    var recent = entries.slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); }).slice(0, 5);
+    if (recent.length) {
+      recentDiv.innerHTML = '<div style="font-weight:700;font-size:0.75rem;color:var(--ios-text-3,#888);margin-bottom:5px;letter-spacing:0.04em;text-transform:uppercase">Recent</div>';
+      recent.forEach(function(e) {
+        var d = new Date(e.createdAt || Date.now());
+        var dateStr = monthNames[d.getMonth()].slice(0, 3) + ' ' + pad2(d.getDate());
+        var folder = folders.find(function(f){ return f.id === e.folderId; });
+        var bodyText = (e.body || '').replace(/<[^>]+>/g, '').trim();
+        var preview = e.title || bodyText.slice(0, 50) || 'Untitled';
+        var row = document.createElement('div');
+        row.className = 'jw-recent-row';
+        row.innerHTML =
+          '<span class="jw-recent-date">' + escapeHTML(dateStr) + '</span>' +
+          (folder ? '<span class="jw-recent-folder">' + escapeHTML(folder.emoji||'📁') + '</span>' : '') +
+          '<span class="jw-recent-title">' + escapeHTML(preview.slice(0, 40)) + '</span>' +
+          (e.mood ? '<span class="jw-recent-mood">' + e.mood + '</span>' : '');
+        row.dataset.jid = e.id;
+        recentDiv.appendChild(row);
+      });
+    } else {
+      recentDiv.innerHTML = '<p style="font-size:0.82rem;color:var(--ios-text-3,#aaa);text-align:center;padding:10px 0">No entries yet. Start writing!</p>';
+    }
+    body.appendChild(recentDiv);
+  });
+
+  /* Wire mood toggle */
+  var moodToggle = card.querySelector('#jwMoodToggle');
+  var moodPicker = card.querySelector('#jwMoodPicker');
+  if (moodToggle) {
+    moodToggle.addEventListener('click', function() {
+      moodPicker.style.display = moodPicker.style.display === 'flex' ? 'none' : 'flex';
+    });
+  }
+  card.querySelectorAll('.jw-mood-opt').forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      _selectedMood = opt.dataset.mood;
+      if (moodToggle) moodToggle.textContent = _selectedMood;
+      if (moodPicker) moodPicker.style.display = 'none';
+    });
+  });
+
+  /* Wire save */
+  var saveBtn = card.querySelector('#jwSaveBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function() {
+      var titleInp = card.querySelector('#jwTitleInp');
+      var bodyInp  = card.querySelector('#jwBodyInp');
+      var title    = titleInp ? titleInp.value.trim() : '';
+      var bodyText = bodyInp  ? bodyInp.value.trim()  : '';
+      if (!title && !bodyText) return;
+      var allEntries = getJournalEntries();
+      allEntries.unshift({
+        id: generateJournalId(),
+        title: title,
+        body: bodyText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'),
+        folderId: null,
+        tags: [],
+        mood: _selectedMood,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        starred: false
+      });
+      setJournalEntries(allEntries);
+      if (titleInp) titleInp.value = '';
+      if (bodyInp)  bodyInp.value  = '';
+      _selectedMood = '😐';
+      if (moodToggle) moodToggle.textContent = '😐';
+      haptic.complete();
+      renderJournalWidget();
+      if (typeof renderTodayJournalPreview === 'function') renderTodayJournalPreview();
+    });
+  }
+
+  /* Click recent entry → open full view at that entry */
+  card.querySelectorAll('.jw-recent-row').forEach(function(row) {
+    row.addEventListener('click', function() {
+      window._journalOpenEntryId = row.dataset.jid;
+      if (typeof window.openAppDetail === 'function') {
+        window.openAppDetail('journal', { fullscreen: true });
+      }
+    });
+  });
+
+  section.appendChild(card);
+}
+
+/* ── Full-screen 3-panel view ── */
+function renderJournalAppFull(container) {
+  container.innerHTML = '';
+
+  var _jState = {
+    folderId:      null,      /* null = All Entries; '__starred__' = Starred */
+    entryId:       null,
+    search:        '',
+    sort:          'newest',
+    panel:         'folders', /* mobile nav: 'folders' | 'list' | 'editor' */
+    focusMode:     false,
+    autosaveTimer: null
+  };
+
+  /* If widget opened a specific entry, jump straight to editor */
+  if (window._journalOpenEntryId) {
+    _jState.entryId = window._journalOpenEntryId;
+    _jState.panel   = 'editor';
+    window._journalOpenEntryId = null;
+  }
+
+  /* ── Root layout ── */
+  var root = document.createElement('div');
+  root.className = 'jv-root';
+  root.dataset.panel = _jState.panel;
+
+  var sidebar    = document.createElement('div'); sidebar.className    = 'jv-sidebar';
+  var listPanel  = document.createElement('div'); listPanel.className  = 'jv-list-panel';
+  var editorPanel= document.createElement('div'); editorPanel.className= 'jv-editor-panel';
+
+  root.appendChild(sidebar);
+  root.appendChild(listPanel);
+  root.appendChild(editorPanel);
+  container.appendChild(root);
+
+  /* ── Helpers ── */
+  function rebuild() {
+    renderSidebar();
+    renderList();
+    renderEditor();
+    root.dataset.panel = _jState.panel;
+  }
+
+  /* ══════════════════════════════════════
+     SIDEBAR — Folders
+     ══════════════════════════════════════ */
+  function renderSidebar() {
+    sidebar.innerHTML = '';
+
+    var entries = getJournalEntries();
+    var folders = getJournalFolders();
+
+    var heading = document.createElement('div');
+    heading.className = 'jv-sidebar-heading';
+    heading.textContent = '📂 Folders';
+    sidebar.appendChild(heading);
+
+    /* All Entries */
+    _appendFolderItem(sidebar, '📚', 'All Entries', entries.length, null);
+
+    /* Starred */
+    var starCount = entries.filter(function(e){ return e.starred; }).length;
+    _appendFolderItem(sidebar, '⭐', 'Starred', starCount, '__starred__');
+
+    /* User folders */
+    folders.forEach(function(f) {
+      var count = entries.filter(function(e){ return e.folderId === f.id; }).length;
+      var item = _appendFolderItem(sidebar, f.emoji || '📁', f.name, count, f.id);
+      /* Delete button */
+      var del = document.createElement('button');
+      del.className = 'jv-folder-del';
+      del.textContent = '✕';
+      del.title = 'Delete folder';
+      del.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (!confirm('Delete folder "' + f.name + '"?\nEntries will move to All Entries.')) return;
+        var flds = getJournalFolders().filter(function(x){ return x.id !== f.id; });
+        setJournalFolders(flds);
+        var ents = getJournalEntries().map(function(x){ if (x.folderId === f.id) x.folderId = null; return x; });
+        setJournalEntries(ents);
+        if (_jState.folderId === f.id) { _jState.folderId = null; _jState.entryId = null; }
+        rebuild();
+      });
+      item.appendChild(del);
+    });
+
+    /* Add folder form */
+    var addForm = document.createElement('div');
+    addForm.className = 'jv-add-folder-form';
+    addForm.innerHTML =
+      '<input type="text" id="jvFolderEmoji" placeholder="📁" maxlength="2" class="jv-folder-emoji-inp" />' +
+      '<input type="text" id="jvFolderName"  placeholder="New folder…"   class="jv-folder-name-inp"  />' +
+      '<button id="jvAddFolderBtn" class="jv-add-folder-btn" title="Add folder">＋</button>';
+    addForm.querySelector('#jvAddFolderBtn').addEventListener('click', function() {
+      var emojiInp = addForm.querySelector('#jvFolderEmoji');
+      var nameInp  = addForm.querySelector('#jvFolderName');
+      var name = nameInp ? nameInp.value.trim() : '';
+      if (!name) return;
+      var flds = getJournalFolders();
+      flds.push({ id: generateJournalId(), name: name, emoji: (emojiInp ? emojiInp.value.trim() : '') || '📁' });
+      setJournalFolders(flds);
+      if (nameInp)  nameInp.value  = '';
+      if (emojiInp) emojiInp.value = '';
+      rebuild();
+    });
+    sidebar.appendChild(addForm);
+
+    /* Streak */
+    var streak = calcJournalStreak();
+    if (streak > 0) {
+      var streakEl = document.createElement('div');
+      streakEl.className = 'jv-streak';
+      streakEl.textContent = '🔥 ' + streak + '-day streak!';
+      sidebar.appendChild(streakEl);
+    }
+  }
+
+  function _appendFolderItem(parent, emoji, name, count, fid) {
+    var item = document.createElement('div');
+    item.className = 'jv-folder-item' + (_jState.folderId === fid ? ' active' : '');
+    item.innerHTML =
+      '<span class="jv-folder-emoji">' + escapeHTML(emoji) + '</span>' +
+      '<span class="jv-folder-name">'  + escapeHTML(name)  + '</span>' +
+      '<span class="jv-folder-count">' + count + '</span>';
+    item.addEventListener('click', function(e) {
+      if (e.target.classList.contains('jv-folder-del')) return;
+      _jState.folderId = fid;
+      _jState.entryId  = null;
+      _jState.panel    = 'list';
+      rebuild();
+    });
+    parent.appendChild(item);
+    return item;
+  }
+
+  /* ══════════════════════════════════════
+     ENTRY LIST — Middle column
+     ══════════════════════════════════════ */
+  function renderList() {
+    listPanel.innerHTML = '';
+
+    var entries = getJournalEntries();
+    var folders = getJournalFolders();
+
+    /* Mobile back → folders */
+    var mBack = document.createElement('button');
+    mBack.className = 'jv-mobile-back jv-mobile-only';
+    mBack.textContent = '← Folders';
+    mBack.addEventListener('click', function() { _jState.panel = 'folders'; root.dataset.panel = 'folders'; });
+    listPanel.appendChild(mBack);
+
+    /* Header: search + sort + new */
+    var hdr = document.createElement('div');
+    hdr.className = 'jv-list-header';
+    hdr.innerHTML =
+      '<input type="text" class="jv-search" placeholder="🔍 Search entries…" value="' + escapeHTML(_jState.search) + '" />' +
+      '<div class="jv-list-controls">' +
+        '<select class="jv-sort-select">' +
+          '<option value="newest"' + (_jState.sort==='newest'?' selected':'') + '>Newest</option>' +
+          '<option value="oldest"' + (_jState.sort==='oldest'?' selected':'') + '>Oldest</option>' +
+          '<option value="edited"' + (_jState.sort==='edited'?' selected':'') + '>Last edited</option>' +
+        '</select>' +
+        '<button class="jv-new-entry-btn" id="jvNewEntryBtn">＋ New</button>' +
+      '</div>';
+    listPanel.appendChild(hdr);
+
+    hdr.querySelector('.jv-search').addEventListener('input', function(e) {
+      _jState.search = e.target.value;
+      renderList();
+    });
+    hdr.querySelector('.jv-sort-select').addEventListener('change', function(e) {
+      _jState.sort = e.target.value;
+      renderList();
+    });
+    hdr.querySelector('#jvNewEntryBtn').addEventListener('click', _createNewEntry);
+
+    /* Filter */
+    var filtered = entries;
+    if (_jState.folderId === '__starred__') {
+      filtered = entries.filter(function(e){ return e.starred; });
+    } else if (_jState.folderId !== null) {
+      filtered = entries.filter(function(e){ return e.folderId === _jState.folderId; });
+    }
+
+    /* Search */
+    var q = _jState.search.toLowerCase().trim();
+    if (q) {
+      filtered = filtered.filter(function(e) {
+        var bodyPlain = (e.body || '').replace(/<[^>]+>/g, '').toLowerCase();
+        return (e.title || '').toLowerCase().indexOf(q) !== -1 || bodyPlain.indexOf(q) !== -1;
+      });
+    }
+
+    /* Sort */
+    if (_jState.sort === 'oldest') {
+      filtered.sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
+    } else if (_jState.sort === 'edited') {
+      filtered.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
+    } else {
+      filtered.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
+    }
+
+    /* Starred entries float to top */
+    var starred = filtered.filter(function(e){ return e.starred; });
+    var rest    = filtered.filter(function(e){ return !e.starred; });
+    filtered = starred.concat(rest);
+
+    /* Entry rows */
+    var listEl = document.createElement('div');
+    listEl.className = 'jv-entries-list';
+
+    if (!filtered.length) {
+      listEl.innerHTML = '<div class="jv-entries-empty">' +
+        (q ? 'No entries matching "<strong>' + escapeHTML(q) + '</strong>".' : 'No entries here yet.<br><small>Tap <strong>＋ New</strong> to start.</small>') +
+        '</div>';
+    } else {
+      filtered.forEach(function(e) {
+        var d = new Date(e.createdAt || Date.now());
+        var dateStr = monthNames[d.getMonth()].slice(0,3) + ' ' + pad2(d.getDate()) + ', ' + d.getFullYear();
+        var folder  = folders.find(function(f){ return f.id === e.folderId; });
+        var bodyText = (e.body || '').replace(/<[^>]+>/g,'').trim();
+        var wc = bodyText ? bodyText.split(/\s+/).filter(Boolean).length : 0;
+
+        var row = document.createElement('div');
+        row.className = 'jv-entry-row' + (e.id === _jState.entryId ? ' active' : '');
+        row.dataset.jid = e.id;
+        row.innerHTML =
+          '<div class="jv-entry-row-top">' +
+            '<span class="jv-entry-date">' + escapeHTML(dateStr) + '</span>' +
+            (e.starred ? '<span class="jv-entry-star">⭐</span>' : '') +
+            (e.mood    ? '<span class="jv-entry-mood">'  + e.mood   + '</span>' : '') +
+          '</div>' +
+          '<div class="jv-entry-title">' + escapeHTML(e.title || 'Untitled') + '</div>' +
+          '<div class="jv-entry-preview">' + escapeHTML(bodyText.slice(0, 80)) + '</div>' +
+          '<div class="jv-entry-meta">' +
+            (folder ? '<span class="jv-entry-folder-tag">' + escapeHTML(folder.emoji||'📁') + ' ' + escapeHTML(folder.name) + '</span>' : '') +
+            '<span class="jv-entry-wc">' + wc + ' words</span>' +
+          '</div>';
+
+        row.addEventListener('click', function() {
+          _jState.entryId = e.id;
+          _jState.panel   = 'editor';
+          /* Highlight selection without full list re-render */
+          listEl.querySelectorAll('.jv-entry-row').forEach(function(r) {
+            r.classList.toggle('active', r.dataset.jid === e.id);
+          });
+          renderEditor();
+          root.dataset.panel = 'editor';
+        });
+        listEl.appendChild(row);
+      });
+    }
+    listPanel.appendChild(listEl);
+  }
+
+  /* ══════════════════════════════════════
+     EDITOR — Right column
+     ══════════════════════════════════════ */
+  function renderEditor() {
+    editorPanel.innerHTML = '';
+
+    /* Mobile back → list */
+    var mBack = document.createElement('button');
+    mBack.className = 'jv-mobile-back jv-mobile-only';
+    mBack.textContent = '← Entries';
+    mBack.addEventListener('click', function() { _jState.panel = 'list'; root.dataset.panel = 'list'; });
+    editorPanel.appendChild(mBack);
+
+    if (!_jState.entryId) {
+      var empty = document.createElement('div');
+      empty.className = 'jv-editor-empty';
+      empty.innerHTML = '<div style="font-size:2.5rem">📓</div><p>Select an entry or tap <strong>＋ New</strong> to start writing.</p>';
+      editorPanel.appendChild(empty);
+      return;
+    }
+
+    var entries = getJournalEntries();
+    var idx = entries.findIndex(function(e){ return e.id === _jState.entryId; });
+    if (idx === -1) { _jState.entryId = null; renderEditor(); return; }
+    var entry = entries[idx];
+
+    /* ── Toolbar ── */
+    var toolbar = document.createElement('div');
+    toolbar.className = 'jv-toolbar';
+
+    var toolDefs = [
+      { cmd:'bold',                 html:'<b>B</b>',  title:'Bold (Ctrl+B)' },
+      { cmd:'italic',               html:'<i>I</i>',  title:'Italic (Ctrl+I)' },
+      { cmd:'underline',            html:'<u>U</u>',  title:'Underline (Ctrl+U)' },
+      { cmd:'strikeThrough',        html:'<s>S</s>',  title:'Strikethrough' },
+      { sep:true },
+      { cmd:'h1',                   html:'H1',         title:'Heading 1' },
+      { cmd:'h2',                   html:'H2',         title:'Heading 2' },
+      { cmd:'h3',                   html:'H3',         title:'Heading 3' },
+      { sep:true },
+      { cmd:'insertUnorderedList',  html:'•',          title:'Bullet list' },
+      { cmd:'insertOrderedList',    html:'1.',         title:'Numbered list' },
+      { cmd:'checklist',            html:'☑',          title:'Checklist item' },
+      { sep:true },
+      { cmd:'blockquote',           html:'❝',          title:'Block quote' },
+      { cmd:'insertHorizontalRule', html:'—',          title:'Horizontal rule' }
+    ];
+
+    toolDefs.forEach(function(def) {
+      if (def.sep) {
+        var sep = document.createElement('span');
+        sep.className = 'jv-toolbar-sep';
+        toolbar.appendChild(sep);
+        return;
+      }
+      var btn = document.createElement('button');
+      btn.className = 'jv-toolbar-btn';
+      btn.innerHTML = def.html;
+      btn.title = def.title;
+      btn.type  = 'button';
+      btn.addEventListener('mousedown', function(e) {
+        e.preventDefault(); /* keep editor focus */
+        var ed = editorPanel.querySelector('.jv-editor-body');
+        if (!ed) return;
+        ed.focus();
+        if (def.cmd === 'h1' || def.cmd === 'h2' || def.cmd === 'h3') {
+          document.execCommand('formatBlock', false, '<' + def.cmd + '>');
+        } else if (def.cmd === 'checklist') {
+          document.execCommand('insertHTML', false,
+            '<div><label><input type="checkbox"> <span>&#8203;</span></label></div>');
+        } else if (def.cmd === 'blockquote') {
+          document.execCommand('formatBlock', false, '<blockquote>');
+        } else {
+          document.execCommand(def.cmd, false, null);
+        }
+      });
+      toolbar.appendChild(btn);
+    });
+
+    /* Focus-mode toggle */
+    var focusBtn = document.createElement('button');
+    focusBtn.className = 'jv-toolbar-btn jv-focus-btn' + (_jState.focusMode ? ' active' : '');
+    focusBtn.innerHTML = '⛶';
+    focusBtn.title = 'Distraction-free mode';
+    focusBtn.type  = 'button';
+    focusBtn.addEventListener('click', function() {
+      _jState.focusMode = !_jState.focusMode;
+      root.classList.toggle('jv-focus-mode', _jState.focusMode);
+      focusBtn.classList.toggle('active', _jState.focusMode);
+    });
+    toolbar.appendChild(focusBtn);
+
+    /* Export button */
+    var exportBtn = document.createElement('button');
+    exportBtn.className = 'jv-toolbar-btn';
+    exportBtn.innerHTML = '📋';
+    exportBtn.title = 'Copy entry as plain text';
+    exportBtn.type  = 'button';
+    exportBtn.addEventListener('click', function() {
+      var ed = editorPanel.querySelector('.jv-editor-body');
+      var titleEl = editorPanel.querySelector('.jv-title-input');
+      var text = ((titleEl ? titleEl.value : '') ? (titleEl.value + '\n\n') : '') +
+                 (ed ? (ed.innerText || '') : '');
+      try {
+        navigator.clipboard.writeText(text).then(function() {
+          exportBtn.innerHTML = '✅';
+          setTimeout(function(){ exportBtn.innerHTML = '📋'; }, 1500);
+        });
+      } catch(_) { alert(text); }
+    });
+    toolbar.appendChild(exportBtn);
+
+    /* Delete entry */
+    var delBtn = document.createElement('button');
+    delBtn.className = 'jv-toolbar-btn jv-del-btn';
+    delBtn.innerHTML = '🗑';
+    delBtn.title = 'Delete entry';
+    delBtn.type  = 'button';
+    delBtn.addEventListener('click', function() {
+      if (!confirm('Delete this entry? This cannot be undone.')) return;
+      var ents = getJournalEntries().filter(function(e){ return e.id !== _jState.entryId; });
+      setJournalEntries(ents);
+      _jState.entryId = null;
+      _jState.panel   = 'list';
+      rebuild();
+    });
+    toolbar.appendChild(delBtn);
+
+    editorPanel.appendChild(toolbar);
+
+    /* ── Title input ── */
+    var titleInp = document.createElement('input');
+    titleInp.type = 'text';
+    titleInp.className = 'jv-title-input';
+    titleInp.placeholder = 'Entry title…';
+    titleInp.value = entry.title || '';
+    editorPanel.appendChild(titleInp);
+
+    /* ── Date stamp ── */
+    var dateStamp = document.createElement('div');
+    dateStamp.className = 'jv-date-stamp';
+    var d = new Date(entry.createdAt || Date.now());
+    dateStamp.textContent = d.toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'long', day:'numeric' }) +
+                            ' · ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    editorPanel.appendChild(dateStamp);
+
+    /* ── Editor body ── */
+    var editorBody = document.createElement('div');
+    editorBody.className = 'jv-editor-body';
+    editorBody.contentEditable = 'true';
+    editorBody.spellcheck = true;
+    editorBody.innerHTML = entry.body || '';
+    editorPanel.appendChild(editorBody);
+
+    /* ── Footer ── */
+    var footer = document.createElement('div');
+    footer.className = 'jv-editor-footer';
+    footer.style.position = 'relative'; /* for mood popup */
+
+    /* Folder picker */
+    var allFolders = getJournalFolders();
+    var folderOpts = '<option value="">📚 All Entries</option>';
+    allFolders.forEach(function(f) {
+      folderOpts += '<option value="' + escapeHTML(f.id) + '"' + (entry.folderId===f.id?' selected':'') + '>' +
+        escapeHTML(f.emoji||'📁') + ' ' + escapeHTML(f.name) + '</option>';
+    });
+    var folderSel = document.createElement('select');
+    folderSel.className = 'jv-footer-select';
+    folderSel.innerHTML = folderOpts;
+    footer.appendChild(folderSel);
+
+    /* Tags input */
+    var tagsInp = document.createElement('input');
+    tagsInp.type = 'text';
+    tagsInp.className = 'jv-tags-input';
+    tagsInp.placeholder = '🏷 tags, comma-sep';
+    tagsInp.value = (entry.tags || []).join(', ');
+    footer.appendChild(tagsInp);
+
+    /* Mood picker */
+    var moodBtn = document.createElement('span');
+    moodBtn.className = 'jv-footer-mood';
+    moodBtn.title = 'Change mood';
+    moodBtn.textContent = entry.mood || '😐';
+    moodBtn.setAttribute('role', 'button');
+    moodBtn.addEventListener('click', function() {
+      var existing = footer.querySelector('.jv-mood-popup');
+      if (existing) { existing.remove(); return; }
+      var popup = document.createElement('div');
+      popup.className = 'jv-mood-popup';
+      ['😊','😐','😟','😠','🥳','😴','🤒','🥰'].forEach(function(m) {
+        var b = document.createElement('button');
+        b.className = 'jv-mood-popup-btn';
+        b.textContent = m;
+        b.type = 'button';
+        b.addEventListener('click', function() {
+          moodBtn.textContent = m;
+          popup.remove();
+          _saveEntry();
+        });
+        popup.appendChild(b);
+      });
+      footer.appendChild(popup);
+    });
+    footer.appendChild(moodBtn);
+
+    /* Star toggle */
+    var starBtn = document.createElement('button');
+    starBtn.className = 'jv-footer-star-btn' + (entry.starred ? ' active' : '');
+    starBtn.title = entry.starred ? 'Unstar entry' : 'Star entry';
+    starBtn.textContent = entry.starred ? '⭐' : '☆';
+    starBtn.type = 'button';
+    starBtn.addEventListener('click', function() { _saveEntry(true); });
+    footer.appendChild(starBtn);
+
+    /* Word count */
+    var wcEl = document.createElement('span');
+    wcEl.className = 'jv-wc';
+
+    /* Save status */
+    var saveStatus = document.createElement('span');
+    saveStatus.className = 'jv-save-status';
+
+    footer.appendChild(wcEl);
+    footer.appendChild(saveStatus);
+    editorPanel.appendChild(footer);
+
+    /* ── Word count updater ── */
+    function _updateWC() {
+      var text = editorBody.innerText || '';
+      var wc = text.trim() ? text.trim().split(/\s+/).length : 0;
+      var rt = Math.max(1, Math.ceil(wc / 200));
+      wcEl.textContent = wc + ' words · ' + rt + ' min';
+    }
+    _updateWC();
+
+    /* ── Save ── */
+    function _saveEntry(toggleStar) {
+      if (_jState.autosaveTimer) { clearTimeout(_jState.autosaveTimer); _jState.autosaveTimer = null; }
+      var ents = getJournalEntries();
+      var i = ents.findIndex(function(e){ return e.id === _jState.entryId; });
+      if (i === -1) return;
+      ents[i].title    = titleInp.value.trim();
+      ents[i].body     = editorBody.innerHTML;
+      ents[i].folderId = folderSel.value || null;
+      ents[i].tags     = tagsInp.value.split(',').map(function(t){ return t.trim(); }).filter(Boolean);
+      ents[i].mood     = moodBtn.textContent;
+      ents[i].updatedAt = Date.now();
+      if (toggleStar) {
+        ents[i].starred = !ents[i].starred;
+        starBtn.classList.toggle('active', ents[i].starred);
+        starBtn.textContent = ents[i].starred ? '⭐' : '☆';
+        starBtn.title = ents[i].starred ? 'Unstar entry' : 'Star entry';
+      }
+      setJournalEntries(ents);
+      saveStatus.textContent = 'Saved ✓';
+      saveStatus.style.color = '#27ae60';
+      setTimeout(function(){ saveStatus.textContent = ''; }, 2000);
+      /* Refresh list row title live */
+      var listRow = listPanel.querySelector('[data-jid="' + _jState.entryId + '"] .jv-entry-title');
+      if (listRow) listRow.textContent = ents[i].title || 'Untitled';
+      if (typeof renderTodayJournalPreview === 'function') renderTodayJournalPreview();
+    }
+
+    function _scheduleAutosave() {
+      if (_jState.autosaveTimer) clearTimeout(_jState.autosaveTimer);
+      saveStatus.textContent = '…';
+      saveStatus.style.color = '#bbb';
+      _jState.autosaveTimer = setTimeout(_saveEntry, 1000);
+    }
+
+    editorBody.addEventListener('input', function() { _updateWC(); _scheduleAutosave(); });
+    titleInp.addEventListener('input', _scheduleAutosave);
+    folderSel.addEventListener('change', _saveEntry);
+    tagsInp.addEventListener('change', _saveEntry);
+  }
+
+  /* ══════════════════════════════════════
+     CREATE NEW ENTRY
+     ══════════════════════════════════════ */
+  function _createNewEntry() {
+    var now = new Date();
+    var dateStr = now.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+    var timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    var entry = {
+      id:        generateJournalId(),
+      title:     dateStr + ' — ' + timeStr,
+      body:      '',
+      folderId:  (_jState.folderId === '__starred__' || _jState.folderId === null) ? null : _jState.folderId,
+      tags:      [],
+      mood:      '😐',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      starred:   false
+    };
+    var ents = getJournalEntries();
+    ents.unshift(entry);
+    setJournalEntries(ents);
+    _jState.entryId = entry.id;
+    _jState.panel   = 'editor';
+    rebuild();
+    setTimeout(function() {
+      var ti = editorPanel.querySelector('.jv-title-input');
+      if (ti) { ti.focus(); ti.select(); }
+    }, 40);
+  }
+
+  /* Initial render */
+  rebuild();
+}
+
+window.renderJournalWidget       = renderJournalWidget;
+window.renderJournalAppFull      = renderJournalAppFull;
+window.renderTodayJournalPreview = renderTodayJournalPreview;
