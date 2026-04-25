@@ -3091,3 +3091,55 @@ body.dark-mode .jv-editor-footer { background: #1a1a2e; border-top-color: #333; 
 body.dark-mode .jv-footer-select { background: #1e2a3a; border-color: #333; color: #ddd; }
 body.dark-mode .jv-tags-input   { background: #1e2a3a; border-color: #333; color: #ddd; }
 body.dark-mode .jv-toolbar-sep  { background: #444; }
+
+/* ── Sleep App — Medium View ─────────────────────────────── */
+.sleep-med-wrap { display:flex; flex-direction:column; gap:10px; padding:4px 0; }
+.sleep-med-sched { display:flex; align-items:center; justify-content:center; gap:12px; background:var(--ios-bg-2,#f5f5f7); border-radius:12px; padding:10px 16px; }
+.sleep-med-sched-item { display:flex; flex-direction:column; align-items:center; gap:2px; }
+.sleep-med-icon { font-size:1.25rem; }
+.sleep-med-val { font-size:1rem; font-weight:700; letter-spacing:0.02em; }
+.sleep-med-lbl { font-size:0.7rem; color:var(--ios-text-3,#888); }
+.sleep-med-sched-divider { font-size:1.1rem; color:var(--ios-text-3,#aaa); }
+.sleep-med-log { font-size:0.85rem; }
+.sleep-med-logged { display:flex; align-items:center; gap:8px; background:#eafaf1; border-radius:10px; padding:8px 12px; }
+body.dark-mode .sleep-med-logged { background:#1a3a2a; }
+.sleep-med-check { font-size:1.1rem; }
+.sleep-med-dur { flex:1; }
+.sleep-med-stars { font-size:0.75rem; }
+.sleep-med-unlogged { color:var(--ios-text-3,#aaa); font-size:0.8rem; margin-bottom:6px; }
+.sleep-med-quick-log { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.sleep-med-inp { font-size:0.8rem; border:1px solid #d8e0ec; border-radius:6px; padding:3px 6px; }
+.sleep-med-chart { }
+.sleep-med-bars { display:flex; align-items:flex-end; gap:4px; height:60px; }
+.sleep-med-bar-col { display:flex; flex-direction:column; align-items:center; flex:1; height:100%; justify-content:flex-end; gap:2px; }
+.sleep-med-bar { width:100%; border-radius:3px 3px 0 0; min-height:4px; transition:height 0.3s; }
+.sleep-med-bar-lbl { font-size:0.62rem; color:var(--ios-text-3,#aaa); text-align:center; }
+.sleep-med-bar-today { font-weight:700; color:var(--ios-accent,#4a90e2); }
+
+/* ── Gym App — inline add-routine form ───────────────────── */
+.app-gym-add-row { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+
+/* ── Theme color picker (Settings modal) ─────────────────── */
+.theme-color-swatch-grid { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.theme-color-swatch { width:32px; height:32px; border-radius:50%; border:3px solid transparent; cursor:pointer; transition:border-color 0.15s,transform 0.15s; }
+.theme-color-swatch:hover { transform:scale(1.12); }
+.theme-color-swatch.active { border-color: #222; }
+body.dark-mode .theme-color-swatch.active { border-color: #fff; }
+
+/* ── Apps grid drag-to-reorder ────────────────────────────── */
+.app-icon-btn { touch-action: none; }
+.app-icon-btn--dragging { opacity:0.45; transform:scale(0.92); }
+.app-icon-btn--over { outline:2px dashed var(--ios-accent,#4a90e2); outline-offset:2px; }
+
+/* ── Recipe external search ───────────────────────────────── */
+.mf-ext-recipe-list { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+.mf-ext-recipe-card { display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid #e0e0e0; border-radius:10px; }
+body.dark-mode .mf-ext-recipe-card { border-color:#333; }
+.mf-ext-recipe-thumb { width:52px; height:52px; border-radius:8px; object-fit:cover; flex-shrink:0; }
+.mf-ext-recipe-info { flex:1; min-width:0; }
+.mf-ext-recipe-name { font-weight:600; font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mf-ext-recipe-src { font-size:0.72rem; color:var(--ios-text-3,#888); }
+.mf-ext-recipe-actions { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
+
+/* ── Meal Planner date nav ────────────────────────────────── */
+.mf-date-nav { display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:8px; }
