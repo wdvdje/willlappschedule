@@ -9018,9 +9018,24 @@ function renderTodayMoodPreview() {
   });
 }
 
-/* ======================================================================
-   APP FULL-VIEW RENDERERS
-   ====================================================================== */
+function renderTodayBudgetPreview() {
+  var el = document.getElementById('todayBudgetPreviewContent');
+  if (!el) return;
+  var budget = getPersonalBudget();
+  var bills = budget.bills || [];
+  var oneTime = budget.oneTimeExpenses || [];
+  var jobIncome = typeof calcBudgetJobIncome === 'function' ? calcBudgetJobIncome() : 0;
+  var billsTotal = bills.reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
+  var oneTimeTotal = oneTime.reduce(function(s, e) { return s + (parseFloat(e.amount) || 0); }, 0);
+  var net = jobIncome - billsTotal - oneTimeTotal;
+  var netColor = net >= 0 ? '#27ae60' : '#e74c3c';
+  el.innerHTML =
+    '<div class="tdp-budget-row"><span style="font-size:0.8rem;color:var(--ios-text-3)">📈 Income (30d)</span><span style="font-size:0.82rem;font-weight:600;color:#27ae60">$' + jobIncome.toFixed(2) + '</span></div>' +
+    '<div class="tdp-budget-row"><span style="font-size:0.8rem;color:var(--ios-text-3)">📋 Bills/mo</span><span style="font-size:0.82rem;color:#e74c3c">$' + billsTotal.toFixed(2) + '</span></div>' +
+    '<div class="tdp-budget-row tdp-budget-net"><span style="font-size:0.8rem;font-weight:600">💵 Net</span><span style="font-size:0.82rem;font-weight:700;color:' + netColor + '">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span></div>';
+}
+
+
 
 function renderWeatherAppFull(container) {
   container.innerHTML = '';
@@ -9701,6 +9716,7 @@ window.renderTodayHydrationPreview = renderTodayHydrationPreview;
 window.renderTodaySleepPreview     = renderTodaySleepPreview;
 window.renderTodayRoutinePreview   = renderTodayRoutinePreview;
 window.renderTodayMoodPreview      = renderTodayMoodPreview;
+window.renderTodayBudgetPreview    = renderTodayBudgetPreview;
 window.renderWeatherAppFull   = renderWeatherAppFull;
 window.renderSleepAppFull     = renderSleepAppFull;
 window.renderMoodAppFull      = renderMoodAppFull;

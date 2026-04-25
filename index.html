@@ -166,13 +166,13 @@
             <div id="inboxWidgetList"></div>
           </div>
 
-          <!-- This Week's Job Earnings Widget -->
-          <div id="todayEarningsWidget" class="today-right-widget today-earnings-preview">
-            <div class="today-earnings-preview-header">
-              <span id="todayEarningsTitle">💰 This Week's Job Earnings</span>
-              <button type="button" class="today-widget-open-btn" data-app="jobs">Open →</button>
+          <!-- Budget Preview Widget -->
+          <div id="todayBudgetWidget" class="today-right-widget today-preview-widget">
+            <div class="today-preview-header">
+              <span>💰 Budget</span>
+              <button type="button" class="today-widget-open-btn" data-app="budget">Open →</button>
             </div>
-            <div id="weeklySalaryDisplay" class="today-earnings-preview-content"></div>
+            <div id="todayBudgetPreviewContent" class="today-preview-content"></div>
           </div>
 
           <!-- 🎯 Focus Preview -->
@@ -1634,6 +1634,7 @@
       if (typeof renderTodaySleepPreview     === 'function') try { renderTodaySleepPreview();     } catch(_) {}
       if (typeof renderTodayRoutinePreview   === 'function') try { renderTodayRoutinePreview();   } catch(_) {}
       if (typeof renderTodayMoodPreview      === 'function') try { renderTodayMoodPreview();      } catch(_) {}
+      if (typeof renderTodayBudgetPreview    === 'function') try { renderTodayBudgetPreview();    } catch(_) {}
       // Re-render calendar and day details now that utils.js (expandEvents) is loaded
       try { if (typeof generateCalendar === 'function') generateCalendar(); } catch(_) {}
       try { if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined' && selectedDay) showReminders(selectedDay); } catch(_) {}

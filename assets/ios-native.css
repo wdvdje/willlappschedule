@@ -617,6 +617,12 @@ body.scroll-edge-top-off.scroll-edge-bottom-off main {
   #todayMainCol #selectedDateArea > .dashboard {
     grid-column: 1 / -1;
   }
+  #todayMainCol #selectedDateArea > #dvDaySummaryRow {
+    grid-column: 1 / -1;
+  }
+  #todayMainCol #selectedDateArea > #dailyView {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Sidebar app title */
@@ -2415,6 +2421,20 @@ main {
 
 .today-earnings-preview-content {
   font-size: 0.9rem;
+}
+
+/* ── Today Budget Preview Widget ────────────────────────────────── */
+.tdp-budget-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 0;
+}
+
+.tdp-budget-net {
+  border-top: 1px solid var(--ios-border-glass);
+  margin-top: 4px;
+  padding-top: 6px;
 }
 
 /* ── Weather widget heading in right column ─────────────────────── */
