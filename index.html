@@ -127,21 +127,6 @@
           </div>
         </div>
         <div class="weekly-salary" id="weeklySalaryDisplay"></div>
-
-        <!-- Weather Summary Widget -->
-        <div id="weatherWidgetSection" class="weather-widget-section" style="display:none">
-          <h3 class="weather-widget-heading">🌤️ Weekly Weather</h3>
-          <div id="weatherWidgetContent"></div>
-        </div>
-
-        <!-- Inbox Preview Widget -->
-        <div id="inboxWidget" class="inbox-widget">
-          <div class="inbox-widget-heading">
-            <span>📥 Today's Inbox</span>
-            <a href="#inbox" class="inbox-widget-link">View all →</a>
-          </div>
-          <div id="inboxWidgetList"></div>
-        </div>
       </section>
 
         <!-- Daily view controls -->
@@ -159,11 +144,37 @@
       </div><!-- end todayMainCol -->
       <div id="todayAppsCol">
         <div class="today-apps-col-inner">
+          <!-- Pinned Apps -->
           <div class="today-apps-col-header">
-            <h3 class="today-apps-col-heading">Apps</h3>
-            <button type="button" id="todayOpenAppsBtn" class="today-apps-open-btn">⊞ All Apps</button>
+            <h3 class="today-apps-col-heading">Pinned Apps</h3>
           </div>
           <div id="todayPinnedApps" class="today-pinned-apps"></div>
+
+          <!-- Weather Preview Widget (moved here from dashboard) -->
+          <div id="weatherWidgetSection" class="weather-widget-section today-right-widget" style="display:none">
+            <h3 class="weather-widget-heading">🌤️ Weather
+              <button type="button" class="today-widget-open-btn" data-app="weather">Open →</button>
+            </h3>
+            <div id="weatherWidgetContent"></div>
+          </div>
+
+          <!-- Inbox Preview Widget (moved here from dashboard) -->
+          <div id="inboxWidget" class="inbox-widget today-right-widget">
+            <div class="inbox-widget-heading">
+              <span>📥 Inbox</span>
+              <a href="#inbox" class="inbox-widget-link">View all →</a>
+            </div>
+            <div id="inboxWidgetList"></div>
+          </div>
+
+          <!-- Earnings Preview Widget -->
+          <div id="todayEarningsWidget" class="today-right-widget today-earnings-preview">
+            <div class="today-earnings-preview-header">
+              <span>💰 Earnings</span>
+              <button type="button" class="today-widget-open-btn" data-app="jobs">Open →</button>
+            </div>
+            <div id="todayEarningsPreviewContent" class="today-earnings-preview-content"></div>
+          </div>
         </div>
       </div><!-- end todayAppsCol -->
       </div><!-- end todayLayout -->
@@ -755,6 +766,7 @@
         <button class="app-icon-btn" data-app="meal">      <span class="app-icon-emoji">🥗</span><span class="app-icon-label">Meals</span></button>
         <button class="app-icon-btn" data-app="gym">       <span class="app-icon-emoji">🏋️</span><span class="app-icon-label">Gym</span></button>
         <button class="app-icon-btn" data-app="routine">   <span class="app-icon-emoji">🌅</span><span class="app-icon-label">Routine</span></button>
+        <button class="app-icon-btn" data-app="weather">   <span class="app-icon-emoji">🌤️</span><span class="app-icon-label">Weather</span></button>
         <button class="app-icon-btn" data-app="jobs">      <span class="app-icon-emoji">💼</span><span class="app-icon-label">Jobs</span></button>
       </div>
 
@@ -795,8 +807,9 @@
         <h2 id="appWindowTitle"></h2>
         <label class="app-window-pin-label" title="Show this app on the Today page">
           <input type="checkbox" id="appWindowPinToggle" style="width:auto;margin:0" />
-          <span>Pin to Today</span>
+          <span>Pin</span>
         </label>
+        <button id="appWindowExpandBtn" class="app-window-expand-btn" title="Expand to full screen" aria-label="Expand app to full screen">⤢</button>
       </div>
       <div id="appWindowContent">
         <!-- Widget panes rendered here when an app is launched -->
@@ -1162,11 +1175,13 @@
     var _APP_TITLE_MAP = {
       budget: '💰 Budget', hydration: '💧 Hydration', mood: '😊 Mood',
       focus: '🎯 Daily Focus', sleep: '😴 Sleep', meal: '🥗 Meal Planner',
-      gym: '🏋️ Gym Planner', routine: '🌅 Daily Routine', jobs: '💼 Jobs'
+      gym: '🏋️ Gym Planner', routine: '🌅 Daily Routine',
+      weather: '🌤️ Weather', jobs: '💼 Job Earnings'
     };
     var _APP_EMOJI_MAP = {
       budget: '💰', hydration: '💧', mood: '😊', focus: '🎯',
-      sleep: '😴', meal: '🥗', gym: '🏋️', routine: '🌅', jobs: '💼'
+      sleep: '😴', meal: '🥗', gym: '🏋️', routine: '🌅',
+      weather: '🌤️', jobs: '💼'
     };
     var _APP_CONTAINER_MAP = {
       budget: 'personalBudgetSection', hydration: 'personalHydrationSection',
@@ -1198,9 +1213,58 @@
 
     function closeAppWindow() {
       var w = document.getElementById('appWindowModal');
-      if (w) w.classList.add('hidden');
+      if (w) {
+        w.classList.remove('fullscreen');
+        w.classList.add('hidden');
+      }
       var content = document.getElementById('appWindowContent');
       if (content) content.innerHTML = '';
+    }
+
+    function _renderWeatherAppContent(container) {
+      // Reuse the existing weather widget section data if available
+      var wSection = document.getElementById('weatherWidgetSection');
+      var wContent = document.getElementById('weatherWidgetContent');
+      if (wContent && wContent.innerHTML.trim()) {
+        container.innerHTML =
+          '<div class="app-weather-full">' +
+            '<p style="font-size:0.85rem;color:var(--ios-text-3);margin:0 0 10px">Full forecast — current conditions and weekly outlook.</p>' +
+            '<div id="appWeatherFullContent">' + wContent.innerHTML + '</div>' +
+          '</div>';
+      } else {
+        container.innerHTML =
+          '<div class="app-weather-full">' +
+            '<p style="color:var(--ios-text-3);font-size:0.9rem;text-align:center;padding:24px 0">' +
+              '🌤️ Weather data is loading…<br><small>Make sure location access is enabled in Settings.</small>' +
+            '</p>' +
+          '</div>';
+        // Trigger a weather fetch via desktop-calendar-features if available
+        if (typeof window.fetchWeather === 'function') {
+          setTimeout(function() {
+            try { window.fetchWeather(); } catch(_) {}
+            if (wContent && wContent.innerHTML.trim()) {
+              var fw = document.getElementById('appWeatherFullContent');
+              if (fw) fw.innerHTML = wContent.innerHTML;
+            }
+          }, 800);
+        }
+      }
+    }
+
+    function _renderJobsAppContent(container) {
+      // Render the work earnings widget inside the app window
+      var earningsSection = document.getElementById('workEarningsSection');
+      if (earningsSection) {
+        earningsSection.classList.remove('hidden');
+        container.appendChild(earningsSection);
+        if (typeof window.renderWorkEarnings === 'function') {
+          try { window.renderWorkEarnings(); } catch(_) {}
+        }
+      } else {
+        container.innerHTML =
+          '<p style="color:var(--ios-text-3);font-size:0.9rem;text-align:center;padding:24px 0">' +
+          '💼 Job Earnings — navigate to the <a href="#work" style="color:var(--ios-accent)">Work</a> page to set up jobs first.</p>';
+      }
     }
 
     function openAppDetail(app) {
@@ -1223,24 +1287,67 @@
       var content = document.getElementById('appWindowContent');
       if (content) {
         content.innerHTML = '';
-        var containerId = _APP_CONTAINER_MAP[app];
-        if (containerId) {
-          var existing = document.getElementById(containerId);
-          if (existing) {
-            // Move widget pane into app window
-            existing.classList.remove('hidden');
-            content.appendChild(existing);
+        if (app === 'weather') {
+          _renderWeatherAppContent(content);
+        } else if (app === 'jobs') {
+          _renderJobsAppContent(content);
+        } else {
+          var containerId = _APP_CONTAINER_MAP[app];
+          if (containerId) {
+            var existing = document.getElementById(containerId);
+            if (existing) {
+              // Move widget pane into app window
+              existing.classList.remove('hidden');
+              content.appendChild(existing);
+            }
           }
-        }
-        var renderFn = _APP_RENDER_MAP[app];
-        if (renderFn && typeof window[renderFn] === 'function') {
-          try { window[renderFn](); } catch(e) { /* ignore */ }
+          var renderFn = _APP_RENDER_MAP[app];
+          if (renderFn && typeof window[renderFn] === 'function') {
+            try { window[renderFn](); } catch(e) { /* ignore */ }
+          }
         }
       }
 
-      // Show the app window modal
+      // Show the app window modal (remove fullscreen in case it was left on)
       var w = document.getElementById('appWindowModal');
-      if (w) w.classList.remove('hidden');
+      if (w) {
+        w.classList.remove('fullscreen');
+        w.classList.remove('hidden');
+      }
+    }
+
+    function renderTodayEarningsPreview() {
+      var el = document.getElementById('todayEarningsPreviewContent');
+      if (!el) return;
+      try {
+        var jobs = JSON.parse(localStorage.getItem('jobs') || '[]');
+        if (!jobs.length) {
+          el.innerHTML = '<span style="color:var(--ios-text-3);font-size:0.82rem">No jobs set up yet.</span>';
+          return;
+        }
+        var today = new Date();
+        var dow = today.getDay();
+        var weekStart = new Date(today); weekStart.setDate(today.getDate() - dow);
+        var weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
+        function fmtDate(d) { return d.getFullYear() + '-' + (d.getMonth()+1<10?'0':'') + (d.getMonth()+1) + '-' + (d.getDate()<10?'0':'') + d.getDate(); }
+        var ws = fmtDate(weekStart), we = fmtDate(weekEnd);
+        var weekTotal = 0;
+        jobs.forEach(function(job) {
+          (job.shifts || []).forEach(function(shift) {
+            if (!shift.date || shift.date < ws || shift.date > we) return;
+            var hrs = (parseFloat(shift.hours) || 0);
+            var rate = parseFloat(job.hourlyRate || job.rate || 0);
+            weekTotal += hrs * rate;
+          });
+        });
+        el.innerHTML =
+          '<div style="display:flex;justify-content:space-between;align-items:center">' +
+            '<span style="font-size:0.8rem;color:var(--ios-text-3)">This week</span>' +
+            '<span style="font-size:1.1rem;font-weight:700;color:#27ae60">$' + weekTotal.toFixed(2) + '</span>' +
+          '</div>';
+      } catch(e) {
+        el.innerHTML = '<span style="color:var(--ios-text-3);font-size:0.82rem">—</span>';
+      }
     }
 
     function renderTodayPinnedApps() {
@@ -1251,14 +1358,13 @@
       var apps = Object.keys(pinned).filter(function(k) { return pinned[k]; });
       col.innerHTML = '';
       if (!apps.length) {
-        col.innerHTML = '<p class="today-no-apps">No apps pinned yet.<br><small>Open Apps and pin one to show it here.</small></p>';
+        col.innerHTML = '<p class="today-no-apps">No apps pinned yet.<br><small>Open ⊞ Apps from the sidebar and pin one.</small></p>';
         return;
       }
       apps.forEach(function(app) {
         var card = document.createElement('button');
         card.className = 'today-pinned-app-card';
-      var emojiMap = _APP_EMOJI_MAP;
-        card.innerHTML = '<span class="today-pinned-app-icon">' + (emojiMap[app] || '⊞') +
+        card.innerHTML = '<span class="today-pinned-app-icon">' + (_APP_EMOJI_MAP[app] || '⊞') +
           '</span><span class="today-pinned-app-name">' + (_APP_TITLE_MAP[app] || app) + '</span>';
         card.addEventListener('click', function() { openAppDetail(app); });
         col.appendChild(card);
@@ -1298,9 +1404,7 @@
         appsGrid.addEventListener('click', function(e) {
           var btn = e.target.closest('[data-app]');
           if (!btn) return;
-          var app = btn.dataset.app;
-          if (app === 'jobs') { closeAppsModal(); navTo('work'); return; }
-          openAppDetail(app);
+          openAppDetail(btn.dataset.app);
         });
       }
 
@@ -1310,6 +1414,20 @@
         closeAppWindow();
         openAppsModal();
       });
+
+      // App window modal: expand/fullscreen toggle
+      var appWindowExpandBtn = document.getElementById('appWindowExpandBtn');
+      if (appWindowExpandBtn) {
+        appWindowExpandBtn.addEventListener('click', function() {
+          var w = document.getElementById('appWindowModal');
+          if (!w) return;
+          var isFullscreen = w.classList.contains('fullscreen');
+          w.classList.toggle('fullscreen', !isFullscreen);
+          appWindowExpandBtn.textContent = isFullscreen ? '⤢' : '⤡';
+          appWindowExpandBtn.title = isFullscreen ? 'Expand to full screen' : 'Collapse to medium';
+          appWindowExpandBtn.setAttribute('aria-label', isFullscreen ? 'Expand app to full screen' : 'Collapse app');
+        });
+      }
 
       // App window modal: clicking overlay closes the window entirely
       var appWindowOverlay = document.getElementById('appWindowOverlay');
@@ -1328,6 +1446,12 @@
           renderTodayPinnedApps();
         });
       }
+
+      // Today page right-column widget open buttons
+      document.addEventListener('click', function(e) {
+        var btn = e.target.closest('.today-widget-open-btn[data-app]');
+        if (btn) openAppDetail(btn.dataset.app);
+      });
 
       document.addEventListener('keydown', function(e) {
         if (e.key !== 'Escape') return;
@@ -1401,6 +1525,7 @@
       showView(initial);
       updateHeaderFromProfile();
       renderTodayPinnedApps();
+      renderTodayEarningsPreview();
       // Re-render calendar and day details now that utils.js (expandEvents) is loaded
       try { if (typeof generateCalendar === 'function') generateCalendar(); } catch(_) {}
       try { if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined' && selectedDay) showReminders(selectedDay); } catch(_) {}

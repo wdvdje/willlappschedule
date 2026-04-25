@@ -2313,3 +2313,132 @@ main {
 #appWindowContent {
   padding-bottom: 12px;
 }
+
+/* ── App Window Expand Button ───────────────────────────────────── */
+.app-window-expand-btn {
+  background: rgba(120,120,128,0.14);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--ios-text-2);
+  flex-shrink: 0;
+  transition: background var(--ios-fast) var(--ios-ease),
+              transform var(--ios-fast) var(--ios-spring);
+}
+.app-window-expand-btn:hover {
+  background: rgba(120,120,128,0.24);
+}
+
+/* ── App Window Fullscreen Mode ─────────────────────────────────── */
+#appWindowModal.fullscreen {
+  align-items: stretch;
+}
+#appWindowModal.fullscreen #appWindowPanel {
+  max-width: 100%;
+  width: 100%;
+  max-height: 100dvh;
+  height: 100dvh;
+  border-radius: 0;
+  border: none;
+  animation: none;
+}
+
+/* ── Today Page — right-column widget sections ──────────────────── */
+.today-right-widget {
+  margin-top: 16px;
+  border-top: 1px solid var(--ios-border);
+  padding-top: 14px;
+}
+
+.today-widget-open-btn {
+  background: none;
+  border: none;
+  color: var(--ios-accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  transition: opacity var(--ios-fast) var(--ios-ease);
+}
+.today-widget-open-btn:hover { opacity: 0.75; }
+
+/* Widen right column to fit weather/inbox/earnings */
+@media (min-width: 768px) {
+  #todayLayout {
+    grid-template-columns: 1fr 300px;
+  }
+}
+@media (min-width: 1100px) {
+  #todayLayout {
+    grid-template-columns: 1fr 320px;
+  }
+}
+
+/* ── Today Earnings Preview Widget ─────────────────────────────── */
+.today-earnings-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ios-text);
+  margin-bottom: 8px;
+}
+
+.today-earnings-preview-content {
+  font-size: 0.9rem;
+}
+
+/* ── Weather widget heading in right column ─────────────────────── */
+.weather-widget-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ios-text);
+  margin: 0 0 8px;
+}
+
+/* ── Inbox widget in right column — compact mode ────────────────── */
+#todayAppsCol .inbox-widget {
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+/* ── Today right column overall container ───────────────────────── */
+.today-apps-col-inner {
+  /* allow column to scroll if content is tall */
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ── App weather full view ──────────────────────────────────────── */
+.app-weather-full {
+  padding: 4px 0 12px;
+}
+
+/* ── Reduced-motion: disable spring/blur animations ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .dcf-day-add-panel,
+  #appWindowPanel,
+  .settings-modal-panel,
+  .apps-modal-panel {
+    animation: none !important;
+  }
+  .dcf-day-add-overlay {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
