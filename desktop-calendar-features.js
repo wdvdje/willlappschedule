@@ -223,13 +223,12 @@
       '.dcf-chart-title { font-weight:700;font-size:0.82rem;color:#555;margin-bottom:6px; }',
       'body.dark-mode .dcf-chart-title { color:#aaa; }',
       '.dcf-streak-badge { display:inline-flex;align-items:center;gap:4px;background:#fff3cd;border:1.5px solid #f0ad4e;border-radius:20px;padding:4px 12px;font-size:0.88rem;font-weight:700;color:#7a4f00;margin:6px 0; }',
-      '#calDaySummaryPanel { display:none; }',
-      '#calUpcomingPanel { display:none; }',
+      '#calSidePanel { display:none; }',
       '@media (min-width: 901px) {',
       '  .day { overflow:visible; }',
       '  #calPageLayout { display:flex;gap:6px;align-items:flex-start;max-width:100%;padding:0;box-sizing:border-box; }',
       '  #calCenterPanel { flex:1;min-width:0;overflow:hidden; }',
-      '  .cal-side-panel { display:flex;flex-direction:column;width:180px;flex-shrink:1;min-width:140px;background:#fff;border-radius:12px;',
+      '  .cal-side-panel { display:flex;flex-direction:column;width:220px;flex-shrink:1;min-width:180px;background:#fff;border-radius:12px;',
       '    box-shadow:0 2px 14px rgba(0,0,0,0.08);padding:10px 12px;',
       '    font-size:0.83rem;overflow:hidden;',
       '    transition:width 0.25s ease,padding 0.25s ease,opacity 0.25s ease; }',
@@ -247,8 +246,7 @@
       '  body.dark-mode .cal-panel-expand-tab { background:#16213e;color:#aaa; }',
       '  body.dark-mode .cal-panel-expand-tab:hover { background:#1e3055;color:#7ab3f5; }',
       '  .cal-panel-expand-tab.visible { display:block; }',
-      '  #calDaySummaryPanel { display:block; }',
-      '  #calUpcomingPanel { display:block; }',
+      '  #calSidePanel { display:block; }',
       '}',
       '.dcf-split-event { padding:5px 8px;border-radius:6px;margin-bottom:4px;border-left:4px solid;font-size:0.8rem;cursor:pointer;transition:background 0.15s; }',
       '.dcf-split-event:hover { filter:brightness(0.95); }',
@@ -321,12 +319,17 @@
   var dcfLayers = { events: true, tasks: true, reminders: true };
 
   function injectLayerToggles() {
-    if (document.getElementById('dcfLayerBar')) return;
-    var filterBar = document.getElementById('categoryFilterWrap');
-    if (!filterBar) filterBar = document.getElementById('categoryFilterBar');
-    var bar = document.createElement('div');
-    bar.id = 'dcfLayerBar';
-    bar.className = 'dcf-layer-bar';
+    /* Inject Events/Tasks/Reminders toggles directly into the categoryFilterBar */
+    var filterBar = document.getElementById('categoryFilterBar');
+    if (!filterBar || filterBar.querySelector('.dcf-layer-btn')) return;
+
+    /* Add a separator label */
+    var sep = document.createElement('span');
+    sep.className = 'dcf-filter-sep';
+    sep.style.cssText = 'font-size:0.8rem;color:#666;margin-left:6px;margin-right:2px;font-weight:600';
+    sep.textContent = 'Types:';
+    filterBar.appendChild(sep);
+
     [
       { key: 'events',    label: '📅 Events' },
       { key: 'tasks',     label: '✅ Tasks' },
@@ -342,12 +345,11 @@
         try { generateCalendar(); } catch (_) {}
         try { if (window.selectedDay) showReminders(window.selectedDay); } catch (_) {}
       });
-      bar.appendChild(btn);
+      filterBar.appendChild(btn);
     });
-    filterBar.insertAdjacentElement('afterend', bar);
   }
 
-  /* Patch generateCalendar once to add badges + recur icons + layer filtering */
+  /* Patch generateCalendar once to add badges + recur icons + layer filtering + dblclick */
   var _gcPatched = false;
   function patchGenerateCalendar() {
     if (_gcPatched || typeof window.generateCalendar !== 'function') return;
@@ -361,6 +363,7 @@
       try { applySearchHighlight(); } catch (_) {}
       try { refreshCharts(); } catch (_) {}
       try { syncPanelHeights(); } catch (_) {}
+      try { wireDayDblClick(); } catch (_) {}
     };
     window.generateCalendar._dcfPatched = true;
   }
@@ -1052,6 +1055,10 @@
         });
       }
 
+      /* Hover tooltip */
+      chartEl._dcfTooltipWired = false; /* re-wire on each render since SVG content changes */
+      wireBarTooltip(chartEl, dayData, yr, mo);
+
       /* Render monthly summary stats row */
       renderMonthlyStats(dayData, yr, mo);
     }
@@ -1297,8 +1304,9 @@
   ══════════════════════════════════════════════════════ */
   function injectGotoDate() {
     if (document.getElementById('dcfGotoRow')) return;
-    var controls = document.querySelector('#page-calendar .cal-controls-row') || document.querySelector('#page-calendar .calendar-controls');
-    if (!controls) return;
+    /* Insert into the month nav row (above the calendar, right-aligned) */
+    var monthNav = document.querySelector('#page-calendar .cal-month-nav');
+    if (!monthNav) return;
     var row = document.createElement('div');
     row.id = 'dcfGotoRow';
     row.className = 'dcf-goto-row';
@@ -1332,7 +1340,7 @@
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); goToDate(); } });
     row.appendChild(input);
     row.appendChild(btn);
-    controls.appendChild(row);
+    monthNav.appendChild(row);
   }
 
   /* Keyboard shortcut G → focus go-to date input */
@@ -1349,17 +1357,18 @@
   });
 
   /* ══════════════════════════════════════════════════════
-     17. SPLIT-PANEL LAYOUT  (calendar + mini daily side panel)
+     17. SPLIT-PANEL LAYOUT  (calendar + single combined side panel)
+     The panel shows the hourly day view when a day is selected,
+     and the upcoming view when no day is selected.
   ══════════════════════════════════════════════════════ */
-  var _daySummaryCollapsed = false;
-  var _upcomingCollapsed = false;
+  var _sideCollapsed = false;
 
   function injectSplitPanel() {
     if (!isDesktop()) return;
     var calPage = document.getElementById('page-calendar');
     if (!calPage || document.getElementById('calPageLayout')) return;
 
-    /* Wrap calendar + weekView in a flex layout */
+    /* Wrap calendar + views in a flex layout */
     var calEl = document.getElementById('calendar');
     var weekView = document.getElementById('weekView');
     var twoWeekView = document.getElementById('twoWeekView');
@@ -1369,28 +1378,6 @@
     var layout = document.createElement('div');
     layout.id = 'calPageLayout';
 
-    /* ── Left expand tab (shown when day summary collapsed) ── */
-    var leftExpandTab = document.createElement('div');
-    leftExpandTab.id = 'calDaySummaryExpandTab';
-    leftExpandTab.className = 'cal-panel-expand-tab';
-    leftExpandTab.title = 'Expand day summary';
-    leftExpandTab.setAttribute('role', 'button');
-    leftExpandTab.setAttribute('aria-label', 'Expand day summary panel');
-    leftExpandTab.textContent = '📅 Day';
-    leftExpandTab.addEventListener('click', function () { toggleDaySummaryPanel(false); });
-    layout.appendChild(leftExpandTab);
-
-    /* ── Left panel — Day Summary ── */
-    var leftPanel = document.createElement('div');
-    leftPanel.id = 'calDaySummaryPanel';
-    leftPanel.className = 'cal-side-panel';
-    leftPanel.innerHTML = '<h4>' +
-      '<span>📅 <span id="calDailyPanelDate">Today</span></span>' +
-      '<button class="cal-panel-toggle" id="calDaySummaryToggle" title="Collapse day summary" aria-label="Collapse day summary panel" aria-expanded="true">◂</button>' +
-      '</h4>' +
-      '<div id="calDailyPanelContent" style="font-size:0.82rem;color:#888">Select a day to see details.</div>';
-    layout.appendChild(leftPanel);
-
     /* ── Center panel — Calendar ── */
     var centerPanel = document.createElement('div');
     centerPanel.id = 'calCenterPanel';
@@ -1399,71 +1386,92 @@
     });
     layout.appendChild(centerPanel);
 
-    /* ── Right panel — Upcoming ── */
-    var rightPanel = document.createElement('div');
-    rightPanel.id = 'calUpcomingPanel';
-    rightPanel.className = 'cal-side-panel';
+    /* ── Single right panel (day timeline / upcoming) ── */
+    var sidePanel = document.createElement('div');
+    sidePanel.id = 'calSidePanel';
+    sidePanel.className = 'cal-side-panel';
 
-    /* Move the existing calendarSummary content into this panel */
-    var existingSummary = document.getElementById('calendarSummary');
-    var summaryHeaderHTML = '<h4>' +
-      '<span>📋 Upcoming</span>' +
-      '<button class="cal-panel-toggle" id="calUpcomingToggle" title="Collapse upcoming" aria-label="Collapse upcoming panel" aria-expanded="true">▸</button>' +
-      '</h4>';
-
-    rightPanel.innerHTML = summaryHeaderHTML +
-      '<div id="calUpcomingPanelControls" style="margin-bottom:8px">' +
-        '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">' +
-          '<button class="cal-domain-pill cal-up-domain active" data-domain="all" style="font-size:0.72rem;padding:2px 7px">All</button>' +
-          '<button class="cal-domain-pill cal-up-domain" data-domain="personal" style="font-size:0.72rem;padding:2px 7px">👤</button>' +
-          '<button class="cal-domain-pill cal-up-domain" data-domain="home" style="font-size:0.72rem;padding:2px 7px">🏡</button>' +
-          '<button class="cal-domain-pill cal-up-domain" data-domain="work" style="font-size:0.72rem;padding:2px 7px">💼</button>' +
-        '</div>' +
-        '<select id="calUpcomingDaysSelect" style="width:100%;font-size:0.78rem;padding:3px 6px;border-radius:6px;border:1px solid #ddd">' +
-          '<option value="7">Next 7 days</option>' +
-          '<option value="30" selected>Next 30 days</option>' +
-          '<option value="90">Next 90 days</option>' +
-        '</select>' +
+    sidePanel.innerHTML =
+      '<h4 id="calSidePanelHeader">' +
+        '<span id="calSidePanelTitle">📋 Upcoming</span>' +
+        '<button class="cal-panel-toggle" id="calSidePanelToggle" title="Collapse panel" aria-label="Collapse side panel" aria-expanded="true">▸</button>' +
+      '</h4>' +
+      /* Day timeline section (shown when day selected) */
+      '<div id="calDaySection" style="display:none">' +
+        '<div style="font-size:0.72rem;color:#888;margin-bottom:6px" id="calDailyPanelDate"></div>' +
+        '<div id="calDailyPanelContent" style="font-size:0.82rem;color:#888">Select a day to see details.</div>' +
       '</div>' +
-      '<div id="calUpcomingPanelContent" style="font-size:0.82rem;color:#888">Loading...</div>';
-    layout.appendChild(rightPanel);
+      /* Upcoming section (shown when no day selected) */
+      '<div id="calUpcomingSection">' +
+        '<div id="calUpcomingPanelControls" style="margin-bottom:8px">' +
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">' +
+            '<button class="cal-domain-pill cal-up-domain active" data-domain="all" style="font-size:0.72rem;padding:2px 7px">All</button>' +
+            '<button class="cal-domain-pill cal-up-domain" data-domain="personal" style="font-size:0.72rem;padding:2px 7px">👤</button>' +
+            '<button class="cal-domain-pill cal-up-domain" data-domain="home" style="font-size:0.72rem;padding:2px 7px">🏡</button>' +
+            '<button class="cal-domain-pill cal-up-domain" data-domain="work" style="font-size:0.72rem;padding:2px 7px">💼</button>' +
+          '</div>' +
+          '<select id="calUpcomingDaysSelect" style="width:100%;font-size:0.78rem;padding:3px 6px;border-radius:6px;border:1px solid #ddd">' +
+            '<option value="7">Next 7 days</option>' +
+            '<option value="30" selected>Next 30 days</option>' +
+            '<option value="90">Next 90 days</option>' +
+          '</select>' +
+        '</div>' +
+        '<div id="calUpcomingPanelContent" style="font-size:0.82rem;color:#888">Loading...</div>' +
+      '</div>';
+    layout.appendChild(sidePanel);
 
-    /* ── Right expand tab (shown when upcoming collapsed) ── */
-    var rightExpandTab = document.createElement('div');
-    rightExpandTab.id = 'calUpcomingExpandTab';
-    rightExpandTab.className = 'cal-panel-expand-tab';
-    rightExpandTab.title = 'Expand upcoming';
-    rightExpandTab.setAttribute('role', 'button');
-    rightExpandTab.setAttribute('aria-label', 'Expand upcoming panel');
-    rightExpandTab.textContent = '📋 Soon';
-    rightExpandTab.addEventListener('click', function () { toggleUpcomingPanel(false); });
-    layout.appendChild(rightExpandTab);
+    /* ── Expand tab (shown when panel collapsed) ── */
+    var expandTab = document.createElement('div');
+    expandTab.id = 'calSideExpandTab';
+    expandTab.className = 'cal-panel-expand-tab';
+    expandTab.title = 'Expand panel';
+    expandTab.setAttribute('role', 'button');
+    expandTab.setAttribute('aria-label', 'Expand side panel');
+    expandTab.textContent = '📋';
+    expandTab.addEventListener('click', function () { toggleSidePanel(false); });
+    layout.appendChild(expandTab);
 
     /* Hide the original calendarSummary on desktop since we integrated it */
+    var existingSummary = document.getElementById('calendarSummary');
     if (existingSummary) existingSummary.style.display = 'none';
 
-    /* Find the category filter bar and insert layout after it */
-    var layerBar = document.getElementById('dcfLayerBar') || document.getElementById('categoryFilterWrap') || document.getElementById('categoryFilterBar');
-    if (layerBar) {
-      layerBar.insertAdjacentElement('afterend', layout);
+    /* Find the category filter controls and insert layout after them */
+    var calControls = calPage.querySelector('.calendar-controls');
+    if (calControls) {
+      calControls.insertAdjacentElement('afterend', layout);
     } else {
       calPage.appendChild(layout);
     }
 
-    /* Wire collapse toggle buttons */
-    document.getElementById('calDaySummaryToggle').addEventListener('click', function () { toggleDaySummaryPanel(true); });
-    document.getElementById('calUpcomingToggle').addEventListener('click', function () { toggleUpcomingPanel(true); });
+    /* Wire collapse toggle button */
+    document.getElementById('calSidePanelToggle').addEventListener('click', function () { toggleSidePanel(true); });
 
     /* Wire upcoming domain filters */
-    rightPanel.querySelectorAll('.cal-up-domain').forEach(function (btn) {
+    sidePanel.querySelectorAll('.cal-up-domain').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        rightPanel.querySelectorAll('.cal-up-domain').forEach(function (b) { b.classList.remove('active'); });
+        sidePanel.querySelectorAll('.cal-up-domain').forEach(function (b) { b.classList.remove('active'); });
         btn.classList.add('active');
         refreshUpcomingPanel();
       });
     });
     var upDaysEl = document.getElementById('calUpcomingDaysSelect');
     if (upDaysEl) upDaysEl.addEventListener('change', function () { refreshUpcomingPanel(); });
+
+    /* Click outside calendar grid → deselect day, show upcoming */
+    layout.addEventListener('click', function (e) {
+      var cal = document.getElementById('calendar');
+      if (!cal) return;
+      /* If the click landed outside the calendar grid, deselect day */
+      if (!cal.contains(e.target) && e.target !== cal) {
+        /* Check if click was in the side panel itself (don't deselect in that case) */
+        if (!sidePanel.contains(e.target)) {
+          window.selectedDay = null;
+          /* Remove 'selected' class from all day cells */
+          cal.querySelectorAll('.day.selected').forEach(function (c) { c.classList.remove('selected'); });
+          showSidePanelUpcoming();
+        }
+      }
+    });
 
     /* Hide the fixed agenda sidebar since upcoming is now integrated */
     var agendaSidebar = document.getElementById('dtAgendaSidebar');
@@ -1473,12 +1481,12 @@
     refreshUpcomingPanel();
   }
 
-  function toggleDaySummaryPanel(collapse) {
-    var panel = document.getElementById('calDaySummaryPanel');
-    var tab = document.getElementById('calDaySummaryExpandTab');
-    var toggleBtn = document.getElementById('calDaySummaryToggle');
+  function toggleSidePanel(collapse) {
+    var panel = document.getElementById('calSidePanel');
+    var tab = document.getElementById('calSideExpandTab');
+    var toggleBtn = document.getElementById('calSidePanelToggle');
     if (!panel || !tab) return;
-    _daySummaryCollapsed = collapse;
+    _sideCollapsed = collapse;
     if (collapse) {
       panel.classList.add('collapsed');
       tab.classList.add('visible');
@@ -1489,21 +1497,29 @@
     if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapse));
   }
 
-  function toggleUpcomingPanel(collapse) {
-    var panel = document.getElementById('calUpcomingPanel');
-    var tab = document.getElementById('calUpcomingExpandTab');
-    var toggleBtn = document.getElementById('calUpcomingToggle');
-    if (!panel || !tab) return;
-    _upcomingCollapsed = collapse;
-    if (collapse) {
-      panel.classList.add('collapsed');
-      tab.classList.add('visible');
-    } else {
-      panel.classList.remove('collapsed');
-      tab.classList.remove('visible');
-    }
-    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapse));
+  /* Switch the side panel to show the day timeline */
+  function showSidePanelDay() {
+    var daySection = document.getElementById('calDaySection');
+    var upcomingSection = document.getElementById('calUpcomingSection');
+    var title = document.getElementById('calSidePanelTitle');
+    if (daySection) daySection.style.display = '';
+    if (upcomingSection) upcomingSection.style.display = 'none';
+    if (title) title.textContent = '📅 Day';
   }
+
+  /* Switch the side panel to show the upcoming view */
+  function showSidePanelUpcoming() {
+    var daySection = document.getElementById('calDaySection');
+    var upcomingSection = document.getElementById('calUpcomingSection');
+    var title = document.getElementById('calSidePanelTitle');
+    if (daySection) daySection.style.display = 'none';
+    if (upcomingSection) upcomingSection.style.display = '';
+    if (title) title.textContent = '📋 Upcoming';
+  }
+
+  /* Legacy toggle functions kept for compatibility */
+  function toggleDaySummaryPanel() {}
+  function toggleUpcomingPanel(collapse) { toggleSidePanel(collapse); }
 
   function refreshUpcomingPanel() {
     var content = document.getElementById('calUpcomingPanelContent');
@@ -1593,12 +1609,20 @@
   }
 
   function refreshSplitPanel() {
-    var panel = document.getElementById('calDaySummaryPanel');
-    if (!panel) return;
     if (!isDesktop()) return;
+    var sidePanel = document.getElementById('calSidePanel');
+    if (!sidePanel) return;
 
     var yr = selYear(), mo = selMonth(), day = window.selectedDay;
-    if (!day) return;
+    if (!day) {
+      /* No day selected → show upcoming view */
+      showSidePanelUpcoming();
+      refreshUpcomingPanel();
+      return;
+    }
+
+    /* Day selected → show timeline view */
+    showSidePanelDay();
 
     var ymd = yr + '-' + p2(mo + 1) + '-' + p2(day);
     var dateLabel = document.getElementById('calDailyPanelDate');
@@ -1871,17 +1895,11 @@
   function syncPanelHeights() {
     if (!isDesktop()) return;
     var calEl = document.getElementById('calendar');
-    var leftPanel = document.getElementById('calDaySummaryPanel');
-    var rightPanel = document.getElementById('calUpcomingPanel');
-    if (!calEl) return;
+    var sidePanel = document.getElementById('calSidePanel');
+    if (!calEl || !sidePanel) return;
     var calH = calEl.offsetHeight;
-    if (calH > 0) {
-      if (leftPanel && !leftPanel.classList.contains('collapsed')) {
-        leftPanel.style.maxHeight = calH + 'px';
-      }
-      if (rightPanel && !rightPanel.classList.contains('collapsed')) {
-        rightPanel.style.maxHeight = calH + 'px';
-      }
+    if (calH > 0 && !sidePanel.classList.contains('collapsed')) {
+      sidePanel.style.maxHeight = calH + 'px';
     }
   }
 
@@ -2414,8 +2432,228 @@
   }
 
   /* ══════════════════════════════════════════════════════
-     BOOT / INITIALIZATION
+     22. DOUBLE-CLICK ADD ITEM MODAL  (desktop only)
   ══════════════════════════════════════════════════════ */
+  function injectDayAddModal() {
+    if (document.getElementById('dcfDayAddModal')) return;
+
+    /* Inject CSS */
+    var modalStyle = document.createElement('style');
+    modalStyle.textContent = [
+      '.dcf-day-add-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.42);z-index:10010;display:none;align-items:center;justify-content:center}',
+      '.dcf-day-add-overlay.open{display:flex}',
+      '.dcf-day-add-panel{background:#fff;border-radius:16px;width:92%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,0.2);padding:24px 24px 20px;box-sizing:border-box}',
+      'body.dark-mode .dcf-day-add-panel{background:#16213e;color:#e0e0e0}',
+      '.dcf-day-add-date{font-size:1.1rem;font-weight:700;color:#4a90e2;margin-bottom:14px;text-align:center}',
+      '.dcf-day-add-tabs{display:flex;gap:6px;margin-bottom:14px}',
+      '.dcf-day-add-tab{flex:1;padding:8px 4px;border-radius:10px;border:1.5px solid #ddd;background:#fff;cursor:pointer;font-size:0.88rem;font-weight:600;transition:all 0.12s;text-align:center}',
+      '.dcf-day-add-tab.active{background:#4a90e2;color:#fff;border-color:#4a90e2}',
+      'body.dark-mode .dcf-day-add-tab{background:#1e2d45;color:#ccc;border-color:#2a2a4a}',
+      'body.dark-mode .dcf-day-add-tab.active{background:#4a90e2;color:#fff}',
+      '.dcf-day-add-input{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1.5px solid #ddd;font-size:0.95rem;margin-bottom:10px;background:#fff;color:#333}',
+      'body.dark-mode .dcf-day-add-input{background:#1e2d45;color:#e0e0e0;border-color:#2a2a4a}',
+      '.dcf-day-add-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}',
+      '.dcf-day-add-submit{padding:8px 20px;border-radius:10px;background:#4a90e2;color:#fff;border:none;font-size:0.9rem;font-weight:600;cursor:pointer}',
+      '.dcf-day-add-submit:hover{background:#2a70c2}',
+      '.dcf-day-add-cancel{padding:8px 16px;border-radius:10px;background:#f0f0f0;color:#555;border:none;font-size:0.9rem;cursor:pointer}',
+      'body.dark-mode .dcf-day-add-cancel{background:#1e2d45;color:#aaa}'
+    ].join('\n');
+    document.head.appendChild(modalStyle);
+
+    var overlay = document.createElement('div');
+    overlay.id = 'dcfDayAddModal';
+    overlay.className = 'dcf-day-add-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Add item');
+    overlay.innerHTML = [
+      '<div class="dcf-day-add-panel">',
+      '  <div class="dcf-day-add-date" id="dcfDayAddDate"></div>',
+      '  <div class="dcf-day-add-tabs">',
+      '    <button class="dcf-day-add-tab active" data-kind="event">📅 Event</button>',
+      '    <button class="dcf-day-add-tab" data-kind="task">✅ Task</button>',
+      '    <button class="dcf-day-add-tab" data-kind="reminder">🔔 Reminder</button>',
+      '  </div>',
+      '  <input class="dcf-day-add-input" id="dcfDayAddTitle" type="text" placeholder="Title…" autocomplete="off" />',
+      '  <input class="dcf-day-add-input" id="dcfDayAddTime" type="time" style="width:140px" />',
+      '  <div class="dcf-day-add-actions">',
+      '    <button class="dcf-day-add-cancel" id="dcfDayAddCancel">Cancel</button>',
+      '    <button class="dcf-day-add-submit" id="dcfDayAddSubmit">Add</button>',
+      '  </div>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(overlay);
+
+    var _addDate = null;
+    var _addKind = 'event';
+
+    function openDayAddModal(ymd) {
+      _addDate = ymd;
+      _addKind = 'event';
+      overlay.querySelectorAll('.dcf-day-add-tab').forEach(function (t) { t.classList.toggle('active', t.dataset.kind === 'event'); });
+      var dateLabel = document.getElementById('dcfDayAddDate');
+      if (dateLabel) {
+        var d = new Date(ymd + 'T12:00:00');
+        dateLabel.textContent = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      }
+      var titleEl = document.getElementById('dcfDayAddTitle');
+      var timeEl = document.getElementById('dcfDayAddTime');
+      if (titleEl) { titleEl.value = ''; titleEl.placeholder = 'Event title…'; }
+      if (timeEl) timeEl.value = '';
+      overlay.classList.add('open');
+      setTimeout(function () { if (titleEl) titleEl.focus(); }, 50);
+    }
+    window.dcfOpenDayAddModal = openDayAddModal;
+
+    function closeDayAddModal() { overlay.classList.remove('open'); }
+
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeDayAddModal(); });
+    document.getElementById('dcfDayAddCancel').addEventListener('click', closeDayAddModal);
+
+    /* Tab switching */
+    overlay.querySelectorAll('.dcf-day-add-tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        _addKind = tab.dataset.kind;
+        overlay.querySelectorAll('.dcf-day-add-tab').forEach(function (t) { t.classList.remove('active'); });
+        tab.classList.add('active');
+        var titleEl = document.getElementById('dcfDayAddTitle');
+        if (titleEl) titleEl.placeholder = (_addKind === 'reminder' ? 'Reminder text…' : _addKind === 'task' ? 'Task title…' : 'Event title…');
+      });
+    });
+
+    /* Submit */
+    document.getElementById('dcfDayAddSubmit').addEventListener('click', function () { submitDayAdd(); });
+    document.getElementById('dcfDayAddTitle').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); submitDayAdd(); }
+    });
+    overlay.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDayAddModal(); });
+
+    function submitDayAdd() {
+      var titleEl = document.getElementById('dcfDayAddTitle');
+      var timeEl  = document.getElementById('dcfDayAddTime');
+      var title = (titleEl && titleEl.value.trim()) || '';
+      var time  = (timeEl && timeEl.value) || '';
+      if (!title || !_addDate) return;
+
+      try {
+        if (_addKind === 'event') {
+          var evs = typeof getEvents === 'function' ? getEvents() : JSON.parse(localStorage.getItem('events') || '[]');
+          var newId = evs.length ? Math.max.apply(null, evs.map(function (e) { return e.id || 0; })) + 1 : 1;
+          evs.push({ id: newId, title: title, date: _addDate, time: time, endTime: '', category: 'event', domain: 'personal' });
+          if (typeof setEvents === 'function') setEvents(evs); else localStorage.setItem('events', JSON.stringify(evs));
+        } else if (_addKind === 'task') {
+          var tasks = typeof getTasks === 'function' ? getTasks() : JSON.parse(localStorage.getItem('tasks') || '[]');
+          tasks.push({ id: Date.now(), title: title, date: _addDate, time: time, done: false, category: 'work', priority: '2' });
+          if (typeof setTasks === 'function') setTasks(tasks); else localStorage.setItem('tasks', JSON.stringify(tasks));
+        } else if (_addKind === 'reminder') {
+          var rems = typeof getReminders === 'function' ? getReminders() : JSON.parse(localStorage.getItem('reminders') || '{}');
+          if (!rems[_addDate]) rems[_addDate] = [];
+          rems[_addDate].push({ text: title, time: time });
+          if (typeof setReminders === 'function') setReminders(rems); else localStorage.setItem('reminders', JSON.stringify(rems));
+        }
+        try { window.dispatchEvent(new Event('app:data:updated')); } catch (_) {}
+        try { generateCalendar(); } catch (_) {}
+        try {
+          var parts = _addDate.split('-');
+          if (parts.length === 3) {
+            window.selectedYear = parseInt(parts[0], 10);
+            window.selectedMonth = parseInt(parts[1], 10) - 1;
+            window.selectedDay = parseInt(parts[2], 10);
+            showReminders(window.selectedDay);
+          }
+        } catch (_) {}
+      } catch (err) { console.warn('dcfDayAdd error:', err); }
+      closeDayAddModal();
+    }
+  }
+
+  /* Wire dblclick on day cells (desktop only) */
+  function wireDayDblClick() {
+    if (!isDesktop()) return;
+    var calEl = document.getElementById('calendar');
+    if (!calEl) return;
+    calEl.querySelectorAll('.day[data-day]').forEach(function (cell) {
+      if (cell._dcfDblClickWired) return;
+      cell._dcfDblClickWired = true;
+      cell.addEventListener('dblclick', function (e) {
+        e.preventDefault();
+        var day = parseInt(cell.dataset.day, 10);
+        if (isNaN(day)) return;
+        var yr = window.selectedYear || new Date().getFullYear();
+        var mo = (window.selectedMonth != null ? window.selectedMonth : new Date().getMonth());
+        var ymd = yr + '-' + p2(mo + 1) + '-' + p2(day);
+        injectDayAddModal();
+        if (window.dcfOpenDayAddModal) window.dcfOpenDayAddModal(ymd);
+      });
+    });
+  }
+
+  /* ══════════════════════════════════════════════════════
+     23. ACTIVITY CHART BAR HOVER TOOLTIP
+  ══════════════════════════════════════════════════════ */
+  function injectBarTooltip() {
+    if (document.getElementById('dcfBarTooltip')) return;
+    var tip = document.createElement('div');
+    tip.id = 'dcfBarTooltip';
+    tip.style.cssText = [
+      'position:fixed',
+      'display:none',
+      'z-index:9999',
+      'background:#fff',
+      'color:#333',
+      'border-radius:10px',
+      'box-shadow:0 4px 20px rgba(0,0,0,0.15)',
+      'padding:8px 12px',
+      'font-size:0.8rem',
+      'line-height:1.5',
+      'pointer-events:none',
+      'max-width:180px',
+      'white-space:normal'
+    ].join(';');
+    document.body.appendChild(tip);
+
+    /* Dark mode style */
+    var tipStyle = document.createElement('style');
+    tipStyle.textContent = 'body.dark-mode #dcfBarTooltip{background:#16213e;color:#e0e0e0;box-shadow:0 4px 20px rgba(0,0,0,0.45)}';
+    document.head.appendChild(tipStyle);
+  }
+
+  function wireBarTooltip(svgEl, dayData, yr, mo) {
+    if (!svgEl) return;
+    if (svgEl._dcfTooltipWired) return;
+    svgEl._dcfTooltipWired = true;
+    injectBarTooltip();
+    var tip = document.getElementById('dcfBarTooltip');
+    if (!tip) return;
+
+    var MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    svgEl.addEventListener('mousemove', function (e) {
+      var target = e.target;
+      if (target.tagName === 'title') target = target.parentElement;
+      var dayNum = target && target.getAttribute('data-day');
+      if (!dayNum) { tip.style.display = 'none'; return; }
+      dayNum = parseInt(dayNum, 10);
+      if (isNaN(dayNum) || dayNum < 1) { tip.style.display = 'none'; return; }
+      var d = (dayData && dayData[dayNum - 1]) || { e: 0, t: 0, r: 0, total: 0 };
+      var dateStr = MONTH_NAMES[mo] + ' ' + dayNum + ', ' + yr;
+      tip.innerHTML =
+        '<div style="font-weight:700;margin-bottom:3px">' + esc(dateStr) + '</div>' +
+        '<div style="color:#4a90e2">📅 Events: ' + d.e + '</div>' +
+        '<div style="color:#27ae60">✅ Tasks: ' + d.t + '</div>' +
+        '<div style="color:#e67e22">🔔 Reminders: ' + d.r + '</div>' +
+        '<div style="font-weight:600;border-top:1px solid #eee;margin-top:4px;padding-top:3px">Total: ' + d.total + '</div>';
+      var x = e.clientX + 14;
+      var y = e.clientY - 10;
+      /* Keep within viewport */
+      if (x + 180 > window.innerWidth) x = e.clientX - 190;
+      if (y + 110 > window.innerHeight) y = e.clientY - 120;
+      tip.style.left = x + 'px';
+      tip.style.top = y + 'px';
+      tip.style.display = 'block';
+    });
+    svgEl.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+  }
   function init() {
     patchGenerateCalendar();
     patchWeekView();
@@ -2432,6 +2670,7 @@
 
     if (isDesktop()) {
       injectSplitPanel();
+      injectDayAddModal();
       syncPanelHeights();
     }
 
@@ -2463,7 +2702,7 @@
         refreshCharts();
         if (isDesktop()) {
           injectSplitPanel();
-          refreshUpcomingPanel();
+          refreshSplitPanel();
           syncPanelHeights();
           /* Hide the fixed agenda sidebar since upcoming is integrated */
           var agendaSidebar = document.getElementById('dtAgendaSidebar');
@@ -2485,7 +2724,6 @@
   window.addEventListener('app:data:updated', function () {
     try { refreshCharts(); } catch (_) {}
     try { refreshSplitPanel(); } catch (_) {}
-    try { refreshUpcomingPanel(); } catch (_) {}
     try { renderStreak(); } catch (_) {}
     try { applyCountBadgesAndRecurIcons(); } catch (_) {}
     try { syncPanelHeights(); } catch (_) {}

@@ -539,8 +539,8 @@
      7. MINI-MONTH NAVIGATOR  (inline, below calendar grid)
   ══════════════════════════════════════════════════════════ */
   function injectMiniMonthSection() {
-    var calPage = document.getElementById('page-calendar');
-    if (!calPage || document.getElementById('miniMonthNav')) return;
+    /* Mini month navigator has been removed per design update */
+    return;
 
     var section = document.createElement('div');
     section.id = 'miniMonthNav';
@@ -989,13 +989,9 @@
   window.addEventListener('view:show', function (e) {
     var view = e.detail && e.detail.view;
     if (view === 'calendar' || view === 'today') {
-      showMiniMonthNav();
       setTimeout(function () {
-        try { refreshMiniMonths(); } catch (_) {}
         if (isDesktop()) try { wireDragCreate(); } catch (_) {}
       }, 80);
-    } else {
-      hideMiniMonthNav();
     }
     if (view === 'tasks' && isDesktop()) {
       setTimeout(function () { try { injectPomLaunchBtn(); } catch (_) {} }, 80);
@@ -1012,7 +1008,6 @@
     try { applyHeatmap(); }        catch (_) {}
     try { detectConflicts(); }     catch (_) {}
     try { applyMultiDaySpans(); }  catch (_) {}
-    try { refreshMiniMonths(); }   catch (_) {}
   });
 
   window.matchMedia('(min-width: 901px)').addEventListener('change', function (mq) {

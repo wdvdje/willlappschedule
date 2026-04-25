@@ -642,7 +642,9 @@ function generateCalendar(){
     const count = Math.max(1, indicators.length);
     const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
     const _domainColors = getDomainColors();
-    indicators.forEach(ind=>{
+    /* Cap at 5 items so the cell doesn't grow beyond a reasonable height */
+    const visibleIndicators = indicators.slice(0, 5);
+    visibleIndicators.forEach(ind=>{
       const sp = document.createElement('span');
       sp.className = 'event-preview ' + (ind.kind || '');
       sp.dataset.domain = ind.domain || 'personal';
