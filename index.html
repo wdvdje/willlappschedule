@@ -63,10 +63,8 @@
   <!-- Dark mode initialized in <head> above; also handled by ios-native.js -->
   <script>try{if(!document.body.classList.contains('dark-mode')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body.classList.add('dark-mode')}catch(e){}</script>
   <header id="appHeader">
-    <a href="#inbox" class="header-btn" id="headerInboxBtn" aria-label="Inbox"><span>📥</span><span class="header-btn-label" id="inboxNavLabel">Inbox</span></a>
     <span id="appHeaderTitle">📅 TimeScape Planner</span>
     <button type="button" class="header-btn" id="headerAddItemBtn" aria-label="Add Item"><span>＋</span><span class="header-btn-label">Add</span></button>
-    <a href="#settings" class="header-btn" id="headerSettingsBtn" aria-label="Settings"><span>⚙️</span><span class="header-btn-label">Settings</span></a>
   </header>
   <div id="syncStatusBar" style="display:none;background:#2568c3;color:#fff;font-size:0.78rem;text-align:center;padding:3px 8px;letter-spacing:0.02em" aria-live="polite"></div>
   <main>
@@ -892,16 +890,19 @@
   <!-- Pull-to-refresh indicator -->
   <div id="pullRefreshIndicator" aria-hidden="true"><span>↻</span></div>
 
-  <!-- iPadOS 26 Floating Top Navigation pill (768–1023px; morphs to sidebar via dock button) -->
-  <div id="ipadTopNav" class="ipad-top-nav" role="navigation" aria-label="iPad navigation">
-    <div class="ipad-top-nav-pill">
-      <a href="#today"    class="ipad-nav-item" data-view="today">    <span class="ipad-nav-icon">🏠</span><span class="ipad-nav-label">Today</span></a>
-      <a href="#calendar" class="ipad-nav-item" data-view="calendar"> <span class="ipad-nav-icon">🗓️</span><span class="ipad-nav-label">Calendar</span></a>
-      <a href="#inbox"    class="ipad-nav-item" data-view="inbox">    <span class="ipad-nav-icon">📥</span><span class="ipad-nav-label">Inbox</span></a>
-      <a href="#personal" class="ipad-nav-item" data-view="personal"> <span class="ipad-nav-icon">👤</span><span class="ipad-nav-label">Personal</span></a>
-      <a href="#home"     class="ipad-nav-item" data-view="home">     <span class="ipad-nav-icon">🏡</span><span class="ipad-nav-label">Home</span></a>
-      <a href="#work"     class="ipad-nav-item" data-view="work">     <span class="ipad-nav-icon">💼</span><span class="ipad-nav-label">Work</span></a>
-      <button type="button" class="ipad-nav-dock-btn" id="ipadNavDockBtn" aria-label="Dock navigation as sidebar" title="Dock navigation as sidebar">⊞</button>
+  <!-- More sheet — secondary sections, shown from the mobile tab bar "More" button -->
+  <div id="moreSheet" class="more-sheet hidden" role="dialog" aria-modal="true" aria-label="More sections">
+    <div class="more-sheet-panel">
+      <div class="sheet-handle"></div>
+      <p class="more-sheet-title">More</p>
+      <div class="more-sheet-grid">
+        <a href="#personal" class="more-sheet-item" data-view="personal"><span class="more-sheet-icon">👤</span><span class="more-sheet-label">Personal</span></a>
+        <a href="#home"     class="more-sheet-item" data-view="home">    <span class="more-sheet-icon">🏡</span><span class="more-sheet-label">Home</span></a>
+        <a href="#work"     class="more-sheet-item" data-view="work">    <span class="more-sheet-icon">💼</span><span class="more-sheet-label">Work</span></a>
+        <a href="#inbox"    class="more-sheet-item" data-view="inbox">   <span class="more-sheet-icon">📥</span><span class="more-sheet-label">Inbox</span></a>
+        <a href="#events"   class="more-sheet-item" data-view="events">  <span class="more-sheet-icon">📅</span><span class="more-sheet-label">Events</span></a>
+        <a href="#settings" class="more-sheet-item" data-view="settings"><span class="more-sheet-icon">⚙️</span><span class="more-sheet-label">Settings</span></a>
+      </div>
     </div>
   </div>
 
@@ -949,9 +950,11 @@
       }
     }
 
-    // Restore saved state
+    // Restore saved state; default to collapsed on iPad/tablet (768–1023 px)
     try {
-      if (localStorage.getItem(KEY) === 'true') {
+      var _saved = localStorage.getItem(KEY);
+      var _vw = window.innerWidth;
+      if (_saved === 'true' || (_saved === null && _vw >= 768 && _vw < 1024)) {
         applySidebarState(true);
       }
     } catch(e) {}
@@ -967,11 +970,11 @@
   <!-- bottom ribbon navigation — iOS 26 floating pill tab bar + search island -->
   <div class="tab-bar-wrapper" role="none">
     <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-      <a href="#personal" class="r-item" data-view="personal"><span>👤</span><span class="r-label">Personal</span></a>
-      <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
       <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
-      <a href="#home" class="r-item" data-view="home"><span>🏡</span><span class="r-label">Home</span></a>
-      <a href="#work" class="r-item" data-view="work"><span>💼</span><span class="r-label">Work</span></a>
+      <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+      <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
+      <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
+      <button type="button" class="r-item" id="moreTabBtn" aria-label="More sections" aria-expanded="false"><span>⋯</span><span class="r-label">More</span></button>
     </nav>
     <!-- Search island — separate pill to the right of the tab bar -->
     <button type="button" class="tab-search-island" id="tabSearchIslandBtn" aria-label="Search" title="Search (Ctrl+K)">🔍</button>
@@ -980,7 +983,8 @@
   <!-- Ensure ribbon links always target a cache-busted index.html, but avoid full reload when already on index -->
   <script>
   (function () {
-    const items = document.querySelectorAll('.bottom-ribbon .r-item');
+    // Only wire anchor items that have a data-view (excludes #moreTabBtn)
+    const items = document.querySelectorAll('.bottom-ribbon .r-item[data-view]');
     if (!items || !items.length) return;
     const now = Date.now();
     items.forEach(a => {
@@ -1041,14 +1045,30 @@
       });
     }
 
+    // Section-name map for dynamic header title
+    const _viewTitles = {
+      today: '🏠 Today', calendar: '🗓️ Calendar', tasks: '✅ Tasks',
+      reminders: '🔔 Reminders', personal: '👤 Personal', home: '🏡 Home',
+      work: '💼 Work', inbox: '📥 Inbox', events: '📅 Events', settings: '⚙️ Settings'
+    };
+    // Views that live behind the "More" tab button
+    const _moreViews = new Set(['personal','home','work','inbox','events','settings']);
+
     // SPA navigation helpers
     function showView(view) {
       document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
       const el = document.querySelector('#page-' + view);
       if (el) el.classList.remove('hidden');
-      document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
+      // Update active state on tab bar anchor items (excludes #moreTabBtn)
+      document.querySelectorAll('.bottom-ribbon .r-item[data-view]').forEach(a => {
         a.classList.toggle('active', a.dataset.view === view);
       });
+      // Mark More button active when a secondary section is shown
+      const moreBtn = document.getElementById('moreTabBtn');
+      if (moreBtn) moreBtn.classList.toggle('active', _moreViews.has(view));
+      // Dynamic header title
+      const titleEl = document.getElementById('appHeaderTitle');
+      if (titleEl) titleEl.textContent = _viewTitles[view] || '📅 TimeScape Planner';
       // notify view scripts to (re)render for the active view
       window.dispatchEvent(new CustomEvent('view:show', { detail: { view } }));
     }
@@ -1066,22 +1086,36 @@
     }
 
     function wireRibbon() {
-      document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
+      // Wire only anchor items that declare a destination view
+      document.querySelectorAll('.bottom-ribbon .r-item[data-view]').forEach(a => {
         a.addEventListener('click', (e) => {
           e.preventDefault();
           const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
           navTo(view || 'today');
         });
       });
+      // More button — toggles the More sheet
+      const moreBtn = document.getElementById('moreTabBtn');
+      if (moreBtn) {
+        moreBtn.addEventListener('click', () => {
+          const sheet = document.getElementById('moreSheet');
+          if (!sheet) return;
+          const opening = sheet.classList.contains('hidden');
+          sheet.classList.toggle('hidden', !opening);
+          moreBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        });
+      }
     }
 
     function updateHeaderFromProfile() {
       try {
         const name = localStorage.getItem('userName') || '';
-        const headerTitle = document.getElementById('appHeaderTitle');
+        // Header title is managed dynamically by showView(); update profile status only
         const profileStatus = document.getElementById('profileStatus');
-        if (headerTitle) headerTitle.textContent = name ? (name + "'s Planner") : '📅 TimeScape Planner';
         if (profileStatus) profileStatus.textContent = name ? ('Name set: ' + name) : 'Name not set';
+        // Update sidebar app title with user name
+        const sidebarTitle = document.querySelector('.sidebar-app-title');
+        if (sidebarTitle) sidebarTitle.textContent = name ? (name + '\u2019s Planner') : '📅 TimeScape';
       } catch (e) { /* ignore */ }
     }
 
