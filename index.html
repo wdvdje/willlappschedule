@@ -1443,8 +1443,8 @@
           try { window[gymMedFn](content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Gym.</p>'; }
         }
       } else if (app === 'chores') {
-        if (typeof window.renderGroceriesAppMedium === 'function') {
-          try { window.renderGroceriesAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Groceries.</p>'; }
+        if (typeof window.renderChoresAppMedium === 'function') {
+          try { window.renderChoresAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Chores.</p>'; }
         }
       } else {
         var containerId = _APP_CONTAINER_MAP[app];

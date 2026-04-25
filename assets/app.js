@@ -10117,7 +10117,7 @@ function _mfToday(body, container) {
   chartCol.innerHTML =
     '<div class="mf-date-nav">' +
       '<button class="app-fv-link-btn mf-date-prev-btn" title="Previous day">‹</button>' +
-      '<input type="date" class="app-fv-text-input mf-date-picker" value="' + selDate + '" style="text-align:center;font-size:0.82rem;max-width:130px"/>' +
+      '<input type="date" class="app-fv-text-input mf-date-picker" value="' + escapeHTML(selDate) + '" style="text-align:center;font-size:0.82rem;max-width:130px"/>' +
       '<button class="app-fv-link-btn mf-date-next-btn" title="Next day">›</button>' +
       (isToday ? '' : '<button class="app-fv-link-btn mf-date-today-btn" style="font-size:0.75rem">Today</button>') +
     '</div>' +
