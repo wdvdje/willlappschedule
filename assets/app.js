@@ -4810,7 +4810,7 @@ function wireKeyboardShortcuts(){
   var VIEWS=['personal','calendar','today','home','work'];
   document.addEventListener('keydown',function(e){
     const tag=document.activeElement&&document.activeElement.tagName;
-    const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
+    const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||document.activeElement.contentEditable==='true';
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(); return; }
     if(e.key==='Escape'){ closeSearch(); closeEditModal(); hideUndoToast(); const sh=document.getElementById('shortcutHints'); if(sh) sh.style.display='none'; return; }
     if(inInput) return;
@@ -11119,7 +11119,15 @@ function renderJournalAppFull(container) {
     entryId:       null,
     search:        '',
     sort:          'newest',
-    panel:         'folders', /* mobile nav: 'folders' | 'list' | 'editor' */
+    panel:         (function() {
+      /* On mobile fullscreen, skip the folders sidebar and go straight to the list */
+      var modal = document.getElementById('appWindowModal');
+      if (modal && modal.classList.contains('fullscreen') &&
+          window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+        return 'list';
+      }
+      return 'folders';
+    }()), /* mobile nav: 'folders' | 'list' | 'editor' */
     focusMode:     false,
     autosaveTimer: null
   };
