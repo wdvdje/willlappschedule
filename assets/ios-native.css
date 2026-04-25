@@ -1840,7 +1840,7 @@ main {
     margin: 0 auto;
     padding: 0 12px;
     box-sizing: border-box;
-    align-items: start;
+    align-items: stretch;
   }
 
   #todayMainCol {
@@ -1858,7 +1858,14 @@ main {
   }
 
   #todayAppsCol {
-    display: block;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #todayAppsCol .today-apps-col-inner {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -1939,6 +1946,7 @@ main {
   text-align: left;
   font-size: 0.9rem;
   color: var(--ios-text);
+  box-sizing: border-box;
   transition: background var(--ios-fast) var(--ios-ease),
               transform var(--ios-fast) var(--ios-spring);
 }
@@ -1947,6 +1955,25 @@ main {
 }
 .today-pinned-app-card:active {
   transform: scale(0.97) !important;
+}
+.today-pinned-app-card--dragging {
+  opacity: 0.45;
+}
+.today-pinned-app-card--over {
+  border-color: var(--ios-accent, #007aff);
+  background: var(--ios-surface-2);
+}
+.today-pinned-app-drag-handle {
+  flex-shrink: 0;
+  cursor: grab;
+  color: var(--ios-text-secondary, #8e8e93);
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 2px;
+  user-select: none;
+}
+.today-pinned-app-drag-handle:active {
+  cursor: grabbing;
 }
 .today-pinned-app-icon {
   font-size: 1.2rem;
