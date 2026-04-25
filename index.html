@@ -826,17 +826,19 @@
 
       <!-- App icon grid (default view) -->
       <div id="appsIconGrid" class="apps-icon-grid">
-        <button class="app-icon-btn" data-app="budget">    <span class="app-icon-emoji">💰</span><span class="app-icon-label">Budget</span></button>
-        <button class="app-icon-btn" data-app="hydration"> <span class="app-icon-emoji">💧</span><span class="app-icon-label">Hydration</span></button>
-        <button class="app-icon-btn" data-app="mood">      <span class="app-icon-emoji">😊</span><span class="app-icon-label">Mood</span></button>
-        <button class="app-icon-btn" data-app="focus">     <span class="app-icon-emoji">🎯</span><span class="app-icon-label">Focus</span></button>
-        <button class="app-icon-btn" data-app="sleep">     <span class="app-icon-emoji">😴</span><span class="app-icon-label">Sleep</span></button>
-        <button class="app-icon-btn" data-app="meal">      <span class="app-icon-emoji">🥗</span><span class="app-icon-label">Meals</span></button>
-        <button class="app-icon-btn" data-app="gym">       <span class="app-icon-emoji">🏋️</span><span class="app-icon-label">Gym</span></button>
-        <button class="app-icon-btn" data-app="routine">   <span class="app-icon-emoji">🌅</span><span class="app-icon-label">Routine</span></button>
-        <button class="app-icon-btn" data-app="weather">   <span class="app-icon-emoji">🌤️</span><span class="app-icon-label">Weather</span></button>
-        <button class="app-icon-btn" data-app="jobs">      <span class="app-icon-emoji">💼</span><span class="app-icon-label">Jobs</span></button>
-        <button class="app-icon-btn" data-app="journal">   <span class="app-icon-emoji">📓</span><span class="app-icon-label">Journal</span></button>
+        <button class="app-icon-btn" data-app="budget">     <span class="app-icon-emoji">💰</span><span class="app-icon-label">Budget</span></button>
+        <button class="app-icon-btn" data-app="hydration">  <span class="app-icon-emoji">💧</span><span class="app-icon-label">Hydration</span></button>
+        <button class="app-icon-btn" data-app="mood">       <span class="app-icon-emoji">😊</span><span class="app-icon-label">Mood</span></button>
+        <button class="app-icon-btn" data-app="focus">      <span class="app-icon-emoji">🎯</span><span class="app-icon-label">Focus</span></button>
+        <button class="app-icon-btn" data-app="sleep">      <span class="app-icon-emoji">😴</span><span class="app-icon-label">Sleep</span></button>
+        <button class="app-icon-btn" data-app="meal">       <span class="app-icon-emoji">🥗</span><span class="app-icon-label">Meals</span></button>
+        <button class="app-icon-btn" data-app="gym">        <span class="app-icon-emoji">🏋️</span><span class="app-icon-label">Gym</span></button>
+        <button class="app-icon-btn" data-app="routine">    <span class="app-icon-emoji">🌅</span><span class="app-icon-label">Routine</span></button>
+        <button class="app-icon-btn" data-app="weather">    <span class="app-icon-emoji">🌤️</span><span class="app-icon-label">Weather</span></button>
+        <button class="app-icon-btn" data-app="jobs">       <span class="app-icon-emoji">💼</span><span class="app-icon-label">Jobs</span></button>
+        <button class="app-icon-btn" data-app="journal">    <span class="app-icon-emoji">📓</span><span class="app-icon-label">Journal</span></button>
+        <button class="app-icon-btn" data-app="chores">     <span class="app-icon-emoji">🏡</span><span class="app-icon-label">Chores</span></button>
+        <button class="app-icon-btn" data-app="groceries">  <span class="app-icon-emoji">🛒</span><span class="app-icon-label">Groceries</span></button>
       </div>
 
       <!-- App detail panel (shown when an app icon is tapped) -->
@@ -1247,12 +1249,14 @@
       budget: '💰 Budget', hydration: '💧 Hydration', mood: '😊 Mood',
       focus: '🎯 Daily Focus', sleep: '😴 Sleep', meal: '🥗 Meal Planner',
       gym: '🏋️ Gym Planner', routine: '🌅 Daily Routine',
-      weather: '🌤️ Weather', jobs: '💼 Job Earnings', journal: '📓 Journal'
+      weather: '🌤️ Weather', jobs: '💼 Job Earnings', journal: '📓 Journal',
+      chores: '🏡 Chores', groceries: '🛒 Groceries'
     };
     var _APP_EMOJI_MAP = {
       budget: '💰', hydration: '💧', mood: '😊', focus: '🎯',
       sleep: '😴', meal: '🥗', gym: '🏋️', routine: '🌅',
-      weather: '🌤️', jobs: '💼', journal: '📓'
+      weather: '🌤️', jobs: '💼', journal: '📓',
+      chores: '🏡', groceries: '🛒'
     };
     var _APP_CONTAINER_MAP = {
       budget: 'personalBudgetSection', hydration: 'personalHydrationSection',
@@ -1378,7 +1382,9 @@
       gym:     'renderGymAppFull',
       routine: 'renderRoutineAppFull',
       budget:  'renderBudgetAppFull',
-      journal: 'renderJournalAppFull'
+      journal: 'renderJournalAppFull',
+      chores:     'renderChoresAppFull',
+      groceries:  'renderGroceriesAppFull'
     };
 
     // Render either medium (widget) or full-view content into the app window
@@ -1412,6 +1418,14 @@
         var medFn = _APP_FULL_RENDER_MAP[app];
         if (medFn && typeof window[medFn] === 'function') {
           try { window[medFn](content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading app.</p>'; }
+        }
+      } else if (app === 'chores') {
+        if (typeof window.renderChoresAppMedium === 'function') {
+          try { window.renderChoresAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Chores.</p>'; }
+        }
+      } else if (app === 'groceries') {
+        if (typeof window.renderGroceriesAppMedium === 'function') {
+          try { window.renderGroceriesAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Groceries.</p>'; }
         }
       } else {
         var containerId = _APP_CONTAINER_MAP[app];
