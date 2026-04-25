@@ -1002,6 +1002,7 @@
         <a href="#work"     class="more-sheet-item" data-view="work">    <span class="more-sheet-icon">💼</span><span class="more-sheet-label">Work</span></a>
         <a href="#inbox"    class="more-sheet-item" data-view="inbox">   <span class="more-sheet-icon">📥</span><span class="more-sheet-label">Inbox</span></a>
         <a href="#events"   class="more-sheet-item" data-view="events">  <span class="more-sheet-icon">📅</span><span class="more-sheet-label">Events</span></a>
+        <button type="button" id="moreSheetJournalBtn" class="more-sheet-item" aria-label="Open Journal"><span class="more-sheet-icon">📓</span><span class="more-sheet-label">Journal</span></button>
         <button type="button" id="moreSheetAppsBtn" class="more-sheet-item" aria-label="Open Apps"><span class="more-sheet-icon">⊞</span><span class="more-sheet-label">Apps</span></button>
         <a href="#settings" class="more-sheet-item" data-view="settings"><span class="more-sheet-icon">⚙️</span><span class="more-sheet-label">Settings</span></a>
       </div>
@@ -1568,6 +1569,34 @@
           }
           // Small delay so the sheet close animation has started before the modal opens
           setTimeout(openAppsModal, 60);
+        });
+      }
+
+      // More sheet (mobile) Journal button — close sheet then open journal in fullscreen
+      var moreSheetJournalBtn = document.getElementById('moreSheetJournalBtn');
+      if (moreSheetJournalBtn) {
+        moreSheetJournalBtn.addEventListener('click', function() {
+          var sheet = document.getElementById('moreSheet');
+          var moreTabBtn = document.getElementById('moreTabBtn');
+          if (sheet && !sheet.classList.contains('hidden')) {
+            var panel = sheet.querySelector('.more-sheet-panel');
+            if (panel) {
+              panel.style.transition = 'transform 0.28s cubic-bezier(0.22,1,0.36,1), opacity 0.22s ease';
+              panel.style.transform  = 'translateY(100%) scale(0.98)';
+              panel.style.opacity    = '0.6';
+              setTimeout(function() {
+                panel.style.transition = '';
+                panel.style.transform  = '';
+                panel.style.opacity    = '';
+                sheet.classList.add('hidden');
+              }, 280);
+            } else {
+              sheet.classList.add('hidden');
+            }
+            if (moreTabBtn) moreTabBtn.setAttribute('aria-expanded', 'false');
+          }
+          // Small delay so the sheet close animation has started before the app opens
+          setTimeout(function() { openAppDetail('journal', { fullscreen: true }); }, 60);
         });
       }
 
