@@ -1830,6 +1830,14 @@ body.dark-mode .pw-header { background:#16213e; }
 
 body.dark-mode .pw-body { background:#16213e; }
 
+body.dark-mode #personalLayoutPicker .layout-btn { background:#1e2d45; border-color:#2a2a4a; color:#bbb; }
+
+body.dark-mode #personalLayoutPicker .layout-btn.active { background:#2568c3; border-color:#2568c3; color:#fff; }
+
+body.dark-mode #personalLayoutPicker .layout-btn:hover:not(.active) { background:#253050; border-color:#3a3a5a; }
+
+body.dark-mode #personalLayoutPicker .layout-picker-label { color:#888; }
+
 body.dark-mode .meal-row { border-color:#2a2a4a; }
 
 body.dark-mode .meal-edit-panel { background:#1e2d45; border-color:#2a2a4a; }
@@ -2385,6 +2393,62 @@ body.dark-mode .mds-empty { color: #666; }
   .personal-top-row > #personalMoodSection {
         flex: 1;
         min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+  .personal-top-row > div > .pw-card {
+        flex: 1;
+        margin-bottom: 0;
+      }
+  /* 2×2 grid layout variant */
+  .personal-top-row.personal-layout-2x2 {
+        flex-wrap: wrap;
+      }
+  .personal-top-row.personal-layout-2x2 > #personalBudgetSection,
+  .personal-top-row.personal-layout-2x2 > #personalFocusSection,
+  .personal-top-row.personal-layout-2x2 > #personalHydrationSection,
+  .personal-top-row.personal-layout-2x2 > #personalMoodSection {
+        flex: 0 0 calc(50% - 5px);
+        max-width: calc(50% - 5px);
+      }
+  /* Stacked layout variant */
+  .personal-top-row.personal-layout-stacked {
+        flex-direction: column;
+      }
+  .personal-top-row.personal-layout-stacked > div > .pw-card {
+        flex: none;
+      }
+  /* Layout picker toolbar */
+  #personalLayoutPicker {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        justify-content: flex-end;
+        margin-bottom: 8px;
+      }
+  #personalLayoutPicker .layout-picker-label {
+        font-size: 0.8rem;
+        color: #888;
+        margin-right: 2px;
+      }
+  #personalLayoutPicker .layout-btn {
+        background: #f0f2f5;
+        border: 1.5px solid #dde0e6;
+        border-radius: 8px;
+        padding: 4px 10px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        color: #555;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+      }
+  #personalLayoutPicker .layout-btn.active {
+        background: #4a90e2;
+        border-color: #4a90e2;
+        color: #fff;
+      }
+  #personalLayoutPicker .layout-btn:hover:not(.active) {
+        background: #e4e8f0;
+        border-color: #c0c6d0;
       }
   #personalSleepBanner {
         width: 100%;
