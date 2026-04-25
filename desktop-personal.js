@@ -2628,7 +2628,7 @@
       var startMin = startH * 60 + startM;
       var nowMin   = now.getHours() * 60 + now.getMinutes();
       var diff     = startMin - nowMin;
-      /* Nudge if 5 minutes away (diff between 1 and 6 minutes) */
+      /* Nudge if within a 5-minute window before start time */
       if (diff >= 1 && diff <= 6) {
         showSmartSuggestBanner(phase, diff);
       }

@@ -61,17 +61,14 @@
   // ---------------------------------------------------------------------------
 
   /**
-   * For a given phase + step index, count consecutive days (ending today)
-   * on which the step was marked done.
+   * Shared helper: count consecutive days (ending today) on which
+   * the predicate fn(dateISO) returns true.
    */
-  function calcStepStreak(phaseId, stepIdx) {
-    var log = getRouLog();
+  function calcConsecutiveStreak(predicateFn) {
     var streak = 0;
     var date = todayISO();
     for (var i = 0; i < 365; i++) {
-      var dayLog = log[date];
-      var doneArr = (dayLog && dayLog[phaseId]) ? dayLog[phaseId] : [];
-      if (doneArr.indexOf(stepIdx) >= 0) {
+      if (predicateFn(date)) {
         streak++;
       } else if (i === 0) {
         /* today not yet completed — don't break, check yesterday */
@@ -84,6 +81,18 @@
   }
 
   /**
+   * For a given phase + step index, count consecutive days (ending today)
+   * on which the step was marked done.
+   */
+  function calcStepStreak(phaseId, stepIdx) {
+    var log = getRouLog();
+    return calcConsecutiveStreak(function (date) {
+      var doneArr = (log[date] && log[date][phaseId]) ? log[date][phaseId] : [];
+      return doneArr.indexOf(stepIdx) >= 0;
+    });
+  }
+
+  /**
    * For a given phase, count consecutive days (ending today) on which
    * ALL steps were completed.
    */
@@ -91,22 +100,10 @@
     var steps = phase.steps || [];
     if (!steps.length) return 0;
     var log = getRouLog();
-    var streak = 0;
-    var date = todayISO();
-    for (var i = 0; i < 365; i++) {
-      var dayLog = log[date];
-      var doneArr = (dayLog && dayLog[phase.id]) ? dayLog[phase.id] : [];
-      var allDone = steps.every(function (_, si) { return doneArr.indexOf(si) >= 0; });
-      if (allDone) {
-        streak++;
-      } else if (i === 0) {
-        /* today not yet fully done */
-      } else {
-        break;
-      }
-      date = addDaysISO(date, -1);
-    }
-    return streak;
+    return calcConsecutiveStreak(function (date) {
+      var doneArr = (log[date] && log[date][phase.id]) ? log[date][phase.id] : [];
+      return steps.every(function (_, si) { return doneArr.indexOf(si) >= 0; });
+    });
   }
 
   /**
