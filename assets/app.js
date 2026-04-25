@@ -651,6 +651,36 @@ function generateCalendar(){
       sp.dataset.shortTitle = ind.shortTitle || '';
       sp.title = ind.title || '';
       if (ind.kind === 'event' && ind.id) sp.dataset.eventId = ind.id;
+      if (ind.kind === 'reminder') {
+        sp.dataset.reminderDate = ymd;
+        sp.style.cursor = 'pointer';
+        (function(capturedYmd, capturedDay){
+          sp.addEventListener('click', function(e){
+            e.stopPropagation();
+            const rems = getReminders();
+            const arr = rems[capturedYmd] || [];
+            if (!arr.length) return;
+            if (arr.length === 1) { editReminder(capturedDay, 0); }
+            else { showCalendarItemPicker(capturedYmd, 'reminder'); }
+          });
+        })(ymd, day);
+      }
+      if (ind.kind === 'task') {
+        sp.dataset.taskDate = ymd;
+        sp.style.cursor = 'pointer';
+        (function(capturedYmd){
+          sp.addEventListener('click', function(e){
+            e.stopPropagation();
+            const allT = getTasks();
+            const dayT = allT.filter(function(t){ return normalizeDate(t.date) === capturedYmd; });
+            if (!dayT.length) return;
+            if (dayT.length === 1) {
+              const idx = allT.findIndex(function(t){ return t.id != null ? t.id === dayT[0].id : t === dayT[0]; });
+              if (idx !== -1) editTask(idx);
+            } else { showCalendarItemPicker(capturedYmd, 'task'); }
+          });
+        })(ymd);
+      }
 
       /* Mobile: emoji only (default) */
       const emojiSpan = document.createElement('span');
@@ -711,6 +741,75 @@ function generateCalendar(){
       calendarEl.appendChild(ec);
     }
   }
+}
+
+/* ── Calendar item picker modal (click reminder/task aggregate → pick individual item) ── */
+function showCalendarItemPicker(ymd, kind) {
+  var existing = document.getElementById('calItemPickerModal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'calItemPickerModal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:9999;display:flex;align-items:center;justify-content:center;';
+
+  var panel = document.createElement('div');
+  panel.style.cssText = 'background:#fff;border-radius:14px;padding:16px 18px;min-width:240px;max-width:340px;width:90%;box-shadow:0 4px 28px rgba(0,0,0,0.22);';
+
+  var heading = document.createElement('h3');
+  heading.style.cssText = 'margin:0 0 12px;font-size:1rem;color:#333;';
+
+  var allTasks = getTasks();
+  var items = [];
+  if (kind === 'reminder') {
+    heading.textContent = '🔔 Select a Reminder to Edit';
+    var rems = getReminders();
+    var arr = rems[ymd] || [];
+    arr.forEach(function(rem, i) {
+      var capturedI = i;
+      var capturedDay = parseInt(ymd.split('-')[2], 10);
+      var capturedYear = parseInt(ymd.split('-')[0], 10);
+      var capturedMonth = parseInt(ymd.split('-')[1], 10) - 1;
+      items.push({
+        label: (rem.text || '') + (rem.time ? '  [' + rem.time + ']' : ''),
+        action: function() {
+          overlay.remove();
+          window.selectedYear = capturedYear;
+          window.selectedMonth = capturedMonth;
+          editReminder(capturedDay, capturedI);
+        }
+      });
+    });
+  } else if (kind === 'task') {
+    heading.textContent = '✅ Select a Task to Edit';
+    var dayTasks = allTasks.filter(function(t){ return normalizeDate(t.date) === ymd; });
+    dayTasks.forEach(function(t) {
+      var idx = allTasks.findIndex(function(x){ return x.id != null ? x.id === t.id : x === t; });
+      var capturedIdx = idx;
+      items.push({
+        label: (t.title || t.text || 'Task') + (t.time ? '  [' + t.time + ']' : ''),
+        action: function() { overlay.remove(); if (capturedIdx !== -1) editTask(capturedIdx); }
+      });
+    });
+  }
+
+  panel.appendChild(heading);
+  items.forEach(function(item) {
+    var btn = document.createElement('button');
+    btn.style.cssText = 'display:block;width:100%;text-align:left;padding:8px 12px;margin-bottom:6px;border:1px solid #e0e6f0;border-radius:8px;background:#f7f9fc;cursor:pointer;font-size:0.88rem;color:#333;';
+    btn.textContent = item.label;
+    btn.addEventListener('click', item.action);
+    panel.appendChild(btn);
+  });
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.style.cssText = 'display:block;width:100%;margin-top:4px;padding:8px;background:#eee;border:none;border-radius:8px;cursor:pointer;font-size:0.88rem;color:#555;';
+  cancelBtn.addEventListener('click', function(){ overlay.remove(); });
+  panel.appendChild(cancelBtn);
+
+  overlay.appendChild(panel);
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
 }
 
 /* ── Mobile daily summary modal (long-press) ── */
