@@ -174,6 +174,51 @@
             </div>
             <div id="weeklySalaryDisplay" class="today-earnings-preview-content"></div>
           </div>
+
+          <!-- 🎯 Focus Preview -->
+          <div id="todayFocusWidget" class="today-right-widget today-preview-widget">
+            <div class="today-preview-header">
+              <span>🎯 Daily Focus</span>
+              <button type="button" class="today-widget-open-btn" data-app="focus">Open →</button>
+            </div>
+            <div id="todayFocusPreviewContent" class="today-preview-content"></div>
+          </div>
+
+          <!-- 💧 Hydration Preview -->
+          <div id="todayHydrationWidget" class="today-right-widget today-preview-widget">
+            <div class="today-preview-header">
+              <span>💧 Hydration</span>
+              <button type="button" class="today-widget-open-btn" data-app="hydration">Open →</button>
+            </div>
+            <div id="todayHydrationPreviewContent" class="today-preview-content"></div>
+          </div>
+
+          <!-- 😴 Sleep Preview -->
+          <div id="todaySleepWidget" class="today-right-widget today-preview-widget">
+            <div class="today-preview-header">
+              <span>😴 Sleep</span>
+              <button type="button" class="today-widget-open-btn" data-app="sleep">Open →</button>
+            </div>
+            <div id="todaySleepPreviewContent" class="today-preview-content"></div>
+          </div>
+
+          <!-- 🌅 Routine Preview -->
+          <div id="todayRoutineWidget" class="today-right-widget today-preview-widget">
+            <div class="today-preview-header">
+              <span>🌅 Morning Routine</span>
+              <button type="button" class="today-widget-open-btn" data-app="routine">Open →</button>
+            </div>
+            <div id="todayRoutinePreviewContent" class="today-preview-content"></div>
+          </div>
+
+          <!-- 😊 Mood Preview -->
+          <div id="todayMoodWidget" class="today-right-widget today-preview-widget">
+            <div class="today-preview-header">
+              <span>😊 Mood</span>
+              <button type="button" class="today-widget-open-btn" data-app="mood">Open →</button>
+            </div>
+            <div id="todayMoodPreviewContent" class="today-preview-content"></div>
+          </div>
         </div>
       </div><!-- end todayAppsCol -->
       </div><!-- end todayLayout -->
@@ -1267,7 +1312,58 @@
       }
     }
 
-    function openAppDetail(app) {
+    var _currentApp = null;
+
+    // Map of full-view render functions (exposed from app.js)
+    var _APP_FULL_RENDER_MAP = {
+      weather: 'renderWeatherAppFull',
+      jobs:    'renderJobsAppFull',
+      sleep:   'renderSleepAppFull',
+      mood:    'renderMoodAppFull',
+      focus:   'renderFocusAppFull',
+      hydration: 'renderHydrationAppFull',
+      meal:    'renderMealAppFull',
+      gym:     'renderGymAppFull',
+      routine: 'renderRoutineAppFull',
+      budget:  'renderBudgetAppFull'
+    };
+
+    // Render either medium (widget) or full-view content into the app window
+    function _renderAppContent(app, content, isFullscreen) {
+      content.innerHTML = '';
+      if (isFullscreen) {
+        var fullFn = _APP_FULL_RENDER_MAP[app];
+        if (fullFn && typeof window[fullFn] === 'function') {
+          try { window[fullFn](content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error rendering full view.</p>'; }
+          return;
+        }
+      }
+      // Medium / default view
+      if (app === 'weather') {
+        _renderWeatherAppContent(content);
+      } else if (app === 'jobs') {
+        _renderJobsAppContent(content);
+      } else {
+        var containerId = _APP_CONTAINER_MAP[app];
+        if (containerId) {
+          var existing = document.getElementById(containerId);
+          if (existing) {
+            existing.classList.remove('hidden');
+            content.appendChild(existing);
+          }
+        }
+        var renderFn = _APP_RENDER_MAP[app];
+        if (renderFn && typeof window[renderFn] === 'function') {
+          try { window[renderFn](); } catch(e) { /* ignore */ }
+        }
+      }
+    }
+
+    function openAppDetail(app, opts) {
+      // opts: { fullscreen: true } to open directly in full view
+      var openFullscreen = !!(opts && opts.fullscreen);
+      _currentApp = app;
+
       // Close the apps grid first so it feels like a new window opening
       closeAppsModal();
 
@@ -1283,37 +1379,28 @@
         pinToggle.dataset.app = app;
       }
 
-      // Render the widget into the app window content area
-      var content = document.getElementById('appWindowContent');
-      if (content) {
-        content.innerHTML = '';
-        if (app === 'weather') {
-          _renderWeatherAppContent(content);
-        } else if (app === 'jobs') {
-          _renderJobsAppContent(content);
-        } else {
-          var containerId = _APP_CONTAINER_MAP[app];
-          if (containerId) {
-            var existing = document.getElementById(containerId);
-            if (existing) {
-              // Move widget pane into app window
-              existing.classList.remove('hidden');
-              content.appendChild(existing);
-            }
-          }
-          var renderFn = _APP_RENDER_MAP[app];
-          if (renderFn && typeof window[renderFn] === 'function') {
-            try { window[renderFn](); } catch(e) { /* ignore */ }
-          }
-        }
-      }
-
-      // Show the app window modal (remove fullscreen in case it was left on)
+      // Show the app window modal
       var w = document.getElementById('appWindowModal');
       if (w) {
-        w.classList.remove('fullscreen');
+        if (openFullscreen) {
+          w.classList.add('fullscreen');
+        } else {
+          w.classList.remove('fullscreen');
+        }
         w.classList.remove('hidden');
       }
+
+      // Update expand button label to reflect current state
+      var expandBtn = document.getElementById('appWindowExpandBtn');
+      if (expandBtn) {
+        expandBtn.textContent = openFullscreen ? '⤡' : '⤢';
+        expandBtn.title = openFullscreen ? 'Collapse to medium' : 'Expand to full screen';
+        expandBtn.setAttribute('aria-label', openFullscreen ? 'Collapse app' : 'Expand app to full screen');
+      }
+
+      // Render content
+      var content = document.getElementById('appWindowContent');
+      if (content) _renderAppContent(app, content, openFullscreen);
     }
 
     function renderTodayEarningsPreview() {
@@ -1455,10 +1542,16 @@
           var w = document.getElementById('appWindowModal');
           if (!w) return;
           var isFullscreen = w.classList.contains('fullscreen');
-          w.classList.toggle('fullscreen', !isFullscreen);
-          appWindowExpandBtn.textContent = isFullscreen ? '⤢' : '⤡';
-          appWindowExpandBtn.title = isFullscreen ? 'Expand to full screen' : 'Collapse to medium';
-          appWindowExpandBtn.setAttribute('aria-label', isFullscreen ? 'Expand app to full screen' : 'Collapse app');
+          var goFullscreen = !isFullscreen;
+          w.classList.toggle('fullscreen', goFullscreen);
+          appWindowExpandBtn.textContent = goFullscreen ? '⤡' : '⤢';
+          appWindowExpandBtn.title = goFullscreen ? 'Collapse to medium' : 'Expand to full screen';
+          appWindowExpandBtn.setAttribute('aria-label', goFullscreen ? 'Collapse app' : 'Expand app to full screen');
+          // Re-render content for the new mode
+          if (_currentApp) {
+            var content = document.getElementById('appWindowContent');
+            if (content) _renderAppContent(_currentApp, content, goFullscreen);
+          }
         });
       }
 
@@ -1480,10 +1573,10 @@
         });
       }
 
-      // Today page right-column widget open buttons
+      // Today page right-column widget open buttons — open directly in full view
       document.addEventListener('click', function(e) {
         var btn = e.target.closest('.today-widget-open-btn[data-app]');
-        if (btn) openAppDetail(btn.dataset.app);
+        if (btn) openAppDetail(btn.dataset.app, { fullscreen: true });
       });
 
       document.addEventListener('keydown', function(e) {
@@ -1559,6 +1652,12 @@
       updateHeaderFromProfile();
       renderTodayPinnedApps();
       renderTodayEarningsPreview();
+      // Render Today-page preview widgets
+      if (typeof renderTodayFocusPreview     === 'function') try { renderTodayFocusPreview();     } catch(_) {}
+      if (typeof renderTodayHydrationPreview === 'function') try { renderTodayHydrationPreview(); } catch(_) {}
+      if (typeof renderTodaySleepPreview     === 'function') try { renderTodaySleepPreview();     } catch(_) {}
+      if (typeof renderTodayRoutinePreview   === 'function') try { renderTodayRoutinePreview();   } catch(_) {}
+      if (typeof renderTodayMoodPreview      === 'function') try { renderTodayMoodPreview();      } catch(_) {}
       // Re-render calendar and day details now that utils.js (expandEvents) is loaded
       try { if (typeof generateCalendar === 'function') generateCalendar(); } catch(_) {}
       try { if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined' && selectedDay) showReminders(selectedDay); } catch(_) {}

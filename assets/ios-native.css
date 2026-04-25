@@ -2450,3 +2450,359 @@ main {
   }
 }
 
+
+
+/* ======================================================================
+   TODAY-PAGE PREVIEW WIDGETS
+   ====================================================================== */
+
+.today-preview-widget {
+  background: var(--ios-card-bg, #fff);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+}
+
+.today-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: 8px;
+  color: var(--ios-text-1, #111);
+}
+
+.today-preview-content {
+  font-size: 0.84rem;
+  color: var(--ios-text-2, #333);
+}
+
+/* Focus preview */
+.tdp-focus-items { display: flex; flex-direction: column; gap: 4px; }
+.tdp-focus-item { display: flex; align-items: center; gap: 7px; cursor: pointer; border-radius: 8px; padding: 4px 6px; transition: background .15s; }
+.tdp-focus-item:hover { background: rgba(74,144,226,.06); }
+.tdp-focus-item.done .tdp-focus-text { text-decoration: line-through; color: var(--ios-text-3, #999); }
+.tdp-focus-cb { font-size: 1rem; }
+.tdp-focus-text { font-size: 0.82rem; }
+
+/* Hydration preview */
+.tdp-hydration-glasses { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 2px; }
+.tdp-hydration-glass { font-size: 1rem; opacity: 0.2; transition: opacity .15s; }
+.tdp-hydration-glass.filled { opacity: 1; }
+.tdp-add-btn {
+  background: var(--ios-accent, #4a90e2);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tdp-add-btn:active { opacity: .75; }
+
+/* Sleep preview */
+.tdp-sleep-row { font-size: 0.85rem; color: var(--ios-text-1); }
+
+/* Routine preview */
+.tdp-routine-bar { background: #e8eef8; border-radius: 4px; height: 6px; margin-top: 3px; overflow: hidden; }
+.tdp-routine-bar-fill { background: var(--ios-accent, #4a90e2); height: 6px; border-radius: 4px; transition: width .4s; }
+
+/* Mood preview */
+.tdp-mood-checked { display: flex; align-items: center; }
+.tdp-mood-quick-row { display: flex; gap: 6px; }
+.tdp-mood-btn { background: none; border: 1px solid #e0e0e0; border-radius: 10px; padding: 4px 8px; font-size: 1.1rem; cursor: pointer; transition: transform .15s, background .15s; }
+.tdp-mood-btn:hover { background: #f5f5f5; transform: scale(1.15); }
+
+/* ======================================================================
+   APP FULL-VIEW LAYOUT
+   ====================================================================== */
+
+.app-full-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 4px 0 12px;
+}
+
+.app-full-col {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-full-col-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ios-text-1, #111);
+  margin: 0 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--ios-accent, #4a90e2);
+}
+
+.app-full-section-heading {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ios-text-2, #444);
+  margin: 12px 0 6px;
+}
+
+/* Generic full-view form elements */
+.app-fv-save-btn {
+  background: var(--ios-accent, #4a90e2);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+.app-fv-save-btn:active { opacity: .8; }
+.app-fv-cancel-btn {
+  background: #f0f0f0;
+  color: var(--ios-text-2, #555);
+  border: none;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.app-fv-link-btn {
+  background: none;
+  border: none;
+  color: var(--ios-accent, #4a90e2);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: none;
+}
+.app-fv-link-btn:hover { text-decoration: underline; }
+.app-fv-select {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  background: #fff;
+}
+.app-fv-num-input {
+  width: 72px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+}
+.app-fv-num-small {
+  width: 50px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 3px 5px;
+  font-size: 0.78rem;
+  text-align: center;
+}
+.app-fv-time-small {
+  width: 80px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 3px 5px;
+  font-size: 0.78rem;
+}
+.app-fv-text-input {
+  flex: 1;
+  min-width: 80px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 0.82rem;
+}
+.app-fv-note-input {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 0.82rem;
+  box-sizing: border-box;
+  margin: 6px 0;
+}
+.app-fv-pill {
+  display: inline-block;
+  background: var(--ios-accent, #4a90e2);
+  color: #fff;
+  border-radius: 10px;
+  padding: 3px 10px;
+  font-size: 0.76rem;
+  margin: 2px 3px 2px 0;
+}
+.app-fv-loading { color: var(--ios-text-3, #aaa); font-size: 0.85rem; padding: 12px 0; }
+
+/* Chart wrappers */
+.fv-chart-wrap { overflow: hidden; border-radius: 8px; }
+.fv-chart-empty { color: var(--ios-text-3); font-size: 0.82rem; text-align: center; padding: 8px; }
+
+/* ── Weather Full ─────────────────────────────────────────── */
+.app-fv-hourly-grid { font-size: 0.78rem; }
+.awh-hdr { display: grid; grid-template-columns: 38px 50px 50px 36px 36px; gap: 4px; padding: 3px 0 4px; border-bottom: 1px solid #eee; color: var(--ios-text-3); font-weight: 600; font-size: 0.72rem; }
+.awh-row { display: grid; grid-template-columns: 38px 50px 50px 36px 36px; gap: 4px; padding: 3px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.78rem; }
+.awh-time { color: var(--ios-text-3); }
+.app-fv-weather-meta { display: flex; gap: 14px; font-size: 0.78rem; color: var(--ios-text-3); margin: 8px 0 0; }
+.app-fv-forecast-list { font-size: 0.8rem; }
+.awf-row { display: grid; grid-template-columns: 68px 24px 1fr 60px 32px 56px; gap: 4px; align-items: center; padding: 5px 0; border-bottom: 1px solid #f5f5f5; }
+.awf-today { background: rgba(74,144,226,.06); border-radius: 6px; }
+.awf-day { font-size: 0.74rem; color: var(--ios-text-3); }
+.awf-icon { font-size: 1rem; }
+.awf-desc { font-size: 0.74rem; color: var(--ios-text-2); }
+.awf-precip-track { background: #e8f0fe; border-radius: 2px; height: 3px; overflow: hidden; }
+.awf-precip-pct { font-size: 0.72rem; color: #4a90e2; }
+.awf-temps { font-size: 0.78rem; font-weight: 600; text-align: right; }
+
+/* ── Sleep Full ───────────────────────────────────────────── */
+.app-sleep-sched-grid { display: grid; grid-template-columns: 44px 1fr 1fr; gap: 4px 8px; align-items: center; margin-bottom: 14px; }
+.assg-h { font-size: 0.74rem; font-weight: 700; color: var(--ios-text-3); padding-bottom: 2px; }
+.assg-day { font-size: 0.82rem; font-weight: 600; }
+.assg-today { color: var(--ios-accent, #4a90e2); }
+.assg-time { border: 1px solid #ddd; border-radius: 6px; padding: 3px 5px; font-size: 0.78rem; width: 100%; box-sizing: border-box; }
+.app-sleep-log-form { margin-bottom: 12px; }
+.app-sleep-log-inner { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+.app-sleep-log-inner label { display: flex; align-items: center; gap: 5px; font-size: 0.82rem; }
+.app-sleep-logged-ok { font-size: 0.85rem; color: #27ae60; margin-bottom: 6px; }
+.app-sleep-alarm-box { background: #f0f7ff; border-radius: 10px; padding: 10px 12px; margin-top: 14px; font-size: 0.82rem; }
+.app-sleep-cycle-pills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.app-sleep-chart { overflow: hidden; border-radius: 8px; }
+.app-sleep-debt-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; padding: 10px 0 6px; border-top: 1px solid #f0f0f0; margin-top: 8px; }
+.app-sleep-debt-val { font-weight: 700; color: #27ae60; }
+.app-sleep-debt-red { color: #e74c3c; }
+.app-sleep-tips { margin-top: 8px; }
+.app-sleep-tip-row { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.8rem; }
+.app-sleep-tip-row span:first-child { font-size: 1rem; flex-shrink: 0; }
+
+/* ── Mood Full ────────────────────────────────────────────── */
+.app-mood-checked { display: flex; align-items: center; padding: 10px 0; }
+.app-mood-form { margin-top: 8px; }
+.app-mood-emoji-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.app-mood-emoji-btn { background: none; border: 2px solid #e0e0e0; border-radius: 12px; padding: 6px 10px; font-size: 1.3rem; cursor: pointer; transition: border-color .15s, transform .1s; }
+.app-mood-emoji-btn.selected { border-color: var(--ios-accent, #4a90e2); background: rgba(74,144,226,.08); transform: scale(1.1); }
+.app-mood-energy-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.app-mood-energy-btn { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 10px; padding: 5px 12px; font-size: 0.8rem; cursor: pointer; transition: background .15s, border-color .15s; }
+.app-mood-energy-btn.selected { background: rgba(74,144,226,.1); border-color: var(--ios-accent, #4a90e2); font-weight: 600; }
+.app-mood-history-list { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+.app-mood-hist-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.8rem; flex-wrap: wrap; }
+.app-mood-hist-date { color: var(--ios-text-3); font-size: 0.72rem; min-width: 76px; }
+.app-mood-heatmap { display: grid; grid-template-columns: repeat(15, 1fr); gap: 3px; margin-bottom: 6px; }
+.app-mood-hm-cell { aspect-ratio: 1; border-radius: 3px; cursor: default; transition: transform .1s; }
+.app-mood-hm-cell:hover { transform: scale(1.3); z-index: 1; position: relative; }
+.app-mood-hm-legend { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.72rem; color: var(--ios-text-3); margin-bottom: 10px; }
+.app-mood-patterns { display: flex; flex-direction: column; gap: 5px; font-size: 0.82rem; padding: 6px 0; }
+
+/* ── Focus Full ───────────────────────────────────────────── */
+.app-focus-row { display: flex; align-items: center; gap: 8px; padding: 7px 8px; background: #f9f9f9; border-radius: 10px; margin-bottom: 6px; }
+.app-focus-row.done .app-focus-text { text-decoration: line-through; color: var(--ios-text-3); }
+.app-focus-cb { flex-shrink: 0; }
+.app-focus-text { flex: 1; font-size: 0.85rem; }
+.app-focus-time-tag { font-size: 0.74rem; color: var(--ios-accent, #4a90e2); background: rgba(74,144,226,.08); border-radius: 6px; padding: 2px 6px; white-space: nowrap; }
+.app-focus-del { background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.85rem; }
+.app-focus-del:hover { color: #e74c3c; }
+.app-focus-add-row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.app-focus-done-msg { text-align: center; color: #27ae60; font-weight: 600; font-size: 0.9rem; padding: 8px; }
+.app-focus-heatmap { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 14px; }
+.app-focus-hm-cell { background: #eee; border-radius: 8px; padding: 8px 4px; text-align: center; font-size: 0.72rem; }
+.app-focus-hm-cell.all-done { background: #27ae60; color: #fff; }
+.app-focus-hm-cell.part-done { background: #4a90e2; color: #fff; }
+.app-focus-hm-day { display: block; font-weight: 600; margin-bottom: 2px; }
+.app-focus-hm-score { display: block; }
+.app-focus-history { display: flex; flex-direction: column; gap: 10px; max-height: 280px; overflow-y: auto; }
+.app-focus-hist-day { font-size: 0.82rem; }
+.app-focus-hist-item { padding: 3px 0; color: var(--ios-text-2); }
+.app-focus-hist-item.done { text-decoration: line-through; color: var(--ios-text-3); }
+
+/* Pomodoro timer */
+.app-pomodoro { text-align: center; padding: 10px 0; }
+.app-pom-display { font-size: 2.5rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ios-text-1, #111); line-height: 1; }
+.app-pom-phase { font-size: 0.85rem; color: var(--ios-text-3); margin: 4px 0 10px; }
+.app-pom-controls { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.app-pom-counter { font-size: 0.8rem; color: var(--ios-text-3); margin-top: 8px; }
+
+/* ── Hydration Full ───────────────────────────────────────── */
+.app-hydration-glasses { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+.app-hydration-glass { font-size: 1.4rem; opacity: .18; cursor: pointer; transition: opacity .15s, transform .1s; }
+.app-hydration-glass.filled { opacity: 1; }
+.app-hydration-glass:hover { transform: scale(1.2); }
+.app-hydration-count-row { display: flex; align-items: baseline; gap: 4px; margin-bottom: 12px; }
+.app-hydration-count-big { font-size: 2rem; font-weight: 700; color: var(--ios-accent, #4a90e2); }
+.app-hydration-type-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.app-hyd-type-btn { background: #f0f7ff; border: 1px solid #c0d8f0; border-radius: 10px; padding: 5px 10px; font-size: 0.82rem; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; transition: background .15s; }
+.app-hyd-type-btn:hover { background: rgba(74,144,226,.15); }
+.app-hyd-type-btn span { font-size: 0.7rem; color: var(--ios-text-3); }
+.app-hydration-goal-row { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; margin-bottom: 8px; }
+.app-hydration-time-log { display: flex; flex-direction: column; gap: 4px; max-height: 180px; overflow-y: auto; }
+.app-hyd-log-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.8rem; }
+.app-hydration-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 8px; }
+.app-hyd-stat { background: #f5f9ff; border-radius: 10px; padding: 8px; text-align: center; }
+.app-hyd-stat-val { display: block; font-size: 1.4rem; font-weight: 700; color: var(--ios-accent, #4a90e2); }
+.app-hyd-stat-lbl { display: block; font-size: 0.7rem; color: var(--ios-text-3); margin-top: 2px; }
+.app-hyd-day-goals { display: flex; flex-direction: column; gap: 5px; }
+.app-hyd-day-goal-row { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; }
+
+/* ── Meal Full ────────────────────────────────────────────── */
+.app-meal-fv-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+.app-meal-fv-icon { font-size: 1.3rem; flex-shrink: 0; }
+.app-meal-fv-info { flex: 1; min-width: 0; }
+.app-meal-fv-label { font-size: 0.72rem; font-weight: 700; color: var(--ios-text-3); text-transform: uppercase; }
+.app-meal-fv-name { font-size: 0.85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-meal-fv-edit-btn { background: none; border: 1px solid #e0e0e0; border-radius: 8px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; flex-shrink: 0; }
+.app-meal-fv-edit-panel { background: #f5f9ff; border-radius: 10px; padding: 10px 12px; margin: 0 0 8px; }
+.app-meal-fv-fields, .app-meal-fv-macros { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.app-meal-fv-cal, .app-meal-fv-time { width: 80px; border: 1px solid #ddd; border-radius: 8px; padding: 4px 6px; font-size: 0.8rem; }
+.app-meal-fv-macro { width: 82px; border: 1px solid #ddd; border-radius: 8px; padding: 4px 6px; font-size: 0.8rem; }
+.app-meal-fv-name-inp { width: 100%; border: 1px solid #ddd; border-radius: 8px; padding: 4px 8px; font-size: 0.82rem; box-sizing: border-box; margin-bottom: 4px; }
+.app-meal-fv-progress { margin-top: 12px; }
+.app-meal-pbar { background: #e8f0fe; border-radius: 4px; height: 6px; overflow: hidden; }
+.app-meal-goal-row { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; margin-top: 6px; }
+.app-meal-favs-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+.app-meal-fav-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.82rem; }
+
+/* ── Gym Full ─────────────────────────────────────────────── */
+.app-gym-routine { background: #f9f9f9; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.app-gym-routine-name { font-weight: 700; font-size: 0.88rem; margin-bottom: 8px; color: var(--ios-text-1); }
+.app-gym-ex-row { display: flex; align-items: center; gap: 6px; padding: 4px 0; border-bottom: 1px solid #eee; }
+.app-gym-ex-name { flex: 1; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.app-1rm-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 10px; }
+.app-1rm-form label { display: flex; flex-direction: column; gap: 3px; font-size: 0.78rem; color: var(--ios-text-3); }
+.app-1rm-result { font-size: 0.9rem; color: var(--ios-text-1); padding: 6px 0; min-height: 1.4em; }
+.app-body-measure-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin-bottom: 10px; }
+.app-body-measure-form label { display: flex; flex-direction: column; gap: 3px; font-size: 0.78rem; color: var(--ios-text-3); }
+.app-body-history { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.app-body-hist-row { display: flex; gap: 10px; font-size: 0.8rem; padding: 3px 0; border-bottom: 1px solid #f5f5f5; }
+
+/* ── Routine Full ─────────────────────────────────────────── */
+.app-routine-pbar { background: #e8eef8; border-radius: 4px; height: 5px; margin-bottom: 8px; overflow: hidden; }
+.app-routine-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 8px; margin-bottom: 4px; }
+.app-routine-item:hover { background: #f5f9ff; }
+.app-routine-item.done span { text-decoration: line-through; color: var(--ios-text-3); }
+.app-routine-heatmap { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; margin-bottom: 10px; }
+.app-routine-hm-cell { aspect-ratio: 1; background: #eee; border-radius: 3px; }
+.app-routine-hm-cell.all-done { background: #27ae60; }
+.app-routine-hm-cell.part-done { background: #4a90e2; opacity: .6; }
+
+/* ── Budget Full ──────────────────────────────────────────── */
+.app-budget-summary-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f5f5f5; font-size: 0.85rem; }
+.app-budget-net { font-weight: 700; font-size: 0.9rem; border-bottom: 2px solid #eee; margin-bottom: 6px; }
+.app-budget-toggle-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0 4px; font-size: 0.85rem; font-weight: 600; }
+.app-budget-bills-list { display: flex; flex-direction: column; gap: 2px; max-height: 200px; overflow-y: auto; }
+.app-budget-bill-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem; padding: 4px 0; border-bottom: 1px solid #f5f5f5; }
+.app-budget-bill-amt { color: #e74c3c; font-weight: 600; }
+.app-savings-goal { background: #f5f9ff; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.app-savings-bar { background: #e8eef8; border-radius: 4px; height: 5px; overflow: hidden; }
+.app-savings-add-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; align-items: center; }
+
+/* ======================================================================
+   RESPONSIVE: collapse two-col to single-col on narrow windows
+   ====================================================================== */
+
+@media (max-width: 600px) {
+  .app-full-two-col {
+    grid-template-columns: 1fr;
+  }
+  .app-fv-hourly-grid { overflow-x: auto; }
+  .awf-row { grid-template-columns: 60px 20px 1fr 48px 28px 50px; }
+}

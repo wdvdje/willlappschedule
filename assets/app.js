@@ -6300,8 +6300,8 @@ function wireHomePage() {
    Gym Planner, Daily Focus, Routines, Hydration, Mood
    ============================================================ */
 
-/* ── Helper: build collapsible personal widget card ─────────── */
-function buildPWCard(id, emoji, title, renderBody, storageKey) {
+/* ── Helper: build personal widget card ─────────────────────── */
+function buildPWCard(id, emoji, title, renderBody) {
   var card = document.createElement('div');
   card.className = 'pw-card';
   card.id = id;
@@ -6311,28 +6311,15 @@ function buildPWCard(id, emoji, title, renderBody, storageKey) {
   var headerTitle = document.createElement('div');
   headerTitle.className = 'pw-header-title';
   headerTitle.textContent = emoji + ' ' + title;
-  var chevron = document.createElement('span');
-  chevron.className = 'pw-chevron';
-  var isCollapsed = safeParseStorage(storageKey + '_collapsed', false);
-  chevron.textContent = isCollapsed ? '▸' : '▾';
   header.appendChild(headerTitle);
-  header.appendChild(chevron);
 
   var body = document.createElement('div');
   body.className = 'pw-body';
-  body.style.display = isCollapsed ? 'none' : '';
 
   renderBody(body);
 
   card.appendChild(header);
   card.appendChild(body);
-
-  header.addEventListener('click', function() {
-    var nowCollapsed = body.style.display === 'none';
-    body.style.display = nowCollapsed ? '' : 'none';
-    chevron.textContent = nowCollapsed ? '▾' : '▸';
-    localStorage.setItem(storageKey + '_collapsed', JSON.stringify(!nowCollapsed));
-  });
 
   return card;
 }
@@ -8865,3 +8852,667 @@ document.addEventListener('DOMContentLoaded',function(){
     renderDashboardWeather();
   });
 });
+
+
+/* ======================================================================
+   TODAY-PAGE PREVIEW RENDERERS
+   ====================================================================== */
+
+function _fvTimeToMins(t) {
+  if (!t) return 0;
+  var p = (t || '').split(':');
+  return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0);
+}
+
+function _fvBarChart(bars, W, H, padT, padB, padL, padR, todayIso) {
+  var maxVal = 0;
+  bars.forEach(function(b) { if (b.value > maxVal) maxVal = b.value; });
+  if (!bars.length || maxVal <= 0) return '<div class="fv-chart-empty">No data yet</div>';
+  var chartH = H - padT - padB;
+  var n = bars.length;
+  var barW = Math.max(4, Math.floor((W - padL - padR) / n) - 3);
+  var gap = Math.floor((W - padL - padR - n * barW) / (n + 1));
+  var svg = '<svg width="100%" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">';
+  bars.forEach(function(b, i) {
+    var x = padL + gap + i * (barW + gap);
+    var bh = Math.max(2, Math.round(chartH * (b.value / maxVal)));
+    var y = padT + chartH - bh;
+    var isToday = todayIso && b.iso === todayIso;
+    svg += '<rect x="' + x + '" y="' + y + '" width="' + barW + '" height="' + bh + '" fill="' + (isToday ? '#4a90e2' : '#a0c4ef') + '" rx="2"/>';
+    svg += '<text x="' + (x + barW / 2) + '" y="' + (H - 3) + '" text-anchor="middle" font-size="7" fill="#999">' + b.label + '</text>';
+    if (bh >= 12 && b.value > 0) svg += '<text x="' + (x + barW / 2) + '" y="' + (y - 2) + '" text-anchor="middle" font-size="7" fill="#555">' + b.value + '</text>';
+  });
+  svg += '</svg>';
+  return '<div class="fv-chart-wrap">' + svg + '</div>';
+}
+
+function renderTodayFocusPreview() {
+  var el = document.getElementById('todayFocusPreviewContent');
+  if (!el) return;
+  var today = getTodayISO();
+  var items = getPersonalFocus()[today] || [];
+  if (!items.length) {
+    el.innerHTML = '<span style="font-size:0.82rem;color:var(--ios-text-3)">No priorities set yet.</span>';
+    return;
+  }
+  var done = items.filter(function(i) { return i.done; }).length;
+  var html = '<div class="tdp-focus-items">';
+  items.forEach(function(item, idx) {
+    html += '<div class="tdp-focus-item' + (item.done ? ' done' : '') + '" data-idx="' + idx + '">' +
+      '<span class="tdp-focus-cb">' + (item.done ? '\u2705' : '\u2b1c') + '</span>' +
+      '<span class="tdp-focus-text">' + escapeHTML(item.text) + '</span></div>';
+  });
+  html += '</div><div style="font-size:0.78rem;color:var(--ios-text-3);margin-top:5px">' + done + '/' + items.length + ' done</div>';
+  el.innerHTML = html;
+  el.querySelectorAll('.tdp-focus-item').forEach(function(row) {
+    row.addEventListener('click', function() {
+      var idx = parseInt(row.dataset.idx, 10);
+      var f = getPersonalFocus();
+      if (!f[today] || !f[today][idx]) return;
+      f[today][idx].done = !f[today][idx].done;
+      setPersonalFocus(f);
+      renderTodayFocusPreview();
+    });
+  });
+}
+
+function renderTodayHydrationPreview() {
+  var el = document.getElementById('todayHydrationPreviewContent');
+  if (!el) return;
+  var h = getPersonalHydration();
+  var today = getTodayISO();
+  var count = typeof h.log[today] === 'number' ? h.log[today] : 0;
+  var goal = h.goal || 8;
+  var glasses = '';
+  for (var i = 0; i < Math.min(goal, 10); i++) {
+    glasses += '<span class="tdp-hydration-glass' + (i < count ? ' filled' : '') + '">\ud83d\udca7</span>';
+  }
+  el.innerHTML =
+    '<div class="tdp-hydration-glasses">' + glasses + '</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px">' +
+      '<span style="font-size:0.78rem;color:var(--ios-text-3)">' + count + '/' + goal + ' glasses</span>' +
+      '<button class="tdp-add-btn" id="tdpHydAdd">+1 \ud83d\udca7</button></div>';
+  var btn = el.querySelector('#tdpHydAdd');
+  if (btn) btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var hy = getPersonalHydration();
+    if (!hy.log) hy.log = {};
+    hy.log[today] = Math.min((hy.log[today] || 0) + 1, hy.goal || 8);
+    setPersonalHydration(hy);
+    renderTodayHydrationPreview();
+  });
+}
+
+function renderTodaySleepPreview() {
+  var el = document.getElementById('todaySleepPreviewContent');
+  if (!el) return;
+  var sleep = getPersonalSleep();
+  var today = getTodayISO();
+  var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var sched = (sleep.schedule && sleep.schedule[DAYS[new Date().getDay()]]) || { bedtime: '22:30', wake: '07:00' };
+  var logged = sleep.log && sleep.log[today];
+  if (logged && logged.bedtime && logged.wakeTime) {
+    var bm = _fvTimeToMins(logged.bedtime), wm = _fvTimeToMins(logged.wakeTime);
+    var dur = wm > bm ? wm - bm : (1440 - bm) + wm;
+    el.innerHTML = '<div class="tdp-sleep-row">\u2705 ' + escapeHTML(logged.bedtime) + ' \u2192 ' + escapeHTML(logged.wakeTime) +
+      ' <span style="color:var(--ios-text-3);font-size:0.78rem">(' + Math.floor(dur / 60) + 'h ' + (dur % 60) + 'm)</span></div>';
+  } else {
+    el.innerHTML = '<div class="tdp-sleep-row">\ud83c\udf19 Bed <strong>' + escapeHTML(sched.bedtime) + '</strong>' +
+      '&nbsp;\u2600\ufe0f Wake <strong>' + escapeHTML(sched.wake) + '</strong></div>' +
+      '<div style="font-size:0.75rem;color:var(--ios-text-3);margin-top:3px">Not logged yet</div>';
+  }
+}
+
+function renderTodayRoutinePreview() {
+  var el = document.getElementById('todayRoutinePreviewContent');
+  if (!el) return;
+  var routines = getPersonalRoutines();
+  var today = getTodayISO();
+  var log = getPersonalRoutineLog();
+  var todayLog = log[today] || {};
+  var total = (routines.morning || []).length;
+  var done = ((todayLog.morning || [])).length;
+  if (!total) {
+    el.innerHTML = '<span style="font-size:0.82rem;color:var(--ios-text-3)">No morning routine set up yet.</span>';
+    return;
+  }
+  var pct = Math.round(done / total * 100);
+  el.innerHTML =
+    '<div style="font-size:0.82rem;color:var(--ios-text-3);margin-bottom:5px">Morning: ' + done + '/' + total + ' steps</div>' +
+    '<div class="tdp-routine-bar"><div class="tdp-routine-bar-fill" style="width:' + pct + '%"></div></div>';
+}
+
+function renderTodayMoodPreview() {
+  var el = document.getElementById('todayMoodPreviewContent');
+  if (!el) return;
+  var moods = getPersonalMood();
+  var today = getTodayISO();
+  var entry = moods.find(function(m) { return m.date === today; });
+  if (entry) {
+    el.innerHTML =
+      '<div class="tdp-mood-checked"><span style="font-size:1.5rem">' + escapeHTML(entry.mood) + '</span>' +
+        '<div style="margin-left:8px"><div style="font-size:0.85rem;font-weight:600">' + escapeHTML(entry.moodLabel) + '</div>' +
+          '<div style="font-size:0.75rem;color:var(--ios-text-3)">' + escapeHTML(entry.energy) + '</div></div></div>';
+    return;
+  }
+  var opts = [{e:'\ud83d\ude0a',l:'Great'},{e:'\ud83d\ude42',l:'Good'},{e:'\ud83d\ude10',l:'Okay'},{e:'\ud83d\ude1f',l:'Low'},{e:'\ud83d\ude22',l:'Rough'}];
+  el.innerHTML =
+    '<div style="font-size:0.75rem;color:var(--ios-text-3);margin-bottom:5px">How are you feeling?</div>' +
+    '<div class="tdp-mood-quick-row">' + opts.map(function(o) {
+      return '<button class="tdp-mood-btn" data-mood="' + o.e + '" data-label="' + o.l + '">' + o.e + '</button>';
+    }).join('') + '</div>';
+  el.querySelectorAll('.tdp-mood-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var data = getPersonalMood();
+      data = data.filter(function(m) { return m.date !== today; });
+      data.unshift({ date: today, mood: btn.dataset.mood, moodLabel: btn.dataset.label, energy: '\ud83d\udfe1 Medium', note: '' });
+      if (data.length > 90) data = data.slice(0, 90);
+      setPersonalMood(data);
+      renderTodayMoodPreview();
+    });
+  });
+}
+
+/* ======================================================================
+   APP FULL-VIEW RENDERERS
+   ====================================================================== */
+
+function renderWeatherAppFull(container) {
+  container.innerHTML = '';
+  var layout = document.createElement('div');
+  layout.className = 'app-full-two-col';
+  var leftCol = document.createElement('div');
+  leftCol.className = 'app-full-col';
+  leftCol.innerHTML = '<h3 class="app-full-col-heading">\u231a Today \u2014 Hourly</h3><div id="appFvHourly" class="app-fv-loading">Requesting location\u2026</div>';
+  var rightCol = document.createElement('div');
+  rightCol.className = 'app-full-col';
+  rightCol.innerHTML = '<h3 class="app-full-col-heading">\ud83d\udcc5 16-Day Forecast</h3><div id="appFvForecast" class="app-fv-loading">Loading\u2026</div>';
+  layout.appendChild(leftCol); layout.appendChild(rightCol); container.appendChild(layout);
+  container.insertAdjacentHTML('beforeend', '<p class="weather-widget-note" style="margin-top:10px">Powered by Open-Meteo \u00b7 No API key required</p>');
+  if (!navigator.geolocation) { leftCol.querySelector('#appFvHourly').textContent = 'Location access required.'; return; }
+  var useFahrenheit = /^en-US/i.test(navigator.language || '');
+  var unitParam = useFahrenheit ? '&temperature_unit=fahrenheit' : '';
+  var unitLabel = useFahrenheit ? '\u00b0F' : '\u00b0C';
+  var WMO_E={0:'\u2600\ufe0f',1:'\ud83c\udf24\ufe0f',2:'\u26c5',3:'\u2601\ufe0f',45:'\ud83c\udf2b\ufe0f',48:'\ud83c\udf2b\ufe0f',51:'\ud83c\udf26\ufe0f',53:'\ud83c\udf27\ufe0f',55:'\ud83c\udf27\ufe0f',61:'\ud83c\udf27\ufe0f',63:'\ud83c\udf27\ufe0f',65:'\ud83c\udf27\ufe0f',71:'\u2744\ufe0f',73:'\u2744\ufe0f',75:'\u2744\ufe0f',80:'\ud83c\udf26\ufe0f',81:'\ud83c\udf26\ufe0f',82:'\u26c8\ufe0f',95:'\u26c8\ufe0f',96:'\u26c8\ufe0f',99:'\u26c8\ufe0f'};
+  var WMO_D={0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Fog',51:'Light drizzle',53:'Drizzle',55:'Dense drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
+  var DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    var lat=pos.coords.latitude.toFixed(4), lon=pos.coords.longitude.toFixed(4);
+    var today=new Date().toISOString().slice(0,10);
+    var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
+      '&hourly=temperature_2m,apparent_temperature,precipitation_probability,windspeed_10m,relativehumidity_2m,uv_index'+
+      '&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max'+
+      '&forecast_days=16&timezone=auto'+unitParam;
+    fetch(url).then(function(r){return r.json();}).then(function(d){
+      var hEl=container.querySelector('#appFvHourly'), fEl=container.querySelector('#appFvForecast');
+      if(!d.hourly||!d.daily){if(hEl)hEl.textContent='Data error.';return;}
+      var hT=d.hourly.time||[],hTmp=d.hourly.temperature_2m||[],hFl=d.hourly.apparent_temperature||[];
+      var hPr=d.hourly.precipitation_probability||[],hW=d.hourly.windspeed_10m||[];
+      var hHum=d.hourly.relativehumidity_2m||[],hUV=d.hourly.uv_index||[];
+      var hHTML='<div class="app-fv-hourly-grid"><div class="awh-hdr"><span>Time</span><span>Temp</span><span>Feels</span><span>\ud83d\udca7%</span><span>\ud83d\udca8</span></div>';
+      var humV=[],uvV=[];
+      for(var i=0;i<hT.length;i++){
+        if(!hT[i]||hT[i].slice(0,10)!==today) continue;
+        humV.push(hHum[i]||0); uvV.push(hUV[i]||0);
+        hHTML+='<div class="awh-row"><span class="awh-time">'+hT[i].slice(11,16)+'</span><span>'+Math.round(hTmp[i]||0)+unitLabel+'</span><span style="color:var(--ios-text-3)">'+Math.round(hFl[i]||0)+unitLabel+'</span><span>'+(hPr[i]||0)+'%</span><span>'+(hW[i]||0).toFixed(0)+'</span></div>';
+      }
+      hHTML+='</div>';
+      var avgH=humV.length?Math.round(humV.reduce(function(a,b){return a+b;},0)/humV.length):null;
+      var maxUV=uvV.length?Math.max.apply(null,uvV):null;
+      if(avgH!=null||maxUV!=null) hHTML+='<div class="app-fv-weather-meta">'+(avgH!=null?'<span>\ud83d\udca7 Humidity avg: '+avgH+'%</span>':'')+(maxUV!=null?'<span>\u2600\ufe0f UV max: '+maxUV.toFixed(1)+'</span>':'')+'</div>';
+      if(hEl)hEl.innerHTML=hHTML;
+      var dD=d.daily.time||[],dC=d.daily.weathercode||[],dH=d.daily.temperature_2m_max||[];
+      var dL=d.daily.temperature_2m_min||[],dP=d.daily.precipitation_probability_max||[];
+      var fHTML='<div class="app-fv-forecast-list">';
+      for(var di=0;di<dD.length;di++){
+        if(!dD[di]) continue;
+        var dObj=new Date(dD[di]+'T12:00:00');
+        var precip=dP[di]||0;
+        var pBar='<div class="awf-precip-track"><div style="width:'+precip+'%;background:#4a90e2;height:3px;border-radius:2px"></div></div>';
+        fHTML+='<div class="awf-row'+(dD[di]===today?' awf-today':'')+'"><span class="awf-day">'+(dD[di]===today?'Today':DN[dObj.getDay()])+' '+(dObj.getMonth()+1)+'/'+dObj.getDate()+'</span><span class="awf-icon">'+(WMO_E[dC[di]]||'\ud83c\udf21\ufe0f')+'</span><span class="awf-desc">'+(WMO_D[dC[di]]||'')+'</span>'+pBar+'<span class="awf-precip-pct">'+precip+'%</span><span class="awf-temps">'+Math.round(dH[di]||0)+'/'+Math.round(dL[di]||0)+unitLabel+'</span></div>';
+      }
+      fHTML+='</div>';
+      if(fEl)fEl.innerHTML=fHTML;
+    }).catch(function(){var h=container.querySelector('#appFvHourly');if(h)h.textContent='Unable to fetch weather data.';});
+  },function(){var h=container.querySelector('#appFvHourly');if(h)h.innerHTML='<p class="weather-widget-note">Enable location access to see weather.</p>';},{timeout:8000});
+}
+
+function renderSleepAppFull(container) {
+  container.innerHTML = '';
+  var sleep=getPersonalSleep(), today=getTodayISO();
+  var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], todayDay=DAYS[new Date().getDay()];
+  var todaySched=sleep.schedule[todayDay]||{bedtime:'22:30',wake:'07:00'};
+  var todayLog=sleep.log&&sleep.log[today];
+  var layout=document.createElement('div'); layout.className='app-full-two-col';
+  var left=document.createElement('div'); left.className='app-full-col';
+  var right=document.createElement('div'); right.className='app-full-col';
+
+  var lHTML='<h3 class="app-full-col-heading">\ud83d\ude34 Sleep Schedule</h3><div class="app-sleep-sched-grid"><div class="assg-h">Day</div><div class="assg-h">\ud83c\udf19 Bedtime</div><div class="assg-h">\u2600\ufe0f Wake</div>';
+  DAYS.forEach(function(day){
+    var ds=sleep.schedule[day]||{bedtime:'22:30',wake:'07:00'};
+    lHTML+='<div class="assg-day'+(day===todayDay?' assg-today':'')+'">' +day+'</div>'+
+      '<input class="assg-time" type="time" data-day="'+day+'" data-field="bedtime" value="'+(ds.bedtime||'22:30')+'"/>'+
+      '<input class="assg-time" type="time" data-day="'+day+'" data-field="wake" value="'+(ds.wake||'07:00')+'"/>';
+  });
+  lHTML+='</div>';
+  lHTML+='<h4 class="app-full-section-heading">\ud83d\udcdd Today\'s Sleep Log</h4><div class="app-sleep-log-form">';
+  if(todayLog){
+    var bm=_fvTimeToMins(todayLog.bedtime||''),wm=_fvTimeToMins(todayLog.wakeTime||'');
+    var dur=wm>bm?wm-bm:(1440-bm)+wm;
+    var stars=todayLog.quality?'\u2b50'.repeat(todayLog.quality)+'\u2606'.repeat(5-todayLog.quality):'';
+    lHTML+='<div class="app-sleep-logged-ok">\u2705 '+escapeHTML(todayLog.bedtime||'\u2014')+' \u2192 '+escapeHTML(todayLog.wakeTime||'\u2014')+' <em>('+Math.floor(dur/60)+'h '+(dur%60)+'m)</em>'+(stars?' '+stars:'')+'</div><button id="sleepFvEdit" class="app-fv-link-btn">Edit log</button>';
+  }
+  var qualOpts=[5,4,3,2,1].map(function(n){return '<option value="'+n+'"'+(todayLog&&todayLog.quality===n?' selected':'')+'>'+ '\u2b50'.repeat(n)+' '+['','Bad','Poor','Okay','Good','Great'][n]+'</option>';}).join('');
+  lHTML+='<div id="sleepFvForm"'+(todayLog?' style="display:none"':'')+' class="app-sleep-log-inner">'+
+    '<label>Bed <input type="time" id="sleepFvBed" value="'+(todayLog?(todayLog.bedtime||''):todaySched.bedtime)+'"/></label>'+
+    '<label>Wake <input type="time" id="sleepFvWake" value="'+(todayLog?(todayLog.wakeTime||''):todaySched.wake)+'"/></label>'+
+    '<label>Quality <select id="sleepFvQual" class="app-fv-select"><option value="">\u2014</option>'+qualOpts+'</select></label>'+
+    '<button id="sleepFvSave" class="app-fv-save-btn">Save</button>'+
+    (todayLog?'<button id="sleepFvCancel" class="app-fv-cancel-btn">Cancel</button>':'')+
+    '</div></div>';
+  var wakeMin=_fvTimeToMins(todaySched.wake);
+  var cyclePills=[4,5,6].map(function(c){
+    var bm=((wakeMin-c*90-14)+1440)%1440;
+    return '<span class="app-fv-pill">'+pad2(Math.floor(bm/60))+':'+pad2(bm%60)+' ('+c+' cycles)</span>';
+  }).join('');
+  lHTML+='<div class="app-sleep-alarm-box"><strong>\ud83d\udca1 Ideal bedtimes for '+todaySched.wake+' wake:</strong><div class="app-sleep-cycle-pills">'+cyclePills+'</div></div>';
+  left.innerHTML=lHTML;
+
+  var past14=[];
+  for(var ni=13;ni>=0;ni--){
+    var dd=new Date();dd.setDate(dd.getDate()-ni);
+    var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());
+    var e=sleep.log&&sleep.log[iso]; var dur2=0;
+    if(e&&e.bedtime&&e.wakeTime){var b=_fvTimeToMins(e.bedtime),w=_fvTimeToMins(e.wakeTime);dur2=w>b?w-b:(1440-b)+w;}
+    past14.push({iso:iso,dur:dur2,quality:e?(e.quality||0):0});
+  }
+  var maxDur=Math.max.apply(null,past14.map(function(d){return d.dur;}));
+  if(maxDur<1)maxDur=480;
+  var SW=240,SH=90,PL2=8,PT2=14,PB2=16;
+  var bw=Math.floor((SW-PL2*2)/14)-2,ch=SH-PT2-PB2;
+  var svgH='<svg width="100%" height="'+SH+'" viewBox="0 0 '+SW+' '+SH+'" preserveAspectRatio="none">';
+  past14.forEach(function(d,i){
+    var x=PL2+i*(bw+2),barH=d.dur>0?Math.max(3,Math.round(ch*d.dur/maxDur)):0,y=PT2+ch-barH;
+    var fill=d.quality>=4?'#27ae60':d.quality>=3?'#4a90e2':d.quality>=1?'#e67e22':(d.dur>0?'#a0c4ef':'#eee');
+    if(d.dur>0){svgH+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+barH+'" fill="'+fill+'" rx="2"/>';if(barH>12)svgH+='<text x="'+(x+bw/2)+'" y="'+(y-2)+'" text-anchor="middle" font-size="6.5" fill="#666">'+Math.floor(d.dur/60)+'h</text>';}
+    if(i%4===0){var dd2=new Date(d.iso+'T12:00:00');svgH+='<text x="'+(x+bw/2)+'" y="'+(SH-2)+'" text-anchor="middle" font-size="6" fill="#aaa">'+(dd2.getMonth()+1)+'/'+(dd2.getDate())+'</text>';}
+  });
+  svgH+='</svg>';
+  var schedVals=DAYS.map(function(d){var s=sleep.schedule[d]||{bedtime:'22:30',wake:'07:00'};var b2=_fvTimeToMins(s.bedtime),w2=_fvTimeToMins(s.wake);return w2>b2?w2-b2:(1440-b2)+w2;});
+  var avgTarget=Math.round(schedVals.reduce(function(a,b){return a+b;},0)/7);
+  var debt=past14.reduce(function(acc,d){return acc+Math.max(0,avgTarget-d.dur);},0);
+  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcca 14-Night History</h3><div class="app-sleep-chart">'+svgH+'</div>'+
+    '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0 10px">Green=great \u00b7 Blue=good \u00b7 Orange=poor \u00b7 Gray=unrated</p>'+
+    '<div class="app-sleep-debt-row"><span>\ud83d\udca4 14-day sleep debt</span><span class="app-sleep-debt-val'+(debt>60?' app-sleep-debt-red':'')+'">'+
+    (debt>0?Math.floor(debt/60)+'h '+(debt%60)+'m':'None \u2705')+'</span></div>';
+  var tips=[
+    ['\ud83d\udcf1','Avoid blue light 1h before bed \u2014 use Night Shift or dark mode'],
+    ['\u2615','Caffeine cutoff: 6h before bedtime (coffee lingers 5\u20137h)'],
+    ['\ud83c\udf21\ufe0f','Keep bedroom cool (18\u201319\u00b0C / 65\u201367\u00b0F) for deeper sleep'],
+    ['\ud83c\udf05','Get morning sunlight within 1h of waking \u2014 resets circadian clock'],
+    ['\ud83c\udf77','Alcohol disrupts REM sleep \u2014 avoid within 3h of bedtime']
+  ];
+  rHTML+='<div class="app-sleep-tips"><h4 class="app-full-section-heading">\ud83e\udde0 Circadian Rhythm Tips</h4>';
+  tips.forEach(function(t){rHTML+='<div class="app-sleep-tip-row"><span>'+t[0]+'</span><span>'+t[1]+'</span></div>';});
+  rHTML+='</div>';
+  right.innerHTML=rHTML;
+  layout.appendChild(left); layout.appendChild(right); container.appendChild(layout);
+
+  container.querySelectorAll('.assg-time').forEach(function(inp){
+    inp.addEventListener('change',function(){var s=getPersonalSleep();if(!s.schedule[inp.dataset.day])s.schedule[inp.dataset.day]={};s.schedule[inp.dataset.day][inp.dataset.field]=inp.value;setPersonalSleep(s);});
+  });
+  var editBtn=container.querySelector('#sleepFvEdit');
+  if(editBtn)editBtn.addEventListener('click',function(){var f=container.querySelector('#sleepFvForm');if(f)f.style.display='';});
+  var cancelBtn=container.querySelector('#sleepFvCancel');
+  if(cancelBtn)cancelBtn.addEventListener('click',function(){var f=container.querySelector('#sleepFvForm');if(f)f.style.display='none';});
+  var saveBtn=container.querySelector('#sleepFvSave');
+  if(saveBtn)saveBtn.addEventListener('click',function(){
+    var bed=container.querySelector('#sleepFvBed'),wake=container.querySelector('#sleepFvWake'),qual=container.querySelector('#sleepFvQual');
+    var s=getPersonalSleep();if(!s.log)s.log={};
+    s.log[today]={bedtime:bed?bed.value:'',wakeTime:wake?wake.value:'',quality:qual&&qual.value?parseInt(qual.value,10):0};
+    setPersonalSleep(s);renderSleepAppFull(container);
+  });
+}
+
+function renderMoodAppFull(container) {
+  container.innerHTML='';
+  var moods=getPersonalMood(),today=getTodayISO();
+  var todayEntry=moods.find(function(m){return m.date===today;});
+  var MOODS=[{e:'\ud83d\ude0a',l:'Great'},{e:'\ud83d\ude42',l:'Good'},{e:'\ud83d\ude10',l:'Okay'},{e:'\ud83d\ude1f',l:'Low'},{e:'\ud83d\ude22',l:'Rough'}];
+  var MOOD_SCORE={Great:5,Good:4,Okay:3,Low:2,Rough:1};
+  var ENERGY_OPT=['\ud83d\udfe2 High','\ud83d\udfe1 Medium','\ud83d\udd34 Low'];
+  var layout=document.createElement('div');layout.className='app-full-two-col';
+  var left=document.createElement('div');left.className='app-full-col';
+  var right=document.createElement('div');right.className='app-full-col';
+
+  var lHTML='<h3 class="app-full-col-heading">\ud83d\ude0a Today\'s Check-in</h3>';
+  if(todayEntry){
+    lHTML+='<div class="app-mood-checked"><span style="font-size:2rem">'+escapeHTML(todayEntry.mood)+'</span>'+
+      '<div style="margin-left:10px"><div style="font-weight:700">'+escapeHTML(todayEntry.moodLabel)+'</div>'+
+      '<div style="font-size:0.82rem;color:var(--ios-text-3)">'+escapeHTML(todayEntry.energy)+'</div>'+
+      (todayEntry.note?'<div style="font-size:0.8rem;font-style:italic;color:var(--ios-text-3)">\u201c'+escapeHTML(todayEntry.note)+'\u201d</div>':'')+
+      '</div></div><button id="moodFvEdit" class="app-fv-link-btn">Edit today\'s entry</button>';
+  }
+  lHTML+='<div id="moodFvForm"'+(todayEntry?' style="display:none"':'')+' class="app-mood-form">'+
+    '<div class="app-mood-emoji-row">'+MOODS.map(function(m){return '<button class="app-mood-emoji-btn" data-mood="'+m.e+'" data-label="'+m.l+'" title="'+m.l+'">'+m.e+'</button>';}).join('')+'</div>'+
+    '<div class="app-mood-energy-row">'+ENERGY_OPT.map(function(o){return '<button class="app-mood-energy-btn" data-energy="'+escapeHTML(o)+'">'+escapeHTML(o)+'</button>';}).join('')+'</div>'+
+    '<input type="text" id="moodFvNote" class="app-fv-note-input" placeholder="Optional note\u2026" value="'+escapeHTML(todayEntry?(todayEntry.note||''):'')+'"/>'+
+    '<button id="moodFvSave" class="app-fv-save-btn">\ud83d\udcbe Save Check-in</button>'+
+    (todayEntry?'<button id="moodFvCancel" class="app-fv-cancel-btn">Cancel</button>':'')+
+    '</div>';
+  lHTML+='<h4 class="app-full-section-heading">\ud83d\udccb Recent History</h4><div class="app-mood-history-list">';
+  moods.slice(0,10).forEach(function(m){
+    lHTML+='<div class="app-mood-hist-row"><span class="app-mood-hist-date">'+escapeHTML(m.date||'')+'</span><span style="font-size:1.1rem">'+escapeHTML(m.mood||'')+'</span><span style="font-size:0.8rem">'+escapeHTML(m.moodLabel||'')+'</span><span style="font-size:0.75rem;color:var(--ios-text-3)">'+escapeHTML(m.energy||'')+'</span>'+(m.note?'<span style="font-size:0.75rem;font-style:italic;color:var(--ios-text-3)">'+escapeHTML(m.note)+'</span>':'')+'</div>';
+  });
+  if(!moods.length)lHTML+='<p style="color:var(--ios-text-3);font-size:0.85rem">No entries yet.</p>';
+  lHTML+='</div>';
+  left.innerHTML=lHTML;
+
+  var past30=[];
+  for(var ni=29;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());past30.push({iso:iso,entry:moods.find(function(m){return m.date===iso;})});}
+  var MCOL={Great:'#27ae60',Good:'#4a90e2',Okay:'#f39c12',Low:'#e67e22',Rough:'#e74c3c'};
+  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcc5 30-Day Mood</h3><div class="app-mood-heatmap">';
+  past30.forEach(function(d){var color=d.entry&&MCOL[d.entry.moodLabel]?MCOL[d.entry.moodLabel]:'#eee';rHTML+='<div class="app-mood-hm-cell" style="background:'+color+'" title="'+d.iso+(d.entry?' \u00b7 '+d.entry.moodLabel:'')+'"></div>';});
+  rHTML+='</div><div class="app-mood-hm-legend">'+Object.keys(MCOL).map(function(k){return '<span><span style="background:'+MCOL[k]+';width:9px;height:9px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px"></span>'+k+'</span>';}).join('')+'</div>';
+
+  var trend14=[];
+  for(var ti=13;ti>=0;ti--){var td=new Date();td.setDate(td.getDate()-ti);var tIso=td.getFullYear()+'-'+pad2(td.getMonth()+1)+'-'+pad2(td.getDate());var te=moods.find(function(m){return m.date===tIso;});trend14.push({score:te?(MOOD_SCORE[te.moodLabel]||null):null});}
+  var validPts=trend14.filter(function(d){return d.score!=null;});
+  rHTML+='<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udcc8 Mood Trend (14 days)</h4>';
+  if(validPts.length>1){
+    var TW=220,TH=55,stepX=TW/13;
+    var tPts=trend14.map(function(d,i){return{x:i*stepX,y:d.score!=null?(TH-5-(d.score-1)/4*(TH-10)):null};});
+    var pathD='';tPts.forEach(function(p){if(p.y==null)return;pathD+=(pathD===''?'M':'L')+p.x.toFixed(1)+' '+p.y.toFixed(1);});
+    var svgT='<svg width="100%" height="'+TH+'" viewBox="0 0 '+TW+' '+TH+'" preserveAspectRatio="none"><path d="'+pathD+'" fill="none" stroke="#4a90e2" stroke-width="2" stroke-linejoin="round"/>';
+    tPts.forEach(function(p){if(p.y==null)return;svgT+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3" fill="#4a90e2"/>';});
+    svgT+='</svg>';
+    rHTML+='<div class="fv-chart-wrap">'+svgT+'</div>';
+  } else {
+    rHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">Need more entries for a trend chart.</p>';
+  }
+  rHTML+='<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udd0d Patterns</h4>';
+  var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],byDow={};
+  DOW.forEach(function(d){byDow[d]=[];});
+  moods.forEach(function(m){var d2=new Date((m.date||'')+'T12:00:00');if(!isNaN(d2)&&m.moodLabel)byDow[DOW[d2.getDay()]].push(MOOD_SCORE[m.moodLabel]||0);});
+  var dowAvg=DOW.map(function(d){var arr=byDow[d];return{day:d,avg:arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:null};}).filter(function(d){return d.avg!=null;});
+  if(dowAvg.length>=2){
+    var best=dowAvg.reduce(function(a,b){return b.avg>a.avg?b:a;});
+    var worst=dowAvg.reduce(function(a,b){return b.avg<a.avg?b:a;});
+    rHTML+='<div class="app-mood-patterns"><span>\ud83d\ude0a Best day: <strong>'+best.day+'</strong> (avg '+best.avg.toFixed(1)+'/5)</span><span>\ud83d\ude1f Toughest: <strong>'+worst.day+'</strong> (avg '+worst.avg.toFixed(1)+'/5)</span></div>';
+  } else {
+    rHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">Log more entries to see day-of-week patterns.</p>';
+  }
+  right.innerHTML=rHTML;
+  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+
+  var editBtn2=container.querySelector('#moodFvEdit');
+  if(editBtn2)editBtn2.addEventListener('click',function(){var f=container.querySelector('#moodFvForm');if(f)f.style.display='';});
+  var cancelBtn2=container.querySelector('#moodFvCancel');
+  if(cancelBtn2)cancelBtn2.addEventListener('click',function(){var f=container.querySelector('#moodFvForm');if(f)f.style.display='none';});
+  container.querySelectorAll('.app-mood-emoji-btn').forEach(function(btn){btn.addEventListener('click',function(){container.querySelectorAll('.app-mood-emoji-btn').forEach(function(b){b.classList.remove('selected');});btn.classList.add('selected');});});
+  container.querySelectorAll('.app-mood-energy-btn').forEach(function(btn){btn.addEventListener('click',function(){container.querySelectorAll('.app-mood-energy-btn').forEach(function(b){b.classList.remove('selected');});btn.classList.add('selected');});});
+  if(todayEntry){var mb=container.querySelector('[data-mood="'+todayEntry.mood+'"]');if(mb)mb.classList.add('selected');var eb=container.querySelector('[data-energy="'+todayEntry.energy+'"]');if(eb)eb.classList.add('selected');}
+  var saveBtn2=container.querySelector('#moodFvSave');
+  if(saveBtn2)saveBtn2.addEventListener('click',function(){
+    var sm=container.querySelector('.app-mood-emoji-btn.selected');
+    var se=container.querySelector('.app-mood-energy-btn.selected');
+    var noteInp=container.querySelector('#moodFvNote');
+    if(!sm||!se){alert('Please select a mood and energy level.');return;}
+    var data=getPersonalMood();
+    data=data.filter(function(m){return m.date!==today;});
+    data.unshift({date:today,mood:sm.dataset.mood,moodLabel:sm.dataset.label,energy:se.dataset.energy,note:noteInp?noteInp.value.trim():''});
+    if(data.length>90)data=data.slice(0,90);
+    setPersonalMood(data);renderMoodAppFull(container);
+  });
+}
+
+function renderFocusAppFull(container) {
+  container.innerHTML='';
+  var today=getTodayISO(),allFocus=getPersonalFocus(),items=allFocus[today]||[];
+  var layout=document.createElement('div');layout.className='app-full-two-col';
+  var left=document.createElement('div');left.className='app-full-col';
+  var right=document.createElement('div');right.className='app-full-col';
+  var lHTML='<h3 class="app-full-col-heading">\ud83c\udfaf Today\'s Priorities</h3><p style="font-size:0.82rem;color:var(--ios-text-3);margin:0 0 10px">Up to 3 must-do items. Resets daily.</p>';
+  items.forEach(function(item,idx){
+    lHTML+='<div class="app-focus-row'+(item.done?' done':'')+'"><input type="checkbox" class="app-focus-cb" data-idx="'+idx+'"'+(item.done?' checked':'')+' /><span class="app-focus-text">'+escapeHTML(item.text)+'</span>'+(item.timeBlock?'<span class="app-focus-time-tag">\u23f0 '+escapeHTML(item.timeBlock)+'</span>':'')+'<button class="app-focus-del" data-del="'+idx+'" aria-label="Remove">\u2715</button></div>';
+  });
+  if(items.length<3){lHTML+='<div class="app-focus-add-row"><input type="text" id="focusFvInput" class="app-fv-text-input" placeholder="Priority #'+(items.length+1)+'\u2026"/><input type="time" id="focusFvTime" class="app-fv-time-small" title="Optional time block"/><button id="focusFvAdd" class="app-fv-save-btn">Add</button></div>';}
+  if(items.length&&items.every(function(i){return i.done;})){lHTML+='<div class="app-focus-done-msg">\ud83c\udf89 All priorities completed!</div>';}
+  lHTML+='<h4 class="app-full-section-heading" style="margin-top:20px">\ud83c\udf45 Pomodoro Timer</h4><div class="app-pomodoro"><div class="app-pom-display" id="pomFvDisplay">25:00</div><div class="app-pom-phase" id="pomFvPhase">Focus</div><div class="app-pom-controls"><button id="pomFvStart" class="app-fv-save-btn">\u25b6 Start</button><button id="pomFvPause" class="app-fv-cancel-btn" style="display:none">\u23f8 Pause</button><button id="pomFvReset" class="app-fv-link-btn">\u21ba Reset</button></div><div class="app-pom-counter" id="pomFvCounter">Sessions: 0</div></div>';
+  left.innerHTML=lHTML;
+
+  var DAY_N=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcc5 Weekly Completion</h3><div class="app-focus-heatmap">';
+  for(var ni=6;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());var dayItems=allFocus[iso]||[];var done2=dayItems.filter(function(x){return x.done;}).length;var total=dayItems.length;var cls=total>0&&done2===total?' all-done':total>0&&done2>0?' part-done':'';rHTML+='<div class="app-focus-hm-cell'+cls+'"><span class="app-focus-hm-day">'+DAY_N[dd.getDay()]+'</span><span class="app-focus-hm-score">'+(total>0?done2+'/'+total:'\u2013')+'</span></div>';}
+  rHTML+='</div><h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udcdd Priority History</h4><div class="app-focus-history">';
+  var hasHist=false;
+  for(var hi=6;hi>=1;hi--){var hd=new Date();hd.setDate(hd.getDate()-hi);var hIso=hd.getFullYear()+'-'+pad2(hd.getMonth()+1)+'-'+pad2(hd.getDate());var dayItems2=allFocus[hIso]||[];if(!dayItems2.length)continue;hasHist=true;rHTML+='<div class="app-focus-hist-day"><strong>'+DAY_N[hd.getDay()]+' '+(hd.getMonth()+1)+'/'+(hd.getDate())+'</strong>';dayItems2.forEach(function(item){rHTML+='<div class="app-focus-hist-item'+(item.done?' done':'')+'">'+( item.done?'\u2705':'\u2b1c')+' '+escapeHTML(item.text)+'</div>';});rHTML+='</div>';}
+  if(!hasHist)rHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No history yet.</p>';
+  rHTML+='</div>';
+  right.innerHTML=rHTML;
+  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+
+  container.querySelectorAll('.app-focus-cb').forEach(function(cb){cb.addEventListener('change',function(){var idx=parseInt(cb.dataset.idx,10);var f=getPersonalFocus();if(!f[today]||!f[today][idx])return;f[today][idx].done=cb.checked;setPersonalFocus(f);renderFocusAppFull(container);});});
+  container.querySelectorAll('.app-focus-del').forEach(function(btn){btn.addEventListener('click',function(){var idx=parseInt(btn.dataset.del,10);var f=getPersonalFocus();if(f[today])f[today].splice(idx,1);setPersonalFocus(f);renderFocusAppFull(container);});});
+  var addBtn=container.querySelector('#focusFvAdd');
+  if(addBtn)addBtn.addEventListener('click',function(){var inp=container.querySelector('#focusFvInput');var tInp=container.querySelector('#focusFvTime');var text=inp?inp.value.trim():'';if(!text)return;var f=getPersonalFocus();if(!f[today])f[today]=[];if(f[today].length>=3){alert('Maximum 3 priorities per day.');return;}f[today].push({text:text,done:false,timeBlock:tInp&&tInp.value?tInp.value:''});setPersonalFocus(f);renderFocusAppFull(container);});
+  var addInp=container.querySelector('#focusFvInput');
+  if(addInp)addInp.addEventListener('keydown',function(e){if(e.key==='Enter'&&addBtn)addBtn.click();});
+
+  var POM_FOCUS=25*60,POM_BREAK=5*60;
+  var pom={running:false,phase:'focus',remaining:POM_FOCUS,sessions:0,interval:null};
+  function updatePomDisp(){var m=Math.floor(pom.remaining/60),s=pom.remaining%60;var disp=container.querySelector('#pomFvDisplay');var phase=container.querySelector('#pomFvPhase');var cnt=container.querySelector('#pomFvCounter');if(disp)disp.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;if(phase)phase.textContent=pom.phase==='focus'?'\ud83c\udf45 Focus':'\u2615 Break';if(cnt)cnt.textContent='Sessions: '+pom.sessions;}
+  var startBtn=container.querySelector('#pomFvStart'),pauseBtn=container.querySelector('#pomFvPause'),resetBtn=container.querySelector('#pomFvReset');
+  if(startBtn)startBtn.addEventListener('click',function(){pom.running=true;startBtn.style.display='none';if(pauseBtn)pauseBtn.style.display='';pom.interval=setInterval(function(){pom.remaining--;if(pom.remaining<=0){if(pom.phase==='focus'){pom.sessions++;pom.phase='break';pom.remaining=POM_BREAK;}else{pom.phase='focus';pom.remaining=POM_FOCUS;}}updatePomDisp();},1000);});
+  if(pauseBtn)pauseBtn.addEventListener('click',function(){clearInterval(pom.interval);pom.running=false;startBtn.style.display='';pauseBtn.style.display='none';});
+  if(resetBtn)resetBtn.addEventListener('click',function(){clearInterval(pom.interval);pom.running=false;pom.phase='focus';pom.remaining=POM_FOCUS;if(startBtn)startBtn.style.display='';if(pauseBtn)pauseBtn.style.display='none';updatePomDisp();});
+  updatePomDisp();
+}
+
+function renderHydrationAppFull(container) {
+  container.innerHTML='';
+  var hyd=getPersonalHydration(),today=getTodayISO();
+  if(!hyd.log)hyd.log={};if(!hyd.typeLog)hyd.typeLog={};if(!hyd.goalByDay)hyd.goalByDay={};
+  var count=typeof hyd.log[today]==='number'?hyd.log[today]:0,goal=hyd.goal||8;
+  var TYPES=[{id:'water',label:'Water',emoji:'\ud83d\udca7'},{id:'coffee',label:'Coffee',emoji:'\u2615'},{id:'tea',label:'Tea',emoji:'\ud83c\udf75'},{id:'juice',label:'Juice',emoji:'\ud83e\udd64'}];
+  var layout=document.createElement('div');layout.className='app-full-two-col';
+  var left=document.createElement('div');left.className='app-full-col';
+  var right=document.createElement('div');right.className='app-full-col';
+  var lHTML='<h3 class="app-full-col-heading">\ud83d\udca7 Today\'s Hydration</h3><div class="app-hydration-glasses">';
+  for(var i=0;i<Math.min(goal,12);i++){lHTML+='<span class="app-hydration-glass'+(i<count?' filled':'')+'" data-gi="'+i+'">\ud83d\udca7</span>';}
+  lHTML+='</div><div class="app-hydration-count-row"><span class="app-hydration-count-big">'+count+'</span><span style="color:var(--ios-text-3)"> / '+goal+' glasses</span></div>';
+  lHTML+='<h4 class="app-full-section-heading">Quick Add by Type</h4><div class="app-hydration-type-row">';
+  TYPES.forEach(function(dt){lHTML+='<button class="app-hyd-type-btn" data-type="'+dt.id+'" data-label="'+dt.label+'" data-emoji="'+dt.emoji+'">'+dt.emoji+'<span>'+dt.label+'</span></button>';});
+  lHTML+='</div><div class="app-hydration-goal-row"><span>\ud83c\udfaf Goal:</span><input type="number" id="hydFvGoal" value="'+goal+'" min="1" max="20" class="app-fv-num-input"/><span>glasses</span><button id="hydFvReset" class="app-fv-link-btn" style="margin-left:auto">Reset today</button></div>';
+  var todayLogs=Array.isArray(hyd.typeLog)?hyd.typeLog.filter(function(e){return e.date===today;}):[];
+  lHTML+='<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udccb Today\'s Log</h4>';
+  if(todayLogs.length){lHTML+='<div class="app-hydration-time-log">';todayLogs.slice().reverse().forEach(function(e){lHTML+='<div class="app-hyd-log-row"><span>'+escapeHTML(e.emoji||'\ud83d\udca7')+'</span><span>'+escapeHTML(e.label||'Water')+'</span><span style="color:var(--ios-text-3);font-size:0.75rem">'+escapeHTML(e.time||'')+'</span></div>';});lHTML+='</div>';}
+  else{lHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No drinks logged today yet.</p>';}
+  left.innerHTML=lHTML;
+
+  var DAY_S=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  var past7=[];
+  for(var ni=6;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());past7.push({label:DAY_S[dd.getDay()],value:typeof hyd.log[iso]==='number'?hyd.log[iso]:0,iso:iso});}
+  var total7=past7.reduce(function(a,d){return a+d.value;},0);
+  var bestDay=past7.reduce(function(a,b){return b.value>a.value?b:a;});
+  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcca 7-Day History</h3>'+_fvBarChart(past7,220,90,14,18,10,10,today)+
+    '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0 12px">Goal: '+goal+' glasses/day</p>'+
+    '<div class="app-hydration-stats">'+
+    '<div class="app-hyd-stat"><span class="app-hyd-stat-val">'+total7+'</span><span class="app-hyd-stat-lbl">Total this week</span></div>'+
+    '<div class="app-hyd-stat"><span class="app-hyd-stat-val">'+(total7/7).toFixed(1)+'</span><span class="app-hyd-stat-lbl">Daily average</span></div>'+
+    '<div class="app-hyd-stat"><span class="app-hyd-stat-val">'+bestDay.value+'</span><span class="app-hyd-stat-lbl">Best ('+bestDay.label+')</span></div></div>';
+  var DAY_FULL=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  rHTML+='<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\uddd3\ufe0f Goal by Day</h4><div class="app-hyd-day-goals">';
+  DAY_FULL.forEach(function(day){rHTML+='<div class="app-hyd-day-goal-row"><span style="min-width:36px">'+day+'</span><input type="number" class="app-hyd-day-inp app-fv-num-small" data-day="'+day+'" value="'+((hyd.goalByDay&&hyd.goalByDay[day])||goal)+'" min="1" max="20"/></div>';});
+  rHTML+='</div>';
+  right.innerHTML=rHTML;
+  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+
+  container.querySelectorAll('.app-hydration-glass').forEach(function(el){el.addEventListener('click',function(){var idx=parseInt(el.dataset.gi,10);var h=getPersonalHydration();if(!h.log)h.log={};h.log[today]=idx+1;setPersonalHydration(h);renderHydrationAppFull(container);});});
+  container.querySelectorAll('.app-hyd-type-btn').forEach(function(btn){btn.addEventListener('click',function(){var h=getPersonalHydration();if(!h.log)h.log={};if(!Array.isArray(h.typeLog))h.typeLog=[];h.log[today]=(h.log[today]||0)+1;var now=new Date();var dt=TYPES.find(function(d){return d.id===btn.dataset.type;})||TYPES[0];h.typeLog.push({date:today,time:pad2(now.getHours())+':'+pad2(now.getMinutes()),label:btn.dataset.label,emoji:dt.emoji});setPersonalHydration(h);renderHydrationAppFull(container);});});
+  var goalInp=container.querySelector('#hydFvGoal');
+  if(goalInp)goalInp.addEventListener('change',function(){var h=getPersonalHydration();h.goal=parseInt(goalInp.value,10)||8;setPersonalHydration(h);renderHydrationAppFull(container);});
+  var resetBtn=container.querySelector('#hydFvReset');
+  if(resetBtn)resetBtn.addEventListener('click',function(){var h=getPersonalHydration();if(!h.log)h.log={};h.log[today]=0;setPersonalHydration(h);renderHydrationAppFull(container);});
+  container.querySelectorAll('.app-hyd-day-inp').forEach(function(inp){inp.addEventListener('change',function(){var h=getPersonalHydration();if(!h.goalByDay)h.goalByDay={};h.goalByDay[inp.dataset.day]=parseInt(inp.value,10)||8;setPersonalHydration(h);});});
+}
+
+function renderMealAppFull(container) {
+  container.innerHTML='';
+  var today=getTodayISO(),allMeals=safeParseStorage('personalMeals',{}),goal=getCalorieGoal();
+  var favs=safeParseStorage('personalMealFavorites',[]);
+  var TYPES=[{key:'breakfast',icon:'\ud83c\udf05',label:'Breakfast'},{key:'lunch',icon:'\u2600\ufe0f',label:'Lunch'},{key:'dinner',icon:'\ud83c\udf19',label:'Dinner'},{key:'snacks',icon:'\ud83c\udf4e',label:'Snacks'}];
+  var todayMeals=allMeals[today]||{},totalCal=0,totalP=0,totalC=0,totalF=0;
+  TYPES.forEach(function(t){var m=todayMeals[t.key]||{};totalCal+=(parseInt(m.calories,10)||0);totalP+=(parseInt(m.protein,10)||0);totalC+=(parseInt(m.carbs,10)||0);totalF+=(parseInt(m.fat,10)||0);});
+  var calPct=goal>0?Math.min(100,Math.round(totalCal/goal*100)):0;
+  var layout=document.createElement('div');layout.className='app-full-two-col';
+  var left=document.createElement('div');left.className='app-full-col';
+  var right=document.createElement('div');right.className='app-full-col';
+  var lHTML='<h3 class="app-full-col-heading">\ud83e\udd57 Today\'s Meals</h3>';
+  TYPES.forEach(function(t){
+    var m=todayMeals[t.key]||{};
+    lHTML+='<div class="app-meal-fv-row"><div class="app-meal-fv-icon">'+t.icon+'</div><div class="app-meal-fv-info"><div class="app-meal-fv-label">'+t.label+'</div><div class="app-meal-fv-name">'+escapeHTML(m.name||'Not planned')+'</div>'+(m.calories?'<div style="font-size:0.75rem;color:var(--ios-text-3)">'+m.calories+' cal'+(m.protein?' \u00b7 P:'+m.protein+'g':'')+(m.carbs?' C:'+m.carbs+'g':'')+(m.fat?' F:'+m.fat+'g':'')+'</div>':'')+
+    '</div><button class="app-meal-fv-edit-btn" data-key="'+t.key+'">\u270f\ufe0f</button></div>'+
+    '<div class="app-meal-fv-edit-panel" id="mfvPanel_'+t.key+'" style="display:none"><input type="text" class="app-meal-fv-name-inp" placeholder="Meal name" value="'+escapeHTML(m.name||'')+'"/><div class="app-meal-fv-fields"><input type="number" class="app-meal-fv-cal" placeholder="Cal" min="0" value="'+(m.calories||'')+'"/><input type="time" class="app-meal-fv-time" value="'+(m.time||'')+'" title="Meal time"/></div><div class="app-meal-fv-macros"><input type="number" class="app-meal-fv-macro" placeholder="Protein g" min="0" value="'+(m.protein||'')+'" data-macro="protein"/><input type="number" class="app-meal-fv-macro" placeholder="Carbs g" min="0" value="'+(m.carbs||'')+'" data-macro="carbs"/><input type="number" class="app-meal-fv-macro" placeholder="Fat g" min="0" value="'+(m.fat||'')+'" data-macro="fat"/></div><div style="display:flex;gap:6px;margin-top:6px"><button class="app-meal-save-btn app-fv-save-btn" data-key="'+t.key+'">Save</button><button class="app-meal-cancel-btn app-fv-link-btn" data-key="'+t.key+'">Cancel</button><button class="app-meal-fav-btn app-fv-link-btn" data-key="'+t.key+'" title="Save as favourite">\u2b50</button></div></div>';
+  });
+  lHTML+='<div class="app-meal-fv-progress"><div class="app-meal-pbar"><div style="width:'+calPct+'%;background:'+(calPct>100?'#e74c3c':'var(--ios-accent)')+';height:6px;border-radius:3px"></div></div><div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-top:4px"><span>'+totalCal+' / '+goal+' cal ('+calPct+'%)</span><span style="color:var(--ios-text-3)">P:'+totalP+'g  C:'+totalC+'g  F:'+totalF+'g</span></div><div class="app-meal-goal-row"><span>\ud83c\udfaf Goal:</span><input type="number" id="mfvGoalInp" class="app-fv-num-input" value="'+goal+'" min="0" step="50"/><span>cal</span></div></div>';
+  left.innerHTML=lHTML;
+
+  var DAY_S2=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  var weekBars=[];
+  for(var ni=6;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());var wm=allMeals[iso]||{},wCal=0;['breakfast','lunch','dinner','snacks'].forEach(function(k){wCal+=(parseInt((wm[k]||{}).calories,10)||0);});weekBars.push({label:DAY_S2[dd.getDay()],value:wCal,iso:iso});}
+  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcca Weekly Calories</h3>'+_fvBarChart(weekBars,220,90,14,18,10,10,today)+
+    '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0 12px">Goal: '+goal+' cal/day</p>';
+  rHTML+='<h4 class="app-full-section-heading">\u2b50 Saved Favourites</h4>';
+  if(favs.length){rHTML+='<div class="app-meal-favs-list">';favs.forEach(function(fav,fi){rHTML+='<div class="app-meal-fav-row"><div><strong>'+escapeHTML(fav.name||'')+'</strong><div style="font-size:0.75rem;color:var(--ios-text-3)">'+(fav.calories||0)+' cal'+(fav.protein?' \u00b7 P:'+fav.protein+'g':'')+'</div></div><button class="app-meal-fav-use-btn app-fv-link-btn" data-fi="'+fi+'">\uff0b Add</button></div>';});rHTML+='</div>';}
+  else{rHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No favourites saved yet. Use \u2b50 next to a meal to save it.</p>';}
+  right.innerHTML=rHTML;
+  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+
+  container.querySelectorAll('.app-meal-fv-edit-btn').forEach(function(btn){btn.addEventListener('click',function(){var p=container.querySelector('#mfvPanel_'+btn.dataset.key);if(p)p.style.display=p.style.display==='none'?'':'none';});});
+  container.querySelectorAll('.app-meal-cancel-btn').forEach(function(btn){btn.addEventListener('click',function(){var p=container.querySelector('#mfvPanel_'+btn.dataset.key);if(p)p.style.display='none';});});
+  container.querySelectorAll('.app-meal-save-btn').forEach(function(btn){btn.addEventListener('click',function(){var key=btn.dataset.key;var panel=container.querySelector('#mfvPanel_'+key);if(!panel)return;var nameInp=panel.querySelector('.app-meal-fv-name-inp');var calInp=panel.querySelector('.app-meal-fv-cal');var timeInp=panel.querySelector('.app-meal-fv-time');var macroInps=panel.querySelectorAll('.app-meal-fv-macro');var meals=safeParseStorage('personalMeals',{});if(!meals[today])meals[today]={};meals[today][key]={name:nameInp?nameInp.value.trim():'',calories:calInp?(parseInt(calInp.value,10)||0):0,time:timeInp?timeInp.value:'',protein:0,carbs:0,fat:0};macroInps.forEach(function(inp){meals[today][key][inp.dataset.macro]=parseInt(inp.value,10)||0;});localStorage.setItem('personalMeals',JSON.stringify(meals));renderMealAppFull(container);});});
+  container.querySelectorAll('.app-meal-fav-btn').forEach(function(btn){btn.addEventListener('click',function(){var key=btn.dataset.key;var panel=container.querySelector('#mfvPanel_'+key);if(!panel)return;var nameInp=panel.querySelector('.app-meal-fv-name-inp');var calInp=panel.querySelector('.app-meal-fv-cal');var pInp=panel.querySelector('[data-macro="protein"]');var ef=safeParseStorage('personalMealFavorites',[]);ef.push({name:nameInp?nameInp.value.trim():'',calories:calInp?(parseInt(calInp.value,10)||0):0,protein:pInp?(parseInt(pInp.value,10)||0):0});localStorage.setItem('personalMealFavorites',JSON.stringify(ef));renderMealAppFull(container);});});
+  container.querySelectorAll('.app-meal-fav-use-btn').forEach(function(btn){btn.addEventListener('click',function(){var fi=parseInt(btn.dataset.fi,10);var fav=favs[fi];if(!fav)return;var meals2=safeParseStorage('personalMeals',{});if(!meals2[today])meals2[today]={};var found=['breakfast','lunch','dinner','snacks'].find(function(k){return !(meals2[today][k]&&meals2[today][k].name);});var key=found||'breakfast';meals2[today][key]={name:fav.name,calories:fav.calories||0,protein:fav.protein||0,carbs:0,fat:0,time:''};localStorage.setItem('personalMeals',JSON.stringify(meals2));renderMealAppFull(container);});});
+  var goalInp2=container.querySelector('#mfvGoalInp');
+  if(goalInp2)goalInp2.addEventListener('change',function(){setCalorieGoal(parseInt(goalInp2.value,10)||2000);renderMealAppFull(container);});
+}
+
+function renderGymAppFull(container) {
+  container.innerHTML='';
+  var gym=getPersonalGym(),today=getTodayISO();
+  var routines=gym.routines||[],log=gym.log||{},todayLog=log[today]||{};
+  var layout=document.createElement('div');layout.className='app-full-two-col';
+  var left=document.createElement('div');left.className='app-full-col';
+  var right=document.createElement('div');right.className='app-full-col';
+  var lHTML='<h3 class="app-full-col-heading">\ud83c\udfcb\ufe0f Today\'s Workout</h3>';
+  if(!routines.length){lHTML+='<p style="font-size:0.85rem;color:var(--ios-text-3)">No routines set up yet. Go to the Personal page to add gym routines.</p>';}
+  else{routines.forEach(function(routine,ri){lHTML+='<div class="app-gym-routine"><div class="app-gym-routine-name">'+escapeHTML(routine.name||'Routine '+(ri+1))+'</div>';(routine.exercises||[]).forEach(function(ex,ei){var exLog=(todayLog[ri]&&todayLog[ri][ei])||{sets:ex.sets||3,reps:ex.reps||10,weight:''};lHTML+='<div class="app-gym-ex-row"><span class="app-gym-ex-name">'+escapeHTML(ex.name||'')+'</span><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="sets" value="'+(exLog.sets||3)+'" min="1" max="20"/><span style="font-size:0.75rem;color:var(--ios-text-3)">\u00d7</span><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="reps" value="'+(exLog.reps||10)+'" min="1" max="100"/><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="weight" value="'+(exLog.weight||'')+'" min="0" step="2.5" placeholder="kg"/></div>';});lHTML+='</div>';});lHTML+='<button id="gymFvSave" class="app-fv-save-btn" style="margin-top:10px">\ud83d\udcbe Save Today\'s Log</button>';}
+  left.innerHTML=lHTML;
+  var bodyM=safeParseStorage('personalBodyMeasurements',[]),latestM=bodyM[bodyM.length-1]||{};
+  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcaa 1-Rep Max Calculator</h3><p style="font-size:0.82rem;color:var(--ios-text-3);margin:0 0 10px">Epley formula: weight \u00d7 (1 + reps/30)</p><div class="app-1rm-form"><label>Weight <input type="number" id="ormWeight" class="app-fv-num-input" placeholder="kg" min="0" step="2.5"/></label><label>Reps <input type="number" id="ormReps" class="app-fv-num-input" placeholder="reps" min="1" max="30"/></label><button id="ormCalc" class="app-fv-save-btn">Calculate</button></div><div id="ormResult" class="app-1rm-result"></div>';
+  rHTML+='<h4 class="app-full-section-heading" style="margin-top:20px">\ud83d\udccf Body Measurements</h4><div class="app-body-measure-form"><label>Body weight (kg) <input type="number" id="bmWeight" class="app-fv-num-input" value="'+(latestM.weight||'')+'" min="0" step="0.1"/></label><label>Body fat % <input type="number" id="bmFat" class="app-fv-num-input" value="'+(latestM.fat||'')+'" min="0" max="60" step="0.1"/></label><button id="bmSave" class="app-fv-save-btn">Log Today</button></div>';
+  if(bodyM.length){var weightBars=bodyM.slice(-8).map(function(m){return{label:(m.date||'').slice(5),value:parseFloat(m.weight)||0,iso:m.date||''};});if(weightBars.some(function(b){return b.value>0;})){rHTML+='<h4 class="app-full-section-heading" style="margin-top:12px">Weight trend</h4>'+_fvBarChart(weightBars,220,70,12,16,8,8,today);}rHTML+='<div class="app-body-history">';bodyM.slice(-5).reverse().forEach(function(m){rHTML+='<div class="app-body-hist-row"><span style="color:var(--ios-text-3);font-size:0.78rem">'+escapeHTML(m.date||'')+'</span><span>'+(m.weight?m.weight+' kg':'')+'</span><span>'+(m.fat?m.fat+'% fat':'')+'</span></div>';});rHTML+='</div>';}
+  right.innerHTML=rHTML;
+  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+  container.querySelectorAll('.app-gym-inp').forEach(function(inp){inp.addEventListener('change',function(){var ri=parseInt(inp.dataset.ri,10),ei=parseInt(inp.dataset.ei,10);var g=getPersonalGym();if(!g.log)g.log={};if(!g.log[today])g.log[today]={};if(!g.log[today][ri])g.log[today][ri]={};if(!g.log[today][ri][ei])g.log[today][ri][ei]={};g.log[today][ri][ei][inp.dataset.field]=parseFloat(inp.value)||0;setPersonalGym(g);});});
+  var saveGym=container.querySelector('#gymFvSave');if(saveGym)saveGym.addEventListener('click',function(){saveGym.textContent='\u2705 Saved!';setTimeout(function(){saveGym.textContent='\ud83d\udcbe Save Today\'s Log';},1500);});
+  var ormCalc=container.querySelector('#ormCalc');if(ormCalc)ormCalc.addEventListener('click',function(){var wt=parseFloat((container.querySelector('#ormWeight')||{}).value)||0;var rp=parseInt((container.querySelector('#ormReps')||{}).value,10)||0;var res=container.querySelector('#ormResult');if(!wt||!rp){if(res)res.textContent='Enter weight and reps.';return;}var orm=(wt*(1+rp/30)).toFixed(1);if(res)res.innerHTML='<strong>'+orm+' kg</strong> estimated 1RM';});
+  var bmSave=container.querySelector('#bmSave');if(bmSave)bmSave.addEventListener('click',function(){var wtInp=container.querySelector('#bmWeight'),fatInp=container.querySelector('#bmFat');var bm=safeParseStorage('personalBodyMeasurements',[]);bm=bm.filter(function(m){return m.date!==today;});bm.push({date:today,weight:parseFloat((wtInp||{}).value)||0,fat:parseFloat((fatInp||{}).value)||0});if(bm.length>90)bm=bm.slice(-90);localStorage.setItem('personalBodyMeasurements',JSON.stringify(bm));renderGymAppFull(container);});
+}
+
+function renderRoutineAppFull(container) {
+  container.innerHTML='';
+  var routines=getPersonalRoutines(),today=getTodayISO(),log=getPersonalRoutineLog();
+  if(!log[today])log[today]={morning:[],evening:[]};
+  var todayLog=log[today];
+  var layout=document.createElement('div');layout.className='app-full-two-col';
+  var left=document.createElement('div');left.className='app-full-col';
+  var right=document.createElement('div');right.className='app-full-col';
+  function buildPeriod(period,emoji){
+    var items=routines[period]||[],checked=todayLog[period]||[],done=checked.length,total=items.length,pct=total>0?Math.round(done/total*100):0;
+    var h='<h4 class="app-full-section-heading">'+emoji+' '+period.charAt(0).toUpperCase()+period.slice(1)+' Routine ('+done+'/'+total+')</h4>';
+    if(total)h+='<div class="app-routine-pbar"><div style="width:'+pct+'%;background:'+(pct===100?'#27ae60':'var(--ios-accent)')+';height:5px;border-radius:3px"></div></div>';
+    items.forEach(function(item,idx){var isDone=checked.indexOf(idx)>=0;h+='<div class="app-routine-item'+(isDone?' done':'')+'" data-period="'+period+'" data-idx="'+idx+'"><input type="checkbox" class="app-routine-cb"'+(isDone?' checked':'')+'/><span>'+escapeHTML(typeof item==='string'?item:(item.text||item.name||''))+'</span></div>';});
+    if(!total)h+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No steps yet.</p>';
+    return h;
+  }
+  left.innerHTML='<h3 class="app-full-col-heading">\ud83c\udf05 Daily Routine</h3>'+buildPeriod('morning','\ud83c\udf05');
+  var heatHTML='<h3 class="app-full-col-heading">\ud83c\udf19 Evening & History</h3>'+buildPeriod('evening','\ud83c\udf19');
+  heatHTML+='<h4 class="app-full-section-heading" style="margin-top:16px">\ud83d\udcc5 28-Day Completion</h4><div class="app-routine-heatmap">';
+  for(var ni=27;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());var dLog=log[iso]||{};var dDone=((dLog.morning||[]).length)+((dLog.evening||[]).length);var dTotal=(routines.morning||[]).length+(routines.evening||[]).length;var cls=dTotal>0&&dDone===dTotal?' all-done':dDone>0?' part-done':'';heatHTML+='<div class="app-routine-hm-cell'+cls+'" title="'+iso+'"></div>';}
+  heatHTML+='</div>';
+  var exportLines=[];['morning','evening'].forEach(function(p){exportLines.push(p.charAt(0).toUpperCase()+p.slice(1)+' Routine:');(routines[p]||[]).forEach(function(item,i){exportLines.push('  '+(i+1)+'. '+(typeof item==='string'?item:(item.text||item.name||'')));});});
+  heatHTML+='<button id="routineFvExport" class="app-fv-link-btn" style="margin-top:10px">\ud83d\udccb Copy routine as text</button>';
+  right.innerHTML=heatHTML;
+  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+  container.querySelectorAll('.app-routine-cb').forEach(function(cb){cb.addEventListener('change',function(){var row=cb.closest('[data-period]');if(!row)return;var period=row.dataset.period,idx=parseInt(row.dataset.idx,10);var l=getPersonalRoutineLog();if(!l[today])l[today]={morning:[],evening:[]};if(!l[today][period])l[today][period]=[];if(cb.checked){if(l[today][period].indexOf(idx)<0)l[today][period].push(idx);}else{l[today][period]=l[today][period].filter(function(i){return i!==idx;});}setPersonalRoutineLog(l);renderRoutineAppFull(container);});});
+  var expBtn=container.querySelector('#routineFvExport');if(expBtn)expBtn.addEventListener('click',function(){try{navigator.clipboard.writeText(exportLines.join('\n'));expBtn.textContent='\u2705 Copied!';setTimeout(function(){expBtn.textContent='\ud83d\udccb Copy routine as text';},2000);}catch(e){alert(exportLines.join('\n'));}});
+}
+
+function renderBudgetAppFull(container) {
+  container.innerHTML='';
+  var budget=getPersonalBudget(),bills=budget.bills||[],oneTime=budget.oneTimeExpenses||[];
+  var layout=document.createElement('div');layout.className='app-full-two-col';
+  var left=document.createElement('div');left.className='app-full-col';
+  var right=document.createElement('div');right.className='app-full-col';
+  var jobIncome=typeof calcBudgetJobIncome==='function'?calcBudgetJobIncome():0;
+  var billsTotal=bills.reduce(function(s,b){return s+(parseFloat(b.amount)||0);},0);
+  var oneTimeTotal=oneTime.reduce(function(s,e){return s+(parseFloat(e.amount)||0);},0);
+  var netMonthly=jobIncome-billsTotal-oneTimeTotal;
+  var lHTML='<h3 class="app-full-col-heading">\ud83d\udcb0 Budget Overview</h3>'+
+    '<div class="app-budget-summary-row"><span>\ud83d\udcc8 Income (30 days)</span><span style="color:#27ae60;font-weight:700">$'+jobIncome.toFixed(2)+'</span></div>'+
+    '<div class="app-budget-summary-row"><span>\ud83d\udccb Recurring Bills/mo</span><span style="color:#e74c3c">$'+billsTotal.toFixed(2)+'</span></div>'+
+    '<div class="app-budget-summary-row"><span>\ud83d\udcb8 One-time Expenses</span><span style="color:#e74c3c">$'+oneTimeTotal.toFixed(2)+'</span></div>'+
+    '<div class="app-budget-summary-row app-budget-net"><span>\ud83d\udcb5 Net (approx)</span><span style="color:'+(netMonthly>=0?'#27ae60':'#e74c3c')+';font-weight:700">'+(netMonthly>=0?'+':'')+'$'+netMonthly.toFixed(2)+'</span></div>';
+  lHTML+='<div class="app-budget-toggle-row"><span>\ud83d\udccb Bills</span><label style="display:flex;align-items:center;gap:4px;font-size:0.8rem"><input type="checkbox" id="budgFvAnnual"/><span>Show annual</span></label></div><div id="budgFvBillsList" class="app-budget-bills-list">';
+  bills.forEach(function(bill){lHTML+='<div class="app-budget-bill-row"><span>'+escapeHTML(bill.emoji||'\ud83d\udcb3')+' '+escapeHTML(bill.name||'')+'</span><span class="app-budget-bill-amt" data-monthly="'+(bill.amount||0)+'">$'+parseFloat(bill.amount||0).toFixed(2)+'/mo</span></div>';});
+  if(!bills.length)lHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No bills added yet.</p>';
+  lHTML+='</div>';
+  left.innerHTML=lHTML;
+  var savings=safeParseStorage('personalSavingsGoals',[]);
+  var rHTML='<h3 class="app-full-col-heading">\ud83c\udfe6 Savings Goals</h3>';
+  savings.forEach(function(goal,gi){var pct=goal.target>0?Math.min(100,Math.round((goal.current||0)/goal.target*100)):0;rHTML+='<div class="app-savings-goal"><div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:4px"><span>'+escapeHTML(goal.emoji||'\ud83c\udfaf')+' '+escapeHTML(goal.name||'')+'</span><span style="color:var(--ios-text-3)">'+(goal.current||0)+' / $'+goal.target+'</span></div><div class="app-savings-bar"><div style="width:'+pct+'%;background:#27ae60;height:5px;border-radius:3px"></div></div><div style="font-size:0.75rem;color:var(--ios-text-3);margin-top:2px">'+pct+'% complete</div><div style="display:flex;gap:4px;margin-top:4px"><input type="number" class="app-savings-inp app-fv-num-small" data-gi="'+gi+'" value="'+(goal.current||0)+'" min="0" step="10" placeholder="Current"/><button class="app-savings-upd app-fv-save-btn" data-gi="'+gi+'" style="padding:3px 8px;font-size:0.78rem">Update</button></div></div>';});
+  rHTML+='<div class="app-savings-add-form"><input type="text" id="savGoalName" class="app-fv-text-input" placeholder="Goal name (e.g. Car)"/><input type="number" id="savGoalTarget" class="app-fv-num-input" placeholder="Target $" min="0"/><input type="text" id="savGoalEmoji" class="app-fv-num-small" placeholder="\ud83c\udfaf" maxlength="2" style="width:38px;text-align:center"/><button id="savGoalAdd" class="app-fv-save-btn">\uff0b Add Goal</button></div>';
+  var catMap={};bills.forEach(function(b){var c=b.category||'Other';catMap[c]=(catMap[c]||0)+(parseFloat(b.amount)||0);});oneTime.forEach(function(e){var c=e.category||'Other';catMap[c]=(catMap[c]||0)+(parseFloat(e.amount)||0);});
+  var catKeys=Object.keys(catMap).sort(function(a,b){return catMap[b]-catMap[a];});
+  if(catKeys.length){rHTML+='<h4 class="app-full-section-heading" style="margin-top:16px">\ud83d\udcca Spending by Category</h4>'+_fvBarChart(catKeys.map(function(k){return{label:k.slice(0,8),value:Math.round(catMap[k]),iso:''};}).slice(0,8),220,80,12,18,8,8,'');}
+  right.innerHTML=rHTML;
+  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+  var annualToggle=container.querySelector('#budgFvAnnual');if(annualToggle)annualToggle.addEventListener('change',function(){container.querySelectorAll('.app-budget-bill-amt').forEach(function(el){var mo=parseFloat(el.dataset.monthly)||0;el.textContent=annualToggle.checked?'$'+(mo*12).toFixed(2)+'/yr':'$'+mo.toFixed(2)+'/mo';});});
+  container.querySelectorAll('.app-savings-upd').forEach(function(btn){btn.addEventListener('click',function(){var gi=parseInt(btn.dataset.gi,10);var inp=container.querySelector('.app-savings-inp[data-gi="'+gi+'"]');var goals=safeParseStorage('personalSavingsGoals',[]);if(!goals[gi])return;goals[gi].current=parseFloat((inp||{}).value)||0;localStorage.setItem('personalSavingsGoals',JSON.stringify(goals));renderBudgetAppFull(container);});});
+  var savAdd=container.querySelector('#savGoalAdd');if(savAdd)savAdd.addEventListener('click',function(){var nameInp=container.querySelector('#savGoalName'),tgtInp=container.querySelector('#savGoalTarget'),emojiInp=container.querySelector('#savGoalEmoji');var name=nameInp?nameInp.value.trim():'',target=parseFloat((tgtInp||{}).value)||0;if(!name||!target)return;var goals=safeParseStorage('personalSavingsGoals',[]);goals.push({name:name,target:target,current:0,emoji:(emojiInp?emojiInp.value.trim():'')||'\ud83c\udfaf'});localStorage.setItem('personalSavingsGoals',JSON.stringify(goals));renderBudgetAppFull(container);});
+}
+
+function renderJobsAppFull(container) {
+  container.innerHTML = '';
+  var earningsSection = document.getElementById('workEarningsSection');
+  if (earningsSection) {
+    earningsSection.classList.remove('hidden');
+    container.appendChild(earningsSection);
+    if (typeof window.renderWorkEarnings === 'function') {
+      try { window.renderWorkEarnings(); } catch (_) {}
+    }
+    return;
+  }
+  container.innerHTML =
+    '<p style="color:var(--ios-text-3);font-size:0.9rem;text-align:center;padding:24px 0">' +
+    '\ud83d\udcbc Navigate to the <a href="#work" style="color:var(--ios-accent)">Work</a> page to set up jobs first.</p>';
+}
+
+window.renderTodayFocusPreview     = renderTodayFocusPreview;
+window.renderTodayHydrationPreview = renderTodayHydrationPreview;
+window.renderTodaySleepPreview     = renderTodaySleepPreview;
+window.renderTodayRoutinePreview   = renderTodayRoutinePreview;
+window.renderTodayMoodPreview      = renderTodayMoodPreview;
+window.renderWeatherAppFull   = renderWeatherAppFull;
+window.renderSleepAppFull     = renderSleepAppFull;
+window.renderMoodAppFull      = renderMoodAppFull;
+window.renderFocusAppFull     = renderFocusAppFull;
+window.renderHydrationAppFull = renderHydrationAppFull;
+window.renderMealAppFull      = renderMealAppFull;
+window.renderGymAppFull       = renderGymAppFull;
+window.renderRoutineAppFull   = renderRoutineAppFull;
+window.renderBudgetAppFull    = renderBudgetAppFull;
+window.renderJobsAppFull      = renderJobsAppFull;
