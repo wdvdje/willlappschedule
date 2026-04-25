@@ -1507,7 +1507,8 @@
     } else {
       /* Restore display before removing collapsed class so transition runs */
       panel.style.display = '';
-      /* Force reflow so the display change takes effect before the transition */
+      /* Force a synchronous layout recalculation so the browser registers
+         the display change before the CSS transition class is removed */
       void panel.offsetWidth;
       panel.classList.remove('collapsed');
       tab.classList.remove('visible');

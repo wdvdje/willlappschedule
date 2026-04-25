@@ -2334,9 +2334,6 @@ main {
 .app-window-expand-btn:hover {
   background: rgba(120,120,128,0.24);
 }
-.app-window-expand-btn:active {
-  transform: scale(0.92) !important;
-}
 
 /* ── App Window Fullscreen Mode ─────────────────────────────────── */
 #appWindowModal.fullscreen {
@@ -2429,5 +2426,19 @@ main {
 /* ── App weather full view ──────────────────────────────────────── */
 .app-weather-full {
   padding: 4px 0 12px;
+}
+
+/* ── Reduced-motion: disable spring/blur animations ─────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .dcf-day-add-panel,
+  #appWindowPanel,
+  .settings-modal-panel,
+  .apps-modal-panel {
+    animation: none !important;
+  }
+  .dcf-day-add-overlay {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
 }
 
