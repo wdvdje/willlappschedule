@@ -10229,7 +10229,7 @@ function _mfRecipeForm(body, container, editIdx) {
       t.carbs    += parseInt((row.querySelector('.mf-ing-c')   || {}).value, 10) || 0;
       t.fat      += parseInt((row.querySelector('.mf-ing-f')   || {}).value, 10) || 0;
     });
-    var srv = parseInt((body.querySelector('.mf-rf-servings') || {}).value, 10) || 1;
+    var srv = Math.max(1, parseInt((body.querySelector('.mf-rf-servings') || {}).value, 10) || 1);
     var div = body.querySelector('#mfRfTotals');
     if (div) {
       div.innerHTML = '<div class="mf-rf-total-row">' +
@@ -10269,7 +10269,7 @@ function _mfRecipeForm(body, container, editIdx) {
     saveBtn.addEventListener('click', function() {
       var name = (body.querySelector('.mf-rf-name') || {}).value || '';
       if (!name.trim()) { alert('Please enter a recipe name.'); return; }
-      var srv  = parseInt((body.querySelector('.mf-rf-servings') || {}).value, 10) || 1;
+      var srv  = Math.max(1, parseInt((body.querySelector('.mf-rf-servings') || {}).value, 10) || 1);
       var tags = ((body.querySelector('.mf-rf-tags') || {}).value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean);
       var ings = [];
       body.querySelectorAll('.mf-ing-row').forEach(function(row) {
@@ -10286,7 +10286,7 @@ function _mfRecipeForm(body, container, editIdx) {
       var totals = recalcTotals();
       var recs = getPersonalRecipes();
       var rec = {
-        id:          isEdit ? (recipe.id || Date.now().toString(36)) : Date.now().toString(36),
+        id:          isEdit ? (recipe.id || Date.now().toString(36) + Math.random().toString(36).slice(2)) : Date.now().toString(36) + Math.random().toString(36).slice(2),
         name:        name.trim(),
         emoji:       (body.querySelector('.mf-rf-emoji') || {}).value || '🍽️',
         description: (body.querySelector('.mf-rf-desc') || {}).value || '',
