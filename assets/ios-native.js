@@ -49,7 +49,7 @@
   document.addEventListener('click', function (e) {
     var el = e.target.closest(
       'button, a.r-item, a.sidebar-item, .day, .bucket-header,' +
-      ' .chore-tpl-item, .dv-event-block, .cal-add-type-btn'
+      ' .chore-tpl-item, .dv-event-block, .cal-add-type-btn, .more-sheet-item'
     );
     if (el) haptics.light();
   }, { passive: true });
@@ -583,65 +583,116 @@
   }
 
   /* ──────────────────────────────────────────────────────────
-     16. iPadOS 26 Floating Top Navigation pill
-         Shows on 768–1023px; dock button morphs it to sidebar.
+     16. More sheet — secondary navigation for the mobile tab bar
+         Opens/closes via the "More ⋯" tab button.
+         Items navigate to their section and close the sheet.
      ────────────────────────────────────────────────────────── */
-  function _initIpadTopNav() {
-    var nav     = document.getElementById('ipadTopNav');
-    var dockBtn = document.getElementById('ipadNavDockBtn');
-    if (!nav || !dockBtn) return;
+  function _initMoreSheet() {
+    var sheet   = document.getElementById('moreSheet');
+    var moreBtn = document.getElementById('moreTabBtn');
+    if (!sheet) return;
 
-    var KEY_DOCKED = 'ipadNavDocked';
+    var panel = sheet.querySelector('.more-sheet-panel');
 
-    function _applyDockState(docked) {
-      document.body.classList.toggle('ipad-sidebar-docked', docked);
-      if (docked) {
-        dockBtn.textContent = '\u229F';          /* ⊟ — undock icon */
-        dockBtn.setAttribute('aria-label', 'Undock navigation');
-        dockBtn.setAttribute('title', 'Undock navigation');
-      } else {
-        dockBtn.textContent = '\u229E';          /* ⊞ — dock icon */
-        dockBtn.setAttribute('aria-label', 'Dock navigation as sidebar');
-        dockBtn.setAttribute('title', 'Dock navigation as sidebar');
-      }
-    }
-
-    // Restore saved dock preference
-    try {
-      _applyDockState(localStorage.getItem(KEY_DOCKED) === 'true');
-    } catch (_) {}
-
-    dockBtn.addEventListener('click', function () {
-      haptics.select();
-      var docked = !document.body.classList.contains('ipad-sidebar-docked');
-      _applyDockState(docked);
-      try { localStorage.setItem(KEY_DOCKED, docked ? 'true' : 'false'); } catch (_) {}
-    });
-
-    // Keep the active item in sync with the current view
-    function _updateActive() {
+    // Keep active state on More sheet items in sync with current view
+    function _updateMoreActive() {
       var view = (location.hash || '#today').replace('#', '') || 'today';
-      nav.querySelectorAll('.ipad-nav-item[data-view]').forEach(function (item) {
+      sheet.querySelectorAll('.more-sheet-item[data-view]').forEach(function (item) {
         item.classList.toggle('active', item.dataset.view === view);
       });
     }
 
-    // SPA navigation: update hash without full page reload
-    nav.querySelectorAll('.ipad-nav-item[data-view]').forEach(function (item) {
+    function _closeSheet() {
+      if (sheet.classList.contains('hidden')) return;
+      // Animate panel down before hiding
+      if (panel) {
+        panel.style.transition = 'transform 0.28s cubic-bezier(0.22,1,0.36,1), opacity 0.22s ease';
+        panel.style.transform  = 'translateY(100%) scale(0.98)';
+        panel.style.opacity    = '0.6';
+        setTimeout(function () {
+          panel.style.transition = '';
+          panel.style.transform  = '';
+          panel.style.opacity    = '';
+          sheet.classList.add('hidden');
+        }, 280);
+      } else {
+        sheet.classList.add('hidden');
+      }
+      if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    // Close on backdrop click
+    sheet.addEventListener('click', function (e) {
+      if (e.target === sheet) {
+        haptics.light();
+        _closeSheet();
+      }
+    });
+
+    // Navigate when a More item is tapped
+    sheet.querySelectorAll('.more-sheet-item[data-view]').forEach(function (item) {
       item.addEventListener('click', function (e) {
         e.preventDefault();
         haptics.select();
         var view = item.dataset.view || 'today';
-        if (location.hash.replace('#', '') !== view) {
-          location.hash = view;
-        }
-        window.dispatchEvent(new Event('hashchange'));
+        _closeSheet();
+        // Small delay (60 ms) so the sheet close animation has started visually
+        // before the SPA router swaps the page content — prevents a jarring flash
+        // where the new page appears beneath the still-open sheet.
+        setTimeout(function () {
+          if (location.hash.replace('#', '') !== view) {
+            location.hash = view;
+          }
+          window.dispatchEvent(new Event('hashchange'));
+        }, 60);
       });
     });
 
-    window.addEventListener('hashchange', _updateActive);
-    _updateActive();
+    // Drag-to-dismiss on the panel
+    if (panel) {
+      var _startY = 0, _dragging = false;
+      panel.addEventListener('touchstart', function (e) {
+        var rect  = panel.getBoundingClientRect();
+        var touch = e.touches[0];
+        if (touch.clientY - rect.top < 60) {
+          _startY   = touch.clientY;
+          _dragging = true;
+        }
+      }, { passive: true });
+      panel.addEventListener('touchmove', function (e) {
+        if (!_dragging) return;
+        var dy = e.touches[0].clientY - _startY;
+        if (dy > 0) {
+          panel.style.transform  = 'translateY(' + dy + 'px)';
+          panel.style.transition = 'none';
+        }
+      }, { passive: true });
+      panel.addEventListener('touchend', function (e) {
+        if (!_dragging) return;
+        _dragging = false;
+        var dy = e.changedTouches[0].clientY - _startY;
+        panel.style.transition = '';
+        if (dy > 90) {
+          haptics.light();
+          _closeSheet();
+        } else {
+          panel.style.transition = 'transform 0.32s cubic-bezier(0.34,1.56,0.64,1)';
+          panel.style.transform  = '';
+          setTimeout(function () { panel.style.transition = ''; }, 320);
+        }
+      }, { passive: true });
+    }
+
+    window.addEventListener('hashchange', _updateMoreActive);
+    _updateMoreActive();
   }
+
+  /* ──────────────────────────────────────────────────────────
+     16b. iPadOS 26 Floating Top Navigation pill — replaced.
+          Kept as empty stub to avoid reference errors in case
+          any external code calls window._initIpadTopNav.
+     ────────────────────────────────────────────────────────── */
+  function _initIpadTopNav() { /* no-op — replaced by sidebar + More sheet */ }
 
   /* ──────────────────────────────────────────────────────────
      17. HTML5 Drag and Drop for bucket / task items
@@ -917,7 +968,7 @@
     _initOrientationHandling();
     _initSearchIsland();
     _initScrollEdgeEffects();
-    _initIpadTopNav();
+    _initMoreSheet();          /* replaces old _initIpadTopNav */
     _initDragAndDrop();
     _initContextMenus();
     _initIPadKeyboardShortcuts();

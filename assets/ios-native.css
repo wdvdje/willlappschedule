@@ -1290,14 +1290,12 @@ main {
 
 /* ── 24. iPad-specific enhancements ──────────────────────────────── */
 
-/* On iPad (768–1023px), give the sidebar appropriate sizing */
+/* On iPad (768–1023px), sidebar uses full 210px width when expanded */
 @media (min-width: 768px) and (max-width: 1023px) {
-  .desktop-sidebar {
+  .desktop-sidebar:not(.collapsed) {
     width: 210px;
   }
-  :root {
-    --ios-sidebar-w: 210px;
-  }
+  /* When collapsed (default on iPad), the existing 58px collapsed rules apply */
 }
 
 /* Larger touch targets on touch devices (iPad Pencil & finger) */
@@ -1410,144 +1408,20 @@ textarea:focus-visible {
   min-height: 36px;
 }
 
-/* ── 29. iPadOS 26 Floating Top Navigation Pill ──────────────────── */
+/* ── 29. iPad Navigation — collapsed sidebar (replaces old floating pill) ── */
 /*
- * On iPad (768–1023px) navigation moves from the bottom pill / left
- * sidebar to a centred floating "island" pill just below the header —
- * the iPadOS 26 adaptive navigation pattern.  A dock button lets users
- * morph it into the classic left sidebar.
+ * The floating top-nav pill is removed.  On all iPad widths (768–1023 px)
+ * the sidebar is always visible, defaulting to icon-only (58 px) to save
+ * horizontal space.  The user can expand it with the ☰ button in the
+ * sidebar header.  No bottom tab bar is shown on iPad or desktop.
  */
-.ipad-top-nav {
-  display: none;                          /* hidden by default */
-  position: fixed;
-  top: calc(var(--ios-header-h) + 8px);
-  left: 0;
-  right: 0;
-  z-index: 1002;
-  justify-content: center;
-  pointer-events: none;
-  animation: ios-top-nav-in var(--ios-slow) var(--ios-spring-soft) both;
-}
 
-@keyframes ios-top-nav-in {
-  from { transform: translateY(-14px); opacity: 0; }
-  to   { transform: translateY(0);     opacity: 1; }
-}
+/* Ensure any leftover ipad-top-nav element stays hidden */
+.ipad-top-nav { display: none !important; }
 
-.ipad-top-nav-pill {
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 6px 10px;
-  /* Island look: high border-radius + Liquid Glass backdrop */
-  border-radius: 40px;
-  background: var(--ios-glass);
-  -webkit-backdrop-filter: var(--ios-glass-blur);
-  backdrop-filter: var(--ios-glass-blur);
-  border: 1px solid var(--ios-border-glass);
-  box-shadow: var(--ios-shadow-glass);
-  /* Center the island with margin auto (as recommended) */
-  margin: 0 auto;
-  max-width: max-content;
-}
-
-.ipad-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 7px 14px;
-  border-radius: 32px;
-  text-decoration: none;
-  color: var(--ios-text-3);
-  font-size: 0.72rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background var(--ios-fast) var(--ios-ease),
-              color var(--ios-fast) var(--ios-ease),
-              transform var(--ios-fast) var(--ios-spring);
-  user-select: none;
-  -webkit-user-select: none;
-}
-.ipad-nav-item:hover {
-  background: rgba(120,120,128,0.12);
-  color: var(--ios-text);
-}
-.ipad-nav-item.active {
-  background: var(--ios-accent-bg);
-  color: var(--ios-accent);
-  font-weight: 600;
-}
-.ipad-nav-item:active {
-  transform: scale(0.90);
-  opacity: 0.72;
-  background: rgba(255,255,255,0.20) !important;
-  box-shadow: inset 0 0 10px rgba(255,255,255,0.50),
-              0 2px 5px rgba(0,0,0,0.10);
-}
-.ipad-nav-icon { font-size: 1.1rem; line-height: 1; }
-.ipad-nav-label { line-height: 1; }
-
-/* Dock-to-sidebar toggle button */
-.ipad-nav-dock-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  margin-left: 6px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: 50%;
-  background: rgba(120,120,128,0.12);
-  color: var(--ios-text-3);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background var(--ios-fast) var(--ios-ease),
-              color var(--ios-fast) var(--ios-ease),
-              transform var(--ios-fast) var(--ios-spring);
-}
-.ipad-nav-dock-btn:hover {
-  background: rgba(120,120,128,0.22);
-  color: var(--ios-accent);
-}
-.ipad-nav-dock-btn:active { transform: scale(0.88); }
-
-/* iPad (768–1023px): activate floating top pill mode */
+/* Remove the old top-nav-pill padding that was applied in portrait mode */
 @media (min-width: 768px) and (max-width: 1023px) {
-  /* Default: top pill mode — hide the left sidebar */
-  body:not(.ipad-sidebar-docked) .desktop-sidebar {
-    display: none !important;
-  }
-
-  /* Remove sidebar left-offset from header, sync bar, and main */
-  body:not(.ipad-sidebar-docked) > header,
-  body:not(.ipad-sidebar-docked) #syncStatusBar {
-    margin-left: 0 !important;
-    left: 0 !important;
-  }
-  body:not(.ipad-sidebar-docked) > main {
-    margin-left: 0 !important;
-    /* Shift content down to clear the floating pill (approx. pill height 58px + gap) */
-    padding-top: calc(58px + 12px) !important;
-  }
-
-  /* Show the floating top nav pill */
-  body:not(.ipad-sidebar-docked) .ipad-top-nav {
-    display: flex;
-  }
-
-  /* When docked: hide top pill, show sidebar (existing ≥768px rules take over) */
-  body.ipad-sidebar-docked .ipad-top-nav {
-    display: none !important;
-  }
-
-  /* Also ensure safe-area-inset-left is respected in the pill */
-  .ipad-top-nav-pill {
-    margin-left: max(0px, env(safe-area-inset-left, 0px));
-    margin-right: max(0px, env(safe-area-inset-right, 0px));
-  }
+  body > main { padding-top: 0 !important; }
 }
 
 /* ── 30. Container Queries — Stage Manager & Split View readiness ─── */
@@ -1603,8 +1477,7 @@ main {
   }
 
   /* Sidebar items — accent lift */
-  .sidebar-item:hover,
-  .ipad-nav-item:hover {
+  .sidebar-item:hover {
     box-shadow: 0 0 0 1.5px var(--ios-accent-bg) !important;
   }
 
@@ -1634,13 +1507,12 @@ main {
   a,
   [role="button"],
   .sidebar-item,
-  .ipad-nav-item,
   .r-item,
   .day,
   .bucket-item,
   .small-btn,
   .tab-search-island,
-  .ipad-nav-dock-btn {
+  .more-sheet-item {
     cursor: pointer;
   }
 }
@@ -1790,5 +1662,125 @@ main {
     .section-header {
       animation: none;
     }
+  }
+}
+
+/* ── 35. More sheet — Liquid Glass bottom sheet (mobile tab bar) ─── */
+/*
+ * Shown on iPhone (< 768 px) when the "More ⋯" tab is tapped.
+ * Contains secondary sections: Personal, Home, Work, Inbox, Events, Settings.
+ * Hidden on iPad and desktop where the sidebar handles full navigation.
+ */
+.more-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 10500;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.more-sheet.hidden {
+  display: none;
+}
+
+.more-sheet-panel {
+  width: 100%;
+  max-width: 640px;
+  background: var(--ios-glass-vibrant);
+  -webkit-backdrop-filter: var(--ios-glass-blur);
+  backdrop-filter: var(--ios-glass-blur);
+  border-radius: var(--ios-r-lg) var(--ios-r-lg) 0 0;
+  border: 1px solid var(--ios-border-glass);
+  border-bottom: none;
+  box-shadow: var(--ios-shadow-glass);
+  padding: 0 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  animation: ios-sheet-up var(--ios-slow) var(--ios-spring-soft) both;
+}
+
+.more-sheet-title {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ios-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 6px 0 14px;
+}
+
+.more-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.more-sheet-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px 12px;
+  border-radius: var(--ios-r-md);
+  background: var(--ios-surface);
+  border: 1px solid var(--ios-border);
+  text-decoration: none;
+  color: var(--ios-text);
+  transition: background var(--ios-fast) var(--ios-ease),
+              transform var(--ios-fast) var(--ios-spring);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.more-sheet-item:hover {
+  background: var(--ios-surface-3);
+}
+
+.more-sheet-item:active {
+  transform: scale(0.91);
+  opacity: 0.75;
+}
+
+.more-sheet-item.active {
+  background: var(--ios-accent-bg);
+  border-color: var(--ios-accent);
+  color: var(--ios-accent);
+}
+
+.more-sheet-icon {
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.more-sheet-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Hide More sheet on iPad / desktop — sidebar provides full navigation */
+@media (min-width: 768px) {
+  .more-sheet { display: none !important; }
+  #moreTabBtn { display: none !important; }
+}
+
+/* Dark-mode colours for the More sheet */
+@media (prefers-color-scheme: dark) {
+  .more-sheet-item {
+    background: var(--ios-surface-2) !important;
+    border-color: var(--ios-border) !important;
+    color: var(--ios-text) !important;
+  }
+  .more-sheet-item:hover {
+    background: var(--ios-surface-3) !important;
+  }
+  .more-sheet-item.active {
+    background: var(--ios-accent-bg) !important;
+    border-color: var(--ios-accent) !important;
+    color: var(--ios-accent) !important;
   }
 }

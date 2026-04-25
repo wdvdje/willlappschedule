@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <!-- Apple Intelligence / Visual Intelligence hooks -->
   <meta name="description" content="TimeScape Planner Reminders — set time-based and location-based reminders so you never miss what matters." />
   <meta name="keywords" content="reminders, alerts, notifications, schedule, planner, iOS" />
   <meta property="og:type" content="website" />
@@ -22,6 +21,9 @@
   <title>TimeScape Planner — Reminders</title>
   <!-- Resolve og:image to absolute URL at runtime -->
   <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
+  <!-- Redirect to the SPA; noscript fallback for crawlers -->
+  <script>location.replace('./index.html#reminders');</script>
+  <noscript><meta http-equiv="refresh" content="0;url=./index.html#reminders" /></noscript>
 </head>
 <body>
   <header>

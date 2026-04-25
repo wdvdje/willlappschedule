@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <!-- Apple Intelligence / Visual Intelligence hooks -->
   <meta name="description" content="TimeScape Planner Settings — customise your profile, notification preferences, sync options, and app appearance." />
   <meta name="keywords" content="settings, preferences, profile, notifications, sync, planner" />
   <meta property="og:type" content="website" />
@@ -25,6 +24,9 @@
   </style>
   <!-- Resolve og:image to absolute URL at runtime -->
   <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
+  <!-- Redirect to the SPA; noscript fallback for crawlers -->
+  <script>location.replace('./index.html#settings');</script>
+  <noscript><meta http-equiv="refresh" content="0;url=./index.html#settings" /></noscript>
 </head>
 <body>
   <header id="appHeader">

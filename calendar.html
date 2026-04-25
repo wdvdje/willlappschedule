@@ -6,7 +6,6 @@
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="theme-color" content="#4a90e2" />
-  <!-- Apple Intelligence / Visual Intelligence hooks -->
   <meta name="description" content="TimeScape Planner Calendar — view and manage your monthly and weekly schedule at a glance." />
   <meta name="keywords" content="calendar, schedule, planner, monthly view, weekly view, iOS" />
   <meta property="og:type" content="website" />
@@ -23,6 +22,9 @@
   <link rel="stylesheet" href="./assets/ios-native.css" />
   <!-- Resolve og:image to absolute URL at runtime -->
   <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
+  <!-- Redirect to the SPA; noscript fallback for crawlers -->
+  <script>location.replace('./index.html#calendar');</script>
+  <noscript><meta http-equiv="refresh" content="0;url=./index.html#calendar" /></noscript>
 </head>
 <body>
   <header>
