@@ -9082,9 +9082,11 @@ function renderWeatherAppFull(container) {
     var today = new Date().toISOString().slice(0,10);
     var nowHour = new Date().getHours();
 
-    // Reverse geocode city name via Open-Meteo geocoding
+    // Reverse geocode city name via Nominatim (User-Agent required by OSM policy)
     var cityLabel = latF + ', ' + lonF;
-    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + latF + '&lon=' + lonF)
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + latF + '&lon=' + lonF, {
+        headers: { 'User-Agent': 'willlappschedule/1.0 (weather feature)' }
+      })
       .then(function(r){ return r.json(); })
       .then(function(g){
         var c = (g && g.address) ? (g.address.city || g.address.town || g.address.village || g.address.county || '') : '';
@@ -9099,7 +9101,7 @@ function renderWeatherAppFull(container) {
       '&current_weather=true' +
       '&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m,relativehumidity_2m,uv_index' +
       '&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset' +
-      '&forecast_days=14&timezone=auto' + unitParam;
+      '&forecast_days=16&timezone=auto' + unitParam;
 
     fetch(url).then(function(r){ return r.json(); }).then(function(d) {
       if (!d || !d.hourly || !d.daily) {
@@ -9116,13 +9118,6 @@ function renderWeatherAppFull(container) {
       var todayHi  = d.daily.temperature_2m_max ? Math.round(d.daily.temperature_2m_max[0]) : '--';
       var todayLo  = d.daily.temperature_2m_min ? Math.round(d.daily.temperature_2m_min[0]) : '--';
       var todayPrec = d.daily.precipitation_probability_max ? (d.daily.precipitation_probability_max[0] || 0) : 0;
-
-      // Dynamic gradient background
-      var grad = WMO_GRAD[curCode] || WMO_GRAD[0];
-      // Darken for night (rough: between 20:00 and 06:00)
-      if (nowHour >= 20 || nowHour < 6) {
-        grad = 'linear-gradient(160deg,#0d1b2a 0%,#1a2e45 60%,#243450 100%)';
-      }
 
       // Derive humidity & UV from current hour
       var hT = d.hourly.time || [];
@@ -9142,6 +9137,21 @@ function renderWeatherAppFull(container) {
       var todaySunset  = d.daily.sunset  ? d.daily.sunset[0]  : null;
       var srLabel = todaySunrise ? todaySunrise.slice(11,16) : '--';
       var ssLabel = todaySunset  ? todaySunset.slice(11,16)  : '--';
+
+      // Dynamic gradient background — use actual sunrise/sunset for day/night if available
+      var grad = WMO_GRAD[curCode] || WMO_GRAD[0];
+      var isNight = false;
+      if (todaySunrise && todaySunset) {
+        var nowMs = Date.now();
+        var srMs  = new Date(todaySunrise).getTime();
+        var ssMs  = new Date(todaySunset).getTime();
+        isNight = nowMs < srMs || nowMs > ssMs;
+      } else {
+        isNight = nowHour >= 20 || nowHour < 6;
+      }
+      if (isNight) {
+        grad = 'linear-gradient(160deg,#0d1b2a 0%,#1a2e45 60%,#243450 100%)';
+      }
 
       // Build hero
       var heroEl = container.querySelector('.wnative-hero');
@@ -9214,7 +9224,7 @@ function renderWeatherAppFull(container) {
         var globalMax = allHi.length ? Math.max.apply(null, allHi) : 40;
         var globalRange = Math.max(globalMax - globalMin, 1);
 
-        var dHTML = '<div class="wnative-daily-heading">14-Day Forecast</div>';
+        var dHTML = '<div class="wnative-daily-heading">16-Day Forecast</div>';
         for (var di = 0; di < dD.length; di++) {
           if (!dD[di]) continue;
           var dObj  = new Date(dD[di] + 'T12:00:00');
