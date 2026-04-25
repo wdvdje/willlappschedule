@@ -2812,4 +2812,8 @@
     setTimeout(tryInit, 50);
   }
 
+  // Expose advanced render functions so app.js fullscreen views can use them
+  window.renderDeskRoutineWidget = renderDeskRoutine;
+  window.renderDeskGymWidget     = renderDeskGym;
+
 })();

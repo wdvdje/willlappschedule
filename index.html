@@ -427,7 +427,11 @@
             <option value="1d">1 day before</option>
           </select>
         </div>
+        <div style="margin-top:10px">
+          <button id="addReminderBtn" type="button" class="small-btn" style="background:#4a90e2;color:#fff;border:none;padding:7px 18px;border-radius:10px;font-size:0.92rem;cursor:pointer">＋ Add Reminder</button>
+        </div>
       </form>
+      <ul id="reminderPageList" style="margin-top:14px"></ul>
     </section>
 
     <!-- Tasks page -->
@@ -1362,6 +1366,13 @@
         _renderWeatherAppContent(content);
       } else if (app === 'jobs') {
         _renderJobsAppContent(content);
+      } else if (app === 'sleep' || app === 'gym') {
+        // Sleep and gym medium view: use the full-view render functions directly
+        // so content is always visible (their widget-pane approach shows nothing).
+        var medFn = _APP_FULL_RENDER_MAP[app];
+        if (medFn && typeof window[medFn] === 'function') {
+          try { window[medFn](content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading app.</p>'; }
+        }
       } else {
         var containerId = _APP_CONTAINER_MAP[app];
         if (containerId) {
