@@ -8858,9 +8858,13 @@ document.addEventListener('DOMContentLoaded',function(){
    TODAY-PAGE PREVIEW RENDERERS
    ====================================================================== */
 
+/* Module-level Pomodoro timer state — avoids leaking intervals on re-render */
+var _pomState = { interval: null, running: false, phase: 'focus', remaining: 25 * 60, sessions: 0, bound: false };
+
 function _fvTimeToMins(t) {
   if (!t) return 0;
   var p = (t || '').split(':');
+  if (p.length < 2) return parseInt(p[0], 10) * 60 || 0;
   return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0);
 }
 
@@ -9258,7 +9262,7 @@ function renderMoodAppFull(container) {
     var sm=container.querySelector('.app-mood-emoji-btn.selected');
     var se=container.querySelector('.app-mood-energy-btn.selected');
     var noteInp=container.querySelector('#moodFvNote');
-    if(!sm||!se){alert('Please select a mood and energy level.');return;}
+    if(!sm||!se){var errEl=container.querySelector('#moodFvSaveErr');if(!errEl){errEl=document.createElement('span');errEl.id='moodFvSaveErr';errEl.style.cssText='color:#e74c3c;font-size:0.78rem;margin-left:6px';saveBtn2.parentNode.insertBefore(errEl,saveBtn2.nextSibling);}errEl.textContent='Select a mood and energy level.';return;}
     var data=getPersonalMood();
     data=data.filter(function(m){return m.date!==today;});
     data.unshift({date:today,mood:sm.dataset.mood,moodLabel:sm.dataset.label,energy:se.dataset.energy,note:noteInp?noteInp.value.trim():''});
@@ -9296,17 +9300,20 @@ function renderFocusAppFull(container) {
   container.querySelectorAll('.app-focus-cb').forEach(function(cb){cb.addEventListener('change',function(){var idx=parseInt(cb.dataset.idx,10);var f=getPersonalFocus();if(!f[today]||!f[today][idx])return;f[today][idx].done=cb.checked;setPersonalFocus(f);renderFocusAppFull(container);});});
   container.querySelectorAll('.app-focus-del').forEach(function(btn){btn.addEventListener('click',function(){var idx=parseInt(btn.dataset.del,10);var f=getPersonalFocus();if(f[today])f[today].splice(idx,1);setPersonalFocus(f);renderFocusAppFull(container);});});
   var addBtn=container.querySelector('#focusFvAdd');
-  if(addBtn)addBtn.addEventListener('click',function(){var inp=container.querySelector('#focusFvInput');var tInp=container.querySelector('#focusFvTime');var text=inp?inp.value.trim():'';if(!text)return;var f=getPersonalFocus();if(!f[today])f[today]=[];if(f[today].length>=3){alert('Maximum 3 priorities per day.');return;}f[today].push({text:text,done:false,timeBlock:tInp&&tInp.value?tInp.value:''});setPersonalFocus(f);renderFocusAppFull(container);});
+  if(addBtn)addBtn.addEventListener('click',function(){var inp=container.querySelector('#focusFvInput');var tInp=container.querySelector('#focusFvTime');var text=inp?inp.value.trim():'';if(!text)return;var f=getPersonalFocus();if(!f[today])f[today]=[];if(f[today].length>=3){var errEl=container.querySelector('#focusFvAddErr');if(!errEl){errEl=document.createElement('span');errEl.id='focusFvAddErr';errEl.style.cssText='color:#e74c3c;font-size:0.78rem;display:block;margin-top:3px';addBtn.parentNode.appendChild(errEl);}errEl.textContent='Maximum 3 priorities per day.';return;}f[today].push({text:text,done:false,timeBlock:tInp&&tInp.value?tInp.value:''});setPersonalFocus(f);renderFocusAppFull(container);});
   var addInp=container.querySelector('#focusFvInput');
   if(addInp)addInp.addEventListener('keydown',function(e){if(e.key==='Enter'&&addBtn)addBtn.click();});
 
+  // Pomodoro timer — use module-level _pomState to survive re-renders
   var POM_FOCUS=25*60,POM_BREAK=5*60;
-  var pom={running:false,phase:'focus',remaining:POM_FOCUS,sessions:0,interval:null};
+  var pom=_pomState;
+  // Clear any leftover interval from a previous render
+  if(pom.interval){clearInterval(pom.interval);pom.interval=null;pom.running=false;}
   function updatePomDisp(){var m=Math.floor(pom.remaining/60),s=pom.remaining%60;var disp=container.querySelector('#pomFvDisplay');var phase=container.querySelector('#pomFvPhase');var cnt=container.querySelector('#pomFvCounter');if(disp)disp.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;if(phase)phase.textContent=pom.phase==='focus'?'\ud83c\udf45 Focus':'\u2615 Break';if(cnt)cnt.textContent='Sessions: '+pom.sessions;}
   var startBtn=container.querySelector('#pomFvStart'),pauseBtn=container.querySelector('#pomFvPause'),resetBtn=container.querySelector('#pomFvReset');
-  if(startBtn)startBtn.addEventListener('click',function(){pom.running=true;startBtn.style.display='none';if(pauseBtn)pauseBtn.style.display='';pom.interval=setInterval(function(){pom.remaining--;if(pom.remaining<=0){if(pom.phase==='focus'){pom.sessions++;pom.phase='break';pom.remaining=POM_BREAK;}else{pom.phase='focus';pom.remaining=POM_FOCUS;}}updatePomDisp();},1000);});
-  if(pauseBtn)pauseBtn.addEventListener('click',function(){clearInterval(pom.interval);pom.running=false;startBtn.style.display='';pauseBtn.style.display='none';});
-  if(resetBtn)resetBtn.addEventListener('click',function(){clearInterval(pom.interval);pom.running=false;pom.phase='focus';pom.remaining=POM_FOCUS;if(startBtn)startBtn.style.display='';if(pauseBtn)pauseBtn.style.display='none';updatePomDisp();});
+  if(startBtn)startBtn.addEventListener('click',function(){if(pom.running)return;pom.running=true;startBtn.style.display='none';if(pauseBtn)pauseBtn.style.display='';pom.interval=setInterval(function(){pom.remaining--;if(pom.remaining<=0){if(pom.phase==='focus'){pom.sessions++;pom.phase='break';pom.remaining=POM_BREAK;}else{pom.phase='focus';pom.remaining=POM_FOCUS;}}updatePomDisp();},1000);});
+  if(pauseBtn)pauseBtn.addEventListener('click',function(){clearInterval(pom.interval);pom.interval=null;pom.running=false;startBtn.style.display='';pauseBtn.style.display='none';});
+  if(resetBtn)resetBtn.addEventListener('click',function(){clearInterval(pom.interval);pom.interval=null;pom.running=false;pom.phase='focus';pom.remaining=POM_FOCUS;if(startBtn)startBtn.style.display='';if(pauseBtn)pauseBtn.style.display='none';updatePomDisp();});
   updatePomDisp();
 }
 
