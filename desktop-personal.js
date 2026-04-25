@@ -305,6 +305,39 @@
         });
         body.appendChild(goalRow);
 
+        // Macro goals expander (Phase 3)
+        var macroExpander = document.createElement('div');
+        macroExpander.className = 'dmeal-macro-expander';
+        var macroGoalsCurrent = (function () {
+          try { return JSON.parse(localStorage.getItem('personalMacroGoals')) || { protein: 150, carbs: 200, fat: 65 }; }
+          catch (_) { return { protein: 150, carbs: 200, fat: 65 }; }
+        }());
+        macroExpander.innerHTML =
+          '<button class="dmeal-macro-toggle app-fv-link-btn" style="font-size:0.78rem">⚙️ Set macro goals ▸</button>' +
+          '<div class="dmeal-macro-goals-panel" style="display:none">' +
+            '<label style="font-size:0.76rem">P(g)<input type="number" class="app-fv-num-small dmg-protein" value="' + macroGoalsCurrent.protein + '" min="0"/></label>' +
+            '<label style="font-size:0.76rem">C(g)<input type="number" class="app-fv-num-small dmg-carbs"   value="' + macroGoalsCurrent.carbs   + '" min="0"/></label>' +
+            '<label style="font-size:0.76rem">F(g)<input type="number" class="app-fv-num-small dmg-fat"     value="' + macroGoalsCurrent.fat     + '" min="0"/></label>' +
+            '<button class="app-fv-save-btn dmg-save" style="font-size:0.76rem;padding:4px 10px">Save</button>' +
+          '</div>';
+        var toggleBtn = macroExpander.querySelector('.dmeal-macro-toggle');
+        var goalsPanel = macroExpander.querySelector('.dmeal-macro-goals-panel');
+        toggleBtn.addEventListener('click', function () {
+          var open = goalsPanel.style.display !== 'none';
+          goalsPanel.style.display = open ? 'none' : 'flex';
+          toggleBtn.textContent = (open ? '⚙️ Set macro goals ▸' : '⚙️ Set macro goals ▾');
+        });
+        macroExpander.querySelector('.dmg-save').addEventListener('click', function () {
+          var goals = {
+            protein: parseInt(macroExpander.querySelector('.dmg-protein').value, 10) || 150,
+            carbs:   parseInt(macroExpander.querySelector('.dmg-carbs').value,   10) || 200,
+            fat:     parseInt(macroExpander.querySelector('.dmg-fat').value,      10) || 65
+          };
+          localStorage.setItem('personalMacroGoals', JSON.stringify(goals));
+          renderDeskMeal();
+        });
+        body.appendChild(macroExpander);
+
         // View All Items button (bucket-like view)
         body.appendChild(buildMealViewAllBtn());
       });
@@ -325,12 +358,29 @@
     var weekGoal = goal * 7;
     var maxCal  = Math.max.apply(null, dayCals.concat([1]));
 
+    // Weekly macro totals
+    var weekP = 0, weekC = 0, weekF = 0;
+    days.forEach(function (wd) {
+      var day = allMeals[wd.iso] || {};
+      MEAL_TYPES.forEach(function (mt) {
+        var m = day[mt.key] || {};
+        weekP += parseInt(m.protein, 10) || 0;
+        weekC += parseInt(m.carbs,   10) || 0;
+        weekF += parseInt(m.fat,     10) || 0;
+      });
+    });
+
     var el = document.createElement('div');
     el.className = 'dmeal-summary';
     el.innerHTML =
       '<div class="dmeal-summary-stat"><div class="dmeal-summary-val">' + total + '</div><div class="dmeal-summary-lbl">Total cal</div></div>' +
       '<div class="dmeal-summary-stat"><div class="dmeal-summary-val">' + avg + '</div><div class="dmeal-summary-lbl">Avg/day</div></div>' +
-      '<div class="dmeal-summary-stat"><div class="dmeal-summary-val">' + weekGoal + '</div><div class="dmeal-summary-lbl">Week goal</div></div>';
+      '<div class="dmeal-summary-stat"><div class="dmeal-summary-val">' + weekGoal + '</div><div class="dmeal-summary-lbl">Week goal</div></div>' +
+      (weekP || weekC || weekF
+        ? '<div class="dmeal-summary-stat"><div class="dmeal-summary-val" style="font-size:0.72rem;color:#e74c3c">P ' + weekP + 'g</div><div class="dmeal-summary-lbl">Week protein</div></div>' +
+          '<div class="dmeal-summary-stat"><div class="dmeal-summary-val" style="font-size:0.72rem;color:#f39c12">C ' + weekC + 'g</div><div class="dmeal-summary-lbl">Week carbs</div></div>' +
+          '<div class="dmeal-summary-stat"><div class="dmeal-summary-val" style="font-size:0.72rem;color:#9b59b6">F ' + weekF + 'g</div><div class="dmeal-summary-lbl">Week fat</div></div>'
+        : '');
 
     var spark = document.createElement('div');
     spark.className = 'dmeal-spark';
@@ -357,11 +407,14 @@
     hdr.innerHTML = esc(wd.short) + '<span class="dmeal-date">' + esc(wd.label) + '</span>';
     col.appendChild(hdr);
 
-    var dayMeals  = allMeals[wd.iso] || {};
-    var totalCal  = 0;
+    var dayMeals = allMeals[wd.iso] || {};
+    var totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
     MEAL_TYPES.forEach(function (mt) {
       var m = dayMeals[mt.key] || { name: '', calories: 0 };
       totalCal += parseInt(m.calories, 10) || 0;
+      totalP   += parseInt(m.protein,  10) || 0;
+      totalC   += parseInt(m.carbs,    10) || 0;
+      totalF   += parseInt(m.fat,      10) || 0;
       col.appendChild(buildMealSlot(wd, mt, m));
     });
 
@@ -372,6 +425,30 @@
     bar.title     = totalCal + ' cal (' + pct + '%)';
     bar.innerHTML = '<div class="dmeal-cal-bar-fill" style="width:' + pct + '%;background:' + color + '"></div>';
     col.appendChild(bar);
+
+    // P/C/F mini-bars (only if any macro data exists)
+    if (totalP || totalC || totalF) {
+      var macroGoals = (function () {
+        try { return JSON.parse(localStorage.getItem('personalMacroGoals')) || { protein: 150, carbs: 200, fat: 65 }; }
+        catch (_) { return { protein: 150, carbs: 200, fat: 65 }; }
+      }());
+      var miniWrap = document.createElement('div');
+      miniWrap.className = 'dmeal-macro-mini';
+      [
+        { val: totalP, tgt: macroGoals.protein, color: '#e74c3c', lbl: 'P' },
+        { val: totalC, tgt: macroGoals.carbs,   color: '#f39c12', lbl: 'C' },
+        { val: totalF, tgt: macroGoals.fat,      color: '#9b59b6', lbl: 'F' }
+      ].forEach(function (m) {
+        var mpct = m.tgt > 0 ? Math.min(100, Math.round(m.val / m.tgt * 100)) : 0;
+        var row = document.createElement('div');
+        row.className = 'dmeal-macro-mini-row';
+        row.title = m.lbl + ': ' + m.val + 'g (' + mpct + '% of goal)';
+        row.innerHTML = '<span class="dmeal-macro-mini-lbl">' + m.lbl + '</span>' +
+          '<div class="dmeal-macro-mini-bar"><div style="width:' + mpct + '%;background:' + m.color + ';height:100%;border-radius:2px"></div></div>';
+        miniWrap.appendChild(row);
+      });
+      col.appendChild(miniWrap);
+    }
     return col;
   }
 
@@ -561,7 +638,7 @@
         item.draggable = true;
         item.innerHTML =
           '<div class="dmeal-fav-name">' + esc(fav.name) + '</div>' +
-          '<div class="dmeal-fav-cal">' + (fav.calories ? fav.calories + ' cal' : '') + '</div>' +
+          '<div class="dmeal-fav-cal">' + (fav.calories ? fav.calories + ' cal' : '') + (fav.protein ? ' · P' + fav.protein + 'g' : '') + '</div>' +
           '<button class="dmeal-fav-del" title="Remove">✕</button>';
 
         item.addEventListener('dragstart', function (e) {
@@ -579,6 +656,41 @@
           setFavs(fs);
           renderDeskMeal();
         });
+        sidebar.appendChild(item);
+      });
+    }
+
+    // From Recipes section (Phase 4)
+    var recFavs = (function () {
+      try { return (JSON.parse(localStorage.getItem('personalRecipes')) || []).filter(function (r) { return r && r.favorite; }); }
+      catch (_) { return []; }
+    }());
+    if (recFavs.length) {
+      var recTitle = document.createElement('div');
+      recTitle.style.cssText = 'font-size:0.72rem;font-weight:700;color:var(--ios-text-3,#aaa);text-transform:uppercase;margin-top:10px;padding-top:8px;border-top:1px solid #eee;';
+      recTitle.textContent = '📖 From Recipes';
+      sidebar.appendChild(recTitle);
+      recFavs.forEach(function (r) {
+        var item = document.createElement('div');
+        item.className = 'dmeal-fav-item';
+        item.draggable = true;
+        var mealData = {
+          name:     r.name || '',
+          calories: r.totals ? (r.totals.calories || 0) : 0,
+          protein:  r.totals ? (r.totals.protein  || 0) : 0,
+          carbs:    r.totals ? (r.totals.carbs    || 0) : 0,
+          fat:      r.totals ? (r.totals.fat      || 0) : 0
+        };
+        item.innerHTML =
+          '<div class="dmeal-fav-name">' + esc((r.emoji || '🍽️') + ' ' + r.name) + '</div>' +
+          '<div class="dmeal-fav-cal">' + (mealData.calories ? mealData.calories + ' cal' : '') + '</div>';
+        item.addEventListener('dragstart', function (e) {
+          var src = { isFav: true, mealData: mealData };
+          _mealDragSrc = src;
+          e.dataTransfer.effectAllowed = 'copy';
+          e.dataTransfer.setData('text/plain', JSON.stringify(src));
+        });
+        item.addEventListener('dragend', function () { _mealDragSrc = null; });
         sidebar.appendChild(item);
       });
     }

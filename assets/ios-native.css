@@ -3098,3 +3098,209 @@ main {
   .app-fv-hourly-grid { overflow-x: auto; }
   .awf-row { grid-template-columns: 60px 20px 1fr 48px 28px 50px; }
 }
+
+/* ======================================================================
+   MEAL PLANNER — FULL-SCREEN TABBED DASHBOARD
+   ====================================================================== */
+
+/* Tab bar */
+.mf-tab-bar {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  margin-bottom: 14px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid #eee;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.mf-tab-bar::-webkit-scrollbar { display: none; }
+.mf-tab-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--ios-text-2, #555);
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.mf-tab-btn.active {
+  background: var(--ios-accent, #4a90e2);
+  color: #fff;
+  border-color: var(--ios-accent, #4a90e2);
+  font-weight: 600;
+}
+.mf-tab-body { animation: mfFadeIn 0.15s ease; }
+@keyframes mfFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ── Tab 1: Today layout ── */
+.mf-today-wrap { display: grid; grid-template-columns: 200px 1fr; gap: 20px; }
+.mf-today-charts { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.mf-donut-main { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.mf-donut-main-label { font-size: 0.82rem; color: var(--ios-text-2, #555); text-align: center; }
+.mf-macro-rings { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.mf-macro-ring-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.mf-macro-ring-lbl { font-size: 0.7rem; color: var(--ios-text-3, #aaa); text-align: center; line-height: 1.3; }
+.mf-macro-ring-lbl span { font-weight: 600; color: var(--ios-text-2, #555); }
+.mf-goal-row { font-size: 0.8rem; width: 100%; display: flex; justify-content: center; }
+.mf-today-timeline { overflow-y: auto; min-width: 0; }
+
+/* Meal cards */
+.mf-meal-card { display: flex; border: 1px solid #eee; border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+.mf-meal-card-bar { width: 4px; background: var(--meal-color, var(--ios-accent, #4a90e2)); flex-shrink: 0; }
+.mf-meal-card-body { flex: 1; padding: 10px 12px; min-width: 0; }
+.mf-meal-card-row { display: flex; align-items: flex-start; gap: 10px; }
+.mf-meal-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+.mf-meal-card-info { flex: 1; min-width: 0; }
+.mf-meal-card-label { font-size: 0.72rem; font-weight: 700; color: var(--ios-text-3, #aaa); text-transform: uppercase; }
+.mf-meal-card-name { font-size: 0.88rem; font-weight: 600; margin: 2px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mf-meal-card-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.mf-meal-cal-badge { background: #f0f4ff; color: var(--ios-accent, #4a90e2); border-radius: 8px; padding: 2px 8px; font-size: 0.76rem; font-weight: 700; }
+.mf-meal-time { font-size: 0.76rem; color: var(--ios-text-3, #aaa); font-weight: 400; }
+.mf-meal-macros { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.mf-macro-pill { border-radius: 6px; padding: 1px 6px; font-size: 0.7rem; font-weight: 600; }
+.mf-macro-pill.protein { background: #ffe5e5; color: #c0392b; }
+.mf-macro-pill.carbs   { background: #fef3e2; color: #d35400; }
+.mf-macro-pill.fat     { background: #f3e5f5; color: #7d3c98; }
+.mf-macro-pill.fiber   { background: #e8f5e9; color: #1e8449; }
+.mf-meal-notes { font-size: 0.76rem; color: var(--ios-text-3, #aaa); margin-top: 3px; font-style: italic; }
+.mf-meal-edit-btn { background: none; border: 1px solid #e0e0e0; border-radius: 8px; padding: 3px 8px; font-size: 0.82rem; cursor: pointer; }
+.mf-meal-edit-panel { background: #f5f9ff; border-radius: 10px; padding: 10px 12px; margin-top: 8px; }
+.mf-inp-row { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+.mf-macro-inp-lbl { display: flex; align-items: center; gap: 3px; font-size: 0.76rem; color: var(--ios-text-3, #aaa); }
+.mf-edit-btns { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+.mf-quick-row { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.mf-quick-fav-list { display: flex; flex-direction: column; gap: 6px; }
+.mf-quick-fav-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.82rem; }
+
+/* ── Tab 2: Week ── */
+.mf-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.mf-week-col { background: #f9f9f9; border-radius: 10px; padding: 8px 6px; min-width: 58px; }
+.mf-week-col.today { background: #f0f4ff; border: 1px solid var(--ios-accent, #4a90e2); }
+.mf-week-col-hdr { font-weight: 700; font-size: 0.82rem; text-align: center; color: var(--ios-text-1, #111); }
+.mf-week-col-date { display: block; font-size: 0.66rem; color: var(--ios-text-3, #aaa); font-weight: 400; }
+.mf-week-meals { display: flex; flex-direction: column; gap: 3px; margin: 6px 0 4px; min-height: 38px; }
+.mf-week-pill { font-size: 0.66rem; border-radius: 4px; padding: 2px 4px; background: #fff; color: var(--ios-text-2, #444); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mf-week-empty { font-size: 0.7rem; color: var(--ios-text-3, #aaa); text-align: center; padding: 4px 0; }
+.mf-week-cal-total { font-size: 0.72rem; font-weight: 700; text-align: center; color: var(--ios-text-1, #111); margin-bottom: 4px; }
+.mf-week-bar-wrap { height: 5px; background: #e8e8e8; border-radius: 3px; overflow: hidden; margin-bottom: 2px; }
+.mf-week-bar-fill { height: 100%; border-radius: 3px; }
+.mf-week-pct { font-size: 0.64rem; text-align: center; color: var(--ios-text-3, #aaa); }
+.mf-week-stats { display: flex; gap: 12px; background: #f5f9ff; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.mf-week-stat { flex: 1; min-width: 80px; text-align: center; }
+.mf-week-stat-val { font-size: 1.2rem; font-weight: 700; color: var(--ios-accent, #4a90e2); }
+.mf-week-stat-lbl { font-size: 0.7rem; color: var(--ios-text-3, #aaa); }
+.mf-macro-trends { display: flex; flex-direction: column; gap: 8px; }
+.mf-macro-trend-row { display: flex; align-items: center; gap: 10px; }
+.mf-macro-trend-lbl { font-size: 0.78rem; font-weight: 700; min-width: 56px; }
+.mf-macro-trend-spark { flex: 1; overflow: hidden; }
+.mf-macro-trend-avg { font-size: 0.72rem; color: var(--ios-text-3, #aaa); min-width: 50px; text-align: right; }
+
+/* ── Tab 3: Nutrition ── */
+.mf-nutrition-table { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.mf-nut-row { display: grid; grid-template-columns: 92px 1fr auto; gap: 8px; align-items: center; }
+.mf-nut-label { font-size: 0.8rem; }
+.mf-nut-bar-wrap { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+.mf-nut-bar-fill { height: 100%; border-radius: 4px; }
+.mf-nut-vals { font-size: 0.74rem; color: var(--ios-text-2, #444); white-space: nowrap; }
+.mf-nut-pct { color: var(--ios-text-3, #aaa); }
+.mf-ratio-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin: 6px 0; }
+.mf-ratio-seg { height: 100%; }
+.mf-ratio-legend { display: flex; gap: 16px; font-size: 0.78rem; margin-bottom: 12px; flex-wrap: wrap; }
+.mf-macro-goals-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+.mf-mg-lbl { display: flex; flex-direction: column; gap: 3px; font-size: 0.78rem; color: var(--ios-text-3, #aaa); }
+.mf-nut-sparks { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mf-nut-spark-item { background: #f9f9f9; border-radius: 8px; padding: 6px 8px; }
+.mf-nut-spark-lbl { font-size: 0.72rem; font-weight: 700; margin-bottom: 4px; }
+
+/* ── Tab 4: Recipes Hub ── */
+.mf-recipe-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.mf-recipe-search { flex: 1; min-width: 160px; }
+.mf-recipe-empty { color: var(--ios-text-3, #aaa); font-size: 0.85rem; text-align: center; padding: 24px 0; }
+.mf-recipe-list { display: flex; flex-direction: column; gap: 10px; }
+.mf-recipe-card { background: #f9f9f9; border-radius: 12px; padding: 12px 14px; border: 1px solid #eee; }
+.mf-recipe-card-top { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+.mf-recipe-emoji { font-size: 2rem; line-height: 1; flex-shrink: 0; }
+.mf-recipe-card-info { flex: 1; min-width: 0; }
+.mf-recipe-card-name { font-size: 0.92rem; font-weight: 700; color: var(--ios-text-1, #111); margin-bottom: 2px; }
+.mf-recipe-card-meta { font-size: 0.76rem; color: var(--ios-text-3, #aaa); }
+.mf-recipe-card-macros { font-size: 0.76rem; color: var(--ios-text-2, #444); margin-top: 2px; }
+.mf-recipe-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
+.mf-recipe-tag { background: #e8f0fe; color: var(--ios-accent, #4a90e2); border-radius: 6px; padding: 1px 7px; font-size: 0.68rem; font-weight: 600; }
+.mf-recipe-card-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.mf-recipe-add-panel { display: none; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+.mf-recipe-form-header { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; flex-wrap: wrap; }
+.mf-recipe-form { display: flex; flex-direction: column; gap: 8px; }
+.mf-rf-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+.mf-rf-lbl { display: flex; flex-direction: column; gap: 3px; font-size: 0.78rem; color: var(--ios-text-3, #aaa); }
+.mf-ing-header { display: grid; grid-template-columns: 1fr 52px 58px 48px 42px 42px 42px 26px; gap: 4px; font-size: 0.68rem; font-weight: 700; color: var(--ios-text-3, #aaa); padding: 0 0 4px; border-bottom: 1px solid #eee; }
+.mf-ing-row { display: grid; grid-template-columns: 1fr 52px 58px 48px 42px 42px 42px 26px; gap: 4px; align-items: center; padding: 3px 0; }
+.mf-ing-list { display: flex; flex-direction: column; gap: 0; }
+.mf-rf-totals { background: #f0f4ff; border-radius: 8px; padding: 8px 12px; margin: 6px 0; }
+.mf-rf-total-row { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.82rem; font-weight: 600; }
+.mf-rf-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+
+/* ── Tab 5: Favorites ── */
+.mf-fav-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.mf-fav-sort { font-size: 0.78rem; color: var(--ios-text-3, #aaa); display: flex; gap: 4px; align-items: center; }
+.mf-fav-sort-btn.active { font-weight: 700; color: var(--ios-accent, #4a90e2); }
+.mf-fav-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.mf-fav-item { padding: 8px 10px; border-radius: 10px; background: #f9f9f9; }
+.mf-fav-item-info { flex: 1; min-width: 0; }
+.mf-fav-item-name { font-size: 0.85rem; font-weight: 600; color: var(--ios-text-1, #111); }
+.mf-fav-item-macros { font-size: 0.74rem; color: var(--ios-text-3, #aaa); margin-top: 2px; }
+.mf-fav-item-actions { display: flex; gap: 6px; align-items: center; }
+.mf-new-fav-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; background: #f5f9ff; border-radius: 10px; padding: 10px 12px; }
+
+/* ── Dark mode ── */
+body.dark-mode .mf-tab-bar { border-color: #2a2a4a; }
+body.dark-mode .mf-tab-btn { color: var(--ios-text-2); }
+body.dark-mode .mf-meal-card { border-color: #2a2a4a; }
+body.dark-mode .mf-meal-cal-badge { background: #1e2d50; }
+body.dark-mode .mf-meal-edit-btn { border-color: #3a3a5a; }
+body.dark-mode .mf-meal-edit-panel { background: #1a2035; }
+body.dark-mode .mf-quick-fav-item { border-color: #2a2a4a; }
+body.dark-mode .mf-week-col { background: #1a2035; }
+body.dark-mode .mf-week-col.today { background: #1e2d50; border-color: var(--ios-accent); }
+body.dark-mode .mf-week-pill { background: #22284a; color: var(--ios-text-2); }
+body.dark-mode .mf-week-bar-wrap { background: #22284a; }
+body.dark-mode .mf-week-stats { background: #1a2035; }
+body.dark-mode .mf-nut-bar-wrap { background: #22284a; }
+body.dark-mode .mf-nut-spark-item { background: #1a2035; }
+body.dark-mode .mf-rf-totals { background: #1e2d50; }
+body.dark-mode .mf-recipe-card { background: #1a2035; border-color: #2a2a4a; }
+body.dark-mode .mf-recipe-tag { background: #1e2d50; }
+body.dark-mode .mf-fav-item { background: #1a2035; }
+body.dark-mode .mf-new-fav-form { background: #1e2d50; }
+body.dark-mode .mf-macro-pill.protein { background: #3d1515; color: #e74c3c; }
+body.dark-mode .mf-macro-pill.carbs   { background: #3d2a00; color: #f39c12; }
+body.dark-mode .mf-macro-pill.fat     { background: #2d1540; color: #9b59b6; }
+body.dark-mode .mf-macro-pill.fiber   { background: #0d2a15; color: #27ae60; }
+body.dark-mode .mf-ing-header { border-color: #2a2a4a; }
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .mf-today-wrap { grid-template-columns: 1fr; }
+  .mf-today-charts { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .mf-week-grid { grid-template-columns: repeat(7, minmax(54px, 1fr)); }
+  .mf-nut-row { grid-template-columns: 80px 1fr; }
+  .mf-nut-vals { grid-column: 1 / -1; font-size: 0.7rem; }
+  .mf-ing-header { grid-template-columns: 1fr 44px 52px 44px 38px 38px 38px 22px; }
+  .mf-ing-row    { grid-template-columns: 1fr 44px 52px 44px 38px 38px 38px 22px; }
+  .mf-nut-sparks { grid-template-columns: 1fr; }
+}
+
+/* ── Desktop Meal Panel — Phase 3 additions ── */
+.dmeal-macro-mini { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; padding: 4px 0 0; }
+.dmeal-macro-mini-row { display: flex; align-items: center; gap: 4px; }
+.dmeal-macro-mini-lbl { font-size: 0.62rem; font-weight: 700; min-width: 10px; color: var(--ios-text-3, #aaa); }
+.dmeal-macro-mini-bar { flex: 1; height: 4px; background: #e8e8e8; border-radius: 2px; overflow: hidden; }
+.dmeal-macro-expander { margin-top: 4px; }
+.dmeal-macro-goals-panel { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; padding: 8px 10px; background: #f5f9ff; border-radius: 8px; }
+.dmeal-summary { flex-wrap: wrap; }
+body.dark-mode .dmeal-macro-mini-bar { background: #22284a; }
+body.dark-mode .dmeal-macro-goals-panel { background: #1e2d50; }
