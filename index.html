@@ -1142,7 +1142,11 @@
     var _APP_TITLE_MAP = {
       budget: '💰 Budget', hydration: '💧 Hydration', mood: '😊 Mood',
       focus: '🎯 Daily Focus', sleep: '😴 Sleep', meal: '🥗 Meal Planner',
-      gym: '🏋️ Gym Planner', routine: '🌅 Daily Routine'
+      gym: '🏋️ Gym Planner', routine: '🌅 Daily Routine', jobs: '💼 Jobs'
+    };
+    var _APP_EMOJI_MAP = {
+      budget: '💰', hydration: '💧', mood: '😊', focus: '🎯',
+      sleep: '😴', meal: '🥗', gym: '🏋️', routine: '🌅', jobs: '💼'
     };
     var _APP_CONTAINER_MAP = {
       budget: 'personalBudgetSection', hydration: 'personalHydrationSection',
@@ -1218,7 +1222,7 @@
       apps.forEach(function(app) {
         var card = document.createElement('button');
         card.className = 'today-pinned-app-card';
-        var emojiMap = {budget:'💰',hydration:'💧',mood:'😊',focus:'🎯',sleep:'😴',meal:'🥗',gym:'🏋️',routine:'🌅'};
+      var emojiMap = _APP_EMOJI_MAP;
         card.innerHTML = '<span class="today-pinned-app-icon">' + (emojiMap[app] || '⊞') +
           '</span><span class="today-pinned-app-name">' + (_APP_TITLE_MAP[app] || app) + '</span>';
         card.addEventListener('click', function() { openAppsModal(); openAppDetail(app); });
