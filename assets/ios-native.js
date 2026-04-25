@@ -1,5 +1,5 @@
 /**
- * ios-native.js — iOS 26 / macOS native-feel enhancements
+ * ios-native.js — iOS 26 / iPadOS 26 / macOS native-feel enhancements
  * Runs after all other scripts.  Feature-detects everything.
  */
 (function () {
@@ -27,7 +27,7 @@
   }
 
   /* ──────────────────────────────────────────────────────────
-     2.  Haptic feedback wrapper
+     2.  Haptic feedback wrapper — iOS 26 richer patterns
      ────────────────────────────────────────────────────────── */
   function haptic(pattern) {
     try {
@@ -35,12 +35,23 @@
     } catch (_) {}
   }
 
+  // Semantic haptic helpers (mirrors iOS impact/notification feedback)
+  var haptics = {
+    light:    function () { haptic([8]); },
+    medium:   function () { haptic([14]); },
+    heavy:    function () { haptic([22]); },
+    success:  function () { haptic([10, 40, 10]); },
+    warning:  function () { haptic([20, 30, 20]); },
+    error:    function () { haptic([30, 20, 30, 20, 30]); },
+    select:   function () { haptic([6]); },
+  };
+
   document.addEventListener('click', function (e) {
     var el = e.target.closest(
       'button, a.r-item, a.sidebar-item, .day, .bucket-header,' +
       ' .chore-tpl-item, .dv-event-block, .cal-add-type-btn'
     );
-    if (el) haptic([8]);
+    if (el) haptics.light();
   }, { passive: true });
 
   /* ──────────────────────────────────────────────────────────
@@ -103,7 +114,7 @@
       item.addEventListener('click', function (e) {
         e.preventDefault();
         var view = item.dataset.view || 'today';
-        haptic([10]);
+        haptics.select();
         if (location.hash.replace('#', '') !== view) {
           location.hash = view;
         }
@@ -120,13 +131,15 @@
          Also injects drag handles into modal panels.
      ────────────────────────────────────────────────────────── */
   function _animateSheetOut(panel, callback) {
-    panel.style.transition = 'transform 0.28s cubic-bezier(0.25,1,0.5,1)';
-    panel.style.transform = 'translateY(100%)';
+    panel.style.transition = 'transform 0.30s cubic-bezier(0.22,1,0.36,1), opacity 0.24s ease';
+    panel.style.transform = 'translateY(100%) scale(0.98)';
+    panel.style.opacity = '0.6';
     setTimeout(function () {
       panel.style.transition = '';
       panel.style.transform = '';
+      panel.style.opacity = '';
       callback();
-    }, 280);
+    }, 300);
   }
 
   function _setupSheet(overlayId, panelSelector, closeHide) {
@@ -146,6 +159,7 @@
     // Backdrop tap → dismiss
     overlay.addEventListener('click', function (e) {
       if (e.target === overlay) {
+        haptics.light();
         _animateSheetOut(panel, function () {
           closeHide();
         });
@@ -183,12 +197,16 @@
       panel.style.transition = '';
       panel.style.animationName = '';
       if (dy > 110) {
+        haptics.light();
         _animateSheetOut(panel, function () {
           panel.style.transform = '';
           closeHide();
         });
       } else {
+        // Snap back with spring
+        panel.style.transition = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
         panel.style.transform = '';
+        setTimeout(function () { panel.style.transition = ''; }, 350);
       }
     }, { passive: true });
   }
@@ -263,7 +281,7 @@
         _refreshing = true;
         indicator.classList.remove('ptr-pulling');
         indicator.classList.add('ptr-refreshing');
-        haptic([20, 60, 20]);
+        haptics.medium();
         indicator.querySelector('span').style.animation = '';
 
         // Trigger data refresh
@@ -278,6 +296,7 @@
           indicator.style.opacity = '';
           indicator.style.transform = '';
           _refreshing = false;
+          haptics.success();
         }, 1200);
       } else {
         indicator.classList.remove('ptr-pulling', 'ptr-refreshing');
@@ -324,6 +343,7 @@
     _updateBadge();
     setInterval(_updateBadge, 60000);
     window.addEventListener('storage', _updateBadge);
+    window.addEventListener('app:data:updated', _updateBadge);
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -353,7 +373,165 @@
   };
 
   /* ──────────────────────────────────────────────────────────
-     9.  Wire everything up after DOM is ready
+     9.  In-app notification banner (iOS 26 Live Notification style)
+         Shown when a notification fires while the app is in the foreground.
+     ────────────────────────────────────────────────────────── */
+  var _bannerEl = null;
+  var _bannerTimer = null;
+
+  function _getBanner() {
+    if (_bannerEl) return _bannerEl;
+    _bannerEl = document.createElement('div');
+    _bannerEl.className = 'ios-notif-banner';
+    _bannerEl.setAttribute('role', 'alert');
+    _bannerEl.setAttribute('aria-live', 'assertive');
+    _bannerEl.innerHTML =
+      '<div class="ios-notif-banner-icon">📅</div>' +
+      '<div class="ios-notif-banner-body">' +
+        '<div class="ios-notif-banner-title"></div>' +
+        '<div class="ios-notif-banner-text"></div>' +
+      '</div>';
+    document.body.appendChild(_bannerEl);
+    _bannerEl.addEventListener('click', function () {
+      _hideBanner();
+    });
+    return _bannerEl;
+  }
+
+  function _showBanner(title, body, emoji, url) {
+    var banner = _getBanner();
+    banner.querySelector('.ios-notif-banner-icon').textContent = emoji || '📅';
+    banner.querySelector('.ios-notif-banner-title').textContent = title || 'Reminder';
+    banner.querySelector('.ios-notif-banner-text').textContent = body || '';
+    if (url) banner.dataset.url = url;
+
+    banner.classList.remove('hiding');
+    banner.classList.add('visible');
+
+    if (_bannerTimer) clearTimeout(_bannerTimer);
+    _bannerTimer = setTimeout(_hideBanner, 4500);
+
+    haptics.success();
+  }
+
+  function _hideBanner() {
+    if (!_bannerEl) return;
+    _bannerEl.classList.add('hiding');
+    _bannerEl.classList.remove('visible');
+    if (_bannerTimer) { clearTimeout(_bannerTimer); _bannerTimer = null; }
+    setTimeout(function () {
+      if (_bannerEl) _bannerEl.classList.remove('hiding');
+    }, 320);
+  }
+
+  // Expose so notifications.js can call it
+  window.iosShowBanner = _showBanner;
+
+  /* ──────────────────────────────────────────────────────────
+     10. Swipe-back navigation gesture (iOS 26 edge swipe)
+         Single-finger swipe from left edge navigates back in view history.
+     ────────────────────────────────────────────────────────── */
+  function _initSwipeBack() {
+    var _startX = 0;
+    var _startY = 0;
+    var _active = false;
+    var EDGE_ZONE = 28;    // px from left edge to trigger
+    var THRESHOLD  = 80;   // horizontal swipe needed
+
+    document.addEventListener('touchstart', function (e) {
+      var t = e.touches[0];
+      if (t.clientX < EDGE_ZONE) {
+        _startX = t.clientX;
+        _startY = t.clientY;
+        _active = true;
+      } else {
+        _active = false;
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', function (e) {
+      if (!_active) return;
+      _active = false;
+      var t = e.changedTouches[0];
+      var dx = t.clientX - _startX;
+      var dy = Math.abs(t.clientY - _startY);
+      if (dx > THRESHOLD && dy < 60) {
+        haptics.light();
+        history.back();
+      }
+    }, { passive: true });
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     11. iOS push notification permission prompt
+         Shown once to guide users to enable notifications.
+         Only displayed when running as a standalone PWA on iOS 16.4+.
+     ────────────────────────────────────────────────────────── */
+  function _isStandalonePWA() {
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      navigator.standalone === true
+    );
+  }
+
+  function _initPushPrompt() {
+    // Only show if: notifications supported, permission not yet decided, running as PWA
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'default') return;
+    if (!_isStandalonePWA()) return;
+    // Don't nag more than once per session
+    if (sessionStorage.getItem('pushPromptShown')) return;
+    sessionStorage.setItem('pushPromptShown', '1');
+
+    // Show the prompt banner after 3 seconds
+    setTimeout(function () {
+      _showBanner(
+        'Enable Notifications',
+        'Tap to allow reminders & event alerts.',
+        '🔔',
+        null
+      );
+      if (_bannerEl) {
+        _bannerEl.addEventListener('click', function _onClick() {
+          _bannerEl.removeEventListener('click', _onClick);
+          Notification.requestPermission().then(function (perm) {
+            if (perm === 'granted') {
+              _showBanner('Notifications On', 'You\'ll get reminders for events & tasks.', '✅', null);
+              // Register SW for push if not yet done
+              try {
+                if (window.pushClient) window.pushClient.registerSW();
+              } catch (_) {}
+            }
+          }).catch(function () {});
+        });
+      }
+    }, 3000);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     12. iPad: adjust sidebar for orientation changes
+     ────────────────────────────────────────────────────────── */
+  function _initOrientationHandling() {
+    var mq = window.matchMedia && window.matchMedia('(min-width: 768px)');
+    if (!mq) return;
+
+    function _onResize() {
+      var sidebar = document.getElementById('desktopSidebar');
+      if (!sidebar) return;
+      // On very narrow widths (landscape phone), keep sidebar hidden via CSS
+      // The CSS already handles this, but we dispatch an event for the app to react
+      window.dispatchEvent(new CustomEvent('ios:layout:changed', {
+        detail: { isWide: mq.matches }
+      }));
+    }
+
+    if (mq.addEventListener) mq.addEventListener('change', _onResize);
+    // Also listen for actual resize (handles Split View on iPad)
+    window.addEventListener('resize', _onResize, { passive: true });
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     13. Wire everything up after DOM is ready
      ────────────────────────────────────────────────────────── */
   function _init() {
     _initPageTransitions();
@@ -361,6 +539,9 @@
     _initBottomSheets();
     _initPullToRefresh();
     _initBadgeAPI();
+    _initSwipeBack();
+    _initPushPrompt();
+    _initOrientationHandling();
   }
 
   if (document.readyState === 'loading') {

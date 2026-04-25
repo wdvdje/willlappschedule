@@ -16,32 +16,45 @@
   --ios-surface:       #FFFFFF;
   --ios-surface-2:     #F2F2F7;
   --ios-surface-3:     #E5E5EA;
-  --ios-glass:         rgba(242,242,247,0.82);
-  --ios-glass-blur:    saturate(180%) blur(22px);
-  --ios-border:        rgba(60,60,67,0.16);
-  --ios-shadow-sm:     0 1px 6px rgba(0,0,0,0.08);
-  --ios-shadow-md:     0 4px 20px rgba(0,0,0,0.10);
-  --ios-shadow-lg:     0 8px 40px rgba(0,0,0,0.16);
+
+  /* Liquid Glass — iOS 26 style: deeper blur, richer saturation, subtle tint */
+  --ios-glass:         rgba(242,242,247,0.68);
+  --ios-glass-card:    rgba(255,255,255,0.60);
+  --ios-glass-vibrant: rgba(255,255,255,0.78);
+  --ios-glass-blur:    saturate(220%) blur(40px);
+  --ios-glass-blur-sm: saturate(180%) blur(20px);
+
+  --ios-border:        rgba(60,60,67,0.13);
+  --ios-border-glass:  rgba(255,255,255,0.45);
+
+  --ios-shadow-sm:     0 1px 8px rgba(0,0,0,0.07), 0 0 0 0.5px rgba(0,0,0,0.04);
+  --ios-shadow-md:     0 4px 24px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06);
+  --ios-shadow-lg:     0 12px 48px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08);
+  --ios-shadow-glass:  0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6);
 
   --ios-text:          #1C1C1E;
   --ios-text-2:        #48484A;
   --ios-text-3:        #8E8E93;
   --ios-text-4:        #AEAEB2;
 
-  --ios-r-xs:          8px;
-  --ios-r-sm:          12px;
-  --ios-r-md:          16px;
-  --ios-r-lg:          22px;
-  --ios-r-xl:          28px;
+  --ios-r-xs:          10px;
+  --ios-r-sm:          14px;
+  --ios-r-md:          18px;
+  --ios-r-lg:          24px;
+  --ios-r-xl:          32px;
 
+  /* Spring physics — iOS 26 feels more elastic and alive */
   --ios-spring:        cubic-bezier(0.34,1.56,0.64,1);
+  --ios-spring-soft:   cubic-bezier(0.22,1.0,0.36,1);
   --ios-ease:          cubic-bezier(0.25,1,0.5,1);
-  --ios-fast:          0.16s;
-  --ios-normal:        0.30s;
-  --ios-slow:          0.45s;
+  --ios-fast:          0.18s;
+  --ios-normal:        0.34s;
+  --ios-slow:          0.50s;
 
-  --ios-sidebar-w:     220px;
-  --ios-sidebar-w-collapsed: 56px;
+  /* iPad breakpoint: show sidebar from 768 px (iPad mini portrait) */
+  --ios-sidebar-w:     240px;
+  --ios-sidebar-w-collapsed: 58px;
+  --ios-sidebar-breakpoint: 768px;
   --ios-tab-h:         calc(62px + env(safe-area-inset-bottom,0px));
   --ios-header-h:      calc(54px + env(safe-area-inset-top,0px));
 }
@@ -49,16 +62,20 @@
 /* ── 2. Dark-mode tokens (system preference) ───────────────────── */
 @media (prefers-color-scheme: dark) {
   :root {
-    --ios-surface:    #1C1C1E;
-    --ios-surface-2:  #2C2C2E;
-    --ios-surface-3:  #3A3A3C;
-    --ios-glass:      rgba(28,28,30,0.85);
-    --ios-border:     rgba(255,255,255,0.14);
-    --ios-text:       #F2F2F7;
-    --ios-text-2:     #EBEBF5;
-    --ios-text-3:     #8E8E93;
-    --ios-text-4:     #636366;
-    --ios-accent-bg:  rgba(10,132,255,0.18);
+    --ios-surface:       #1C1C1E;
+    --ios-surface-2:     #2C2C2E;
+    --ios-surface-3:     #3A3A3C;
+    --ios-glass:         rgba(28,28,30,0.78);
+    --ios-glass-card:    rgba(44,44,46,0.65);
+    --ios-glass-vibrant: rgba(58,58,60,0.82);
+    --ios-border:        rgba(255,255,255,0.12);
+    --ios-border-glass:  rgba(255,255,255,0.14);
+    --ios-shadow-glass:  0 8px 32px rgba(0,0,0,0.40), inset 0 1px 0 rgba(255,255,255,0.10);
+    --ios-text:          #F2F2F7;
+    --ios-text-2:        #EBEBF5;
+    --ios-text-3:        #8E8E93;
+    --ios-text-4:        #636366;
+    --ios-accent-bg:     rgba(10,132,255,0.18);
   }
 }
 
@@ -68,18 +85,18 @@ body {
   color: var(--ios-text) !important;
 }
 
-/* ── 4. Sticky glass header ────────────────────────────────────── */
+/* ── 4. Sticky glass header — Liquid Glass ─────────────────────── */
 header {
   background: var(--ios-glass) !important;
   -webkit-backdrop-filter: var(--ios-glass-blur) !important;
   backdrop-filter: var(--ios-glass-blur) !important;
-  border-bottom: 1px solid var(--ios-border) !important;
+  border-bottom: 1px solid var(--ios-border-glass) !important;
   color: var(--ios-text) !important;
   /* Make header sticky so it stays at top while scrolling */
   position: sticky !important;
   top: 0 !important;
   z-index: 1000 !important;
-  box-shadow: none !important;
+  box-shadow: 0 1px 0 var(--ios-border), 0 2px 12px rgba(0,0,0,0.06) !important;
 }
 
 /* Sync status bar also gets glass */
@@ -120,8 +137,8 @@ header .header-btn:active {
   background: var(--ios-glass) !important;
   -webkit-backdrop-filter: var(--ios-glass-blur) !important;
   backdrop-filter: var(--ios-glass-blur) !important;
-  border-top: 1px solid var(--ios-border) !important;
-  box-shadow: none !important;
+  border-top: 1px solid var(--ios-border-glass) !important;
+  box-shadow: 0 -1px 0 var(--ios-border), 0 -4px 16px rgba(0,0,0,0.06) !important;
   padding: 4px 10px !important;
   gap: 0 !important;
 }
@@ -182,22 +199,27 @@ header .header-btn:active {
   border-radius: var(--ios-r-lg) var(--ios-r-lg) 0 0 !important;
   width: 100% !important;
   max-width: 640px !important;
-  box-shadow: var(--ios-shadow-lg) !important;
+  box-shadow: var(--ios-shadow-glass) !important;
   max-height: 92vh;
   overflow-y: auto;
   padding: 0 16px calc(16px + env(safe-area-inset-bottom,0px)) !important;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  background: var(--ios-glass-vibrant) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur) !important;
+  backdrop-filter: var(--ios-glass-blur) !important;
+  border: 1px solid var(--ios-border-glass) !important;
+  border-bottom: none !important;
 }
 
-/* Slide-up entrance animation */
+/* Slide-up entrance animation — Liquid Glass spring */
 @keyframes ios-sheet-up {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
+  from { transform: translateY(100%) scale(0.98); opacity: 0.6; }
+  to   { transform: translateY(0)   scale(1);    opacity: 1; }
 }
 @keyframes ios-sheet-down {
-  from { transform: translateY(0); }
-  to   { transform: translateY(100%); }
+  from { transform: translateY(0)   scale(1);    opacity: 1; }
+  to   { transform: translateY(100%) scale(0.98); opacity: 0.6; }
 }
 
 #editModal:not(.hidden) .panel {
@@ -214,10 +236,15 @@ header .header-btn:active {
   width: 100% !important;
   max-width: 640px !important;
   padding: 0 16px calc(16px + env(safe-area-inset-bottom,0px)) !important;
-  box-shadow: var(--ios-shadow-lg) !important;
+  box-shadow: var(--ios-shadow-glass) !important;
+  background: var(--ios-glass-vibrant) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur) !important;
+  backdrop-filter: var(--ios-glass-blur) !important;
+  border: 1px solid var(--ios-border-glass) !important;
+  border-bottom: none !important;
 }
 #catModal:not(.hidden) > div {
-  animation: ios-sheet-up var(--ios-slow) var(--ios-ease) both;
+  animation: ios-sheet-up var(--ios-slow) var(--ios-spring-soft) both;
 }
 
 /* --- #jobModal as bottom sheet --- */
@@ -232,12 +259,17 @@ header .header-btn:active {
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom,0px)) !important;
   max-height: 90vh !important;
   overflow-y: auto;
-  box-shadow: var(--ios-shadow-lg) !important;
+  box-shadow: var(--ios-shadow-glass) !important;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  background: var(--ios-glass-vibrant) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur) !important;
+  backdrop-filter: var(--ios-glass-blur) !important;
+  border: 1px solid var(--ios-border-glass) !important;
+  border-bottom: none !important;
 }
 #jobModal:not(.hidden) > div {
-  animation: ios-sheet-up var(--ios-slow) var(--ios-ease) both;
+  animation: ios-sheet-up var(--ios-slow) var(--ios-spring-soft) both;
 }
 
 /* --- chore-template modal as bottom sheet --- */
@@ -251,18 +283,23 @@ header .header-btn:active {
   max-width: 640px !important;
   margin-bottom: 0 !important;
   padding-bottom: calc(16px + env(safe-area-inset-bottom,0px)) !important;
-  box-shadow: var(--ios-shadow-lg) !important;
+  box-shadow: var(--ios-shadow-glass) !important;
+  background: var(--ios-glass-vibrant) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur) !important;
+  backdrop-filter: var(--ios-glass-blur) !important;
+  border: 1px solid var(--ios-border-glass) !important;
+  border-bottom: none !important;
 }
 .chore-tpl-modal:not(.hidden) .chore-tpl-panel {
-  animation: ios-sheet-up var(--ios-slow) var(--ios-ease) both;
+  animation: ios-sheet-up var(--ios-slow) var(--ios-spring-soft) both;
 }
 
-/* ── 7. Desktop sidebar (macOS app panel) ────────────────────────── */
+/* ── 7. Desktop / iPad sidebar (macOS app panel) ─────────────────── */
 .desktop-sidebar {
   display: none;
 }
 
-@media (min-width: 901px) {
+@media (min-width: 768px) {
   .desktop-sidebar {
     display: flex;
     flex-direction: column;
@@ -274,7 +311,8 @@ header .header-btn:active {
     background: var(--ios-glass);
     -webkit-backdrop-filter: var(--ios-glass-blur);
     backdrop-filter: var(--ios-glass-blur);
-    border-right: 1px solid var(--ios-border);
+    border-right: 1px solid var(--ios-border-glass);
+    box-shadow: 2px 0 16px rgba(0,0,0,0.06);
     z-index: 1001; /* above sticky header */
     padding: calc(env(safe-area-inset-top,0px) + 14px) 10px 14px;
     gap: 2px;
@@ -320,6 +358,26 @@ header .header-btn:active {
     position: sticky !important;
     top: 0 !important;
     z-index: 1000 !important;
+  }
+}
+
+/* Two-column master-detail layout for larger iPads and desktop (≥1024px) */
+@media (min-width: 1024px) {
+  #page-today > #selectedDateArea {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 20px;
+    max-width: 1100px !important;
+    align-items: start;
+  }
+  #page-today > #selectedDateArea > #dayNavBar {
+    grid-column: 1 / -1;
+  }
+  #page-today > #selectedDateArea > #dayTopBars {
+    grid-column: 1 / -1;
+  }
+  #page-today > #selectedDateArea > .dashboard {
+    grid-column: 1 / -1;
   }
 }
 
@@ -419,24 +477,24 @@ header .header-btn:active {
   background: rgba(120,120,128,0.10);
 }
 
-@media (min-width: 901px) {
+@media (min-width: 768px) {
   .sidebar-collapse-btn {
     display: flex;
   }
 
   /* Smooth transitions on sidebar and content */
   .desktop-sidebar {
-    transition: width var(--ios-normal) var(--ios-ease);
+    transition: width var(--ios-normal) var(--ios-spring-soft);
   }
   body > header,
   #syncStatusBar,
   body > main {
-    transition: margin-left var(--ios-normal) var(--ios-ease);
+    transition: margin-left var(--ios-normal) var(--ios-spring-soft);
   }
   body > header,
   #syncStatusBar {
-    transition: margin-left var(--ios-normal) var(--ios-ease),
-                left var(--ios-normal) var(--ios-ease);
+    transition: margin-left var(--ios-normal) var(--ios-spring-soft),
+                left var(--ios-normal) var(--ios-spring-soft);
   }
 
   /* Collapsed sidebar state */
@@ -703,32 +761,32 @@ main {
   overscroll-behavior-y: contain;
 }
 
-/* ── 14. Page transition fade-in ─────────────────────────────────── */
+/* ── 14. Page transition — Liquid Glass spring ────────────────────── */
 @keyframes page-enter {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(10px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
 }
 
 .page:not(.hidden).page-animating {
-  animation: page-enter 0.22s var(--ios-ease) both;
+  animation: page-enter 0.30s var(--ios-spring-soft) both;
 }
 
-/* ── 15. Spring card hover effects ───────────────────────────────── */
+/* ── 15. Spring card hover effects — Liquid Glass ────────────────── */
 .day {
   transition: transform var(--ios-fast) var(--ios-spring),
               box-shadow var(--ios-fast) var(--ios-ease) !important;
 }
 .day:hover {
-  transform: scale(1.015);
+  transform: scale(1.018);
   box-shadow: var(--ios-shadow-md) !important;
 }
 
 .bucket-card {
-  transition: transform var(--ios-fast) var(--ios-spring),
+  transition: transform var(--ios-fast) var(--ios-spring-soft),
               box-shadow var(--ios-fast) var(--ios-ease);
 }
 .bucket-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.005);
   box-shadow: var(--ios-shadow-md) !important;
 }
 
@@ -740,31 +798,34 @@ main {
   border-radius: 24px !important;
 }
 
-/* ── 17. Search modal glass ─────────────────────────────────────── */
+/* ── 17. Search modal glass — Liquid Glass ──────────────────────── */
 #searchModal > div {
-  background: var(--ios-glass) !important;
+  background: var(--ios-glass-vibrant) !important;
   -webkit-backdrop-filter: var(--ios-glass-blur) !important;
   backdrop-filter: var(--ios-glass-blur) !important;
-  border-radius: var(--ios-r-md) !important;
-  border: 1px solid var(--ios-border) !important;
+  border-radius: var(--ios-r-lg) !important;
+  border: 1px solid var(--ios-border-glass) !important;
+  box-shadow: var(--ios-shadow-glass) !important;
 }
 
-/* ── 18. Command palette glass ──────────────────────────────────── */
+/* ── 18. Command palette glass — Liquid Glass ───────────────────── */
 .dcf-cmd-panel {
-  background: var(--ios-glass) !important;
+  background: var(--ios-glass-vibrant) !important;
   -webkit-backdrop-filter: var(--ios-glass-blur) !important;
   backdrop-filter: var(--ios-glass-blur) !important;
   border-radius: var(--ios-r-md) !important;
-  border: 1px solid var(--ios-border) !important;
+  border: 1px solid var(--ios-border-glass) !important;
+  box-shadow: var(--ios-shadow-glass) !important;
 }
 
-/* ── 19. Calendar add-item modal glass ──────────────────────────── */
+/* ── 19. Calendar add-item modal glass — Liquid Glass ───────────── */
 #calAddItemModal {
-  background: var(--ios-glass) !important;
+  background: var(--ios-glass-vibrant) !important;
   -webkit-backdrop-filter: var(--ios-glass-blur) !important;
   backdrop-filter: var(--ios-glass-blur) !important;
   border-radius: var(--ios-r-md) !important;
-  border: 1px solid var(--ios-border) !important;
+  border: 1px solid var(--ios-border-glass) !important;
+  box-shadow: var(--ios-shadow-glass) !important;
 }
 
 /* ── 20. Segmented control / pill style for domain tabs ─────────── */
@@ -859,17 +920,24 @@ main {
   .chore-tpl-panel { background: #1c1c1e !important; color: #f2f2f7 !important; }
   .chore-tpl-item  { background: #2c2c2e !important; border-color: #3a3a3c !important; }
 
-  .dcf-cmd-panel  { background: rgba(28,28,30,0.95) !important; }
+  .dcf-cmd-panel  { background: rgba(28,28,30,0.92) !important; }
   .dcf-cmd-input  { color: #f2f2f7 !important; }
   .dcf-cmd-item:hover,
   .dcf-cmd-item.focused { background: #2c2c2e !important; }
 
-  #searchModal > div { background: rgba(28,28,30,0.95) !important; }
+  #searchModal > div { background: rgba(28,28,30,0.92) !important; }
   #searchInput       { color: #f2f2f7 !important; }
 
-  #calAddItemModal         { background: rgba(28,28,30,0.95) !important; color: #f2f2f7 !important; }
+  #calAddItemModal         { background: rgba(28,28,30,0.92) !important; color: #f2f2f7 !important; }
   .cal-add-type-btn        { background: #2c2c2e !important; color: #f2f2f7 !important; border-color: #3a3a3c !important; }
   .cal-add-type-btn:hover  { border-color: var(--ios-accent) !important; background: rgba(0,122,255,0.1) !important; }
+
+  #editModal .panel,
+  #catModal > div,
+  #jobModal > div,
+  .chore-tpl-panel {
+    background: rgba(44,44,46,0.90) !important;
+  }
 
   .cal-side-panel  { background: #1c1c1e !important; color: #f2f2f7 !important; }
 
@@ -908,4 +976,194 @@ main {
   header {
     padding-top: max(1rem, env(titlebar-area-height,0px)) !important;
   }
+}
+
+/* ── 23. iOS 26 Notification banner (in-app toast) ───────────────── */
+@keyframes notif-banner-in {
+  from { transform: translateY(-120%) scale(0.94); opacity: 0; }
+  to   { transform: translateY(0)      scale(1);    opacity: 1; }
+}
+@keyframes notif-banner-out {
+  from { transform: translateY(0)      scale(1);    opacity: 1; }
+  to   { transform: translateY(-120%) scale(0.94); opacity: 0; }
+}
+
+.ios-notif-banner {
+  position: fixed;
+  top: calc(env(safe-area-inset-top,0px) + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-120%);
+  z-index: 20000;
+  min-width: 280px;
+  max-width: min(420px, calc(100vw - 32px));
+  background: var(--ios-glass-vibrant);
+  -webkit-backdrop-filter: var(--ios-glass-blur);
+  backdrop-filter: var(--ios-glass-blur);
+  border-radius: var(--ios-r-lg);
+  border: 1px solid var(--ios-border-glass);
+  box-shadow: var(--ios-shadow-glass);
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  color: var(--ios-text);
+  font-size: 0.88rem;
+  cursor: pointer;
+  user-select: none;
+  pointer-events: none;
+  opacity: 0;
+}
+.ios-notif-banner.visible {
+  pointer-events: auto;
+  animation: notif-banner-in 0.40s var(--ios-spring-soft) forwards;
+}
+.ios-notif-banner.hiding {
+  animation: notif-banner-out 0.28s var(--ios-ease) forwards;
+}
+.ios-notif-banner-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.ios-notif-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+.ios-notif-banner-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ios-notif-banner-text {
+  color: var(--ios-text-3);
+  font-size: 0.82rem;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── 24. iPad-specific enhancements ──────────────────────────────── */
+
+/* On iPad (768–1023px), give the sidebar appropriate sizing */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .desktop-sidebar {
+    width: 210px;
+  }
+  :root {
+    --ios-sidebar-w: 210px;
+  }
+}
+
+/* Larger touch targets on touch devices (iPad Pencil & finger) */
+@media (pointer: coarse) {
+  .sidebar-item {
+    padding: 12px 11px !important;
+    min-height: 44px;
+  }
+  .r-item {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+  button, .small-btn {
+    min-height: 40px;
+  }
+  input[type="text"],
+  input[type="date"],
+  input[type="time"],
+  select {
+    min-height: 44px !important;
+  }
+  /* Calendar day cells and event blocks — 44 px min touch target */
+  .day {
+    min-height: 52px !important;
+  }
+  .dv-event-block {
+    min-height: 44px !important;
+  }
+}
+
+/* iPad landscape: calendar grid is wider, can show more */
+@media (min-width: 768px) and (orientation: landscape) {
+  .calendar {
+    max-width: 100% !important;
+  }
+  #page-today .dashboard {
+    max-width: 900px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+/* ── 25. Keyboard shortcut hints glass ───────────────────────────── */
+#shortcutHints {
+  background: var(--ios-glass-vibrant) !important;
+  -webkit-backdrop-filter: var(--ios-glass-blur-sm) !important;
+  backdrop-filter: var(--ios-glass-blur-sm) !important;
+  border: 1px solid var(--ios-border-glass) !important;
+  border-radius: var(--ios-r-md) !important;
+  box-shadow: var(--ios-shadow-glass) !important;
+}
+
+/* ── 26. Cards — Liquid Glass tint on hover ──────────────────────── */
+.bucket-card,
+.pw-card,
+.inbox-widget,
+.home-dashboard,
+.grocery-section,
+.work-earnings-section,
+.weather-widget-section {
+  transition: transform var(--ios-fast) var(--ios-spring-soft),
+              box-shadow var(--ios-fast) var(--ios-ease),
+              border-color var(--ios-fast) var(--ios-ease) !important;
+}
+.bucket-card:hover,
+.pw-card:hover {
+  border-color: var(--ios-accent) !important;
+  box-shadow: var(--ios-shadow-md) !important;
+}
+
+/* ── 27. iOS 26 focus glow on interactive elements ───────────────── */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--ios-accent) !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 4px rgba(0,122,255,0.18) !important;
+}
+
+/* ── 28. iOS 26 — Live notification permission prompt banner ─────── */
+.ios-push-prompt {
+  background: var(--ios-glass);
+  -webkit-backdrop-filter: var(--ios-glass-blur-sm);
+  backdrop-filter: var(--ios-glass-blur-sm);
+  border: 1px solid var(--ios-border-glass);
+  border-radius: var(--ios-r-md);
+  padding: 14px 16px;
+  margin: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: var(--ios-shadow-sm);
+}
+.ios-push-prompt-icon { font-size: 1.8rem; flex-shrink: 0; }
+.ios-push-prompt-text { flex: 1; }
+.ios-push-prompt-text b { display: block; font-size: 0.92rem; margin-bottom: 2px; }
+.ios-push-prompt-text small { color: var(--ios-text-3); font-size: 0.8rem; line-height: 1.3; }
+.ios-push-prompt-btn {
+  background: var(--ios-accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: var(--ios-r-sm) !important;
+  padding: 8px 14px !important;
+  font-size: 0.85rem !important;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 36px;
 }

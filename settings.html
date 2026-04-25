@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./assets/app.css" />
+  <link rel="stylesheet" href="./assets/ios-native.css" />
   <style>
     /* ADDED: center only the User Profile and Jobs headings on settings page */
     #userProfile h3, #userJobs h3 { text-align: center; }
@@ -166,8 +167,28 @@
 
     <!-- Push notifications settings -->
     <section id="pushSettings" style="margin-top:18px">
-      <h3>Push notifications</h3>
-      <label for="pushVapidKey" style="display:block;font-weight:600;margin-top:8px">VAPID Public Key (base64)</label>
+      <h3 style="text-align:center">🔔 Push Notifications</h3>
+
+      <!-- iOS install prompt -->
+      <div id="iosInstallGuide" class="ios-push-prompt" style="display:none">
+        <div class="ios-push-prompt-icon">📲</div>
+        <div class="ios-push-prompt-text">
+          <b>Add to Home Screen for notifications</b>
+          <small>On iOS, open this page in Safari, tap the Share button (⬆), then choose <strong>Add to Home Screen</strong>. Launch from there to enable push notifications.</small>
+        </div>
+      </div>
+
+      <!-- Permission status prompt -->
+      <div id="iosPermPrompt" class="ios-push-prompt" style="display:none">
+        <div class="ios-push-prompt-icon">🔔</div>
+        <div class="ios-push-prompt-text">
+          <b>Notifications not yet enabled</b>
+          <small>Allow notifications to receive reminders and event alerts even when the app is in the background.</small>
+        </div>
+        <button id="requestPermBtn" class="ios-push-prompt-btn">Allow</button>
+      </div>
+
+      <label for="pushVapidKey" style="display:block;font-weight:600;margin-top:12px">VAPID Public Key (base64)</label>
       <input id="pushVapidKey" type="text" placeholder="BEl... (optional for testing)" />
 
       <label for="pushServerUrl" style="display:block;font-weight:600;margin-top:8px">Push server URL (optional)</label>
@@ -176,10 +197,42 @@
       <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
         <button id="subscribePushBtn" class="small-btn" style="background:#4a90e2;color:#fff">Subscribe</button>
         <button id="unsubscribePushBtn" class="small-btn">Unsubscribe</button>
-        <div id="pushStatus" style="margin-left:8px;color:#666">Not subscribed</div>
+        <div id="pushStatus" style="margin-left:8px;color:#666">Checking…</div>
       </div>
-      <div style="margin-top:8px;color:#666;font-size:0.9rem">Tip: supply a public VAPID key if you use a push server that requires VAPID.</div>
+      <div style="margin-top:8px;color:#666;font-size:0.9rem">Tip: supply a public VAPID key if you use a push server that requires VAPID. On iOS 16.4+, the app must be installed to the Home Screen.</div>
     </section>
+    <script>
+    (function () {
+      function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      }
+      function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+      }
+      var installGuide = document.getElementById('iosInstallGuide');
+      var permPrompt   = document.getElementById('iosPermPrompt');
+      var reqBtn       = document.getElementById('requestPermBtn');
+
+      if (isIOS() && !isStandalone() && installGuide) {
+        installGuide.style.display = 'flex';
+      } else if ('Notification' in window && Notification.permission === 'default' && permPrompt) {
+        permPrompt.style.display = 'flex';
+      }
+
+      if (reqBtn) {
+        reqBtn.addEventListener('click', function () {
+          Notification.requestPermission().then(function (perm) {
+            if (permPrompt) permPrompt.style.display = 'none';
+            var statusEl = document.getElementById('pushStatus');
+            if (statusEl) statusEl.textContent = perm === 'granted' ? 'Permission granted ✅' : 'Permission ' + perm;
+            if (perm === 'granted' && window.pushClient && typeof window.pushClient.registerSW === 'function') {
+              window.pushClient.registerSW();
+            }
+          }).catch(function () {});
+        });
+      }
+    })();
+    </script>
 
     <section id="dataBackupSettings" style="margin-top:18px">
       <h3>Data Backup</h3>

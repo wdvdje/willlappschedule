@@ -11,6 +11,9 @@
   "background_color": "#f2f2f7",
   "theme_color": "#007AFF",
   "categories": ["productivity", "lifestyle"],
+  "handle_links": "preferred",
+  "edge_side_panel": { "preferred_width": 480 },
+  "screenshots": [],
   "shortcuts": [
     {
       "name": "Today",
@@ -39,6 +42,13 @@
       "description": "Check your inbox",
       "url": "index.html#inbox",
       "icons": [{ "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Ctext y='80' font-size='80'%3E📥%3C/text%3E%3C/svg%3E", "sizes": "96x96" }]
+    },
+    {
+      "name": "Reminders",
+      "short_name": "Reminders",
+      "description": "View your reminders",
+      "url": "index.html#reminders",
+      "icons": [{ "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'%3E%3Ctext y='80' font-size='80'%3E🔔%3C/text%3E%3C/svg%3E", "sizes": "96x96" }]
     }
   ],
   "icons": [
