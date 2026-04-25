@@ -853,7 +853,7 @@
           <input type="checkbox" id="appWindowPinToggle" style="width:auto;margin:0" />
           <span>Pin</span>
         </label>
-
+        <button id="appWindowExpandBtn" class="app-window-expand-btn" title="Expand to full screen" aria-label="Expand app to full screen">⤢</button>
       </div>
       <div id="appWindowContent">
         <!-- Widget panes rendered here when an app is launched -->
@@ -1359,7 +1359,9 @@
       }
     }
 
-    function openAppDetail(app) {
+    function openAppDetail(app, opts) {
+      // opts: { fullscreen: true } to open directly in full view
+      var openFullscreen = !!(opts && opts.fullscreen);
       _currentApp = app;
 
       // Close the apps grid first so it feels like a new window opening
@@ -1377,16 +1379,28 @@
         pinToggle.dataset.app = app;
       }
 
-      // Show the app window modal in full-view
+      // Show the app window modal
       var w = document.getElementById('appWindowModal');
       if (w) {
-        w.classList.add('fullscreen');
+        if (openFullscreen) {
+          w.classList.add('fullscreen');
+        } else {
+          w.classList.remove('fullscreen');
+        }
         w.classList.remove('hidden');
       }
 
-      // Render content in full view
+      // Update expand button label to reflect current state
+      var expandBtn = document.getElementById('appWindowExpandBtn');
+      if (expandBtn) {
+        expandBtn.textContent = openFullscreen ? '⤡' : '⤢';
+        expandBtn.title = openFullscreen ? 'Collapse to medium' : 'Expand to full screen';
+        expandBtn.setAttribute('aria-label', openFullscreen ? 'Collapse app' : 'Expand app to full screen');
+      }
+
+      // Render content
       var content = document.getElementById('appWindowContent');
-      if (content) _renderAppContent(app, content, true);
+      if (content) _renderAppContent(app, content, openFullscreen);
     }
 
     function renderTodayEarningsPreview() {
@@ -1521,6 +1535,25 @@
         openAppsModal();
       });
 
+      // App window modal: expand/fullscreen toggle
+      var appWindowExpandBtn = document.getElementById('appWindowExpandBtn');
+      if (appWindowExpandBtn) {
+        appWindowExpandBtn.addEventListener('click', function() {
+          var w = document.getElementById('appWindowModal');
+          if (!w) return;
+          var isFullscreen = w.classList.contains('fullscreen');
+          var goFullscreen = !isFullscreen;
+          w.classList.toggle('fullscreen', goFullscreen);
+          appWindowExpandBtn.textContent = goFullscreen ? '⤡' : '⤢';
+          appWindowExpandBtn.title = goFullscreen ? 'Collapse to medium' : 'Expand to full screen';
+          appWindowExpandBtn.setAttribute('aria-label', goFullscreen ? 'Collapse app' : 'Expand app to full screen');
+          // Re-render content for the new mode
+          if (_currentApp) {
+            var content = document.getElementById('appWindowContent');
+            if (content) _renderAppContent(_currentApp, content, goFullscreen);
+          }
+        });
+      }
 
       // App window modal: clicking overlay closes the window entirely
       var appWindowOverlay = document.getElementById('appWindowOverlay');

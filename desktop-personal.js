@@ -210,30 +210,22 @@
     return svg;
   }
 
-  /** Build a pw-card with a collapsible header (matches app.js buildPWCard). */
+  /** Build a pw-card with a header (no collapse toggle). */
   function makePwCard(id, storageKey, headerHTML, buildBodyFn) {
     var card = document.createElement('div');
     card.className = 'pw-card';
     card.id = id;
 
-    var collapsed = sp(storageKey + '_collapsed', false);
     var header = document.createElement('div');
     header.className = 'pw-header';
-    header.innerHTML = headerHTML + '<span class="pw-chevron">' + (collapsed ? '▸' : '▾') + '</span>';
+    header.innerHTML = headerHTML;
     card.appendChild(header);
 
     var body = document.createElement('div');
     body.className = 'pw-body';
-    body.style.display = collapsed ? 'none' : '';
     buildBodyFn(body);
     card.appendChild(body);
 
-    header.addEventListener('click', function () {
-      var now = body.style.display === 'none';
-      body.style.display = now ? '' : 'none';
-      header.querySelector('.pw-chevron').textContent = now ? '▾' : '▸';
-      sk(storageKey + '_collapsed', !now);
-    });
     return card;
   }
 
