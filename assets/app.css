@@ -1524,7 +1524,7 @@ body.dark-mode .weather-day-desc { color:#888; }
 
 .home-dashboard { background:#fff; border-radius:12px; border:1px solid #e6e6e6; padding:14px 16px; margin-bottom:14px; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
 
-.home-dash-title { font-weight:700; font-size:1rem; margin:0 0 10px; }
+.home-dash-title { font-weight:700; font-size:1rem; margin:0; }
 
 .home-dash-stats { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
 

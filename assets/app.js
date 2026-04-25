@@ -6100,7 +6100,10 @@ function renderHomeDashboard() {
   var ringColor = pct === 100 ? '#27ae60' : '#4a90e2';
 
   var html = '<div class="home-dashboard">';
-  html += '<p class="home-dash-title">🏡 Today\'s Chores</p>';
+  html += '<div class="home-dash-title-bar">';
+  html += '<span class="home-dash-title">🏡 Today\'s Chores</span>';
+  html += '<button type="button" class="today-widget-open-btn" data-app="chores">Open →</button>';
+  html += '</div>';
   html += '<div class="home-dash-stats">';
   // Progress ring
   html += '<div class="progress-ring-wrap" style="flex-shrink:0">';
@@ -6188,6 +6191,13 @@ function renderGroceryList() {
   var isCollapsed = safeParseStorage('groceryCollapsed', false);
   chevron.textContent = isCollapsed ? '▸' : '▾';
   header.appendChild(headerTitle);
+  var grocOpenBtn = document.createElement('button');
+  grocOpenBtn.type = 'button';
+  grocOpenBtn.className = 'today-widget-open-btn';
+  grocOpenBtn.setAttribute('data-app', 'groceries');
+  grocOpenBtn.textContent = 'Open →';
+  grocOpenBtn.style.flexShrink = '0';
+  header.appendChild(grocOpenBtn);
   header.appendChild(chevron);
 
   // Body
@@ -11688,3 +11698,895 @@ function renderJournalAppFull(container) {
 window.renderJournalWidget       = renderJournalWidget;
 window.renderJournalAppFull      = renderJournalAppFull;
 window.renderTodayJournalPreview = renderTodayJournalPreview;
+
+/* ======================================================================
+   CHORES APP  —  Medium & Full Views
+   ====================================================================== */
+
+/* ── Household Members ────────────────────────────────────────────── */
+function getHouseholdMembers() { return safeParseStorage('householdMembers', []); }
+function setHouseholdMembers(v) { try { localStorage.setItem('householdMembers', JSON.stringify(v)); } catch(_) {} }
+function generateMemberId() { return 'm:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
+var _MEMBER_COLORS = ['#4a90e2','#27ae60','#e67e22','#9b59b6','#e74c3c','#1abc9c','#f39c12','#e056a0'];
+
+/* ── Chore Points Config ──────────────────────────────────────────── */
+function getChoresPointsConfig() { return safeParseStorage('choresPointsConfig', {low:1,medium:2,high:3}); }
+function setChoresPointsConfig(v) { try { localStorage.setItem('choresPointsConfig', JSON.stringify(v)); } catch(_) {} }
+
+/* ── Derive 30-day completion map from done home tasks ───────────── */
+function _getChoreHistoryMap(daysBack) {
+  var tasks = getTasks();
+  var cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - daysBack + 1);
+  var cutoffISO = cutoff.getFullYear() + '-' + pad2(cutoff.getMonth()+1) + '-' + pad2(cutoff.getDate());
+  var map = {};
+  tasks.forEach(function(t) {
+    if (!t.done) return;
+    try { if (getDomainOfItem(t) !== 'home') return; } catch(_) { return; }
+    var d = t.date || '';
+    if (!d || d < cutoffISO) return;
+    if (!map[d]) map[d] = [];
+    map[d].push(t);
+  });
+  return map;
+}
+
+/* ── Chores App — Medium View ─────────────────────────────────────── */
+function renderChoresAppMedium(container) {
+  container.innerHTML = '';
+  var today = getTodayISO();
+  var allTasks = getTasks().filter(function(t) {
+    try { return getDomainOfItem(t) === 'home'; } catch(_) { return false; }
+  });
+  var todayTasks = allTasks.filter(function(t) { return t.date === today; });
+  var doneTasks  = todayTasks.filter(function(t) { return t.done; });
+  var pct = todayTasks.length ? Math.round(doneTasks.length / todayTasks.length * 100) : 0;
+  var circumference = 113.1;
+  var offset = circumference - (pct / 100) * circumference;
+  var ringColor = pct === 100 ? '#27ae60' : '#4a90e2';
+  var members = getHouseholdMembers();
+
+  var wrap = document.createElement('div');
+  wrap.className = 'ca-medium-wrap';
+
+  /* Progress ring + stat pills */
+  var statsRow = document.createElement('div');
+  statsRow.className = 'ca-med-stats';
+  statsRow.innerHTML =
+    '<div class="progress-ring-wrap">' +
+      '<svg viewBox="0 0 44 44" style="width:64px;height:64px">' +
+        '<circle class="ring-bg" cx="22" cy="22" r="18"/>' +
+        '<circle class="ring-fg" cx="22" cy="22" r="18" stroke="' + ringColor + '" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '" transform="rotate(-90 22 22)"/>' +
+        '<text class="ring-pct" x="22" y="22">' + pct + '%</text>' +
+      '</svg>' +
+      '<span class="ring-label">Done</span>' +
+    '</div>' +
+    '<div class="ca-med-stat-pills">' +
+      '<div class="home-stat-pill"><span class="home-stat-num done">' + doneTasks.length + '/' + todayTasks.length + '</span><span class="home-stat-label">Today</span></div>' +
+      '<div class="home-stat-pill"><span class="home-stat-num overdue">' + allTasks.filter(function(t){ return !t.done && t.date && t.date < today; }).length + '</span><span class="home-stat-label">Overdue</span></div>' +
+    '</div>';
+  wrap.appendChild(statsRow);
+
+  /* Today's chore list */
+  var listTitle = document.createElement('div');
+  listTitle.className = 'ca-med-section-title';
+  listTitle.textContent = "Today's Chores";
+  wrap.appendChild(listTitle);
+
+  var ul = document.createElement('ul');
+  ul.className = 'ca-med-list';
+  if (!todayTasks.length) {
+    var li = document.createElement('li');
+    li.className = 'ca-med-empty';
+    li.textContent = 'No chores scheduled for today.';
+    ul.appendChild(li);
+  } else {
+    todayTasks.forEach(function(t) {
+      var li = document.createElement('li');
+      li.className = 'ca-med-item' + (t.done ? ' done' : '');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!t.done;
+      cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0';
+      cb.addEventListener('change', function() {
+        var tasks = getTasks();
+        var idx = tasks.findIndex(function(x) { return x.id === t.id; });
+        if (idx !== -1) { tasks[idx].done = cb.checked; setTasks(tasks); }
+        renderChoresAppMedium(container);
+        try { renderHomeDashboard(); } catch(_) {}
+        try { renderBucketPage('home'); } catch(_) {}
+      });
+      var assignedMember = t.assignedTo ? members.find(function(m) { return m.id === t.assignedTo; }) : null;
+      var innerHTML =
+        '<span class="ca-med-emoji">' + (t.emoji || '📋') + '</span>' +
+        '<span class="ca-med-title">' + escapeHTML(t.title || '') + '</span>' +
+        (assignedMember ? '<span class="ca-med-assignee" style="background:' + assignedMember.color + '22;color:' + assignedMember.color + '">' + escapeHTML(assignedMember.name) + '</span>' : '') +
+        (t.energy ? '<span class="energy-badge ' + t.energy + '">' + (_ENERGY_LABELS[t.energy] || t.energy) + '</span>' : '');
+      li.innerHTML = innerHTML;
+      li.insertBefore(cb, li.firstChild);
+      ul.appendChild(li);
+    });
+  }
+  wrap.appendChild(ul);
+
+  /* Quick-add */
+  var addBtn = document.createElement('button');
+  addBtn.className = 'ca-med-add-btn';
+  addBtn.textContent = '⚡ Quick Chore';
+  addBtn.addEventListener('click', function() {
+    if (typeof openChoreTemplateModal === 'function') openChoreTemplateModal();
+  });
+  wrap.appendChild(addBtn);
+
+  /* Active streaks */
+  var streaks = getHomeStreaks();
+  var buckets = getBuckets('home');
+  var streakBuckets = buckets.filter(function(b) { return streaks[b.id] && streaks[b.id].streak > 0; });
+  if (streakBuckets.length) {
+    var streakSec = document.createElement('div');
+    streakSec.className = 'ca-med-streaks';
+    var stTitle = document.createElement('div');
+    stTitle.className = 'ca-med-section-title';
+    stTitle.textContent = '🔥 Active Streaks';
+    streakSec.appendChild(stTitle);
+    streakBuckets.slice(0, 5).forEach(function(b) {
+      var s = streaks[b.id];
+      var row = document.createElement('div');
+      row.className = 'ca-med-streak-row';
+      row.innerHTML = '<span>' + (b.emoji || '📂') + ' ' + escapeHTML(b.name) + '</span>' +
+        '<span class="streak-badge">🔥 ' + s.streak + ' day' + (s.streak !== 1 ? 's' : '') + '</span>';
+      streakSec.appendChild(row);
+    });
+    wrap.appendChild(streakSec);
+  }
+
+  container.appendChild(wrap);
+}
+
+/* ── Chores App — Full View ───────────────────────────────────────── */
+function renderChoresAppFull(container) {
+  container.innerHTML = '';
+  var today = getTodayISO();
+  var allTasks = getTasks().filter(function(t) {
+    try { return getDomainOfItem(t) === 'home'; } catch(_) { return false; }
+  });
+  var members   = getHouseholdMembers();
+  var ptsConfig = getChoresPointsConfig();
+
+  var layout = document.createElement('div');
+  layout.className = 'app-full-two-col';
+  var left  = document.createElement('div'); left.className  = 'app-full-col';
+  var right = document.createElement('div'); right.className = 'app-full-col';
+
+  /* ── LEFT: Members, Points Config, Today's Assignments ── */
+  var lHTML = '<h3 class="app-full-col-heading">👥 Household Members</h3>';
+  lHTML += '<div class="ca-members-list">';
+  if (members.length) {
+    members.forEach(function(m, mi) {
+      lHTML += '<div class="ca-member-row" style="border-left:4px solid ' + m.color + '">' +
+        '<span class="ca-member-name">' + escapeHTML(m.name) + '</span>' +
+        '<button type="button" class="ca-del-member-btn app-fv-cancel-btn" data-mi="' + mi + '" style="padding:2px 8px;font-size:0.78rem;border:1px solid #e74c3c;color:#e74c3c">✕ Remove</button>' +
+      '</div>';
+    });
+  } else {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No members yet. Add one below.</p>';
+  }
+  lHTML += '</div>';
+  lHTML += '<div class="ca-add-member-form">' +
+    '<input type="text" id="caNewMemberName" class="app-fv-text-input" placeholder="Member name…" maxlength="30" />' +
+    '<div id="caColorPicker" class="ca-color-picker">' +
+    _MEMBER_COLORS.map(function(c) {
+      return '<button type="button" class="ca-color-swatch" data-color="' + c + '" style="background:' + c + '" title="' + c + '"></button>';
+    }).join('') +
+    '</div>' +
+    '<button type="button" id="caAddMemberBtn" class="app-fv-save-btn" style="margin-top:6px">+ Add Member</button>' +
+  '</div>';
+
+  /* Points config */
+  lHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">⭐ Points Per Chore</h3>';
+  lHTML += '<div class="ca-pts-config">';
+  ['low','medium','high'].forEach(function(lvl) {
+    lHTML += '<div class="ca-pts-row">' +
+      '<span class="energy-badge ' + lvl + '">' + (_ENERGY_LABELS[lvl] || lvl) + '</span>' +
+      '<input type="number" class="app-fv-num-small ca-pts-inp" data-energy="' + lvl + '" value="' + (ptsConfig[lvl] != null ? ptsConfig[lvl] : 1) + '" min="0" max="100" step="1" style="width:44px" />' +
+      '<span style="font-size:0.8rem;color:var(--ios-text-3)">pts</span>' +
+    '</div>';
+  });
+  lHTML += '<button type="button" id="caSavePtsBtn" class="app-fv-save-btn" style="margin-top:8px">Save Points</button>';
+  lHTML += '</div>';
+
+  /* Today's assignments */
+  var todayTasks = allTasks.filter(function(t) { return t.date === today; });
+  lHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">📋 Today\'s Assignments</h3>';
+  if (!todayTasks.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No chores scheduled today.</p>';
+  } else {
+    lHTML += '<div class="ca-assignment-list">';
+    todayTasks.forEach(function(t) {
+      lHTML += '<div class="ca-assign-row">' +
+        '<span class="ca-assign-task">' + (t.emoji || '📋') + ' ' + escapeHTML(t.title || '') + '</span>' +
+        '<select class="app-fv-select ca-assign-sel" data-taskid="' + escapeHTML(String(t.id)) + '">' +
+          '<option value="">Unassigned</option>' +
+          members.map(function(m) {
+            return '<option value="' + escapeHTML(m.id) + '"' + (t.assignedTo === m.id ? ' selected' : '') + '>' + escapeHTML(m.name) + '</option>';
+          }).join('') +
+        '</select>' +
+      '</div>';
+    });
+    lHTML += '</div><button type="button" id="caSaveAssignBtn" class="app-fv-save-btn" style="margin-top:8px">Save Assignments</button>';
+  }
+
+  left.innerHTML = lHTML;
+
+  /* ── RIGHT: 30-day heatmap, weekly stats, scoreboard, most-done ── */
+  var histMap = _getChoreHistoryMap(30);
+  var totalDone30 = Object.keys(histMap).reduce(function(s, k) { return s + histMap[k].length; }, 0);
+  var daysWithAny = Object.keys(histMap).length;
+
+  var rHTML = '<h3 class="app-full-col-heading">📅 30-Day History</h3>';
+  rHTML += '<div class="ca-heatmap">';
+  for (var di = 29; di >= 0; di--) {
+    var hd = new Date(); hd.setDate(hd.getDate() - di);
+    var hISO = hd.getFullYear() + '-' + pad2(hd.getMonth()+1) + '-' + pad2(hd.getDate());
+    var hCount = histMap[hISO] ? histMap[hISO].length : 0;
+    var intensity = hCount === 0 ? 0 : hCount <= 1 ? 1 : hCount <= 3 ? 2 : 3;
+    var hLabel = hd.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+    rHTML += '<div class="ca-heatmap-cell ca-heat-' + intensity + '" title="' + escapeHTML(hLabel) + ': ' + hCount + ' chore' + (hCount !== 1 ? 's' : '') + '"></div>';
+  }
+  rHTML += '</div>';
+  rHTML += '<p style="font-size:0.75rem;color:var(--ios-text-3);margin:4px 0 12px">Last 30 days: <strong>' + totalDone30 + ' chores</strong> across <strong>' + daysWithAny + ' days</strong></p>';
+
+  /* Weekly stats bar chart (last 4 weeks) */
+  rHTML += '<h3 class="app-full-col-heading">📊 Weekly Stats</h3>';
+  var weekBars = [];
+  for (var wi = 3; wi >= 0; wi--) {
+    var wBase = new Date(); wBase.setDate(wBase.getDate() - wi * 7);
+    var wStart = new Date(wBase); wStart.setDate(wBase.getDate() - wBase.getDay());
+    var wLabel = (wStart.getMonth()+1) + '/' + wStart.getDate();
+    var wCount = 0;
+    for (var wd = 0; wd <= 6; wd++) {
+      var wDay = new Date(wStart); wDay.setDate(wStart.getDate() + wd);
+      var wISO = wDay.getFullYear() + '-' + pad2(wDay.getMonth()+1) + '-' + pad2(wDay.getDate());
+      if (histMap[wISO]) wCount += histMap[wISO].length;
+    }
+    weekBars.push({ label: wLabel, value: wCount, iso: '' });
+  }
+  rHTML += '<div class="fv-chart-wrap">' + _fvBarChart(weekBars, 220, 80, 12, 18, 8, 8, '') + '</div>';
+
+  /* Scoreboard */
+  if (members.length) {
+    rHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">🏆 Scoreboard</h3>';
+    var memberScores = {};
+    members.forEach(function(m) { memberScores[m.id] = 0; });
+    allTasks.forEach(function(t) {
+      if (t.done && t.assignedTo && memberScores[t.assignedTo] !== undefined) {
+        memberScores[t.assignedTo] += (ptsConfig[t.energy || 'low'] || 1);
+      }
+    });
+    var sortedMembers = members.slice().sort(function(a, b) { return (memberScores[b.id] || 0) - (memberScores[a.id] || 0); });
+    var medals = ['🥇','🥈','🥉'];
+    rHTML += '<div class="ca-scoreboard">';
+    sortedMembers.forEach(function(m, rank) {
+      rHTML += '<div class="ca-score-row">' +
+        '<span>' + (medals[rank] || (rank+1) + '.') + '</span>' +
+        '<span class="ca-score-name" style="color:' + m.color + '">' + escapeHTML(m.name) + '</span>' +
+        '<span class="ca-score-pts">' + (memberScores[m.id] || 0) + ' pts</span>' +
+      '</div>';
+    });
+    rHTML += '</div>';
+  }
+
+  /* Most-done chores */
+  var choreFreq = {};
+  allTasks.forEach(function(t) {
+    if (!t.done) return;
+    var key = (t.emoji || '') + ' ' + (t.title || '');
+    choreFreq[key] = (choreFreq[key] || 0) + 1;
+  });
+  var freqPairs = [];
+  Object.keys(choreFreq).forEach(function(k) { freqPairs.push([k, choreFreq[k]]); });
+  freqPairs.sort(function(a, b) { return b[1] - a[1]; });
+  if (freqPairs.length) {
+    rHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">🌟 Most Done</h3>';
+    rHTML += '<div class="ca-freq-list">';
+    freqPairs.slice(0, 5).forEach(function(e) {
+      rHTML += '<div class="ca-freq-row"><span>' + escapeHTML(e[0]) + '</span><span class="ca-freq-count">×' + e[1] + '</span></div>';
+    });
+    rHTML += '</div>';
+  }
+
+  right.innerHTML = rHTML;
+  layout.appendChild(left);
+  layout.appendChild(right);
+  container.appendChild(layout);
+
+  /* Wire member management */
+  var _selectedMemberColor = _MEMBER_COLORS[0];
+  container.querySelectorAll('.ca-color-swatch').forEach(function(sw) {
+    sw.addEventListener('click', function() {
+      _selectedMemberColor = sw.dataset.color;
+      container.querySelectorAll('.ca-color-swatch').forEach(function(s) { s.classList.remove('selected'); });
+      sw.classList.add('selected');
+    });
+  });
+  var firstSwatch = container.querySelector('.ca-color-swatch');
+  if (firstSwatch) firstSwatch.classList.add('selected');
+
+  var addMemberBtn = container.querySelector('#caAddMemberBtn');
+  if (addMemberBtn) addMemberBtn.addEventListener('click', function() {
+    var nameInp = container.querySelector('#caNewMemberName');
+    var name = nameInp ? nameInp.value.trim() : '';
+    if (!name) { if (nameInp) nameInp.focus(); return; }
+    var mems = getHouseholdMembers();
+    mems.push({ id: generateMemberId(), name: name, color: _selectedMemberColor });
+    setHouseholdMembers(mems);
+    renderChoresAppFull(container);
+  });
+
+  container.querySelectorAll('.ca-del-member-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var mi = parseInt(btn.dataset.mi, 10);
+      var mems = getHouseholdMembers();
+      mems.splice(mi, 1);
+      setHouseholdMembers(mems);
+      renderChoresAppFull(container);
+    });
+  });
+
+  var savePtsBtn = container.querySelector('#caSavePtsBtn');
+  if (savePtsBtn) savePtsBtn.addEventListener('click', function() {
+    var cfg = {};
+    container.querySelectorAll('.ca-pts-inp').forEach(function(inp) {
+      cfg[inp.dataset.energy] = parseInt(inp.value, 10) || 1;
+    });
+    setChoresPointsConfig(cfg);
+    savePtsBtn.textContent = '✓ Saved';
+    setTimeout(function() { savePtsBtn.textContent = 'Save Points'; }, 1500);
+  });
+
+  var saveAssignBtn = container.querySelector('#caSaveAssignBtn');
+  if (saveAssignBtn) saveAssignBtn.addEventListener('click', function() {
+    var tasks = getTasks();
+    container.querySelectorAll('.ca-assign-sel').forEach(function(sel) {
+      var taskId = sel.dataset.taskid;
+      var idx = tasks.findIndex(function(t) { return String(t.id) === taskId; });
+      if (idx !== -1) tasks[idx].assignedTo = sel.value || undefined;
+    });
+    setTasks(tasks);
+    saveAssignBtn.textContent = '✓ Saved';
+    setTimeout(function() { saveAssignBtn.textContent = 'Save Assignments'; }, 1500);
+  });
+}
+
+/* ======================================================================
+   GROCERIES APP  —  Medium & Full Views
+   ====================================================================== */
+
+/* ── Extra grocery lists (non-default) ──────────────────────────────── */
+function getExtraGroceryLists() { return safeParseStorage('groceryLists', []); }
+function setExtraGroceryLists(v) { try { localStorage.setItem('groceryLists', JSON.stringify(v)); } catch(_) {} }
+function generateGroceryListId() { return 'gl:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
+
+function getAllGroceryLists() {
+  return [{ id: 'default', name: 'My List', items: getGroceryList() }].concat(getExtraGroceryLists());
+}
+function getActiveGroceryListId() { return localStorage.getItem('activeGroceryListId') || 'default'; }
+function setActiveGroceryListId(id) { try { localStorage.setItem('activeGroceryListId', id); } catch(_) {} }
+
+function getActiveGroceryListObj() {
+  var activeId = getActiveGroceryListId();
+  if (!activeId || activeId === 'default') return { id: 'default', name: 'My List', items: getGroceryList() };
+  var extra = getExtraGroceryLists();
+  return extra.find(function(l) { return l.id === activeId; }) || { id: 'default', name: 'My List', items: getGroceryList() };
+}
+
+function saveActiveListItems(listId, items) {
+  if (!listId || listId === 'default') {
+    setGroceryList(items);
+    try { renderGroceryList(); } catch(_) {}
+  } else {
+    var extra = getExtraGroceryLists();
+    var idx = extra.findIndex(function(l) { return l.id === listId; });
+    if (idx !== -1) { extra[idx].items = items; setExtraGroceryLists(extra); }
+  }
+}
+
+/* ── Grocery frequency tracking ────────────────────────────────────── */
+function getGroceryFrequency() { return safeParseStorage('groceryFrequency', {}); }
+function setGroceryFrequency(v) { try { localStorage.setItem('groceryFrequency', JSON.stringify(v)); } catch(_) {} }
+function logGroceryItemAdded(text, section) {
+  if (!text) return;
+  var freq = getGroceryFrequency();
+  var key = text.toLowerCase().trim();
+  if (!freq[key]) freq[key] = { text: text, count: 0, lastSection: '' };
+  freq[key].count++;
+  if (section) freq[key].lastSection = section;
+  setGroceryFrequency(freq);
+}
+
+/* ── Purchase history ───────────────────────────────────────────────── */
+function getGroceryPurchaseHistory() { return safeParseStorage('groceryPurchaseHistory', []); }
+function setGroceryPurchaseHistory(v) { try { localStorage.setItem('groceryPurchaseHistory', JSON.stringify(v)); } catch(_) {} }
+function generatePurchaseHistId() { return 'ph:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
+
+/* ── Grocery budget ─────────────────────────────────────────────────── */
+function getGroceryBudget() { return safeParseStorage('groceryBudget', { monthly: 0, trip: 0 }); }
+function setGroceryBudget(v) { try { localStorage.setItem('groceryBudget', JSON.stringify(v)); } catch(_) {} }
+
+/* ── Custom aisle order ─────────────────────────────────────────────── */
+var _DEFAULT_GROCERY_SECTIONS = ['Produce','Dairy','Meat','Bakery','Frozen','Pantry','Beverages','Household','Other'];
+function getGroceryAisleOrder() { return safeParseStorage('groceryAisleOrder', null) || _DEFAULT_GROCERY_SECTIONS.slice(); }
+function setGroceryAisleOrder(v) { try { localStorage.setItem('groceryAisleOrder', JSON.stringify(v)); } catch(_) {} }
+
+/* ── Groceries App — Medium View ────────────────────────────────────── */
+function renderGroceriesAppMedium(container) {
+  container.innerHTML = '';
+  var list   = getActiveGroceryListObj();
+  var items  = list.items || [];
+  var budget = getGroceryBudget();
+
+  var inCartCount  = items.filter(function(i) { return i.inCart; }).length;
+  var pendingCount = items.length - inCartCount;
+  var totalCost    = items.reduce(function(s, i) { return s + (parseFloat(i.price) || 0); }, 0);
+
+  var wrap = document.createElement('div');
+  wrap.className = 'gam-medium-wrap';
+
+  /* Stats bar */
+  var statsBar = document.createElement('div');
+  statsBar.className = 'gam-med-stats';
+  statsBar.innerHTML =
+    '<span class="gam-med-stat"><strong>' + pendingCount + '</strong> pending</span>' +
+    (inCartCount ? '<span class="gam-med-stat in-cart"><strong>' + inCartCount + '</strong> in cart</span>' : '') +
+    (totalCost > 0 ? '<span class="gam-med-stat cost"><strong>$' + totalCost.toFixed(2) + '</strong> est.</span>' : '') +
+    (budget.trip > 0 ? '<span class="gam-med-stat' + (totalCost > budget.trip ? ' over' : '') + '"> Budget: $' + budget.trip.toFixed(2) + '</span>' : '');
+  wrap.appendChild(statsBar);
+
+  /* Budget bar if set */
+  if (budget.trip > 0) {
+    var bPct = Math.min(100, Math.round(totalCost / budget.trip * 100));
+    var budBar = document.createElement('div');
+    budBar.className = 'gaf-budget-bar';
+    budBar.innerHTML = '<div class="gaf-budget-bar-fill" style="width:' + bPct + '%;background:' + (bPct > 90 ? '#e74c3c' : '#4a90e2') + '"></div>';
+    wrap.appendChild(budBar);
+  }
+
+  /* Quick-add */
+  var qaRow = document.createElement('div');
+  qaRow.className = 'gam-med-qa-row';
+  qaRow.innerHTML =
+    '<input type="text" id="gamMedItemInput" class="gam-med-inp" placeholder="Add item…" autocomplete="off" />' +
+    '<button type="button" id="gamMedAddBtn" class="grocery-add-btn">＋</button>';
+  wrap.appendChild(qaRow);
+
+  /* Item list sorted by aisle order */
+  var aisleOrder = getGroceryAisleOrder();
+  var sorted = items.slice().sort(function(a, b) {
+    var ai = aisleOrder.indexOf(a.section || ''), bi = aisleOrder.indexOf(b.section || '');
+    if (ai === -1) ai = 999; if (bi === -1) bi = 999;
+    return ai - bi;
+  });
+
+  var ul = document.createElement('ul');
+  ul.className = 'grocery-items';
+  if (!sorted.length) {
+    var emptyLi = document.createElement('li');
+    emptyLi.style.cssText = 'color:#aaa;text-align:center;padding:10px 0;font-size:0.88rem';
+    emptyLi.textContent = 'List is empty.';
+    ul.appendChild(emptyLi);
+  } else {
+    sorted.forEach(function(item) {
+      var li = document.createElement('li');
+      li.className = 'grocery-item' + (item.inCart ? ' in-cart' : '');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = !!item.inCart;
+      cb.style.cssText = 'width:18px;height:18px;cursor:pointer;flex-shrink:0';
+      cb.addEventListener('change', function() {
+        var activeList = getActiveGroceryListObj();
+        var newItems = (activeList.items || []).map(function(x) {
+          return x.id === item.id ? Object.assign({}, x, { inCart: cb.checked }) : x;
+        });
+        saveActiveListItems(activeList.id, newItems);
+        renderGroceriesAppMedium(container);
+      });
+      var textSpan = document.createElement('span'); textSpan.className = 'grocery-item-text'; textSpan.textContent = item.text;
+      var qtySpan  = document.createElement('span'); qtySpan.className = 'grocery-item-qty';   qtySpan.textContent = item.qty || '';
+      var secSpan  = document.createElement('span'); secSpan.className = 'grocery-item-section';
+      secSpan.style.display = item.section ? '' : 'none'; secSpan.textContent = item.section || '';
+      var delBtn = document.createElement('button'); delBtn.className = 'grocery-item-del'; delBtn.textContent = '✕';
+      delBtn.addEventListener('click', function() {
+        var activeList = getActiveGroceryListObj();
+        saveActiveListItems(activeList.id, (activeList.items || []).filter(function(x) { return x.id !== item.id; }));
+        renderGroceriesAppMedium(container);
+      });
+      li.appendChild(cb); li.appendChild(textSpan);
+      if (item.qty) li.appendChild(qtySpan);
+      if (item.section) li.appendChild(secSpan);
+      li.appendChild(delBtn);
+      ul.appendChild(li);
+    });
+    if (inCartCount > 0) {
+      var clearLi = document.createElement('li');
+      clearLi.style.listStyle = 'none';
+      var clearBtn = document.createElement('button');
+      clearBtn.className = 'grocery-clear-btn';
+      clearBtn.textContent = 'Clear ' + inCartCount + ' in-cart item' + (inCartCount > 1 ? 's' : '');
+      clearBtn.addEventListener('click', function() {
+        var activeList = getActiveGroceryListObj();
+        saveActiveListItems(activeList.id, (activeList.items || []).filter(function(i) { return !i.inCart; }));
+        renderGroceriesAppMedium(container);
+      });
+      clearLi.appendChild(clearBtn);
+      ul.appendChild(clearLi);
+    }
+  }
+  wrap.appendChild(ul);
+  container.appendChild(wrap);
+
+  /* Wire quick-add */
+  var addBtn = container.querySelector('#gamMedAddBtn');
+  var inp    = container.querySelector('#gamMedItemInput');
+  function _gamQuickAdd() {
+    var text = inp ? inp.value.trim() : '';
+    if (!text) { if (inp) { inp.focus(); inp.style.outline = '2px solid #e74c3c'; setTimeout(function(){ inp.style.outline=''; }, 1200); } return; }
+    var activeList = getActiveGroceryListObj();
+    var newItems = (activeList.items || []).concat([{ id: nextGroceryId(), text: text, qty: '', price: 0, section: '', inCart: false, added: getTodayISO() }]);
+    saveActiveListItems(activeList.id, newItems);
+    logGroceryItemAdded(text, '');
+    if (inp) inp.value = '';
+    renderGroceriesAppMedium(container);
+  }
+  if (addBtn) addBtn.addEventListener('click', _gamQuickAdd);
+  if (inp) inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); _gamQuickAdd(); } });
+}
+
+/* ── Groceries App — Full View ──────────────────────────────────────── */
+function renderGroceriesAppFull(container) {
+  container.innerHTML = '';
+
+  var allLists  = getAllGroceryLists();
+  var activeId  = getActiveGroceryListId();
+  var activeList = allLists.find(function(l) { return l.id === activeId; }) || allLists[0] || { id: 'default', name: 'My List', items: [] };
+  var items     = activeList.items || [];
+  var budget    = getGroceryBudget();
+  var aisleOrder = getGroceryAisleOrder();
+  var freq      = getGroceryFrequency();
+  var history   = getGroceryPurchaseHistory();
+
+  var layout = document.createElement('div');
+  layout.className = 'app-full-two-col';
+  var left  = document.createElement('div'); left.className  = 'app-full-col';
+  var right = document.createElement('div'); right.className = 'app-full-col';
+
+  /* ── LEFT: List manager, active list, recipe import ── */
+  var lHTML = '<h3 class="app-full-col-heading">📋 My Lists</h3>';
+  lHTML += '<div class="gaf-lists-row">';
+  allLists.forEach(function(l) {
+    lHTML += '<button type="button" class="gaf-list-tab' + (l.id === activeList.id ? ' active' : '') + '" data-listid="' + escapeHTML(l.id) + '">' + escapeHTML(l.name) + '</button>';
+  });
+  lHTML += '</div>';
+  lHTML += '<div class="gaf-new-list-form">' +
+    '<input type="text" id="gafNewListName" class="app-fv-text-input" placeholder="New list name…" maxlength="30" />' +
+    '<button type="button" id="gafAddListBtn" class="app-fv-save-btn">+ Add</button>' +
+    (allLists.length > 1 && activeList.id !== 'default' ? '<button type="button" id="gafDelListBtn" class="app-fv-cancel-btn" style="border:1px solid #e74c3c;color:#e74c3c">🗑 Delete</button>' : '') +
+  '</div>';
+
+  /* Active list full editor */
+  var inCartCount = items.filter(function(i) { return i.inCart; }).length;
+  var totalCost   = items.reduce(function(s, i) { return s + (parseFloat(i.price) || 0); }, 0);
+  lHTML += '<h4 class="app-full-section-heading">✏️ ' + escapeHTML(activeList.name) + ' (' + items.length + ' items)</h4>';
+  var _secOpts = _DEFAULT_GROCERY_SECTIONS.map(function(s) { return '<option value="' + s + '">' + s + '</option>'; }).join('');
+  lHTML += '<div class="gaf-add-form">' +
+    '<input type="text" id="gafItemText" class="app-fv-text-input" placeholder="Item name…" autocomplete="off" />' +
+    '<input type="text" id="gafItemQty" class="app-fv-num-small" placeholder="Qty" style="width:50px" />' +
+    '<input type="number" id="gafItemPrice" class="app-fv-num-small" placeholder="$" min="0" step="0.01" style="width:54px" />' +
+    '<select id="gafItemSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>' +
+    '<button type="button" id="gafAddItemBtn" class="app-fv-save-btn">＋ Add</button>' +
+  '</div>';
+
+  /* Items grouped by section */
+  var grouped = {};
+  items.forEach(function(item) { var s = item.section || 'Other'; if (!grouped[s]) grouped[s] = []; grouped[s].push(item); });
+  var sectionKeys = Object.keys(grouped).sort(function(a, b) {
+    var ai = aisleOrder.indexOf(a), bi = aisleOrder.indexOf(b);
+    if (ai === -1) ai = 999; if (bi === -1) bi = 999;
+    return ai - bi;
+  });
+  lHTML += '<div class="gaf-item-list">';
+  if (!items.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No items yet.</p>';
+  } else {
+    sectionKeys.forEach(function(sec) {
+      lHTML += '<div class="gaf-section-group"><div class="gaf-section-label">' + escapeHTML(sec) + '</div>';
+      grouped[sec].forEach(function(item) {
+        lHTML += '<div class="gaf-item-row' + (item.inCart ? ' in-cart' : '') + '" data-itemid="' + escapeHTML(String(item.id)) + '">' +
+          '<input type="checkbox" class="gaf-item-cb"' + (item.inCart ? ' checked' : '') + ' />' +
+          '<span class="gaf-item-text">' + escapeHTML(item.text) + '</span>' +
+          (item.qty ? '<span class="grocery-item-qty">' + escapeHTML(item.qty) + '</span>' : '') +
+          (item.price ? '<span style="font-size:0.78rem;color:#27ae60;font-weight:600">$' + parseFloat(item.price).toFixed(2) + '</span>' : '') +
+          '<button type="button" class="grocery-item-del gaf-item-del">✕</button>' +
+        '</div>';
+      });
+      lHTML += '</div>';
+    });
+    if (totalCost > 0) {
+      lHTML += '<div class="gaf-total-row">Est. total: <strong style="color:#27ae60">$' + totalCost.toFixed(2) + '</strong>';
+      if (budget.trip > 0) {
+        var rem = budget.trip - totalCost;
+        lHTML += ' · Budget left: <strong style="color:' + (rem >= 0 ? '#27ae60' : '#e74c3c') + '">' + (rem >= 0 ? '$' + rem.toFixed(2) : '-$' + Math.abs(rem).toFixed(2)) + '</strong>';
+      }
+      lHTML += '</div>';
+    }
+    if (inCartCount > 0) {
+      lHTML += '<div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">' +
+        '<button type="button" id="gafClearCartBtn" class="grocery-clear-btn" style="text-decoration:none;border:1px solid #e74c3c;border-radius:8px;padding:4px 10px">Clear ' + inCartCount + ' in-cart</button>' +
+        '<button type="button" id="gafCheckoutBtn" class="app-fv-save-btn" style="background:#27ae60">🛍 Complete Trip</button>' +
+      '</div>';
+    }
+  }
+  lHTML += '</div>';
+
+  /* Recipe import */
+  lHTML += '<h4 class="app-full-section-heading">📄 Recipe Import</h4>';
+  lHTML += '<div class="gaf-recipe-import">' +
+    '<textarea id="gafRecipeText" class="app-fv-note-input" rows="4" placeholder="Paste ingredients, one per line:\n2 cups flour\n1 tsp salt\n3 eggs…"></textarea>' +
+    '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">' +
+    '<select id="gafRecipeSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>' +
+    '<button type="button" id="gafImportBtn" class="app-fv-save-btn">Import All</button>' +
+    '</div>' +
+  '</div>';
+
+  left.innerHTML = lHTML;
+
+  /* ── RIGHT: Budget, Favorites, Aisle Order, Purchase History ── */
+  var rHTML = '<h3 class="app-full-col-heading">💵 Budget</h3>';
+  rHTML += '<div class="gaf-budget-form">' +
+    '<div class="gaf-budget-row"><label>Monthly</label><div style="display:flex;align-items:center;gap:4px">$<input type="number" id="gafMonthlyBudget" class="app-fv-num-input" value="' + (budget.monthly || '') + '" min="0" step="10" placeholder="0" /></div></div>' +
+    '<div class="gaf-budget-row"><label>Per trip</label><div style="display:flex;align-items:center;gap:4px">$<input type="number" id="gafTripBudget" class="app-fv-num-input" value="' + (budget.trip || '') + '" min="0" step="10" placeholder="0" /></div></div>' +
+    '<button type="button" id="gafSaveBudgetBtn" class="app-fv-save-btn" style="margin-top:6px">Save Budget</button>' +
+  '</div>';
+
+  /* Monthly spend summary */
+  var now = new Date();
+  var monthStartISO = now.getFullYear() + '-' + pad2(now.getMonth()+1) + '-01';
+  var monthSpend = history.filter(function(t) { return t.date >= monthStartISO; }).reduce(function(s, t) { return s + (t.total || 0); }, 0);
+  if (budget.monthly > 0 || monthSpend > 0) {
+    var mLeft = budget.monthly - monthSpend;
+    rHTML += '<div class="gaf-budget-status">' +
+      '<span>This month: <strong style="color:#e74c3c">$' + monthSpend.toFixed(2) + '</strong></span>' +
+      (budget.monthly > 0 ? '<span>Left: <strong style="color:' + (mLeft >= 0 ? '#27ae60' : '#e74c3c') + '">' + (mLeft >= 0 ? '$' + mLeft.toFixed(2) : '-$' + Math.abs(mLeft).toFixed(2)) + '</strong></span>' : '') +
+    '</div>';
+    if (budget.monthly > 0) {
+      var mPct = Math.min(100, Math.round(monthSpend / budget.monthly * 100));
+      rHTML += '<div class="gaf-budget-bar"><div class="gaf-budget-bar-fill" style="width:' + mPct + '%;background:' + (mPct > 90 ? '#e74c3c' : '#27ae60') + '"></div></div>';
+    }
+  }
+
+  /* Favorites / smart suggestions */
+  rHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">⭐ Frequent Items</h3>';
+  var freqVals = [];
+  Object.keys(freq).forEach(function(k) { freqVals.push(freq[k]); });
+  freqVals.sort(function(a, b) { return b.count - a.count; });
+  if (freqVals.length) {
+    rHTML += '<div class="gaf-freq-list">';
+    freqVals.slice(0, 10).forEach(function(f) {
+      rHTML += '<div class="gaf-freq-item">' +
+        '<span>' + escapeHTML(f.text) + '</span>' +
+        '<span style="font-size:0.72rem;color:var(--ios-text-3)">×' + f.count + '</span>' +
+        '<button type="button" class="gaf-freq-add-btn" data-text="' + escapeHTML(f.text) + '" data-section="' + escapeHTML(f.lastSection || '') + '">+ Add</button>' +
+      '</div>';
+    });
+    rHTML += '</div>';
+  } else {
+    rHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">Start adding items to see suggestions here.</p>';
+  }
+
+  /* Custom aisle order */
+  rHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">🏪 Aisle Order</h3>';
+  rHTML += '<p style="font-size:0.78rem;color:var(--ios-text-3);margin:0 0 6px">Reorder sections to match your store layout.</p>';
+  rHTML += '<div class="gaf-aisle-list">';
+  aisleOrder.forEach(function(sec, si) {
+    rHTML += '<div class="gaf-aisle-row">' +
+      '<span>' + escapeHTML(sec) + '</span>' +
+      '<div class="gaf-aisle-btns">' +
+      (si > 0 ? '<button type="button" class="gaf-aisle-btn" data-dir="up" data-idx="' + si + '">↑</button>' : '<span class="gaf-aisle-btn-spacer"></span>') +
+      (si < aisleOrder.length - 1 ? '<button type="button" class="gaf-aisle-btn" data-dir="down" data-idx="' + si + '">↓</button>' : '<span class="gaf-aisle-btn-spacer"></span>') +
+      '</div>' +
+    '</div>';
+  });
+  rHTML += '</div>';
+
+  /* Purchase history */
+  rHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">🧾 Purchase History</h3>';
+  if (!history.length) {
+    rHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No trips logged yet. Complete a shopping trip above to start tracking.</p>';
+  } else {
+    rHTML += '<div class="gaf-history-list">';
+    history.slice().reverse().slice(0, 10).forEach(function(trip) {
+      var td = new Date(trip.date + 'T12:00:00');
+      rHTML += '<div class="gaf-history-row">' +
+        '<span class="gaf-hist-date">' + td.toLocaleDateString(undefined, {month:'short',day:'numeric'}) + '</span>' +
+        '<span class="gaf-hist-name">' + escapeHTML(trip.listName || 'My List') + '</span>' +
+        '<span class="gaf-hist-items">' + (trip.items ? trip.items.length : 0) + ' items</span>' +
+        '<span class="gaf-hist-total">$' + (trip.total || 0).toFixed(2) + '</span>' +
+      '</div>';
+    });
+    rHTML += '</div>';
+  }
+
+  right.innerHTML = rHTML;
+  layout.appendChild(left);
+  layout.appendChild(right);
+  container.appendChild(layout);
+
+  /* ── Wire up all interactions ── */
+
+  /* List tab switching */
+  container.querySelectorAll('.gaf-list-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      setActiveGroceryListId(tab.dataset.listid);
+      renderGroceriesAppFull(container);
+    });
+  });
+
+  /* Add new list */
+  var addListBtn = container.querySelector('#gafAddListBtn');
+  if (addListBtn) addListBtn.addEventListener('click', function() {
+    var nameInp = container.querySelector('#gafNewListName');
+    var name = nameInp ? nameInp.value.trim() : '';
+    if (!name) { if (nameInp) nameInp.focus(); return; }
+    var extra = getExtraGroceryLists();
+    var newId = generateGroceryListId();
+    extra.push({ id: newId, name: name, items: [] });
+    setExtraGroceryLists(extra);
+    setActiveGroceryListId(newId);
+    renderGroceriesAppFull(container);
+  });
+
+  /* Delete active list */
+  var delListBtn = container.querySelector('#gafDelListBtn');
+  if (delListBtn) delListBtn.addEventListener('click', function() {
+    if (!confirm('Delete "' + activeList.name + '"? All items will be lost.')) return;
+    var extra = getExtraGroceryLists().filter(function(l) { return l.id !== activeList.id; });
+    setExtraGroceryLists(extra);
+    setActiveGroceryListId('default');
+    renderGroceriesAppFull(container);
+  });
+
+  /* Add item */
+  var addItemBtn = container.querySelector('#gafAddItemBtn');
+  var textInp    = container.querySelector('#gafItemText');
+  var qtyInp     = container.querySelector('#gafItemQty');
+  var priceInp   = container.querySelector('#gafItemPrice');
+  var secSel     = container.querySelector('#gafItemSection');
+  function _gafAddItem() {
+    var text = textInp ? textInp.value.trim() : '';
+    if (!text) { if (textInp) { textInp.focus(); textInp.style.outline = '2px solid #e74c3c'; setTimeout(function(){ textInp.style.outline=''; }, 1200); } return; }
+    var qty   = qtyInp ? qtyInp.value.trim() : '';
+    var price = priceInp ? parseFloat(priceInp.value) || 0 : 0;
+    var sec   = secSel ? secSel.value : '';
+    var activeListNow = getActiveGroceryListObj();
+    var newItems = (activeListNow.items || []).concat([{ id: nextGroceryId(), text: text, qty: qty, price: price, section: sec, inCart: false, added: getTodayISO() }]);
+    saveActiveListItems(activeListNow.id, newItems);
+    logGroceryItemAdded(text, sec);
+    if (textInp) textInp.value = '';
+    if (qtyInp) qtyInp.value = '';
+    if (priceInp) priceInp.value = '';
+    renderGroceriesAppFull(container);
+  }
+  if (addItemBtn) addItemBtn.addEventListener('click', _gafAddItem);
+  if (textInp) textInp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); _gafAddItem(); } });
+
+  /* Toggle in-cart */
+  container.querySelectorAll('.gaf-item-cb').forEach(function(cb) {
+    var row = cb.closest('.gaf-item-row');
+    var itemId = row ? row.dataset.itemid : null;
+    if (!itemId) return;
+    cb.addEventListener('change', function() {
+      var al = getActiveGroceryListObj();
+      var newItems = (al.items || []).map(function(x) {
+        return String(x.id) === itemId ? Object.assign({}, x, { inCart: cb.checked }) : x;
+      });
+      saveActiveListItems(al.id, newItems);
+      renderGroceriesAppFull(container);
+    });
+  });
+
+  /* Delete items */
+  container.querySelectorAll('.gaf-item-del').forEach(function(btn) {
+    var row = btn.closest('.gaf-item-row');
+    var itemId = row ? row.dataset.itemid : null;
+    if (!itemId) return;
+    btn.addEventListener('click', function() {
+      var al = getActiveGroceryListObj();
+      saveActiveListItems(al.id, (al.items || []).filter(function(x) { return String(x.id) !== itemId; }));
+      renderGroceriesAppFull(container);
+    });
+  });
+
+  /* Clear cart */
+  var clearCartBtn = container.querySelector('#gafClearCartBtn');
+  if (clearCartBtn) clearCartBtn.addEventListener('click', function() {
+    var al = getActiveGroceryListObj();
+    saveActiveListItems(al.id, (al.items || []).filter(function(i) { return !i.inCart; }));
+    renderGroceriesAppFull(container);
+  });
+
+  /* Complete trip / checkout */
+  var checkoutBtn = container.querySelector('#gafCheckoutBtn');
+  if (checkoutBtn) checkoutBtn.addEventListener('click', function() {
+    var al = getActiveGroceryListObj();
+    var inCart   = (al.items || []).filter(function(i) { return i.inCart; });
+    var tripTotal = inCart.reduce(function(s, i) { return s + (parseFloat(i.price) || 0); }, 0);
+    var hist = getGroceryPurchaseHistory();
+    hist.push({ id: generatePurchaseHistId(), date: getTodayISO(), listName: al.name,
+      items: inCart.map(function(i) { return { text: i.text, qty: i.qty, price: i.price }; }), total: tripTotal });
+    setGroceryPurchaseHistory(hist);
+    saveActiveListItems(al.id, (al.items || []).filter(function(i) { return !i.inCart; }));
+    renderGroceriesAppFull(container);
+  });
+
+  /* Frequency quick-add */
+  container.querySelectorAll('.gaf-freq-add-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var text = btn.dataset.text, sec = btn.dataset.section || '';
+      var al = getActiveGroceryListObj();
+      saveActiveListItems(al.id, (al.items || []).concat([{ id: nextGroceryId(), text: text, qty: '', price: 0, section: sec, inCart: false, added: getTodayISO() }]));
+      logGroceryItemAdded(text, sec);
+      renderGroceriesAppFull(container);
+    });
+  });
+
+  /* Aisle reorder */
+  container.querySelectorAll('.gaf-aisle-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var idx = parseInt(btn.dataset.idx, 10);
+      var order = getGroceryAisleOrder();
+      if (btn.dataset.dir === 'up' && idx > 0) {
+        var tmp = order[idx]; order[idx] = order[idx-1]; order[idx-1] = tmp;
+      } else if (btn.dataset.dir === 'down' && idx < order.length - 1) {
+        var tmp2 = order[idx]; order[idx] = order[idx+1]; order[idx+1] = tmp2;
+      }
+      setGroceryAisleOrder(order);
+      renderGroceriesAppFull(container);
+    });
+  });
+
+  /* Budget save */
+  var saveBudgetBtn = container.querySelector('#gafSaveBudgetBtn');
+  if (saveBudgetBtn) saveBudgetBtn.addEventListener('click', function() {
+    var mb = parseFloat((container.querySelector('#gafMonthlyBudget') || {}).value) || 0;
+    var tb = parseFloat((container.querySelector('#gafTripBudget') || {}).value) || 0;
+    setGroceryBudget({ monthly: mb, trip: tb });
+    saveBudgetBtn.textContent = '✓ Saved';
+    setTimeout(function() { saveBudgetBtn.textContent = 'Save Budget'; }, 1500);
+  });
+
+  /* Recipe import */
+  var importBtn = container.querySelector('#gafImportBtn');
+  if (importBtn) importBtn.addEventListener('click', function() {
+    var ta  = container.querySelector('#gafRecipeText');
+    var sec = (container.querySelector('#gafRecipeSection') || {}).value || '';
+    if (!ta || !ta.value.trim()) { if (ta) ta.focus(); return; }
+    var lines = ta.value.split('\n').map(function(l) { return l.trim(); }).filter(Boolean);
+    var al = getActiveGroceryListObj();
+    var newItems = (al.items || []).slice();
+    lines.forEach(function(line) {
+      var qtyMatch = line.match(/^(\d[\d\s\/]*(?:cups?|tbsp?|tsp?|oz|lbs?|g|kg|ml|l|pieces?|cloves?|cans?|pkg)?\s+)/i);
+      var qty = '', text = line;
+      if (qtyMatch) { qty = qtyMatch[1].trim(); text = line.slice(qtyMatch[0].length).trim() || line; }
+      newItems.push({ id: nextGroceryId(), text: text, qty: qty, price: 0, section: sec, inCart: false, added: getTodayISO() });
+      logGroceryItemAdded(text, sec);
+    });
+    saveActiveListItems(al.id, newItems);
+    ta.value = '';
+    renderGroceriesAppFull(container);
+  });
+}
+
+/* Expose new app render functions */
+window.renderChoresAppMedium    = renderChoresAppMedium;
+window.renderChoresAppFull      = renderChoresAppFull;
+window.renderGroceriesAppMedium = renderGroceriesAppMedium;
+window.renderGroceriesAppFull   = renderGroceriesAppFull;
+

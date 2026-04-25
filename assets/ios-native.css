@@ -3353,3 +3353,403 @@ body.dark-mode .mf-ing-header { border-color: #2a2a4a; }
 .dmeal-summary { flex-wrap: wrap; }
 body.dark-mode .dmeal-macro-mini-bar { background: #22284a; }
 body.dark-mode .dmeal-macro-goals-panel { background: #1e2d50; }
+
+/* ======================================================================
+   CHORES APP — Medium & Full View
+   ====================================================================== */
+
+/* ── Home page widget title bar (with "Open →" button) ── */
+.home-dash-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 10px;
+}
+.home-dash-title-bar .home-dash-title { margin: 0; }
+
+/* ── Medium view wrapper ── */
+.ca-medium-wrap { padding: 2px 0 6px; }
+
+.ca-med-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.ca-med-stat-pills {
+  display: flex;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.ca-med-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ios-text-2, #555);
+  margin: 8px 0 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Today chore list */
+.ca-med-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+}
+.ca-med-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--ios-border, #f0f0f0);
+  font-size: 0.88rem;
+}
+.ca-med-item:last-child { border-bottom: none; }
+.ca-med-item.done .ca-med-title { text-decoration: line-through; color: var(--ios-text-3, #aaa); }
+.ca-med-emoji { font-size: 1rem; flex-shrink: 0; }
+.ca-med-title { flex: 1; }
+.ca-med-assignee {
+  font-size: 0.72rem;
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-weight: 600;
+}
+.ca-med-empty { color: var(--ios-text-3, #aaa); font-size: 0.85rem; padding: 8px 0; }
+
+/* Quick-add button */
+.ca-med-add-btn {
+  background: none;
+  border: 1.5px dashed #4a90e2;
+  color: #4a90e2;
+  border-radius: 10px;
+  padding: 5px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  margin: 4px 0;
+}
+.ca-med-add-btn:hover { background: #eaf4ff; }
+
+/* Streaks */
+.ca-med-streaks { margin-top: 8px; }
+.ca-med-streak-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--ios-border, #f5f5f5);
+}
+.ca-med-streak-row:last-child { border-bottom: none; }
+
+/* ── Full view ── */
+.ca-members-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.ca-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f7f9fc;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+}
+.ca-member-name { font-weight: 600; }
+.ca-add-member-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.ca-color-picker { display: flex; flex-wrap: wrap; gap: 5px; margin: 2px 0; }
+.ca-color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.ca-color-swatch.selected { border-color: #fff; box-shadow: 0 0 0 2px #333; }
+.ca-pts-config { display: flex; flex-direction: column; gap: 6px; }
+.ca-pts-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+
+/* Assignments */
+.ca-assignment-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.ca-assign-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.84rem;
+}
+.ca-assign-task { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 30-day heatmap */
+.ca-heatmap {
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  gap: 3px;
+  margin-bottom: 6px;
+}
+.ca-heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  cursor: default;
+}
+.ca-heat-0 { background: #eee; }
+.ca-heat-1 { background: #c6e48b; }
+.ca-heat-2 { background: #40c463; }
+.ca-heat-3 { background: #216e39; }
+
+/* Scoreboard */
+.ca-scoreboard { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
+.ca-score-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  padding: 5px 8px;
+  background: #f7f9fc;
+  border-radius: 8px;
+}
+.ca-score-name { flex: 1; font-weight: 600; }
+.ca-score-pts { font-weight: 700; color: var(--ios-text-1, #111); }
+
+/* Most-done */
+.ca-freq-list { display: flex; flex-direction: column; gap: 3px; }
+.ca-freq-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  padding: 4px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+.ca-freq-count { font-weight: 700; color: #4a90e2; font-size: 0.75rem; }
+
+/* Dark mode — Chores */
+body.dark-mode .ca-member-row { background: #1e2d45; }
+body.dark-mode .ca-assign-row { color: #d0d8e8; }
+body.dark-mode .ca-score-row { background: #1e2d45; }
+body.dark-mode .ca-heatmap-cell.ca-heat-0 { background: #2a2a4a; }
+body.dark-mode .ca-freq-row { border-color: #2a2a4a; }
+body.dark-mode .ca-med-item { border-color: #2a2a4a; }
+body.dark-mode .ca-med-streak-row { border-color: #2a2a4a; }
+body.dark-mode .ca-med-add-btn { border-color: #5a9ae2; color: #7ab8ff; }
+body.dark-mode .ca-med-add-btn:hover { background: #1e3a6e; }
+
+/* ======================================================================
+   GROCERIES APP — Medium & Full View
+   ====================================================================== */
+
+/* ── Medium view ── */
+.gam-medium-wrap { padding: 2px 0 6px; }
+
+.gam-med-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 0.82rem;
+  margin-bottom: 8px;
+}
+.gam-med-stat { color: var(--ios-text-2, #444); }
+.gam-med-stat.in-cart strong { color: #27ae60; }
+.gam-med-stat.cost strong { color: #27ae60; }
+.gam-med-stat.over strong { color: #e74c3c; }
+
+.gam-med-qa-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.gam-med-inp {
+  flex: 1;
+  font-size: 0.88rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 6px 10px;
+  box-sizing: border-box;
+}
+
+/* Budget progress bar (shared) */
+.gaf-budget-bar {
+  height: 5px;
+  background: #eee;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 4px 0 8px;
+}
+.gaf-budget-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+
+/* ── Full view ── */
+
+/* List tabs */
+.gaf-lists-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.gaf-list-tab {
+  background: #f0f3f8;
+  border: 1.5px solid #dde4f0;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--ios-text-2, #444);
+  transition: background 0.12s, border-color 0.12s;
+}
+.gaf-list-tab.active { background: #4a90e2; border-color: #4a90e2; color: #fff; font-weight: 600; }
+.gaf-list-tab:hover:not(.active) { background: #e0ebff; border-color: #4a90e2; }
+
+.gaf-new-list-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 10px; }
+
+/* Full-view add form */
+.gaf-add-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  background: #f5f9ff;
+  border-radius: 10px;
+  border: 1.5px dashed #4a90e2;
+}
+
+/* Item list */
+.gaf-item-list { margin-bottom: 8px; }
+.gaf-section-group { margin-bottom: 6px; }
+.gaf-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4a90e2;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 0 2px;
+  border-bottom: 1px solid #e0e8f8;
+  margin-bottom: 2px;
+}
+.gaf-item-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 4px;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 0.85rem;
+}
+.gaf-item-row:last-child { border-bottom: none; }
+.gaf-item-row.in-cart { opacity: 0.5; }
+.gaf-item-row.in-cart .gaf-item-text { text-decoration: line-through; }
+.gaf-item-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gaf-total-row {
+  font-size: 0.82rem;
+  padding: 8px 4px 4px;
+  border-top: 1px solid #eee;
+  margin-top: 4px;
+}
+
+/* Recipe import */
+.gaf-recipe-import { margin-bottom: 4px; }
+
+/* Budget form */
+.gaf-budget-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.gaf-budget-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.84rem;
+}
+.gaf-budget-status {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+
+/* Favorites list */
+.gaf-freq-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; max-height: 220px; overflow-y: auto; }
+.gaf-freq-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.gaf-freq-item:hover { background: #f5f8ff; }
+.gaf-freq-add-btn {
+  background: none;
+  border: 1px solid #4a90e2;
+  color: #4a90e2;
+  border-radius: 6px;
+  padding: 2px 7px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.gaf-freq-add-btn:hover { background: #eaf4ff; }
+
+/* Aisle order */
+.gaf-aisle-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 4px; }
+.gaf-aisle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  padding: 5px 8px;
+  background: #f7f9fc;
+  border-radius: 6px;
+}
+.gaf-aisle-btns { display: flex; gap: 3px; }
+.gaf-aisle-btn {
+  background: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: #4a90e2;
+}
+.gaf-aisle-btn:hover { background: #eaf4ff; border-color: #4a90e2; }
+.gaf-aisle-btn-spacer { display: inline-block; width: 24px; }
+
+/* Purchase history */
+.gaf-history-list { display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto; }
+.gaf-history-row {
+  display: grid;
+  grid-template-columns: 54px 1fr 52px 54px;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.8rem;
+  padding: 5px 6px;
+  background: #f7f9fc;
+  border-radius: 6px;
+}
+.gaf-hist-date { color: var(--ios-text-3, #aaa); }
+.gaf-hist-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.gaf-hist-items { color: var(--ios-text-3, #aaa); text-align: right; }
+.gaf-hist-total { font-weight: 700; color: #27ae60; text-align: right; }
+
+/* Dark mode — Groceries */
+body.dark-mode .gam-med-inp { background: #16213e; color: #e0e0e0; border-color: #2a2a4a; }
+body.dark-mode .gaf-list-tab { background: #1e2d45; border-color: #2a2a4a; color: #ccc; }
+body.dark-mode .gaf-list-tab.active { background: #4a90e2; border-color: #4a90e2; color: #fff; }
+body.dark-mode .gaf-add-form { background: #1a2744; border-color: #3a6db5; }
+body.dark-mode .gaf-section-label { color: #7ab8ff; border-color: #2a2a4a; }
+body.dark-mode .gaf-item-row { border-color: #2a2a4a; }
+body.dark-mode .gaf-aisle-row { background: #1e2d45; }
+body.dark-mode .gaf-aisle-btn { border-color: #2a2a4a; }
+body.dark-mode .gaf-aisle-btn:hover { background: #1e3a6e; }
+body.dark-mode .gaf-history-row { background: #1e2d45; }
+body.dark-mode .gaf-freq-item:hover { background: #1e2d45; }
+body.dark-mode .gaf-budget-bar { background: #22284a; }
+body.dark-mode .gaf-total-row { border-color: #2a2a4a; }
+
