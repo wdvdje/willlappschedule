@@ -374,7 +374,8 @@
         'personalRoutines', 'personalRoutineLog', 'personalHydration', 'personalMealPrepLog',
         'personalMood', 'personalMealFavorites', 'journalEntries', 'journalFolders',
         'personalBudget', 'personalMacroGoals', 'personalRecipes', 'personalBodyMeasurements',
-        'personalSavingsGoals', 'groceryList', 'homeStreaks', 'choreTemplatesCustom',
+        'personalSavingsGoals', 'personalDebts', 'personalManualAssets', 'appNotificationSettings',
+        'groceryList', 'homeStreaks', 'choreTemplatesCustom',
         'earningsSettings', 'schoolABSchedule'
       ];
       jsonKeys.forEach(function (k) {

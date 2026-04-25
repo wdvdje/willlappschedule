@@ -213,6 +213,91 @@
       <div style="margin-top:8px;color:#666;font-size:0.9rem" id="notifTipText">Tip: supply a public VAPID key if you use a push server that requires VAPID. On iOS 16.4+, the app must be installed to the Home Screen.</div>
       <div id="triggerApiStatus" style="margin-top:6px;font-size:0.85rem;color:#27ae60;display:none">✅ Scheduled Notifications supported — reminders will fire even when the app is closed.</div>
     </section>
+
+    <!-- App Notifications settings -->
+    <section id="appNotifSettings" style="margin-top:18px">
+      <h3 style="text-align:center">📱 App Notifications</h3>
+      <p style="font-size:0.88rem;color:#666;margin:4px 0 10px">
+        Control which apps can generate reminders that appear in your calendar and reminders view.
+        Use the lead time selector to get notified ahead of time.
+      </p>
+      <div class="app-notif-list" id="appNotifList">
+        <!-- Populated by script below -->
+      </div>
+      <div style="margin-top:10px;font-size:0.82rem;color:#888">
+        Changes take effect immediately. Reminders are rebuilt on next app open.
+      </div>
+    </section>
+    <script>
+    (function () {
+      var APP_NOTIF_DEFS = [
+        { id: 'budget',   emoji: '💰', label: 'Budget',   desc: 'Bill due dates, paycheck reminders, savings goals, low-balance alerts' },
+        { id: 'groceries',emoji: '🛒', label: 'Groceries',desc: 'Shopping reminders and restock alerts' },
+        { id: 'chores',   emoji: '🏠', label: 'Chores',   desc: 'Chore due and overdue reminders' }
+      ];
+      var LEAD_OPTIONS = [
+        { value: 'at',  label: 'At time' },
+        { value: '1d',  label: '1 day before' },
+        { value: '3d',  label: '3 days before' },
+        { value: '1w',  label: '1 week before' }
+      ];
+
+      function getSettings() {
+        try { return JSON.parse(localStorage.getItem('appNotificationSettings') || '{}'); } catch(_) { return {}; }
+      }
+      function saveSettings(s) { localStorage.setItem('appNotificationSettings', JSON.stringify(s)); }
+
+      var list = document.getElementById('appNotifList');
+      if (!list) return;
+
+      APP_NOTIF_DEFS.forEach(function (def) {
+        var settings = getSettings();
+        var cfg = Object.assign({ enabled: true, leadTime: '1d' }, settings[def.id] || {});
+
+        var row = document.createElement('div');
+        row.className = 'app-notif-row';
+
+        var leadOpts = LEAD_OPTIONS.map(function(o) {
+          return '<option value="' + o.value + '"' + (o.value === cfg.leadTime ? ' selected' : '') + '>' + o.label + '</option>';
+        }).join('');
+
+        row.innerHTML =
+          '<span class="app-notif-emoji">' + def.emoji + '</span>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div class="app-notif-label">' + def.label + '</div>' +
+            '<div style="font-size:0.75rem;color:#888;margin-top:1px">' + def.desc + '</div>' +
+          '</div>' +
+          '<select class="app-notif-lead-sel" data-app="' + def.id + '">' + leadOpts + '</select>' +
+          '<label class="app-notif-toggle">' +
+            '<input type="checkbox" class="app-notif-chk" data-app="' + def.id + '"' + (cfg.enabled ? ' checked' : '') + '/>' +
+            '<span class="app-notif-slider"></span>' +
+          '</label>';
+
+        list.appendChild(row);
+      });
+
+      // Wire up toggles and lead-time selectors
+      list.addEventListener('change', function (e) {
+        var appId = e.target.dataset.app;
+        if (!appId) return;
+        var settings = getSettings();
+        if (!settings[appId]) settings[appId] = { enabled: true, leadTime: '1d' };
+        if (e.target.classList.contains('app-notif-chk')) {
+          settings[appId].enabled = e.target.checked;
+          // Trigger budget notification sync if the budget toggle changed
+          if (appId === 'budget' && window.syncBudgetNotifications) {
+            try { window.syncBudgetNotifications(); } catch(_) {}
+          }
+        } else if (e.target.classList.contains('app-notif-lead-sel')) {
+          settings[appId].leadTime = e.target.value;
+          if (appId === 'budget' && window.syncBudgetNotifications) {
+            try { window.syncBudgetNotifications(); } catch(_) {}
+          }
+        }
+        saveSettings(settings);
+      });
+    })();
+    </script>
     <script>
     (function () {
       function isIOS() {

@@ -3130,6 +3130,9 @@ function buildExportPayload(){
       personalRecipes: safeParseStorage('personalRecipes', []),
       personalBodyMeasurements: safeParseStorage('personalBodyMeasurements', []),
       personalSavingsGoals: safeParseStorage('personalSavingsGoals', []),
+      personalDebts: safeParseStorage('personalDebts', []),
+      personalManualAssets: safeParseStorage('personalManualAssets', []),
+      appNotificationSettings: safeParseStorage('appNotificationSettings', {}),
       groceryList: safeParseStorage('groceryList', []),
       homeStreaks: safeParseStorage('homeStreaks', {}),
       choreTemplatesCustom: safeParseStorage('choreTemplatesCustom', []),
@@ -3259,6 +3262,9 @@ function parseImportPayload(parsed){
   const personalRecipes = Array.isArray(data.personalRecipes) ? data.personalRecipes : undefined;
   const personalBodyMeasurements = Array.isArray(data.personalBodyMeasurements) ? data.personalBodyMeasurements : undefined;
   const personalSavingsGoals = Array.isArray(data.personalSavingsGoals) ? data.personalSavingsGoals : undefined;
+  const personalDebts = Array.isArray(data.personalDebts) ? data.personalDebts : undefined;
+  const personalManualAssets = Array.isArray(data.personalManualAssets) ? data.personalManualAssets : undefined;
+  const appNotificationSettings = (data.appNotificationSettings && typeof data.appNotificationSettings === 'object' && !Array.isArray(data.appNotificationSettings)) ? data.appNotificationSettings : undefined;
   const groceryList = Array.isArray(data.groceryList) ? data.groceryList : undefined;
   const homeStreaks = (data.homeStreaks && typeof data.homeStreaks === 'object' && !Array.isArray(data.homeStreaks)) ? data.homeStreaks : undefined;
   const choreTemplatesCustom = Array.isArray(data.choreTemplatesCustom) ? data.choreTemplatesCustom : undefined;
@@ -3270,8 +3276,8 @@ function parseImportPayload(parsed){
   return { events, tasks, reminders, jobs, taskCategories, userProfile, personalBuckets, homeBuckets, domainColors, userOffDays, dayStartHour, dayEndHour,
     personalMeals, personalCalorieGoal, personalSleep, personalGym, personalFocus, personalRoutines, personalRoutineLog, personalHydration, personalMood,
     personalMealFavorites, personalMealPrepLog, inbox, journalEntries, journalFolders, personalBudget, personalMacroGoals, personalRecipes,
-    personalBodyMeasurements, personalSavingsGoals, groceryList, homeStreaks, choreTemplatesCustom, earningsSettings, schoolABSchedule,
-    morningBriefingEnabled, morningBriefingTime };
+    personalBodyMeasurements, personalSavingsGoals, personalDebts, personalManualAssets, appNotificationSettings, groceryList, homeStreaks,
+    choreTemplatesCustom, earningsSettings, schoolABSchedule, morningBriefingEnabled, morningBriefingTime };
 }
 
 function eventKey(x){
@@ -3404,6 +3410,9 @@ function applyImportData(importData, mode){
     if (Array.isArray(importData.personalRecipes)) localStorage.setItem('personalRecipes', JSON.stringify(importData.personalRecipes));
     if (Array.isArray(importData.personalBodyMeasurements)) localStorage.setItem('personalBodyMeasurements', JSON.stringify(importData.personalBodyMeasurements));
     if (Array.isArray(importData.personalSavingsGoals)) localStorage.setItem('personalSavingsGoals', JSON.stringify(importData.personalSavingsGoals));
+    if (Array.isArray(importData.personalDebts)) localStorage.setItem('personalDebts', JSON.stringify(importData.personalDebts));
+    if (Array.isArray(importData.personalManualAssets)) localStorage.setItem('personalManualAssets', JSON.stringify(importData.personalManualAssets));
+    if (importData.appNotificationSettings && typeof importData.appNotificationSettings === 'object') localStorage.setItem('appNotificationSettings', JSON.stringify(importData.appNotificationSettings));
     if (Array.isArray(importData.groceryList)) localStorage.setItem('groceryList', JSON.stringify(importData.groceryList));
     if (importData.homeStreaks && typeof importData.homeStreaks === 'object') localStorage.setItem('homeStreaks', JSON.stringify(importData.homeStreaks));
     if (Array.isArray(importData.choreTemplatesCustom)) localStorage.setItem('choreTemplatesCustom', JSON.stringify(importData.choreTemplatesCustom));
@@ -3548,6 +3557,15 @@ function applyImportData(importData, mode){
   }
   if (Array.isArray(importData.personalSavingsGoals) && importData.personalSavingsGoals.length && !localStorage.getItem('personalSavingsGoals')) {
     localStorage.setItem('personalSavingsGoals', JSON.stringify(importData.personalSavingsGoals));
+  }
+  if (Array.isArray(importData.personalDebts) && importData.personalDebts.length && !localStorage.getItem('personalDebts')) {
+    localStorage.setItem('personalDebts', JSON.stringify(importData.personalDebts));
+  }
+  if (Array.isArray(importData.personalManualAssets) && importData.personalManualAssets.length && !localStorage.getItem('personalManualAssets')) {
+    localStorage.setItem('personalManualAssets', JSON.stringify(importData.personalManualAssets));
+  }
+  if (importData.appNotificationSettings && typeof importData.appNotificationSettings === 'object' && !localStorage.getItem('appNotificationSettings')) {
+    localStorage.setItem('appNotificationSettings', JSON.stringify(importData.appNotificationSettings));
   }
   if (Array.isArray(importData.groceryList) && importData.groceryList.length && !localStorage.getItem('groceryList')) {
     localStorage.setItem('groceryList', JSON.stringify(importData.groceryList));
@@ -7864,27 +7882,180 @@ function calcBudgetGrocerySpending() {
   return list.reduce(function(sum, item) { return sum + (parseFloat(item.price) || 0); }, 0);
 }
 
-/** Create a reminder in the Budget bucket for a recurring bill */
-function createBudgetBillReminder(bill) {
-  if (!bill.dueDate) return;
-  var reminders = getReminders();
-  var dateKey = bill.dueDate;
-  if (!reminders[dateKey]) reminders[dateKey] = [];
-  // Check if reminder already exists for this bill
-  var reminderText = 'Bill due: ' + bill.name + ' ($' + (parseFloat(bill.amount) || 0).toFixed(2) + ')';
-  var exists = reminders[dateKey].some(function(r) {
-    return r.bucketId === 'budget' && r.text === reminderText;
+/* ── App Notification Settings ──────────────────────────────────────── */
+
+/** Returns per-app notification preferences from localStorage.
+ *  Shape: { appId: { enabled: bool, leadTime: '1d'|'3d'|'1w'|'at' }, … }
+ */
+function getAppNotificationSettings() {
+  return safeParseStorage('appNotificationSettings', {});
+}
+
+function setAppNotificationSettings(v) {
+  localStorage.setItem('appNotificationSettings', JSON.stringify(v));
+}
+
+/** Returns the notification config for a single app, with defaults. */
+function getAppNotifConfig(appId) {
+  var all = getAppNotificationSettings();
+  return Object.assign({ enabled: true, leadTime: '1d' }, all[appId] || {});
+}
+
+/** Register (replace) all reminders for a given appId bucket.
+ *  Each item in `reminders` is: { date: 'YYYY-MM-DD', text, time?, notify? }
+ *  Respects the per-app enabled/leadTime setting.
+ *  Returns the number of reminders injected.
+ */
+function registerAppReminders(appId, reminders) {
+  var cfg = getAppNotifConfig(appId);
+  var rmap = getReminders();
+
+  // Remove all previously registered reminders for this app
+  Object.keys(rmap).forEach(function(dk) {
+    rmap[dk] = (rmap[dk] || []).filter(function(r) { return r.bucketId !== appId; });
+    if (!rmap[dk].length) delete rmap[dk];
   });
-  if (!exists) {
-    reminders[dateKey].push({
-      text: reminderText,
-      time: '09:00',
-      notify: '1d',
-      domain: 'personal',
-      bucketId: 'budget'
-    });
-    setReminders(reminders);
+
+  if (!cfg.enabled || !reminders || !reminders.length) {
+    setReminders(rmap);
+    return 0;
   }
+
+  var count = 0;
+  reminders.forEach(function(rem) {
+    if (!rem.date || !rem.text) return;
+    if (!rmap[rem.date]) rmap[rem.date] = [];
+    var exists = rmap[rem.date].some(function(r) {
+      return r.bucketId === appId && r.text === rem.text;
+    });
+    if (!exists) {
+      rmap[rem.date].push({
+        text: rem.text,
+        time: rem.time || '09:00',
+        notify: rem.notify || cfg.leadTime,
+        domain: 'personal',
+        bucketId: appId
+      });
+      count++;
+    }
+  });
+
+  setReminders(rmap);
+  return count;
+}
+
+/** Compute the due date for the next N occurrences of a recurring bill. */
+function _billNextOccurrences(bill, n) {
+  if (!bill.dueDate) return [];
+  var repeat = bill.repeat || 'monthly';
+  var results = [];
+  var now = new Date();
+  var base = new Date(bill.dueDate + 'T00:00:00');
+  if (isNaN(base.getTime())) return [];
+
+  var next = new Date(base);
+  // Advance to a future occurrence
+  var safety = 0;
+  while (next < now && safety++ < 600) {
+    if (repeat === 'weekly')        next.setDate(next.getDate() + 7);
+    else if (repeat === 'biweekly') next.setDate(next.getDate() + 14);
+    else if (repeat === 'quarterly')next.setMonth(next.getMonth() + 3);
+    else if (repeat === 'yearly')   next.setFullYear(next.getFullYear() + 1);
+    else                            next.setMonth(next.getMonth() + 1); // monthly
+  }
+
+  for (var i = 0; i < n; i++) {
+    results.push(new Date(next));
+    if (repeat === 'weekly')        next.setDate(next.getDate() + 7);
+    else if (repeat === 'biweekly') next.setDate(next.getDate() + 14);
+    else if (repeat === 'quarterly')next.setMonth(next.getMonth() + 3);
+    else if (repeat === 'yearly')   next.setFullYear(next.getFullYear() + 1);
+    else                            next.setMonth(next.getMonth() + 1);
+  }
+  return results;
+}
+
+/** Rebuild all budget-generated reminders (bills, paychecks, savings goals, low balance).
+ *  Call whenever budget data changes.  Uses registerAppReminders so it respects the toggle.
+ */
+function syncBudgetNotifications() {
+  var budget = getPersonalBudget();
+  var bills = budget.bills || [];
+  var payPeriods = budget.payPeriods || [];
+  var savings = safeParseStorage('personalSavingsGoals', []);
+  var cfg = getAppNotifConfig('budget');
+  var reminders = [];
+
+  // 1. Upcoming bill due dates (next 3 occurrences per bill)
+  bills.forEach(function(bill) {
+    if (!bill.dueDate) return;
+    _billNextOccurrences(bill, 3).forEach(function(dt) {
+      var iso = dt.toISOString().slice(0, 10);
+      reminders.push({
+        date: iso,
+        text: '📋 Bill due: ' + bill.name + ' ($' + parseFloat(bill.amount || 0).toFixed(2) + ')',
+        time: '09:00',
+        notify: cfg.leadTime
+      });
+    });
+  });
+
+  // 2. Paycheck incoming (next 3 pay dates per pay period)
+  payPeriods.forEach(function(pp) {
+    if (!pp.startDate) return;
+    var next = calcNextPayDate(pp.startDate, pp.type);
+    for (var i = 0; i < 3; i++) {
+      var iso = next.toISOString().slice(0, 10);
+      var jobLabel = pp.jobName ? ' (' + pp.jobName + ')' : '';
+      reminders.push({
+        date: iso,
+        text: '💰 Payday' + jobLabel + ': $' + parseFloat(pp.amount || 0).toFixed(2),
+        time: '09:00',
+        notify: cfg.leadTime
+      });
+      if (pp.type === 'weekly')          next.setDate(next.getDate() + 7);
+      else if (pp.type === 'biweekly')   next.setDate(next.getDate() + 14);
+      else if (pp.type === 'semimonthly')next.setDate(next.getDate() + 15);
+      else                               next.setMonth(next.getMonth() + 1);
+    }
+  });
+
+  // 3. Savings goals at 100%
+  savings.forEach(function(goal) {
+    if (!goal.target || !goal.name) return;
+    var pct = goal.target > 0 ? Math.round((goal.current || 0) / goal.target * 100) : 0;
+    if (pct >= 100) {
+      var today = getTodayISO();
+      reminders.push({
+        date: today,
+        text: '🎉 Savings goal reached: ' + goal.name + ' ($' + parseFloat(goal.target).toFixed(2) + ')',
+        time: '09:00',
+        notify: 'at'
+      });
+    }
+  });
+
+  // 4. Low balance warning (net below zero)
+  var jobIncome = typeof calcBudgetJobIncome === 'function' ? calcBudgetJobIncome() : 0;
+  var billsTotal = bills.reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
+  var oneTimeTotal = (budget.oneTimeExpenses || []).reduce(function(s, e) { return s + (parseFloat(e.amount) || 0); }, 0);
+  var net = jobIncome - billsTotal - oneTimeTotal;
+  if (net < 0) {
+    var today = getTodayISO();
+    reminders.push({
+      date: today,
+      text: '⚠️ Budget deficit: expenses exceed income by $' + Math.abs(net).toFixed(2),
+      time: '09:00',
+      notify: 'at'
+    });
+  }
+
+  registerAppReminders('budget', reminders);
+}
+
+/** Legacy thin wrapper — kept for back-compat.  Now delegates to syncBudgetNotifications. */
+function createBudgetBillReminder(bill) {
+  syncBudgetNotifications();
 }
 
 function calcNextPayDate(startDate, type) {
@@ -11148,39 +11319,956 @@ function renderRoutineAppFull(container) {
   var expBtn=container.querySelector('#routineFvExport');if(expBtn)expBtn.addEventListener('click',function(){try{navigator.clipboard.writeText(exportLines.join('\n'));expBtn.textContent='\u2705 Copied!';setTimeout(function(){expBtn.textContent='\ud83d\udccb Copy routine as text';},2000);}catch(e){alert(exportLines.join('\n'));}});
 }
 
-function renderBudgetAppFull(container) {
-  container.innerHTML='';
-  var budget=getPersonalBudget(),bills=budget.bills||[],oneTime=budget.oneTimeExpenses||[];
-  var layout=document.createElement('div');layout.className='app-full-two-col';
-  var left=document.createElement('div');left.className='app-full-col';
-  var right=document.createElement('div');right.className='app-full-col';
-  var jobIncome=typeof calcBudgetJobIncome==='function'?calcBudgetJobIncome():0;
-  var billsTotal=bills.reduce(function(s,b){return s+(parseFloat(b.amount)||0);},0);
-  var oneTimeTotal=oneTime.reduce(function(s,e){return s+(parseFloat(e.amount)||0);},0);
-  var netMonthly=jobIncome-billsTotal-oneTimeTotal;
-  var lHTML='<h3 class="app-full-col-heading">\ud83d\udcb0 Budget Overview</h3>'+
-    '<div class="app-budget-summary-row"><span>\ud83d\udcc8 Income (30 days)</span><span style="color:#27ae60;font-weight:700">$'+jobIncome.toFixed(2)+'</span></div>'+
-    '<div class="app-budget-summary-row"><span>\ud83d\udccb Recurring Bills/mo</span><span style="color:#e74c3c">$'+billsTotal.toFixed(2)+'</span></div>'+
-    '<div class="app-budget-summary-row"><span>\ud83d\udcb8 One-time Expenses</span><span style="color:#e74c3c">$'+oneTimeTotal.toFixed(2)+'</span></div>'+
-    '<div class="app-budget-summary-row app-budget-net"><span>\ud83d\udcb5 Net (approx)</span><span style="color:'+(netMonthly>=0?'#27ae60':'#e74c3c')+';font-weight:700">'+(netMonthly>=0?'+':'')+'$'+netMonthly.toFixed(2)+'</span></div>';
-  lHTML+='<div class="app-budget-toggle-row"><span>\ud83d\udccb Bills</span><label style="display:flex;align-items:center;gap:4px;font-size:0.8rem"><input type="checkbox" id="budgFvAnnual"/><span>Show annual</span></label></div><div id="budgFvBillsList" class="app-budget-bills-list">';
-  bills.forEach(function(bill){lHTML+='<div class="app-budget-bill-row"><span>'+escapeHTML(bill.emoji||'\ud83d\udcb3')+' '+escapeHTML(bill.name||'')+'</span><span class="app-budget-bill-amt" data-monthly="'+(bill.amount||0)+'">$'+parseFloat(bill.amount||0).toFixed(2)+'/mo</span></div>';});
-  if(!bills.length)lHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No bills added yet.</p>';
-  lHTML+='</div>';
-  left.innerHTML=lHTML;
-  var savings=safeParseStorage('personalSavingsGoals',[]);
-  var rHTML='<h3 class="app-full-col-heading">\ud83c\udfe6 Savings Goals</h3>';
-  savings.forEach(function(goal,gi){var pct=goal.target>0?Math.min(100,Math.round((goal.current||0)/goal.target*100)):0;rHTML+='<div class="app-savings-goal"><div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:4px"><span>'+escapeHTML(goal.emoji||'\ud83c\udfaf')+' '+escapeHTML(goal.name||'')+'</span><span style="color:var(--ios-text-3)">'+(goal.current||0)+' / $'+goal.target+'</span></div><div class="app-savings-bar"><div style="width:'+pct+'%;background:#27ae60;height:5px;border-radius:3px"></div></div><div style="font-size:0.75rem;color:var(--ios-text-3);margin-top:2px">'+pct+'% complete</div><div style="display:flex;gap:4px;margin-top:4px"><input type="number" class="app-savings-inp app-fv-num-small" data-gi="'+gi+'" value="'+(goal.current||0)+'" min="0" step="10" placeholder="Current"/><button class="app-savings-upd app-fv-save-btn" data-gi="'+gi+'" style="padding:3px 8px;font-size:0.78rem">Update</button></div></div>';});
-  rHTML+='<div class="app-savings-add-form"><input type="text" id="savGoalName" class="app-fv-text-input" placeholder="Goal name (e.g. Car)"/><input type="number" id="savGoalTarget" class="app-fv-num-input" placeholder="Target $" min="0"/><input type="text" id="savGoalEmoji" class="app-fv-num-small" placeholder="\ud83c\udfaf" maxlength="2" style="width:38px;text-align:center"/><button id="savGoalAdd" class="app-fv-save-btn">\uff0b Add Goal</button></div>';
-  var catMap={};bills.forEach(function(b){var c=b.category||'Other';catMap[c]=(catMap[c]||0)+(parseFloat(b.amount)||0);});oneTime.forEach(function(e){var c=e.category||'Other';catMap[c]=(catMap[c]||0)+(parseFloat(e.amount)||0);});
-  var catKeys=Object.keys(catMap).sort(function(a,b){return catMap[b]-catMap[a];});
-  if(catKeys.length){rHTML+='<h4 class="app-full-section-heading" style="margin-top:16px">\ud83d\udcca Spending by Category</h4>'+_fvBarChart(catKeys.map(function(k){return{label:k.slice(0,8),value:Math.round(catMap[k]),iso:''};}).slice(0,8),220,80,12,18,8,8,'');}
-  right.innerHTML=rHTML;
-  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
-  var annualToggle=container.querySelector('#budgFvAnnual');if(annualToggle)annualToggle.addEventListener('change',function(){container.querySelectorAll('.app-budget-bill-amt').forEach(function(el){var mo=parseFloat(el.dataset.monthly)||0;el.textContent=annualToggle.checked?'$'+(mo*12).toFixed(2)+'/yr':'$'+mo.toFixed(2)+'/mo';});});
-  container.querySelectorAll('.app-savings-upd').forEach(function(btn){btn.addEventListener('click',function(){var gi=parseInt(btn.dataset.gi,10);var inp=container.querySelector('.app-savings-inp[data-gi="'+gi+'"]');var goals=safeParseStorage('personalSavingsGoals',[]);if(!goals[gi])return;goals[gi].current=parseFloat((inp||{}).value)||0;localStorage.setItem('personalSavingsGoals',JSON.stringify(goals));renderBudgetAppFull(container);});});
-  var savAdd=container.querySelector('#savGoalAdd');if(savAdd)savAdd.addEventListener('click',function(){var nameInp=container.querySelector('#savGoalName'),tgtInp=container.querySelector('#savGoalTarget'),emojiInp=container.querySelector('#savGoalEmoji');var name=nameInp?nameInp.value.trim():'',target=parseFloat((tgtInp||{}).value)||0;if(!name||!target)return;var goals=safeParseStorage('personalSavingsGoals',[]);goals.push({name:name,target:target,current:0,emoji:(emojiInp?emojiInp.value.trim():'')||'\ud83c\udfaf'});localStorage.setItem('personalSavingsGoals',JSON.stringify(goals));renderBudgetAppFull(container);});
+/* ── Budget Full View helpers ─────────────────────────────────────── */
+
+/** Export budget data (bills + one-time expenses + savings goals) as CSV download. */
+function _budgetExportCSV() {
+  var budget = getPersonalBudget();
+  var rows = [['Type', 'Name', 'Amount', 'Category', 'Due/Date', 'Repeat']];
+  (budget.bills || []).forEach(function(b) {
+    rows.push(['Recurring Bill', b.name || '', parseFloat(b.amount || 0).toFixed(2),
+      b.category || '', b.dueDate || '', b.repeat || 'monthly']);
+  });
+  (budget.oneTimeExpenses || []).forEach(function(e) {
+    rows.push(['One-Time Expense', e.name || '', parseFloat(e.amount || 0).toFixed(2),
+      e.category || '', e.date || '', '']);
+  });
+  var savings = safeParseStorage('personalSavingsGoals', []);
+  savings.forEach(function(g) {
+    rows.push(['Savings Goal', g.name || '', parseFloat(g.target || 0).toFixed(2),
+      '', '', '']);
+  });
+  var csv = rows.map(function(r) {
+    return r.map(function(c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(',');
+  }).join('\r\n');
+  var blob = new Blob([csv], { type: 'text/csv' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'budget-export.csv'; a.click();
+  setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
 }
+
+/** Build the Overview tab for the budget full view. */
+function _budgetFvOverview(body, container) {
+  var budget = getPersonalBudget();
+  var bills = budget.bills || [];
+  var oneTime = budget.oneTimeExpenses || [];
+  var savings = safeParseStorage('personalSavingsGoals', []);
+  var jobIncome = typeof calcBudgetJobIncome === 'function' ? calcBudgetJobIncome() : 0;
+  var billsTotal = bills.reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
+  var oneTimeTotal = oneTime.reduce(function(s, e) { return s + (parseFloat(e.amount) || 0); }, 0);
+  var grocerySpend = typeof calcBudgetGrocerySpending === 'function' ? calcBudgetGrocerySpending() : 0;
+  var netMonthly = jobIncome - billsTotal - oneTimeTotal;
+  var netColor = netMonthly >= 0 ? 'var(--ios-success,#27ae60)' : 'var(--ios-danger,#e74c3c)';
+
+  var layout = document.createElement('div');
+  layout.className = 'app-full-two-col';
+  var left = document.createElement('div'); left.className = 'app-full-col';
+  var right = document.createElement('div'); right.className = 'app-full-col';
+
+  // ── Left: summary + bills + pay period projection ──
+  var lHTML = '<h3 class="app-full-col-heading">💰 Budget Overview</h3>' +
+    '<div class="app-budget-summary-row"><span>📈 Income (30 days)</span><span style="color:var(--ios-success,#27ae60);font-weight:700">$' + jobIncome.toFixed(2) + '</span></div>' +
+    '<div class="app-budget-summary-row"><span>📋 Recurring Bills/mo</span><span style="color:var(--ios-danger,#e74c3c)">$' + billsTotal.toFixed(2) + '</span></div>' +
+    '<div class="app-budget-summary-row"><span>💸 One-time Expenses</span><span style="color:var(--ios-danger,#e74c3c)">$' + oneTimeTotal.toFixed(2) + '</span></div>' +
+    (grocerySpend > 0 ? '<div class="app-budget-summary-row"><span>🛒 Groceries</span><span style="color:var(--ios-danger,#e74c3c)">$' + grocerySpend.toFixed(2) + '</span></div>' : '') +
+    '<div class="app-budget-summary-row app-budget-net"><span>💵 Net (approx)</span><span style="color:' + netColor + ';font-weight:700">' + (netMonthly >= 0 ? '+' : '') + '$' + netMonthly.toFixed(2) + '</span></div>';
+
+  // Bills list with monthly/annual toggle
+  lHTML += '<div class="app-budget-toggle-row"><span>📋 Bills</span><label style="display:flex;align-items:center;gap:4px;font-size:0.8rem"><input type="checkbox" id="budgFvAnnual"/><span>Show annual</span></label></div>' +
+    '<div id="budgFvBillsList" class="app-budget-bills-list">';
+  if (bills.length) {
+    bills.forEach(function(bill) {
+      lHTML += '<div class="app-budget-bill-row">' +
+        '<span>' + escapeHTML(bill.emoji || '💳') + ' ' + escapeHTML(bill.name || '') +
+        (bill.category ? ' <span style="font-size:0.7rem;color:var(--ios-text-3)">(' + escapeHTML(bill.category) + ')</span>' : '') +
+        (bill.dueDate ? ' <span style="font-size:0.7rem;color:var(--ios-accent)">📅 ' + escapeHTML(bill.dueDate) + '</span>' : '') +
+        '</span>' +
+        '<span class="app-budget-bill-amt" data-monthly="' + (bill.amount || 0) + '">$' + parseFloat(bill.amount || 0).toFixed(2) + '/mo</span>' +
+        '</div>';
+    });
+  } else {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No bills added yet — use the Manage tab.</p>';
+  }
+  lHTML += '</div>';
+
+  // Pay period projection (next 4 pay events)
+  var payPeriods = budget.payPeriods || [];
+  if (payPeriods.length) {
+    lHTML += '<h4 class="app-full-section-heading">📅 Upcoming Paychecks</h4><div class="budgfv-proj-list">';
+    var upcoming = [];
+    payPeriods.forEach(function(pp) {
+      if (!pp.startDate) return;
+      var next = calcNextPayDate(pp.startDate, pp.type);
+      for (var i = 0; i < 3; i++) {
+        upcoming.push({ date: new Date(next), amount: parseFloat(pp.amount || 0), jobName: pp.jobName || '' });
+        if (pp.type === 'weekly')          next.setDate(next.getDate() + 7);
+        else if (pp.type === 'biweekly')   next.setDate(next.getDate() + 14);
+        else if (pp.type === 'semimonthly')next.setDate(next.getDate() + 15);
+        else                               next.setMonth(next.getMonth() + 1);
+      }
+    });
+    upcoming.sort(function(a, b) { return a.date - b.date; });
+    upcoming.slice(0, 6).forEach(function(item) {
+      var iso = item.date.toISOString().slice(0, 10);
+      var daysBills = bills.filter(function(b) {
+        if (!b.dueDate) return false;
+        var occ = _billNextOccurrences(b, 1);
+        return occ.length && occ[0].toISOString().slice(0, 10) === iso;
+      });
+      var billsNote = daysBills.length ? daysBills.map(function(b) { return escapeHTML(b.name); }).join(', ') : '';
+      lHTML += '<div class="budgfv-proj-row">' +
+        '<span class="budgfv-proj-date">💰 ' + escapeHTML(iso) + (item.jobName ? ' <small>(' + escapeHTML(item.jobName) + ')</small>' : '') + '</span>' +
+        '<span class="budgfv-proj-bills">' + (billsNote ? '📋 ' + billsNote : '') + '</span>' +
+        '<span class="budgfv-proj-net" style="color:var(--ios-success,#27ae60)">+$' + item.amount.toFixed(2) + '</span>' +
+        '</div>';
+    });
+    lHTML += '</div>';
+  }
+
+  left.innerHTML = lHTML;
+
+  // ── Right: savings goals + category envelopes ──
+  var budgetCategories = budget.categories || [];
+  var rHTML = '<h3 class="app-full-col-heading">🏦 Savings Goals</h3>';
+
+  if (savings.length) {
+    savings.forEach(function(goal, gi) {
+      var pct = goal.target > 0 ? Math.min(100, Math.round((goal.current || 0) / goal.target * 100)) : 0;
+      var pctColor = pct >= 100 ? 'var(--ios-success,#27ae60)' : pct >= 50 ? 'var(--ios-accent,#4a90e2)' : 'var(--ios-warning,#f39c12)';
+      rHTML += '<div class="app-savings-goal">' +
+        '<div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:4px">' +
+          '<span>' + escapeHTML(goal.emoji || '🎯') + ' <strong>' + escapeHTML(goal.name || '') + '</strong></span>' +
+          '<span style="color:var(--ios-text-3)">$' + parseFloat(goal.current || 0).toFixed(2) + ' / $' + parseFloat(goal.target || 0).toFixed(2) + '</span>' +
+        '</div>' +
+        '<div class="app-savings-bar"><div style="width:' + pct + '%;background:' + pctColor + ';height:5px;border-radius:3px;transition:width 0.4s ease"></div></div>' +
+        '<div style="font-size:0.75rem;color:var(--ios-text-3);margin-top:2px">' + pct + '% complete' + (pct >= 100 ? ' 🎉' : '') + '</div>' +
+        '<div style="display:flex;gap:4px;margin-top:6px">' +
+          '<input type="number" class="app-savings-inp app-fv-num-small" data-gi="' + gi + '" value="' + parseFloat(goal.current || 0).toFixed(2) + '" min="0" step="10" placeholder="Current $"/>' +
+          '<button class="app-savings-upd app-fv-save-btn" data-gi="' + gi + '" style="padding:3px 8px;font-size:0.78rem">Update</button>' +
+          '<button class="app-savings-del app-fv-cancel-btn" data-gi="' + gi + '" style="padding:3px 8px;font-size:0.78rem">✕</button>' +
+        '</div>' +
+        '</div>';
+    });
+  } else {
+    rHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No goals yet. Add one below.</p>';
+  }
+  rHTML += '<div class="app-savings-add-form">' +
+    '<input type="text" id="savGoalName" class="app-fv-text-input" placeholder="Goal name (e.g. Car)"/>' +
+    '<input type="number" id="savGoalTarget" class="app-fv-num-input" placeholder="Target $" min="0"/>' +
+    '<input type="text" id="savGoalEmoji" class="app-fv-num-small" placeholder="🎯" maxlength="2" style="width:38px;text-align:center"/>' +
+    '<button id="savGoalAdd" class="app-fv-save-btn">＋ Add Goal</button>' +
+    '</div>';
+
+  // Envelope / Category spending caps
+  if (budgetCategories.length) {
+    rHTML += '<h4 class="app-full-section-heading" style="margin-top:16px">🏷️ Spending by Envelope</h4>';
+    rHTML += '<div class="budgfv-envelope-list">';
+    budgetCategories.forEach(function(cat) {
+      var spent = 0;
+      (budget.bills || []).forEach(function(b) { if (b.category === cat.name) spent += parseFloat(b.amount || 0); });
+      (budget.oneTimeExpenses || []).forEach(function(e) { if (e.category === cat.name) spent += parseFloat(e.amount || 0); });
+      var cap = parseFloat(cat.cap || 0);
+      var pct = cap > 0 ? Math.min(100, Math.round(spent / cap * 100)) : 0;
+      var barColor = cap > 0 && spent > cap ? 'var(--ios-danger,#e74c3c)' : (cat.color || 'var(--ios-accent,#4a90e2)');
+      rHTML += '<div class="budgfv-envelope-row">' +
+        '<div class="budgfv-envelope-header">' +
+          '<span class="budgfv-envelope-name" style="color:' + escapeHTML(cat.color || '#4a90e2') + '">' + escapeHTML(cat.name) + '</span>' +
+          '<span class="budgfv-envelope-amounts">$' + spent.toFixed(2) + (cap > 0 ? ' / $' + cap.toFixed(2) : '') + '</span>' +
+        '</div>' +
+        (cap > 0 ? '<div class="budgfv-envelope-bar-bg"><div class="budgfv-envelope-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' : '') +
+        (cap > 0 && spent > cap ? '<div class="budgfv-envelope-over">⚠️ Over budget by $' + (spent - cap).toFixed(2) + '</div>' : '') +
+        '</div>';
+    });
+    rHTML += '</div>';
+  }
+
+  // Spending by category bar chart
+  var catMap = {};
+  bills.forEach(function(b) { var c = b.category || 'Other'; catMap[c] = (catMap[c] || 0) + (parseFloat(b.amount) || 0); });
+  oneTime.forEach(function(e) { var c = e.category || 'Other'; catMap[c] = (catMap[c] || 0) + (parseFloat(e.amount) || 0); });
+  var catKeys = Object.keys(catMap).sort(function(a, b) { return catMap[b] - catMap[a]; });
+  if (catKeys.length) {
+    rHTML += '<h4 class="app-full-section-heading" style="margin-top:16px">📊 Spending by Category</h4>' +
+      _fvBarChart(catKeys.map(function(k) { return { label: k.slice(0, 8), value: Math.round(catMap[k]), iso: '' }; }).slice(0, 8), 220, 80, 12, 18, 8, 8, '');
+  }
+
+  right.innerHTML = rHTML;
+  layout.appendChild(left); layout.appendChild(right);
+  body.appendChild(layout);
+
+  // Wire events
+  var annualToggle = body.querySelector('#budgFvAnnual');
+  if (annualToggle) annualToggle.addEventListener('change', function() {
+    body.querySelectorAll('.app-budget-bill-amt').forEach(function(el) {
+      var mo = parseFloat(el.dataset.monthly) || 0;
+      el.textContent = annualToggle.checked ? '$' + (mo * 12).toFixed(2) + '/yr' : '$' + mo.toFixed(2) + '/mo';
+    });
+  });
+
+  body.querySelectorAll('.app-savings-upd').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var gi = parseInt(btn.dataset.gi, 10);
+      var inp = body.querySelector('.app-savings-inp[data-gi="' + gi + '"]');
+      var goals = safeParseStorage('personalSavingsGoals', []);
+      if (!goals[gi]) return;
+      goals[gi].current = parseFloat((inp || {}).value) || 0;
+      localStorage.setItem('personalSavingsGoals', JSON.stringify(goals));
+      try { syncBudgetNotifications(); } catch (_) {}
+      renderBudgetAppFull(container);
+    });
+  });
+
+  body.querySelectorAll('.app-savings-del').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var gi = parseInt(btn.dataset.gi, 10);
+      var goals = safeParseStorage('personalSavingsGoals', []);
+      goals.splice(gi, 1);
+      localStorage.setItem('personalSavingsGoals', JSON.stringify(goals));
+      renderBudgetAppFull(container);
+    });
+  });
+
+  var savAdd = body.querySelector('#savGoalAdd');
+  if (savAdd) savAdd.addEventListener('click', function() {
+    var nameInp = body.querySelector('#savGoalName');
+    var tgtInp  = body.querySelector('#savGoalTarget');
+    var emojiInp = body.querySelector('#savGoalEmoji');
+    var name = nameInp ? nameInp.value.trim() : '';
+    var target = parseFloat((tgtInp || {}).value) || 0;
+    if (!name || !target) return;
+    var goals = safeParseStorage('personalSavingsGoals', []);
+    goals.push({ name: name, target: target, current: 0, emoji: (emojiInp ? emojiInp.value.trim() : '') || '🎯' });
+    localStorage.setItem('personalSavingsGoals', JSON.stringify(goals));
+    renderBudgetAppFull(container);
+  });
+}
+
+/** Build the Manage tab: full CRUD for categories, bills, pay periods, one-time expenses. */
+function _budgetFvManage(body, container) {
+  var budget = getPersonalBudget();
+  var bills = budget.bills || [];
+  var oneTime = budget.oneTimeExpenses || [];
+  var budgetCategories = budget.categories || [];
+  var payPeriods = budget.payPeriods || [];
+
+  var catOptions = '<option value="">-- Category --</option>';
+  budgetCategories.forEach(function(c) { catOptions += '<option value="' + escapeHTML(c.name) + '">' + escapeHTML(c.name) + '</option>'; });
+
+  var layout = document.createElement('div'); layout.className = 'app-full-two-col';
+  var left = document.createElement('div'); left.className = 'app-full-col';
+  var right = document.createElement('div'); right.className = 'app-full-col';
+
+  // ── Left: categories + bill manager ──
+  var lHTML = '<h3 class="app-full-col-heading">🏷️ Categories</h3>';
+  lHTML += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
+  budgetCategories.forEach(function(cat, ci) {
+    lHTML += '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:14px;font-size:0.8rem;background:' +
+      escapeHTML(cat.color || '#4a90e2') + '22;border:1px solid ' + escapeHTML(cat.color || '#4a90e2') + '88;color:' + escapeHTML(cat.color || '#4a90e2') + '">' +
+      escapeHTML(cat.name) +
+      (cat.cap ? ' <small style="color:var(--ios-text-3)">$' + parseFloat(cat.cap).toFixed(0) + '/mo</small>' : '') +
+      '<button class="budgfv-cat-del" data-ci="' + ci + '" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#aaa;padding:0 2px">✕</button></span>';
+  });
+  lHTML += '</div>';
+  lHTML += '<div class="budgfv-add-row">' +
+    '<input type="text" id="bfvCatName" placeholder="Category name" style="flex:1;min-width:80px"/>' +
+    '<input type="color" id="bfvCatColor" value="#4a90e2" style="width:28px;height:28px;border:none;border-radius:4px;padding:0;cursor:pointer"/>' +
+    '<input type="number" id="bfvCatCap" placeholder="Monthly cap $" min="0" step="10" style="width:110px"/>' +
+    '<button id="bfvAddCatBtn" class="app-fv-save-btn">＋ Add</button>' +
+    '</div>';
+
+  lHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">📋 Recurring Bills</h3>';
+  lHTML += '<div class="budgfv-bill-list" id="bfvBillList">';
+  if (!bills.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No bills yet.</p>';
+  } else {
+    bills.forEach(function(bill, bi) {
+      lHTML += '<div class="budgfv-bill-row" data-bi="' + bi + '">' +
+        '<div class="budgfv-bill-info">' +
+          '<div class="budgfv-bill-name">' + escapeHTML(bill.emoji || '💳') + ' ' + escapeHTML(bill.name || '') + '</div>' +
+          '<div class="budgfv-bill-meta">' +
+            (bill.category ? escapeHTML(bill.category) + ' · ' : '') +
+            (bill.dueDate ? '📅 ' + escapeHTML(bill.dueDate) + ' · ' : '') +
+            escapeHTML(bill.repeat || 'monthly') +
+          '</div>' +
+        '</div>' +
+        '<span class="budgfv-bill-amt">$' + parseFloat(bill.amount || 0).toFixed(2) + '/mo</span>' +
+        '<div class="budgfv-bill-actions">' +
+          '<button class="budgfv-bill-edit-btn" data-bi="' + bi + '" title="Edit">✏️</button>' +
+          '<button class="budgfv-bill-del-btn" data-bi="' + bi + '" title="Delete">🗑</button>' +
+        '</div>' +
+        '</div>';
+    });
+  }
+  lHTML += '</div>';
+  lHTML += '<div class="budgfv-add-row" style="margin-top:6px">' +
+    '<input type="text" id="bfvBillEmoji" placeholder="💳" maxlength="2" style="width:38px;text-align:center"/>' +
+    '<input type="text" id="bfvBillName" placeholder="Bill name" style="flex:1;min-width:90px"/>' +
+    '<input type="number" id="bfvBillAmt" placeholder="$/mo" min="0" step="0.01" style="width:72px"/>' +
+    '<input type="date" id="bfvBillDate" title="Due date"/>' +
+    '<select id="bfvBillCat">' + catOptions + '</select>' +
+    '<select id="bfvBillRepeat">' +
+      '<option value="monthly" selected>Monthly</option><option value="weekly">Weekly</option>' +
+      '<option value="biweekly">Biweekly</option><option value="quarterly">Quarterly</option>' +
+      '<option value="yearly">Yearly</option>' +
+    '</select>' +
+    '<button id="bfvAddBillBtn" class="app-fv-save-btn">＋ Add</button>' +
+    '</div>';
+
+  left.innerHTML = lHTML;
+
+  // ── Right: pay periods + one-time expenses + export ──
+  var rHTML = '<h3 class="app-full-col-heading">💰 Pay Periods</h3>';
+  rHTML += '<div class="budgfv-bill-list" id="bfvPPList">';
+  if (!payPeriods.length) {
+    rHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No pay periods yet.</p>';
+  } else {
+    payPeriods.forEach(function(pp, pi) {
+      var nextPay = pp.startDate ? calcNextPayDate(pp.startDate, pp.type) : null;
+      var nextISO = nextPay ? nextPay.toISOString().slice(0, 10) : '';
+      rHTML += '<div class="budgfv-bill-row" data-pi="' + pi + '">' +
+        '<div class="budgfv-bill-info">' +
+          '<div class="budgfv-bill-name">' + escapeHTML(pp.type || 'monthly') + (pp.jobName ? ' — ' + escapeHTML(pp.jobName) : '') + '</div>' +
+          '<div class="budgfv-bill-meta">Started ' + escapeHTML(pp.startDate || '') + (nextISO ? ' · Next: ' + escapeHTML(nextISO) : '') + '</div>' +
+        '</div>' +
+        '<span class="budgfv-bill-amt" style="color:var(--ios-success,#27ae60)">+$' + parseFloat(pp.amount || 0).toFixed(2) + '</span>' +
+        '<div class="budgfv-bill-actions">' +
+          '<button class="budgfv-pp-del-btn" data-pi="' + pi + '" title="Delete">🗑</button>' +
+        '</div>' +
+        '</div>';
+    });
+  }
+  rHTML += '</div>';
+  var workBuckets = typeof getBuckets === 'function' ? getBuckets('work') : [];
+  var jobOpts = '<option value="">Job (optional)</option>';
+  workBuckets.forEach(function(wb) { jobOpts += '<option value="' + escapeHTML(wb.name) + '">' + (wb.emoji ? escapeHTML(wb.emoji) + ' ' : '') + escapeHTML(wb.name) + '</option>'; });
+  rHTML += '<div class="budgfv-add-row" style="margin-top:6px">' +
+    '<select id="bfvPPType"><option value="weekly">Weekly</option><option value="biweekly" selected>Biweekly</option><option value="semimonthly">Semi-monthly</option><option value="monthly">Monthly</option></select>' +
+    '<input type="date" id="bfvPPStart" title="First pay date"/>' +
+    '<input type="number" id="bfvPPAmt" placeholder="Amount" min="0" step="0.01" style="width:80px"/>' +
+    '<select id="bfvPPJob">' + jobOpts + '</select>' +
+    '<button id="bfvAddPPBtn" class="app-fv-save-btn">＋ Add</button>' +
+    '</div>';
+
+  rHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">🧾 One-Time Expenses</h3>';
+  rHTML += '<div class="budgfv-bill-list" id="bfvOTList">';
+  if (!oneTime.length) {
+    rHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No one-time expenses yet.</p>';
+  } else {
+    oneTime.forEach(function(exp, ei) {
+      rHTML += '<div class="budgfv-bill-row" data-ei="' + ei + '">' +
+        '<div class="budgfv-bill-info">' +
+          '<div class="budgfv-bill-name">' + escapeHTML(exp.name || '') + '</div>' +
+          '<div class="budgfv-bill-meta">' + (exp.category ? escapeHTML(exp.category) + ' · ' : '') + (exp.date || '') + '</div>' +
+        '</div>' +
+        '<span class="budgfv-bill-amt">$' + parseFloat(exp.amount || 0).toFixed(2) + '</span>' +
+        '<div class="budgfv-bill-actions">' +
+          '<button class="budgfv-ot-del-btn" data-ei="' + ei + '" title="Delete">🗑</button>' +
+        '</div>' +
+        '</div>';
+    });
+  }
+  rHTML += '</div>';
+  rHTML += '<div class="budgfv-add-row" style="margin-top:6px">' +
+    '<input type="text" id="bfvOTName" placeholder="Expense name" style="flex:1;min-width:90px"/>' +
+    '<input type="number" id="bfvOTAmt" placeholder="Amount" min="0" step="0.01" style="width:80px"/>' +
+    '<input type="date" id="bfvOTDate"/>' +
+    '<select id="bfvOTCat">' + catOptions + '</select>' +
+    '<button id="bfvAddOTBtn" class="app-fv-save-btn">＋ Add</button>' +
+    '</div>';
+
+  rHTML += '<div style="margin-top:20px;padding-top:12px;border-top:1px solid var(--ios-border,#eee);display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button id="bfvExportCSV" class="budgfv-export-btn">⬇️ Export CSV</button>' +
+    '</div>';
+
+  right.innerHTML = rHTML;
+  layout.appendChild(left); layout.appendChild(right);
+  body.appendChild(layout);
+
+  // Wire: category add/delete
+  body.querySelectorAll('.budgfv-cat-del').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var ci = parseInt(btn.dataset.ci, 10);
+      var b = getPersonalBudget(); b.categories.splice(ci, 1); setPersonalBudget(b);
+      renderBudgetAppFull(container);
+    });
+  });
+  var addCatBtn = body.querySelector('#bfvAddCatBtn');
+  if (addCatBtn) addCatBtn.addEventListener('click', function() {
+    var nameEl = body.querySelector('#bfvCatName');
+    var colorEl = body.querySelector('#bfvCatColor');
+    var capEl   = body.querySelector('#bfvCatCap');
+    var name = nameEl ? nameEl.value.trim() : '';
+    if (!name) return;
+    var b = getPersonalBudget();
+    if (!b.categories) b.categories = [];
+    b.categories.push({ name: name, color: colorEl ? colorEl.value : '#4a90e2', cap: parseFloat((capEl || {}).value) || 0 });
+    setPersonalBudget(b); renderBudgetAppFull(container);
+  });
+
+  // Wire: bill edit (inline form) + delete
+  body.querySelectorAll('.budgfv-bill-edit-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var bi = parseInt(btn.dataset.bi, 10);
+      var b = getPersonalBudget(); var bill = b.bills[bi]; if (!bill) return;
+      // Remove existing inline form if any
+      var existing = body.querySelector('.budgfv-bill-edit-form');
+      if (existing) existing.remove();
+      var row = body.querySelector('.budgfv-bill-row[data-bi="' + bi + '"]');
+      if (!row) return;
+      var form = document.createElement('div'); form.className = 'budgfv-bill-edit-form';
+      var catOpts = '<option value="">-- Category --</option>';
+      (b.categories || []).forEach(function(c) { catOpts += '<option value="' + escapeHTML(c.name) + '"' + (c.name === bill.category ? ' selected' : '') + '>' + escapeHTML(c.name) + '</option>'; });
+      form.innerHTML =
+        '<input type="text" id="bfvEditEmoji" value="' + escapeHTML(bill.emoji || '') + '" placeholder="💳" maxlength="2" style="width:38px;text-align:center"/>' +
+        '<input type="text" id="bfvEditName" value="' + escapeHTML(bill.name || '') + '" placeholder="Name" style="flex:1;min-width:90px"/>' +
+        '<input type="number" id="bfvEditAmt" value="' + parseFloat(bill.amount || 0).toFixed(2) + '" min="0" step="0.01" style="width:72px"/>' +
+        '<input type="date" id="bfvEditDate" value="' + escapeHTML(bill.dueDate || '') + '"/>' +
+        '<select id="bfvEditCat">' + catOpts + '</select>' +
+        '<select id="bfvEditRepeat">' +
+          ['monthly','weekly','biweekly','quarterly','yearly'].map(function(r) {
+            return '<option value="' + r + '"' + (r === (bill.repeat || 'monthly') ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
+          }).join('') +
+        '</select>' +
+        '<button class="app-fv-save-btn bfvEditSave" data-bi="' + bi + '">Save</button>' +
+        '<button class="app-fv-cancel-btn bfvEditCancel">Cancel</button>';
+      row.insertAdjacentElement('afterend', form);
+      form.querySelector('.bfvEditSave').addEventListener('click', function() {
+        var b2 = getPersonalBudget();
+        b2.bills[bi] = {
+          name: form.querySelector('#bfvEditName').value.trim() || b2.bills[bi].name,
+          emoji: form.querySelector('#bfvEditEmoji').value.trim(),
+          amount: parseFloat(form.querySelector('#bfvEditAmt').value) || 0,
+          dueDate: form.querySelector('#bfvEditDate').value,
+          category: form.querySelector('#bfvEditCat').value,
+          repeat: form.querySelector('#bfvEditRepeat').value
+        };
+        setPersonalBudget(b2);
+        try { syncBudgetNotifications(); } catch (_) {}
+        renderBudgetAppFull(container);
+      });
+      form.querySelector('.bfvEditCancel').addEventListener('click', function() { form.remove(); });
+    });
+  });
+
+  body.querySelectorAll('.budgfv-bill-del-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var bi = parseInt(btn.dataset.bi, 10);
+      var b = getPersonalBudget(); b.bills.splice(bi, 1); setPersonalBudget(b);
+      try { syncBudgetNotifications(); } catch (_) {}
+      renderBudgetAppFull(container);
+    });
+  });
+
+  var addBillBtn = body.querySelector('#bfvAddBillBtn');
+  if (addBillBtn) addBillBtn.addEventListener('click', function() {
+    var nameEl   = body.querySelector('#bfvBillName');
+    var amtEl    = body.querySelector('#bfvBillAmt');
+    var dateEl   = body.querySelector('#bfvBillDate');
+    var catEl    = body.querySelector('#bfvBillCat');
+    var repeatEl = body.querySelector('#bfvBillRepeat');
+    var emojiEl  = body.querySelector('#bfvBillEmoji');
+    var name = nameEl ? nameEl.value.trim() : '';
+    if (!name) return;
+    var b = getPersonalBudget();
+    if (!b.bills) b.bills = [];
+    b.bills.push({
+      name: name,
+      emoji: emojiEl ? emojiEl.value.trim() : '',
+      amount: parseFloat((amtEl || {}).value) || 0,
+      dueDate: dateEl ? dateEl.value : '',
+      category: catEl ? catEl.value : '',
+      repeat: repeatEl ? repeatEl.value : 'monthly'
+    });
+    setPersonalBudget(b);
+    try { syncBudgetNotifications(); } catch (_) {}
+    renderBudgetAppFull(container);
+  });
+
+  // Wire: pay period delete
+  body.querySelectorAll('.budgfv-pp-del-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var pi = parseInt(btn.dataset.pi, 10);
+      var b = getPersonalBudget(); b.payPeriods.splice(pi, 1); setPersonalBudget(b);
+      try { syncBudgetNotifications(); } catch (_) {}
+      renderBudgetAppFull(container);
+    });
+  });
+  var addPPBtn = body.querySelector('#bfvAddPPBtn');
+  if (addPPBtn) addPPBtn.addEventListener('click', function() {
+    var typeEl  = body.querySelector('#bfvPPType');
+    var startEl = body.querySelector('#bfvPPStart');
+    var amtEl   = body.querySelector('#bfvPPAmt');
+    var jobEl   = body.querySelector('#bfvPPJob');
+    var b = getPersonalBudget();
+    if (!b.payPeriods) b.payPeriods = [];
+    b.payPeriods.push({
+      type: typeEl ? typeEl.value : 'biweekly',
+      startDate: startEl ? startEl.value : '',
+      amount: parseFloat((amtEl || {}).value) || 0,
+      jobName: jobEl ? jobEl.value : ''
+    });
+    setPersonalBudget(b);
+    try { syncBudgetNotifications(); } catch (_) {}
+    renderBudgetAppFull(container);
+  });
+
+  // Wire: one-time expense delete
+  body.querySelectorAll('.budgfv-ot-del-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var ei = parseInt(btn.dataset.ei, 10);
+      var b = getPersonalBudget(); b.oneTimeExpenses.splice(ei, 1); setPersonalBudget(b);
+      renderBudgetAppFull(container);
+    });
+  });
+  var addOTBtn = body.querySelector('#bfvAddOTBtn');
+  if (addOTBtn) addOTBtn.addEventListener('click', function() {
+    var nameEl = body.querySelector('#bfvOTName');
+    var amtEl  = body.querySelector('#bfvOTAmt');
+    var dateEl = body.querySelector('#bfvOTDate');
+    var catEl  = body.querySelector('#bfvOTCat');
+    var name = nameEl ? nameEl.value.trim() : '';
+    if (!name) return;
+    var b = getPersonalBudget();
+    if (!b.oneTimeExpenses) b.oneTimeExpenses = [];
+    b.oneTimeExpenses.push({
+      name: name,
+      amount: parseFloat((amtEl || {}).value) || 0,
+      date: dateEl ? dateEl.value : '',
+      category: catEl ? catEl.value : ''
+    });
+    setPersonalBudget(b);
+    renderBudgetAppFull(container);
+  });
+
+  // Wire: CSV export
+  var exportBtn = body.querySelector('#bfvExportCSV');
+  if (exportBtn) exportBtn.addEventListener('click', _budgetExportCSV);
+}
+
+/** Build the Trends tab: multi-month cash flow chart + spending heatmap. */
+function _budgetFvTrends(body, container) {
+  var budget = getPersonalBudget();
+  var bills = budget.bills || [];
+  var oneTime = budget.oneTimeExpenses || [];
+  var payPeriods = budget.payPeriods || [];
+
+  var layout = document.createElement('div'); layout.className = 'app-full-two-col';
+  var left = document.createElement('div'); left.className = 'app-full-col';
+  var right = document.createElement('div'); right.className = 'app-full-col';
+
+  // ── Left: multi-month cash flow ──
+  var lHTML = '<h3 class="app-full-col-heading">📈 Cash Flow (6 months)</h3>';
+
+  // Build 6-month buckets (current month + 5 prior)
+  var now = new Date();
+  var months = [];
+  for (var m = 5; m >= 0; m--) {
+    var d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+    months.push({ year: d.getFullYear(), month: d.getMonth(), label: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()] });
+  }
+
+  // Estimate income per month from payPeriods
+  function incomeForMonth(year, month) {
+    var total = 0;
+    payPeriods.forEach(function(pp) {
+      if (!pp.startDate) return;
+      var start = new Date(pp.startDate + 'T00:00:00');
+      var mStart = new Date(year, month, 1);
+      var mEnd   = new Date(year, month + 1, 0);
+      var count  = 0;
+      var cur = new Date(start);
+      while (cur <= mEnd) {
+        if (cur >= mStart) count++;
+        if (pp.type === 'weekly')          cur.setDate(cur.getDate() + 7);
+        else if (pp.type === 'biweekly')   cur.setDate(cur.getDate() + 14);
+        else if (pp.type === 'semimonthly')cur.setDate(cur.getDate() + 15);
+        else                               { cur.setMonth(cur.getMonth() + 1); }
+        if (count > 10) break; // safety
+      }
+      total += count * parseFloat(pp.amount || 0);
+    });
+    // Also use calcBudgetJobIncome for current month (actual)
+    if (year === now.getFullYear() && month === now.getMonth()) {
+      var actual = typeof calcBudgetJobIncome === 'function' ? calcBudgetJobIncome() : 0;
+      if (actual > 0) total = Math.max(total, actual);
+    }
+    return total;
+  }
+
+  function spendForMonth(year, month) {
+    var total = 0;
+    var mStart = new Date(year, month, 1);
+    var mEnd   = new Date(year, month + 1, 0);
+    bills.forEach(function(b) {
+      // Count recurring occurrences in this month
+      if (!b.dueDate) { total += parseFloat(b.amount || 0); return; }
+      var next = _billNextOccurrences(b, 60);
+      next.forEach(function(dt) {
+        if (dt >= mStart && dt <= mEnd) total += parseFloat(b.amount || 0);
+      });
+    });
+    // One-time expenses dated in this month
+    oneTime.forEach(function(e) {
+      if (!e.date) return;
+      var d = new Date(e.date + 'T00:00:00');
+      if (d >= mStart && d <= mEnd) total += parseFloat(e.amount || 0);
+    });
+    return total;
+  }
+
+  var incomes = months.map(function(m) { return incomeForMonth(m.year, m.month); });
+  var spends  = months.map(function(m) { return spendForMonth(m.year, m.month); });
+  var maxVal  = Math.max.apply(null, incomes.concat(spends).concat([1]));
+  var W = 300, H = 120, padT = 14, padB = 22, padL = 8, padR = 8;
+  var chartH = H - padT - padB;
+  var n = months.length;
+  var grpW = Math.floor((W - padL - padR) / n);
+  var barW = Math.max(6, Math.floor(grpW * 0.35));
+
+  var svg = '<svg width="100%" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">';
+  months.forEach(function(mo, i) {
+    var inc = incomes[i], spd = spends[i];
+    var x = padL + i * grpW + (grpW - 2 * barW - 2) / 2;
+    var incH = inc > 0 ? Math.max(3, Math.round(chartH * (inc / maxVal))) : 0;
+    var spdH = spd > 0 ? Math.max(3, Math.round(chartH * (spd / maxVal))) : 0;
+    var incY = padT + chartH - incH;
+    var spdY = padT + chartH - spdH;
+    svg += '<rect x="' + x + '" y="' + incY + '" width="' + barW + '" height="' + incH + '" fill="#27ae60" rx="2"/>';
+    svg += '<rect x="' + (x + barW + 2) + '" y="' + spdY + '" width="' + barW + '" height="' + spdH + '" fill="#e74c3c" rx="2"/>';
+    svg += '<text x="' + (x + barW) + '" y="' + (H - 3) + '" text-anchor="middle" font-size="7" fill="#999">' + mo.label + '</text>';
+  });
+  svg += '</svg>';
+
+  lHTML += '<div class="budgfv-cashflow-chart">' + svg + '</div>';
+  lHTML += '<div class="budgfv-cashflow-legend">' +
+    '<span class="budgfv-cashflow-legend-item"><span class="budgfv-cashflow-legend-dot" style="background:#27ae60"></span>Income</span>' +
+    '<span class="budgfv-cashflow-legend-item"><span class="budgfv-cashflow-legend-dot" style="background:#e74c3c"></span>Expenses</span>' +
+    '</div>';
+
+  // Net trend table
+  lHTML += '<h4 class="app-full-section-heading" style="margin-top:14px">Monthly Net</h4>';
+  lHTML += '<div style="display:flex;flex-direction:column;gap:4px">';
+  months.forEach(function(mo, i) {
+    var net = incomes[i] - spends[i];
+    var col = net >= 0 ? 'var(--ios-success,#27ae60)' : 'var(--ios-danger,#e74c3c)';
+    lHTML += '<div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:3px 0;border-bottom:1px solid var(--ios-border,#f0f0f0)">' +
+      '<span>' + mo.label + ' ' + mo.year + '</span>' +
+      '<span style="color:' + col + ';font-weight:600">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span>' +
+      '</div>';
+  });
+  lHTML += '</div>';
+  left.innerHTML = lHTML;
+
+  // ── Right: spending heatmap for current month ──
+  var rHTML = '<h3 class="app-full-col-heading">🗓️ Spending Heatmap</h3>';
+  rHTML += '<p style="font-size:0.78rem;color:var(--ios-text-3);margin:0 0 6px">Bills and expenses this month</p>';
+
+  var curYear = now.getFullYear(), curMonth = now.getMonth();
+  var daysInMonth = new Date(curYear, curMonth + 1, 0).getDate();
+  var firstDow = new Date(curYear, curMonth, 1).getDay(); // 0=Sun
+  var todayDate = now.getDate();
+  var todayISO = getTodayISO();
+
+  // Build per-day spend map for current month
+  var daySpend = {};
+  bills.forEach(function(b) {
+    _billNextOccurrences(b, 4).forEach(function(dt) {
+      if (dt.getFullYear() === curYear && dt.getMonth() === curMonth) {
+        var day = dt.getDate();
+        daySpend[day] = (daySpend[day] || 0) + parseFloat(b.amount || 0);
+      }
+    });
+  });
+  oneTime.forEach(function(e) {
+    if (!e.date) return;
+    var d = new Date(e.date + 'T00:00:00');
+    if (d.getFullYear() === curYear && d.getMonth() === curMonth) {
+      var day = d.getDate();
+      daySpend[day] = (daySpend[day] || 0) + parseFloat(e.amount || 0);
+    }
+  });
+
+  var maxSpend = Math.max.apply(null, Object.values(daySpend).concat([1]));
+  var monthName = ['January','February','March','April','May','June','July','August','September','October','November','December'][curMonth];
+
+  rHTML += '<div style="font-size:0.82rem;font-weight:600;margin-bottom:6px">' + monthName + ' ' + curYear + '</div>';
+  rHTML += '<div class="budgfv-heatmap-grid">';
+  // Day of week headers
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(function(d) {
+    rHTML += '<div class="budgfv-heatmap-dow">' + d + '</div>';
+  });
+  // Leading empty cells
+  for (var e2 = 0; e2 < firstDow; e2++) rHTML += '<div class="budgfv-heatmap-cell" style="background:transparent"></div>';
+  // Day cells
+  for (var day = 1; day <= daysInMonth; day++) {
+    var iso = curYear + '-' + String(curMonth + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+    var spend = daySpend[day] || 0;
+    var intensity = spend > 0 ? Math.max(0.15, spend / maxSpend) : 0;
+    var r = Math.round(231 * intensity), g = Math.round(76 * intensity), b = Math.round(60 * intensity);
+    var bg = spend > 0 ? 'rgb(' + r + ',' + g + ',' + b + ')' : 'var(--ios-surface-3,#e5e5ea)';
+    var title = spend > 0 ? '$' + spend.toFixed(2) : '';
+    var todayClass = iso === todayISO ? ' budgfv-heatmap-cell-today' : '';
+    rHTML += '<div class="budgfv-heatmap-cell' + todayClass + '" style="background:' + bg + '" title="' + escapeHTML(String(day)) + (title ? ': ' + escapeHTML(title) : '') + '">' +
+      '<span style="font-size:0.6rem;color:' + (spend > 0 ? '#fff' : 'var(--ios-text-3,#aaa)') + ';display:flex;align-items:center;justify-content:center;height:100%">' + day + '</span>' +
+      '</div>';
+  }
+  rHTML += '</div>';
+  rHTML += '<div class="budgfv-heatmap-legend">' +
+    '<span>Less</span>' +
+    '<span class="budgfv-heatmap-legend-swatch" style="background:var(--ios-surface-3,#e5e5ea)"></span>' +
+    '<span class="budgfv-heatmap-legend-swatch" style="background:rgba(231,76,60,0.3)"></span>' +
+    '<span class="budgfv-heatmap-legend-swatch" style="background:rgba(231,76,60,0.6)"></span>' +
+    '<span class="budgfv-heatmap-legend-swatch" style="background:rgb(231,76,60)"></span>' +
+    '<span>More</span>' +
+    '</div>';
+
+  right.innerHTML = rHTML;
+  layout.appendChild(left); layout.appendChild(right);
+  body.appendChild(layout);
+}
+
+/** Build the Debt & Net Worth tab. */
+function _budgetFvDebt(body, container) {
+  var debts = safeParseStorage('personalDebts', []);
+  var savings = safeParseStorage('personalSavingsGoals', []);
+  var manualAssets = safeParseStorage('personalManualAssets', []);
+  var order = container._debtOrder || 'avalanche';
+
+  var layout = document.createElement('div'); layout.className = 'app-full-two-col';
+  var left = document.createElement('div'); left.className = 'app-full-col';
+  var right = document.createElement('div'); right.className = 'app-full-col';
+
+  // ── Left: Debt tracker ──
+  var lHTML = '<h3 class="app-full-col-heading">💳 Debt Tracker</h3>';
+
+  var sortedDebts = debts.slice().sort(function(a, b) {
+    if (order === 'avalanche') return (parseFloat(b.rate) || 0) - (parseFloat(a.rate) || 0);
+    return (parseFloat(a.balance) || 0) - (parseFloat(b.balance) || 0); // snowball
+  });
+
+  lHTML += '<div class="budgfv-debt-order">' +
+    '<span style="font-size:0.8rem;font-weight:600">Payoff order:</span>' +
+    '<button class="budgfv-debt-order-btn' + (order === 'avalanche' ? ' active' : '') + '" data-order="avalanche">🏔️ Avalanche (high rate first)</button>' +
+    '<button class="budgfv-debt-order-btn' + (order === 'snowball' ? ' active' : '') + '" data-order="snowball">⛄ Snowball (low balance first)</button>' +
+    '</div>';
+
+  if (!sortedDebts.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No debts tracked. Add one below.</p>';
+  } else {
+    lHTML += '<div class="budgfv-debt-list">';
+    sortedDebts.forEach(function(debt, rank) {
+      var balance = parseFloat(debt.balance || 0);
+      var minPmt  = parseFloat(debt.minPayment || 0);
+      var rate    = parseFloat(debt.rate || 0);
+      // Simple payoff estimate (months to pay off at min payment)
+      var payoffMonths = (minPmt > 0 && rate > 0)
+        ? Math.ceil(Math.log(minPmt / (minPmt - balance * (rate / 1200))) / Math.log(1 + rate / 1200))
+        : (minPmt > 0 ? Math.ceil(balance / minPmt) : null);
+      var payoffStr = payoffMonths && isFinite(payoffMonths) && payoffMonths > 0
+        ? (payoffMonths >= 12
+          ? Math.floor(payoffMonths / 12) + 'y ' + (payoffMonths % 12) + 'mo'
+          : payoffMonths + ' months')
+        : null;
+      lHTML += '<div class="budgfv-debt-row" data-di="' + rank + '">' +
+        '<div class="budgfv-debt-header">' +
+          '<span class="budgfv-debt-name">#' + (rank + 1) + ' ' + escapeHTML(debt.emoji || '💳') + ' ' + escapeHTML(debt.name || '') + '</span>' +
+          '<div style="display:flex;align-items:center;gap:6px">' +
+            '<span class="budgfv-debt-balance">$' + balance.toFixed(2) + '</span>' +
+            '<button class="budgfv-debt-del-btn" data-name="' + escapeHTML(debt.name || '') + '">🗑</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="budgfv-debt-meta">' +
+          (rate > 0 ? '<span>📊 ' + rate.toFixed(2) + '% APR</span>' : '') +
+          (minPmt > 0 ? '<span>Min: $' + minPmt.toFixed(2) + '/mo</span>' : '') +
+        '</div>' +
+        (payoffStr ? '<div class="budgfv-debt-payoff">⏱️ ~' + escapeHTML(payoffStr) + ' to pay off at min payment</div>' : '') +
+        '</div>';
+    });
+    lHTML += '</div>';
+    var totalDebt = debts.reduce(function(s, d) { return s + (parseFloat(d.balance) || 0); }, 0);
+    lHTML += '<div style="display:flex;justify-content:space-between;padding:8px 0;font-weight:700;font-size:0.88rem;border-top:2px solid var(--ios-border,#eee);margin-top:8px">' +
+      '<span>Total Debt</span><span style="color:var(--ios-danger,#e74c3c)">$' + totalDebt.toFixed(2) + '</span></div>';
+  }
+
+  lHTML += '<div class="budgfv-add-row" style="margin-top:10px">' +
+    '<input type="text" id="bfvDebtEmoji" placeholder="💳" maxlength="2" style="width:38px;text-align:center"/>' +
+    '<input type="text" id="bfvDebtName" placeholder="Debt name (e.g. Visa)" style="flex:1;min-width:90px"/>' +
+    '<input type="number" id="bfvDebtBal" placeholder="Balance $" min="0" step="0.01" style="width:90px"/>' +
+    '<input type="number" id="bfvDebtRate" placeholder="APR %" min="0" step="0.01" style="width:72px"/>' +
+    '<input type="number" id="bfvDebtMin" placeholder="Min pmt $" min="0" step="0.01" style="width:80px"/>' +
+    '<button id="bfvAddDebtBtn" class="app-fv-save-btn">＋ Add</button>' +
+    '</div>';
+
+  left.innerHTML = lHTML;
+
+  // ── Right: Net Worth snapshot ──
+  var totalSavings = savings.reduce(function(s, g) { return s + (parseFloat(g.current) || 0); }, 0);
+  var totalManual  = manualAssets.reduce(function(s, a) { return s + (parseFloat(a.value) || 0); }, 0);
+  var totalDebtVal = debts.reduce(function(s, d) { return s + (parseFloat(d.balance) || 0); }, 0);
+  var totalAssets  = totalSavings + totalManual;
+  var netWorth     = totalAssets - totalDebtVal;
+  var nwColor      = netWorth >= 0 ? 'var(--ios-success,#27ae60)' : 'var(--ios-danger,#e74c3c)';
+
+  var rHTML = '<h3 class="app-full-col-heading">📊 Net Worth</h3>';
+  rHTML += '<h4 class="app-full-section-heading">Assets</h4>';
+
+  if (savings.length) {
+    savings.forEach(function(g) {
+      rHTML += '<div class="budgfv-networth-row">' +
+        '<span>' + escapeHTML(g.emoji || '🎯') + ' ' + escapeHTML(g.name || '') + '</span>' +
+        '<span style="color:var(--ios-success,#27ae60);font-weight:600">$' + parseFloat(g.current || 0).toFixed(2) + '</span>' +
+        '</div>';
+    });
+  }
+  if (manualAssets.length) {
+    manualAssets.forEach(function(a, ai) {
+      rHTML += '<div class="budgfv-networth-row">' +
+        '<span>' + escapeHTML(a.emoji || '🏦') + ' ' + escapeHTML(a.name || '') + ' ' +
+          '<button class="budgfv-manual-asset-del" data-ai="' + ai + '">✕</button></span>' +
+        '<span style="color:var(--ios-success,#27ae60);font-weight:600">$' + parseFloat(a.value || 0).toFixed(2) + '</span>' +
+        '</div>';
+    });
+  }
+  if (!savings.length && !manualAssets.length) {
+    rHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No assets tracked. Add savings goals in the Overview tab or manual assets below.</p>';
+  }
+
+  rHTML += '<div class="budgfv-add-row" style="margin-top:8px">' +
+    '<input type="text" id="bfvAssetEmoji" placeholder="🏦" maxlength="2" style="width:38px;text-align:center"/>' +
+    '<input type="text" id="bfvAssetName" placeholder="Account / asset name" style="flex:1"/>' +
+    '<input type="number" id="bfvAssetVal" placeholder="Value $" min="0" step="0.01" style="width:90px"/>' +
+    '<button id="bfvAddAssetBtn" class="app-fv-save-btn">＋ Add</button>' +
+    '</div>';
+
+  if (debts.length) {
+    rHTML += '<h4 class="app-full-section-heading" style="margin-top:14px">Liabilities</h4>';
+    debts.forEach(function(d) {
+      rHTML += '<div class="budgfv-networth-row">' +
+        '<span>' + escapeHTML(d.emoji || '💳') + ' ' + escapeHTML(d.name || '') + '</span>' +
+        '<span style="color:var(--ios-danger,#e74c3c);font-weight:600">−$' + parseFloat(d.balance || 0).toFixed(2) + '</span>' +
+        '</div>';
+    });
+  }
+
+  rHTML += '<div class="budgfv-networth-total">' +
+    '<span>Net Worth</span>' +
+    '<span style="color:' + nwColor + '">' + (netWorth >= 0 ? '+' : '') + '$' + netWorth.toFixed(2) + '</span>' +
+    '</div>';
+
+  right.innerHTML = rHTML;
+  layout.appendChild(left); layout.appendChild(right);
+  body.appendChild(layout);
+
+  // Wire: payoff order buttons
+  body.querySelectorAll('.budgfv-debt-order-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      container._debtOrder = btn.dataset.order;
+      renderBudgetAppFull(container);
+    });
+  });
+
+  // Wire: debt delete
+  body.querySelectorAll('.budgfv-debt-del-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var name = btn.dataset.name;
+      var d = safeParseStorage('personalDebts', []);
+      var idx = d.findIndex(function(x) { return x.name === name; });
+      if (idx !== -1) d.splice(idx, 1);
+      localStorage.setItem('personalDebts', JSON.stringify(d));
+      renderBudgetAppFull(container);
+    });
+  });
+
+  // Wire: add debt
+  var addDebtBtn = body.querySelector('#bfvAddDebtBtn');
+  if (addDebtBtn) addDebtBtn.addEventListener('click', function() {
+    var nameEl  = body.querySelector('#bfvDebtName');
+    var balEl   = body.querySelector('#bfvDebtBal');
+    var rateEl  = body.querySelector('#bfvDebtRate');
+    var minEl   = body.querySelector('#bfvDebtMin');
+    var emojiEl = body.querySelector('#bfvDebtEmoji');
+    var name = nameEl ? nameEl.value.trim() : '';
+    if (!name) return;
+    var d = safeParseStorage('personalDebts', []);
+    d.push({
+      name: name,
+      emoji: emojiEl ? emojiEl.value.trim() : '',
+      balance: parseFloat((balEl || {}).value) || 0,
+      rate: parseFloat((rateEl || {}).value) || 0,
+      minPayment: parseFloat((minEl || {}).value) || 0
+    });
+    localStorage.setItem('personalDebts', JSON.stringify(d));
+    renderBudgetAppFull(container);
+  });
+
+  // Wire: manual asset delete
+  body.querySelectorAll('.budgfv-manual-asset-del').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var ai = parseInt(btn.dataset.ai, 10);
+      var assets = safeParseStorage('personalManualAssets', []);
+      assets.splice(ai, 1);
+      localStorage.setItem('personalManualAssets', JSON.stringify(assets));
+      renderBudgetAppFull(container);
+    });
+  });
+
+  // Wire: add manual asset
+  var addAssetBtn = body.querySelector('#bfvAddAssetBtn');
+  if (addAssetBtn) addAssetBtn.addEventListener('click', function() {
+    var nameEl  = body.querySelector('#bfvAssetName');
+    var valEl   = body.querySelector('#bfvAssetVal');
+    var emojiEl = body.querySelector('#bfvAssetEmoji');
+    var name = nameEl ? nameEl.value.trim() : '';
+    if (!name) return;
+    var assets = safeParseStorage('personalManualAssets', []);
+    assets.push({
+      name: name,
+      emoji: emojiEl ? emojiEl.value.trim() : '',
+      value: parseFloat((valEl || {}).value) || 0
+    });
+    localStorage.setItem('personalManualAssets', JSON.stringify(assets));
+    renderBudgetAppFull(container);
+  });
+}
+
+/* ── Main entry point ── */
+function renderBudgetAppFull(container) {
+  var tab = container._budgetTab || 'overview';
+  container._budgetTab = tab;
+  container.innerHTML = '';
+
+  var TABS = [
+    { key: 'overview', label: '💰 Overview' },
+    { key: 'manage',   label: '✏️ Manage' },
+    { key: 'trends',   label: '📈 Trends' },
+    { key: 'debt',     label: '💳 Debt & Worth' }
+  ];
+
+  var tabBar = document.createElement('div');
+  tabBar.className = 'mf-tab-bar';
+  TABS.forEach(function(t) {
+    var btn = document.createElement('button');
+    btn.className = 'mf-tab-btn' + (t.key === tab ? ' active' : '');
+    btn.textContent = t.label;
+    btn.addEventListener('click', function() {
+      container._budgetTab = t.key;
+      renderBudgetAppFull(container);
+    });
+    tabBar.appendChild(btn);
+  });
+  container.appendChild(tabBar);
+
+  var body = document.createElement('div');
+  body.className = 'mf-tab-body';
+  container.appendChild(body);
+
+  if (tab === 'overview') _budgetFvOverview(body, container);
+  else if (tab === 'manage')   _budgetFvManage(body, container);
+  else if (tab === 'trends')   _budgetFvTrends(body, container);
+  else if (tab === 'debt')     _budgetFvDebt(body, container);
+}
+
 
 function renderJobsAppFull(container) {
   container.innerHTML = '';
@@ -11214,6 +12302,10 @@ window.renderGymAppFull       = renderGymAppFull;
 window.renderRoutineAppFull   = renderRoutineAppFull;
 window.renderBudgetAppFull    = renderBudgetAppFull;
 window.renderJobsAppFull      = renderJobsAppFull;
+window.registerAppReminders       = registerAppReminders;
+window.syncBudgetNotifications    = syncBudgetNotifications;
+window.getAppNotificationSettings = getAppNotificationSettings;
+window.setAppNotificationSettings = setAppNotificationSettings;
 
 /* ══════════════════════════════════════════════════════════════
    JOURNAL APP
