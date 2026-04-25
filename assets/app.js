@@ -1007,6 +1007,7 @@ function addReminder(e){
   }
   generateCalendar();
   showReminders(selectedDay);
+  renderReminderPageList();
 }
 
 /* delete/edit reminders */
@@ -1019,6 +1020,7 @@ function deleteReminder(day,index){
   if (!r[key].length) delete r[key];
   setReminders(r);
   showReminders(day); generateCalendar();
+  renderReminderPageList();
 }
 function editReminder(day,index){
   const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
@@ -1049,6 +1051,127 @@ function toggleReminderDone(day, index, done){
   if (done) haptic.complete();
   showReminders(day);
   updateCompletionRing();
+  renderReminderPageList();
+}
+
+/* Render all reminders (across all dates) on the Reminders page */
+function renderReminderPageList() {
+  const list = document.getElementById('reminderPageList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  const rmap = getReminders();
+  const now = new Date();
+
+  // Flatten all reminders into a sorted list
+  const allItems = [];
+  Object.keys(rmap).sort().forEach(function(dateKey) {
+    const arr = rmap[dateKey];
+    if (!Array.isArray(arr)) return;
+    arr.forEach(function(rem, idx) {
+      allItems.push({ dateKey, idx, rem });
+    });
+  });
+
+  if (!allItems.length) {
+    const empty = document.createElement('li');
+    empty.className = 'empty-state-msg';
+    empty.innerHTML = '<span style="font-size:2rem;display:block;margin-bottom:8px">⏰</span><strong>No reminders yet</strong><br><span style="color:#888;font-size:0.9rem">Use the form above to add your first reminder.</span>';
+    empty.style.cssText = 'list-style:none;text-align:center;padding:32px 16px;color:#555';
+    list.appendChild(empty);
+    return;
+  }
+
+  // Split into upcoming / past
+  const upcoming = [], past = [];
+  allItems.forEach(function(item) {
+    const dt = new Date(item.dateKey + (item.rem.time ? 'T' + item.rem.time : 'T23:59:59'));
+    if (isNaN(dt.getTime()) || dt >= now) upcoming.push(item);
+    else past.push(item);
+  });
+
+  function renderGroup(items, label) {
+    if (!items.length) return;
+    if (label) {
+      const hdr = document.createElement('li');
+      hdr.style.cssText = 'list-style:none;font-weight:700;font-size:0.8rem;text-transform:uppercase;color:#aaa;letter-spacing:0.06em;padding:10px 0 4px';
+      hdr.textContent = label;
+      list.appendChild(hdr);
+    }
+    items.forEach(function(item) {
+      const li = document.createElement('li');
+      li.className = 'event-item' + (item.rem.done ? ' event-past' : '');
+
+      const bullet = document.createElement('span');
+      bullet.className = 'event-bullet';
+      bullet.textContent = '⏰';
+      bullet.setAttribute('aria-hidden', 'true');
+
+      const contentEl = document.createElement('div');
+      contentEl.className = 'event-content';
+      const timeHtml = item.rem.time ? `[${escapeHTML(item.rem.time)}] ` : '';
+      const doneStyle = item.rem.done ? ' style="text-decoration:line-through;opacity:0.6"' : '';
+      contentEl.innerHTML = `<span${doneStyle}><b>${escapeHTML(item.dateKey)}</b> — ${timeHtml}${escapeHTML(item.rem.text || '')}</span>`;
+
+      const actions = document.createElement('span');
+      actions.className = 'item-controls';
+
+      const doneChk = document.createElement('input');
+      doneChk.type = 'checkbox';
+      doneChk.checked = !!item.rem.done;
+      doneChk.title = 'Mark done';
+      doneChk.style.cssText = 'margin-right:4px;cursor:pointer';
+      doneChk.addEventListener('change', function() {
+        const r = getReminders();
+        if (r[item.dateKey] && r[item.dateKey][item.idx]) {
+          r[item.dateKey][item.idx].done = doneChk.checked;
+          setReminders(r);
+          if (doneChk.checked) haptic.complete();
+          renderReminderPageList();
+        }
+      });
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'small-btn';
+      editBtn.textContent = 'Edit';
+      editBtn.addEventListener('click', function() {
+        const parts = item.dateKey.split('-');
+        if (parts.length === 3) {
+          selectedYear  = parseInt(parts[0], 10);
+          selectedMonth = parseInt(parts[1], 10) - 1;
+          selectedDay   = parseInt(parts[2], 10);
+        }
+        editReminder(parseInt(parts[2], 10), item.idx);
+      });
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'small-btn';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', function() {
+        if (!confirm('Delete this reminder?')) return;
+        const r = getReminders();
+        if (r[item.dateKey]) {
+          r[item.dateKey].splice(item.idx, 1);
+          if (!r[item.dateKey].length) delete r[item.dateKey];
+          setReminders(r);
+          renderReminderPageList();
+          generateCalendar();
+        }
+      });
+
+      actions.appendChild(doneChk);
+      actions.appendChild(editBtn);
+      actions.appendChild(delBtn);
+
+      li.appendChild(bullet);
+      li.appendChild(contentEl);
+      li.appendChild(actions);
+      list.appendChild(li);
+    });
+  }
+
+  renderGroup(upcoming, upcoming.length && past.length ? 'Upcoming' : null);
+  renderGroup(past, past.length ? 'Past' : null);
 }
 
 /* Tasks list management */
@@ -1656,6 +1779,7 @@ function saveEditHandler(e){
     const parts = newDate.split('-');
     if (parts.length===3){ selectedYear = parseInt(parts[0],10); selectedMonth = parseInt(parts[1],10)-1; selectedDay = parseInt(parts[2],10); }
     generateCalendar(); showReminders(selectedDay);
+    renderReminderPageList();
     pushUndo({ label: 'Edit to reminder "' + text + '" undone.', undo: function() {
       const cur = getReminders();
       /* Remove the edited version */
@@ -2698,6 +2822,7 @@ function showView(view, updateHash = true){
   else if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } try{ renderCalendarSummary(); }catch(e){ console.warn(e); } }
   else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
+  else if (view === 'reminders'){ try{ renderReminderPageList(); }catch(e){ console.warn(e); } }
   else if (view === 'jobs'){ try{ renderJobs(); }catch(e){ console.warn(e); } }
   else if (view === 'inbox'){ try{ renderInbox(); updateInboxBadge(); }catch(e){ console.warn(e); } }
   else if (view === 'personal' || view === 'home' || view === 'work'){ try{ renderDomainPage(view); }catch(e){ console.warn(e); } if(view==='work'){ try{ renderWorkEarnings(); }catch(e){ console.warn(e); } } }
@@ -10595,7 +10720,22 @@ function renderGymAppFull(container) {
 }
 
 function renderRoutineAppFull(container) {
-  container.innerHTML='';
+  container.innerHTML = '';
+
+  /* ── Use the advanced multi-phase widget from desktop-personal.js if loaded ── */
+  if (typeof window.renderDeskRoutineWidget === 'function') {
+    try {
+      window.renderDeskRoutineWidget(); /* renders into personalRoutineSection */
+      var routineSection = document.getElementById('personalRoutineSection');
+      if (routineSection) {
+        routineSection.classList.remove('hidden');
+        container.appendChild(routineSection);
+        return;
+      }
+    } catch(e) { /* fall through to basic view */ }
+  }
+
+  /* ── Fallback: basic two-column view ── */
   var routines=getPersonalRoutines(),today=getTodayISO(),log=getPersonalRoutineLog();
   if(!log[today])log[today]={morning:[],evening:[]};
   var todayLog=log[today];
