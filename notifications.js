@@ -39,6 +39,37 @@
     } catch (_) { return false; }
   }
 
+  // Detect Notification Trigger API support (Chrome on Android / desktop)
+  function supportsTimestampTrigger() {
+    return typeof TimestampTrigger !== 'undefined' && typeof ServiceWorkerRegistration !== 'undefined';
+  }
+
+  // Registry of scheduled trigger keys so we can cancel them by tag
+  const triggerKeys = new Set();
+
+  async function scheduleTriggeredNotif(key, when, payload, reg) {
+    const title = (payload.emoji ? payload.emoji + ' ' : '') + (payload.title || 'Reminder');
+    const tag = payload.tag || key;
+    const options = {
+      body: payload.body || '',
+      tag,
+      icon: payload.icon || '/icon-192.png',
+      data: { url: payload.url || 'index.html#calendar' },
+      vibrate: [100, 50, 100],
+      showTrigger: new TimestampTrigger(when.getTime()),
+    };
+    try {
+      // Cancel any previously scheduled notification with this tag first
+      const existing = await reg.getNotifications({ tag, includeTriggered: true });
+      existing.forEach(n => n.close());
+    } catch(_) {}
+    try {
+      await reg.showNotification(title, options);
+      triggerKeys.add(tag);
+      return true;
+    } catch(_) { return false; }
+  }
+
   async function showNotif(payload) {
     const hasPerm = await ensurePermissionAndSW();
     if (!hasPerm) return;
@@ -84,6 +115,26 @@
       if (delay > -5 * 60 * 1000) setTimeout(() => showNotif(payload), 500);
       return;
     }
+
+    // Prefer Notification Trigger API: fires even when the app is closed
+    if (supportsTimestampTrigger()) {
+      (async () => {
+        try {
+          await ensurePermissionAndSW();
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg) {
+            const ok = await scheduleTriggeredNotif(key, when, payload, reg);
+            if (ok) return; // successfully scheduled via trigger — no setTimeout needed
+          }
+        } catch(_) {}
+        // Fall back to setTimeout (in-app only)
+        const id = setTimeout(() => { timers.delete(key); showNotif(payload); }, Math.min(delay, 0x7FFFFFFF));
+        timers.set(key, id);
+      })();
+      return;
+    }
+
+    // No trigger API support — use in-app setTimeout
     const id = setTimeout(() => {
       timers.delete(key);
       showNotif(payload);

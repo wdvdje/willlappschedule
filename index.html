@@ -1263,7 +1263,18 @@
         w.classList.add('hidden');
       }
       var content = document.getElementById('appWindowContent');
-      if (content) content.innerHTML = '';
+      if (content) {
+        // Restore any app-widget-pane elements back to their original home
+        // before clearing innerHTML, so they can be re-used next time the app opens.
+        var detailContent = document.getElementById('appsDetailContent');
+        if (detailContent) {
+          content.querySelectorAll('.app-widget-pane').forEach(function(pane) {
+            pane.classList.add('hidden');
+            detailContent.appendChild(pane);
+          });
+        }
+        content.innerHTML = '';
+      }
     }
 
     function _renderWeatherAppContent(container) {

@@ -210,7 +210,8 @@
         <button id="unsubscribePushBtn" class="small-btn">Unsubscribe</button>
         <div id="pushStatus" style="margin-left:8px;color:#666">Checking…</div>
       </div>
-      <div style="margin-top:8px;color:#666;font-size:0.9rem">Tip: supply a public VAPID key if you use a push server that requires VAPID. On iOS 16.4+, the app must be installed to the Home Screen.</div>
+      <div style="margin-top:8px;color:#666;font-size:0.9rem" id="notifTipText">Tip: supply a public VAPID key if you use a push server that requires VAPID. On iOS 16.4+, the app must be installed to the Home Screen.</div>
+      <div id="triggerApiStatus" style="margin-top:6px;font-size:0.85rem;color:#27ae60;display:none">✅ Scheduled Notifications supported — reminders will fire even when the app is closed.</div>
     </section>
     <script>
     (function () {
@@ -241,6 +242,12 @@
             }
           }).catch(function () {});
         });
+      }
+
+      // Show Notification Trigger API support status
+      var triggerStatusEl = document.getElementById('triggerApiStatus');
+      if (triggerStatusEl && typeof TimestampTrigger !== 'undefined') {
+        triggerStatusEl.style.display = 'block';
       }
     })();
     </script>
