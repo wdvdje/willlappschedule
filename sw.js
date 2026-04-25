@@ -1,5 +1,5 @@
 /* Service worker: offline shell caching + push notifications */
-const CACHE_VERSION = 'ts-cache-v4';
+const CACHE_VERSION = 'ts-cache-v5';
 const CORE_ASSETS = [
   './',
   './index.html',

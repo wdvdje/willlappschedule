@@ -4531,8 +4531,8 @@ function wireMorningBriefing(){
     localStorage.setItem('morningBriefingTime',bt);
     scheduleMorningBriefing();
     var msg = enabled ? 'Briefing set for '+bt+' daily.' : 'Morning briefing disabled.';
-    // Inform iOS PWA users about limitations
-    if(enabled && _isIOSPWA()){
+    // Inform users about limitations unless Notification Trigger API is available
+    if(enabled && _isIOSPWA() && typeof TimestampTrigger === 'undefined'){
       msg += ' Note: on iOS, the app must be open at the scheduled time to deliver the notification.';
     }
     if(statusEl) statusEl.textContent=msg;
@@ -9024,62 +9024,250 @@ function renderTodayMoodPreview() {
 
 function renderWeatherAppFull(container) {
   container.innerHTML = '';
-  var layout = document.createElement('div');
-  layout.className = 'app-full-two-col';
-  var leftCol = document.createElement('div');
-  leftCol.className = 'app-full-col';
-  leftCol.innerHTML = '<h3 class="app-full-col-heading">\u231a Today \u2014 Hourly</h3><div id="appFvHourly" class="app-fv-loading">Requesting location\u2026</div>';
-  var rightCol = document.createElement('div');
-  rightCol.className = 'app-full-col';
-  rightCol.innerHTML = '<h3 class="app-full-col-heading">\ud83d\udcc5 16-Day Forecast</h3><div id="appFvForecast" class="app-fv-loading">Loading\u2026</div>';
-  layout.appendChild(leftCol); layout.appendChild(rightCol); container.appendChild(layout);
-  container.insertAdjacentHTML('beforeend', '<p class="weather-widget-note" style="margin-top:10px">Powered by Open-Meteo \u00b7 No API key required</p>');
-  if (!navigator.geolocation) { leftCol.querySelector('#appFvHourly').textContent = 'Location access required.'; return; }
+
   var useFahrenheit = /^en-US/i.test(navigator.language || '');
   var unitParam = useFahrenheit ? '&temperature_unit=fahrenheit' : '';
-  var unitLabel = useFahrenheit ? '\u00b0F' : '\u00b0C';
-  var WMO_E={0:'\u2600\ufe0f',1:'\ud83c\udf24\ufe0f',2:'\u26c5',3:'\u2601\ufe0f',45:'\ud83c\udf2b\ufe0f',48:'\ud83c\udf2b\ufe0f',51:'\ud83c\udf26\ufe0f',53:'\ud83c\udf27\ufe0f',55:'\ud83c\udf27\ufe0f',61:'\ud83c\udf27\ufe0f',63:'\ud83c\udf27\ufe0f',65:'\ud83c\udf27\ufe0f',71:'\u2744\ufe0f',73:'\u2744\ufe0f',75:'\u2744\ufe0f',80:'\ud83c\udf26\ufe0f',81:'\ud83c\udf26\ufe0f',82:'\u26c8\ufe0f',95:'\u26c8\ufe0f',96:'\u26c8\ufe0f',99:'\u26c8\ufe0f'};
-  var WMO_D={0:'Clear',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Fog',51:'Light drizzle',53:'Drizzle',55:'Dense drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
-  var DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var unitLabel = useFahrenheit ? '°F' : '°C';
+
+  var WMO_E = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌧️',55:'🌧️',
+    61:'🌧️',63:'🌧️',65:'🌧️',71:'❄️',73:'❄️',75:'❄️',80:'🌦️',81:'🌦️',82:'⛈️',
+    95:'⛈️',96:'⛈️',99:'⛈️'};
+  var WMO_D = {0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',
+    45:'Foggy',48:'Icy fog',51:'Light drizzle',53:'Drizzle',55:'Dense drizzle',
+    61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',
+    80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
+  var WMO_GRAD = {
+    0:'linear-gradient(160deg,#1a6fc4 0%,#3aafe8 60%,#87ceeb 100%)',
+    1:'linear-gradient(160deg,#1e7fd4 0%,#4ab8ef 60%,#b0d8f5 100%)',
+    2:'linear-gradient(160deg,#4a7fa8 0%,#7ab0cb 60%,#b8cfe0 100%)',
+    3:'linear-gradient(160deg,#5a6a7a 0%,#8098aa 60%,#b0bec8 100%)',
+    45:'linear-gradient(160deg,#6a7a8a 0%,#96a6b0 100%)',
+    48:'linear-gradient(160deg,#6a7a8a 0%,#96a6b0 100%)',
+    61:'linear-gradient(160deg,#2d4e78 0%,#4a72a0 60%,#7098c0 100%)',
+    63:'linear-gradient(160deg,#2d4e78 0%,#4a72a0 60%,#7098c0 100%)',
+    65:'linear-gradient(160deg,#1e3a5a 0%,#2d5280 100%)',
+    71:'linear-gradient(160deg,#6888a8 0%,#b0c8e0 60%,#d8e8f4 100%)',
+    73:'linear-gradient(160deg,#6888a8 0%,#b0c8e0 100%)',
+    75:'linear-gradient(160deg,#5878a0 0%,#a0b8d8 100%)',
+    80:'linear-gradient(160deg,#3a5e84 0%,#5a88b0 60%,#90b8d8 100%)',
+    95:'linear-gradient(160deg,#2a3848 0%,#445868 100%)',
+    96:'linear-gradient(160deg,#2a3848 0%,#445868 100%)',
+    99:'linear-gradient(160deg,#1a2838 0%,#344858 100%)'
+  };
+  var DN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var DNS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // Skeleton shell while loading
+  container.innerHTML =
+    '<div class="wnative-shell">' +
+      '<div class="wnative-hero wnative-loading">' +
+        '<div class="wnative-hero-emoji">🌤️</div>' +
+        '<div class="wnative-hero-temp">--</div>' +
+        '<div class="wnative-hero-desc">Requesting location…</div>' +
+        '<div class="wnative-hero-loc">📍 Locating…</div>' +
+      '</div>' +
+      '<div class="wnative-hourly-wrap"><div class="wnative-hourly-strip" id="wnHourly"></div></div>' +
+      '<div class="wnative-daily-wrap" id="wnDaily"></div>' +
+      '<div class="wnative-footer">Powered by Open-Meteo · No API key required</div>' +
+    '</div>';
+
+  if (!navigator.geolocation) {
+    container.querySelector('.wnative-hero-desc').textContent = 'Location access required to show weather.';
+    return;
+  }
+
   navigator.geolocation.getCurrentPosition(function(pos) {
-    var lat=pos.coords.latitude.toFixed(4), lon=pos.coords.longitude.toFixed(4);
-    var today=new Date().toISOString().slice(0,10);
-    var url='https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
-      '&hourly=temperature_2m,apparent_temperature,precipitation_probability,windspeed_10m,relativehumidity_2m,uv_index'+
-      '&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max'+
-      '&forecast_days=16&timezone=auto'+unitParam;
-    fetch(url).then(function(r){return r.json();}).then(function(d){
-      var hEl=container.querySelector('#appFvHourly'), fEl=container.querySelector('#appFvForecast');
-      if(!d.hourly||!d.daily){if(hEl)hEl.textContent='Data error.';return;}
-      var hT=d.hourly.time||[],hTmp=d.hourly.temperature_2m||[],hFl=d.hourly.apparent_temperature||[];
-      var hPr=d.hourly.precipitation_probability||[],hW=d.hourly.windspeed_10m||[];
-      var hHum=d.hourly.relativehumidity_2m||[],hUV=d.hourly.uv_index||[];
-      var hHTML='<div class="app-fv-hourly-grid"><div class="awh-hdr"><span>Time</span><span>Temp</span><span>Feels</span><span>\ud83d\udca7%</span><span>\ud83d\udca8</span></div>';
-      var humV=[],uvV=[];
-      for(var i=0;i<hT.length;i++){
-        if(!hT[i]||hT[i].slice(0,10)!==today) continue;
-        humV.push(hHum[i]||0); uvV.push(hUV[i]||0);
-        hHTML+='<div class="awh-row"><span class="awh-time">'+hT[i].slice(11,16)+'</span><span>'+Math.round(hTmp[i]||0)+unitLabel+'</span><span style="color:var(--ios-text-3)">'+Math.round(hFl[i]||0)+unitLabel+'</span><span>'+(hPr[i]||0)+'%</span><span>'+(hW[i]||0).toFixed(0)+'</span></div>';
+    var lat = pos.coords.latitude, lon = pos.coords.longitude;
+    var latF = lat.toFixed(4), lonF = lon.toFixed(4);
+    var today = new Date().toISOString().slice(0,10);
+    var nowHour = new Date().getHours();
+
+    // Reverse geocode city name via Nominatim (User-Agent required by OSM policy)
+    var cityLabel = latF + ', ' + lonF;
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + latF + '&lon=' + lonF, {
+        headers: { 'User-Agent': 'willlappschedule/1.0 (weather feature)' }
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(g){
+        var c = (g && g.address) ? (g.address.city || g.address.town || g.address.village || g.address.county || '') : '';
+        if (c) {
+          cityLabel = c;
+          var loc = container.querySelector('.wnative-hero-loc');
+          if (loc) loc.textContent = '📍 ' + c;
+        }
+      }).catch(function(){});
+
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + latF + '&longitude=' + lonF +
+      '&current_weather=true' +
+      '&hourly=temperature_2m,apparent_temperature,precipitation_probability,weathercode,windspeed_10m,relativehumidity_2m,uv_index' +
+      '&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset' +
+      '&forecast_days=16&timezone=auto' + unitParam;
+
+    fetch(url).then(function(r){ return r.json(); }).then(function(d) {
+      if (!d || !d.hourly || !d.daily) {
+        container.querySelector('.wnative-hero-desc').textContent = 'Weather data unavailable.';
+        return;
       }
-      hHTML+='</div>';
-      var avgH=humV.length?Math.round(humV.reduce(function(a,b){return a+b;},0)/humV.length):null;
-      var maxUV=uvV.length?Math.max.apply(null,uvV):null;
-      if(avgH!=null||maxUV!=null) hHTML+='<div class="app-fv-weather-meta">'+(avgH!=null?'<span>\ud83d\udca7 Humidity avg: '+avgH+'%</span>':'')+(maxUV!=null?'<span>\u2600\ufe0f UV max: '+maxUV.toFixed(1)+'</span>':'')+'</div>';
-      if(hEl)hEl.innerHTML=hHTML;
-      var dD=d.daily.time||[],dC=d.daily.weathercode||[],dH=d.daily.temperature_2m_max||[];
-      var dL=d.daily.temperature_2m_min||[],dP=d.daily.precipitation_probability_max||[];
-      var fHTML='<div class="app-fv-forecast-list">';
-      for(var di=0;di<dD.length;di++){
-        if(!dD[di]) continue;
-        var dObj=new Date(dD[di]+'T12:00:00');
-        var precip=dP[di]||0;
-        var pBar='<div class="awf-precip-track"><div style="width:'+precip+'%;background:#4a90e2;height:3px;border-radius:2px"></div></div>';
-        fHTML+='<div class="awf-row'+(dD[di]===today?' awf-today':'')+'"><span class="awf-day">'+(dD[di]===today?'Today':DN[dObj.getDay()])+' '+(dObj.getMonth()+1)+'/'+dObj.getDate()+'</span><span class="awf-icon">'+(WMO_E[dC[di]]||'\ud83c\udf21\ufe0f')+'</span><span class="awf-desc">'+(WMO_D[dC[di]]||'')+'</span>'+pBar+'<span class="awf-precip-pct">'+precip+'%</span><span class="awf-temps">'+Math.round(dH[di]||0)+'/'+Math.round(dL[di]||0)+unitLabel+'</span></div>';
+
+      var cw = d.current_weather || {};
+      var curCode = cw.weathercode != null ? cw.weathercode : (d.daily.weathercode ? d.daily.weathercode[0] : 0);
+      var curTemp = cw.temperature != null ? Math.round(cw.temperature) : '--';
+      var curWind = cw.windspeed != null ? Math.round(cw.windspeed) : '--';
+      var curEmoji = WMO_E[curCode] || '🌡️';
+      var curDesc  = WMO_D[curCode] || '';
+      var todayHi  = d.daily.temperature_2m_max ? Math.round(d.daily.temperature_2m_max[0]) : '--';
+      var todayLo  = d.daily.temperature_2m_min ? Math.round(d.daily.temperature_2m_min[0]) : '--';
+      var todayPrec = d.daily.precipitation_probability_max ? (d.daily.precipitation_probability_max[0] || 0) : 0;
+
+      // Derive humidity & UV from current hour
+      var hT = d.hourly.time || [];
+      var hHum = d.hourly.relativehumidity_2m || [];
+      var hUV  = d.hourly.uv_index || [];
+      var curHum = '--', curUV = '--';
+      for (var i = 0; i < hT.length; i++) {
+        if (hT[i] && hT[i].slice(0,10) === today && parseInt(hT[i].slice(11,13),10) === nowHour) {
+          curHum = Math.round(hHum[i] || 0);
+          curUV  = (hUV[i] || 0).toFixed(1);
+          break;
+        }
       }
-      fHTML+='</div>';
-      if(fEl)fEl.innerHTML=fHTML;
-    }).catch(function(){var h=container.querySelector('#appFvHourly');if(h)h.textContent='Unable to fetch weather data.';});
-  },function(){var h=container.querySelector('#appFvHourly');if(h)h.innerHTML='<p class="weather-widget-note">Enable location access to see weather.</p>';},{timeout:8000});
+
+      // Sunrise / Sunset
+      var todaySunrise = d.daily.sunrise ? d.daily.sunrise[0] : null;
+      var todaySunset  = d.daily.sunset  ? d.daily.sunset[0]  : null;
+      var srLabel = todaySunrise ? todaySunrise.slice(11,16) : '--';
+      var ssLabel = todaySunset  ? todaySunset.slice(11,16)  : '--';
+
+      // Dynamic gradient background — use actual sunrise/sunset for day/night if available
+      var grad = WMO_GRAD[curCode] || WMO_GRAD[0];
+      var isNight = false;
+      if (todaySunrise && todaySunset) {
+        var nowMs = Date.now();
+        var srMs  = new Date(todaySunrise).getTime();
+        var ssMs  = new Date(todaySunset).getTime();
+        isNight = nowMs < srMs || nowMs > ssMs;
+      } else {
+        isNight = nowHour >= 20 || nowHour < 6;
+      }
+      if (isNight) {
+        grad = 'linear-gradient(160deg,#0d1b2a 0%,#1a2e45 60%,#243450 100%)';
+      }
+
+      // Build hero
+      var heroEl = container.querySelector('.wnative-hero');
+      if (heroEl) {
+        heroEl.classList.remove('wnative-loading');
+        heroEl.style.background = grad;
+        heroEl.innerHTML =
+          '<div class="wnative-hero-top">' +
+            '<div class="wnative-hero-loc">📍 ' + escapeHTML(cityLabel) + '</div>' +
+          '</div>' +
+          '<div class="wnative-hero-main">' +
+            '<div class="wnative-hero-emoji">' + curEmoji + '</div>' +
+            '<div class="wnative-hero-temp">' + curTemp + unitLabel + '</div>' +
+          '</div>' +
+          '<div class="wnative-hero-desc">' + escapeHTML(curDesc) + '</div>' +
+          '<div class="wnative-hero-hilo">H:' + todayHi + unitLabel + ' · L:' + todayLo + unitLabel + '</div>' +
+          '<div class="wnative-stats-row">' +
+            '<div class="wnative-stat"><span class="wnative-stat-val">💧 ' + curHum + '%</span><span class="wnative-stat-lbl">Humidity</span></div>' +
+            '<div class="wnative-stat"><span class="wnative-stat-val">🌬️ ' + curWind + ' km/h</span><span class="wnative-stat-lbl">Wind</span></div>' +
+            '<div class="wnative-stat"><span class="wnative-stat-val">🌧️ ' + todayPrec + '%</span><span class="wnative-stat-lbl">Precip</span></div>' +
+            '<div class="wnative-stat"><span class="wnative-stat-val">☀️ ' + curUV + '</span><span class="wnative-stat-lbl">UV Index</span></div>' +
+            '<div class="wnative-stat"><span class="wnative-stat-val">🌅 ' + srLabel + '</span><span class="wnative-stat-lbl">Sunrise</span></div>' +
+            '<div class="wnative-stat"><span class="wnative-stat-val">🌇 ' + ssLabel + '</span><span class="wnative-stat-lbl">Sunset</span></div>' +
+          '</div>';
+      }
+
+      // Hourly forecast strip (today, from current hour, next 24 hours)
+      var hourlyEl = container.querySelector('#wnHourly');
+      if (hourlyEl) {
+        var hTmp = d.hourly.temperature_2m || [];
+        var hFl  = d.hourly.apparent_temperature || [];
+        var hPr  = d.hourly.precipitation_probability || [];
+        var hWC  = d.hourly.weathercode || [];
+        var hHHTML = '';
+        var count = 0;
+        for (var j = 0; j < hT.length && count < 25; j++) {
+          if (!hT[j]) continue;
+          var hDate = hT[j].slice(0,10);
+          var hHour = parseInt(hT[j].slice(11,13),10);
+          // Start from previous full hour relative to now, show 25 slots
+          if (hDate < today || (hDate === today && hHour < nowHour)) continue;
+          var isNow = hDate === today && hHour === nowHour;
+          var hEmoji = WMO_E[hWC[j]] || '🌡️';
+          hHHTML += '<div class="wnative-hour-card' + (isNow ? ' wnh-now' : '') + '">' +
+            '<div class="wnh-time">' + (isNow ? 'Now' : hT[j].slice(11,16)) + '</div>' +
+            '<div class="wnh-icon">' + hEmoji + '</div>' +
+            '<div class="wnh-temp">' + Math.round(hTmp[j] || 0) + unitLabel + '</div>' +
+            '<div class="wnh-precip">' + (hPr[j] || 0) + '%</div>' +
+            '</div>';
+          count++;
+        }
+        hourlyEl.innerHTML = hHHTML || '<p class="wnative-empty">No hourly data</p>';
+      }
+
+      // Daily forecast
+      var dailyEl = container.querySelector('#wnDaily');
+      if (dailyEl) {
+        var dD = d.daily.time || [];
+        var dC = d.daily.weathercode || [];
+        var dHi = d.daily.temperature_2m_max || [];
+        var dLo = d.daily.temperature_2m_min || [];
+        var dP  = d.daily.precipitation_probability_max || [];
+        var dSr = d.daily.sunrise || [];
+        var dSs = d.daily.sunset  || [];
+
+        // Compute global min/max for temp bar scaling
+        var allHi = dHi.filter(function(v){ return v != null; });
+        var allLo = dLo.filter(function(v){ return v != null; });
+        var globalMin = allLo.length ? Math.min.apply(null, allLo) : 0;
+        var globalMax = allHi.length ? Math.max.apply(null, allHi) : 40;
+        var globalRange = Math.max(globalMax - globalMin, 1);
+
+        var dHTML = '<div class="wnative-daily-heading">16-Day Forecast</div>';
+        for (var di = 0; di < dD.length; di++) {
+          if (!dD[di]) continue;
+          var dObj  = new Date(dD[di] + 'T12:00:00');
+          var dEmoji = WMO_E[dC[di]] || '🌡️';
+          var dDesc  = WMO_D[dC[di]] || '';
+          var isToday = dD[di] === today;
+          var hi = dHi[di] != null ? Math.round(dHi[di]) : '--';
+          var lo = dLo[di] != null ? Math.round(dLo[di]) : '--';
+          var precip = dP[di] || 0;
+          var srStr = dSr[di] ? dSr[di].slice(11,16) : null;
+          var ssStr = dSs[di] ? dSs[di].slice(11,16) : null;
+
+          // Temperature bar proportional to global range
+          var barLo  = dLo[di] != null ? ((dLo[di] - globalMin) / globalRange * 100).toFixed(1) : 0;
+          var barWid = dHi[di] != null && dLo[di] != null ? (((dHi[di] - dLo[di]) / globalRange) * 100).toFixed(1) : 20;
+
+          dHTML += '<div class="wnative-day-row' + (isToday ? ' wnd-today' : '') + '">' +
+            '<div class="wnd-day">' + (isToday ? 'Today' : DNS[dObj.getDay()]) +
+              '<div class="wnd-date">' + (dObj.getMonth()+1) + '/' + dObj.getDate() + '</div>' +
+            '</div>' +
+            '<div class="wnd-icon" title="' + escapeHTML(dDesc) + '">' + dEmoji + '</div>' +
+            '<div class="wnd-desc">' + escapeHTML(dDesc) + '</div>' +
+            '<div class="wnd-precip" title="Precipitation probability"><span class="wnd-precip-drop">💧</span>' + precip + '%</div>' +
+            '<div class="wnd-bar-wrap">' +
+              '<span class="wnd-lo">' + lo + '</span>' +
+              '<div class="wnd-bar-track">' +
+                '<div class="wnd-bar-fill" style="margin-left:' + barLo + '%;width:' + barWid + '%"></div>' +
+              '</div>' +
+              '<span class="wnd-hi">' + hi + '</span>' +
+            '</div>' +
+            (srStr ? '<div class="wnd-suntime">🌅 ' + srStr + ' · 🌇 ' + ssStr + '</div>' : '') +
+          '</div>';
+        }
+        dailyEl.innerHTML = dHTML;
+      }
+    }).catch(function() {
+      var h = container.querySelector('.wnative-hero-desc');
+      if (h) h.textContent = 'Unable to fetch weather data. Check connection.';
+    });
+  }, function() {
+    var h = container.querySelector('.wnative-hero-desc');
+    if (h) h.textContent = 'Enable location access to see weather.';
+  }, { timeout: 8000 });
 }
 
 function renderSleepAppFull(container) {
