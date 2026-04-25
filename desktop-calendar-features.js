@@ -1055,9 +1055,9 @@
         });
       }
 
-      /* Hover tooltip */
-      chartEl._dcfTooltipWired = false; /* re-wire on each render since SVG content changes */
-      wireBarTooltip(chartEl, dayData, yr, mo);
+      /* Hover tooltip — store current data on element so the handler reads fresh values each render */
+      chartEl._dcfTooltipData = { dayData: dayData, yr: yr, mo: mo };
+      wireBarTooltip(chartEl);
 
       /* Render monthly summary stats row */
       renderMonthlyStats(dayData, yr, mo);
@@ -1517,7 +1517,7 @@
     if (title) title.textContent = '📋 Upcoming';
   }
 
-  /* Legacy toggle functions kept for compatibility */
+  /* No-op stub kept so any stale external references don't throw */
   function toggleDaySummaryPanel() {}
   function toggleUpcomingPanel(collapse) { toggleSidePanel(collapse); }
 
@@ -2618,7 +2618,7 @@
     document.head.appendChild(tipStyle);
   }
 
-  function wireBarTooltip(svgEl, dayData, yr, mo) {
+  function wireBarTooltip(svgEl) {
     if (!svgEl) return;
     if (svgEl._dcfTooltipWired) return;
     svgEl._dcfTooltipWired = true;
@@ -2635,8 +2635,14 @@
       if (!dayNum) { tip.style.display = 'none'; return; }
       dayNum = parseInt(dayNum, 10);
       if (isNaN(dayNum) || dayNum < 1) { tip.style.display = 'none'; return; }
+      /* Read fresh data stored on the element at each render */
+      var stored = svgEl._dcfTooltipData || {};
+      var dayData = stored.dayData;
+      var yr = stored.yr;
+      var mo = stored.mo;
+      /* dayData.e/t/r are abbreviations from gatherMonthData: e=events, t=tasks, r=reminders */
       var d = (dayData && dayData[dayNum - 1]) || { e: 0, t: 0, r: 0, total: 0 };
-      var dateStr = MONTH_NAMES[mo] + ' ' + dayNum + ', ' + yr;
+      var dateStr = (mo != null ? MONTH_NAMES[mo] : '') + ' ' + dayNum + (yr ? ', ' + yr : '');
       tip.innerHTML =
         '<div style="font-weight:700;margin-bottom:3px">' + esc(dateStr) + '</div>' +
         '<div style="color:#4a90e2">📅 Events: ' + d.e + '</div>' +

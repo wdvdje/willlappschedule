@@ -509,6 +509,7 @@ kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc; border-ra
   #page-calendar { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; overflow-x: hidden; transition: max-width var(--ios-normal) var(--ios-ease); }
   .day { min-height: 100px; overflow: visible; }
   .calendar { grid-auto-rows: minmax(100px, auto); }
+  /* max-height sized for 5 event rows × ~22px each + gap; matches the 5-item cap in generateCalendar() */
   .emoji-row { max-height: 115px; overflow: hidden; gap: 3px; flex-direction: column; align-items: stretch; }
   .event-preview {
     display: flex;
