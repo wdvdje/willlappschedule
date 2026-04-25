@@ -363,6 +363,113 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
   .dv-buffer-label { font-size: 0.6rem; }
 }
 
+/* ===== Day nav – item count chip ===== */
+.dv-item-count {
+  font-size: 0.75rem;
+  color: #777;
+  background: #f0f0f0;
+  border-radius: 12px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+/* ===== Compact-hours toggle button ===== */
+.dv-compact-btn {
+  display: none; /* shown on desktop only */
+  align-items: center;
+  background: transparent;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: #666;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  line-height: 1;
+}
+.dv-compact-btn:hover { background: #e8f0fb; border-color: #4a90e2; color: #4a90e2; }
+.dv-compact-btn.active { background: #e8f0fb; border-color: #4a90e2; color: #4a90e2; }
+@media (min-width: 768px) {
+  .dv-compact-btn { display: inline-flex; }
+}
+
+/* ===== Sticky day-nav bar on desktop ===== */
+@media (min-width: 768px) {
+  #dayNavBar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #fff;
+    padding: 6px 0 4px;
+    margin-top: 0;
+  }
+}
+
+/* ===== Inline add-event button on hour slots ===== */
+.dv-hour-slot { position: relative; }
+.dv-add-btn {
+  display: none; /* desktop only */
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #4a90e2;
+  color: #fff;
+  border: none;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 4;
+  padding: 0;
+}
+@media (min-width: 768px) {
+  .dv-add-btn { display: flex; }
+}
+.dv-hour-slot:hover .dv-add-btn { opacity: 1; }
+
+/* ===== Now-line time label ===== */
+.dv-now-label {
+  position: absolute;
+  left: 4px;
+  top: -14px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #e74c3c;
+  background: #fff;
+  border-radius: 4px;
+  padding: 0 3px;
+  pointer-events: none;
+  white-space: nowrap;
+  line-height: 1.5;
+}
+
+/* ===== Day summary chip row ===== */
+.dv-day-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.dv-summary-chip {
+  background: #f0f5ff;
+  border: 1px solid #d8e4f5;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  color: #4a5568;
+  white-space: nowrap;
+}
+
 /* legacy class kept for backward compat */
 .hour-row { display:flex; gap:8px; align-items:flex-start; padding:6px 6px; border-bottom:1px dashed #eee; min-height:44px; }
 .hour-row:last-child { border-bottom:0; }

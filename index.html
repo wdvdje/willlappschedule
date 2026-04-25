@@ -94,6 +94,8 @@
           <button id="dayNavToday" class="day-nav-today-btn" aria-label="Go to today">Today</button>
           <h2 id="selectedDateLong" class="day-nav-title"></h2>
           <button id="dayNavNext" class="day-nav-btn" aria-label="Next day">&rsaquo;</button>
+          <button id="dvCompactToggle" class="dv-compact-btn" title="Compact hours">⊟</button>
+          <span id="dailyViewInfo" class="dv-item-count"></span>
         </div>
 
         <!-- existing top bars (holidays/events summary) -->
@@ -128,10 +130,8 @@
         </div>
       </section>
 
-        <!-- Daily view controls -->
-        <div id="dailyViewControls" style="margin:10px 0;">
-          <div style="color:#666;font-size:0.95rem;margin-bottom:4px" id="dailyViewInfo"></div>
-        </div>
+        <!-- Day summary chips + hourly grid -->
+        <div id="dvDaySummaryRow" class="dv-day-summary-row" style="display:none"></div>
 
         <!-- Hourly grid container (vertical timeline) -->
         <div id="dailyView" class="daily-view-timeline" aria-live="polite">
@@ -169,7 +169,7 @@
           <!-- This Week's Job Earnings Widget -->
           <div id="todayEarningsWidget" class="today-right-widget today-earnings-preview">
             <div class="today-earnings-preview-header">
-              <span>💰 This Week's Job Earnings</span>
+              <span id="todayEarningsTitle">💰 This Week's Job Earnings</span>
               <button type="button" class="today-widget-open-btn" data-app="jobs">Open →</button>
             </div>
             <div id="weeklySalaryDisplay" class="today-earnings-preview-content"></div>
@@ -1403,40 +1403,6 @@
       if (content) _renderAppContent(app, content, openFullscreen);
     }
 
-    function renderTodayEarningsPreview() {
-      var el = document.getElementById('weeklySalaryDisplay');
-      if (!el) return;
-      try {
-        var jobs = JSON.parse(localStorage.getItem('jobs') || '[]');
-        if (!jobs.length) {
-          el.innerHTML = '<span style="color:var(--ios-text-3);font-size:0.82rem">No jobs set up yet.</span>';
-          return;
-        }
-        var today = new Date();
-        var dow = today.getDay();
-        var weekStart = new Date(today); weekStart.setDate(today.getDate() - dow);
-        var weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
-        function fmtDate(d) { return d.getFullYear() + '-' + (d.getMonth()+1<10?'0':'') + (d.getMonth()+1) + '-' + (d.getDate()<10?'0':'') + d.getDate(); }
-        var ws = fmtDate(weekStart), we = fmtDate(weekEnd);
-        var weekTotal = 0;
-        jobs.forEach(function(job) {
-          (job.shifts || []).forEach(function(shift) {
-            if (!shift.date || shift.date < ws || shift.date > we) return;
-            var hrs = (parseFloat(shift.hours) || 0);
-            var rate = parseFloat(job.hourlyRate || job.rate || 0);
-            weekTotal += hrs * rate;
-          });
-        });
-        el.innerHTML =
-          '<div style="display:flex;justify-content:space-between;align-items:center">' +
-            '<span style="font-size:0.8rem;color:var(--ios-text-3)">This week</span>' +
-            '<span style="font-size:1.1rem;font-weight:700;color:#27ae60">$' + weekTotal.toFixed(2) + '</span>' +
-          '</div>';
-      } catch(e) {
-        el.innerHTML = '<span style="color:var(--ios-text-3);font-size:0.82rem">—</span>';
-      }
-    }
-
     function renderTodayPinnedApps() {
       var col = document.getElementById('todayPinnedApps');
       if (!col) return;
@@ -1651,7 +1617,6 @@
       showView(initial);
       updateHeaderFromProfile();
       renderTodayPinnedApps();
-      renderTodayEarningsPreview();
       // Render Today-page preview widgets
       if (typeof renderTodayFocusPreview     === 'function') try { renderTodayFocusPreview();     } catch(_) {}
       if (typeof renderTodayHydrationPreview === 'function') try { renderTodayHydrationPreview(); } catch(_) {}

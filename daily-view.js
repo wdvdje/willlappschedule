@@ -57,6 +57,9 @@
   }
   const openEditModal = (window.appUtils && window.appUtils.openEditModalFill) ? window.appUtils.openEditModalFill : null;
 
+  var dvCompact = false;
+  var _nowLineTimer = null;
+
   // ── Date the daily-view is currently showing ──
   var currentViewDate = todayISO();
 
@@ -376,9 +379,21 @@
       if (!dailyView) return;
       dailyView.innerHTML = '';
 
+      // Clear previous now-line timer
+      if (_nowLineTimer) { clearInterval(_nowLineTimer); _nowLineTimer = null; }
+
       var part = 'all';
       var hours = hoursForPart(part);
       var items = getDayItems(dateStr);
+
+      // Compact mode: trim hours to events range (±1 hour padding)
+      if (dvCompact && items.length > 0) {
+        var minStart = items.reduce(function(m, i) { return Math.min(m, i.startMin); }, Infinity);
+        var maxEnd   = items.reduce(function(m, i) { return Math.max(m, i.endMin); }, -Infinity);
+        var hStart = Math.max(0, Math.floor(minStart / 60) - 1);
+        var hEnd   = Math.min(23, Math.ceil(maxEnd / 60));
+        hours = rangeArr(hStart, hEnd + 1);
+      }
 
       // Determine the minute range shown
       var firstHour = hours[0];
@@ -388,7 +403,7 @@
       if (part === 'night') {
         rangeStartMin = 17 * 60;
         rangeEndMin = 25 * 60; // 01:00 next day
-      } else if (part === 'all') {
+      } else if (part === 'all' && !dvCompact) {
         rangeStartMin = 0;
         rangeEndMin = 24 * 60;
       } else {
@@ -396,6 +411,26 @@
         rangeEndMin = (lastHour + 1) * 60;
       }
       var totalMinutes = rangeEndMin - rangeStartMin;
+
+      // Update day summary chips row
+      var chipRow = document.getElementById('dvDaySummaryRow');
+      if (chipRow) {
+        var counts = {};
+        items.forEach(function(item) { counts[item.kind] = (counts[item.kind] || 0) + 1; });
+        var chipDefs = [
+          { kind: 'event',    emoji: '📅', label: 'event' },
+          { kind: 'task',     emoji: '✅', label: 'task' },
+          { kind: 'reminder', emoji: '🔔', label: 'reminder' },
+          { kind: 'routine',  emoji: '🌅', label: 'routine' },
+          { kind: 'meal',     emoji: '🍽️', label: 'meal' }
+        ];
+        var chipsHtml = chipDefs.filter(function(c) { return counts[c.kind]; }).map(function(c) {
+          var n = counts[c.kind];
+          return '<span class="dv-summary-chip">' + c.emoji + ' ' + n + ' ' + c.label + (n !== 1 ? 's' : '') + '</span>';
+        }).join('');
+        chipRow.innerHTML = chipsHtml;
+        chipRow.style.display = chipsHtml ? '' : 'none';
+      }
 
       // Filter items to those visible in the range
       var visibleItems = items.filter(function(item) {
@@ -432,6 +467,26 @@
         // hour slot in body (background row)
         var slot = document.createElement('div');
         slot.className = 'dv-hour-slot';
+        slot.dataset.hour = h;
+
+        // Inline add-event button (desktop only, shown on hover via CSS)
+        var addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'dv-add-btn';
+        addBtn.title = 'Add event at ' + formatHourLabel(h);
+        addBtn.textContent = '+';
+        addBtn.addEventListener('click', (function(hour) {
+          return function(e) {
+            e.stopPropagation();
+            var timeStr    = pad2(hour) + ':00';
+            var endTimeStr = pad2((hour + 1) % 24) + ':00';
+            if (window.appUtils && typeof window.appUtils.openEditModalFill === 'function') {
+              window.appUtils.openEditModalFill({ date: dateStr, startTime: timeStr, endTime: endTimeStr, time: timeStr });
+            }
+          };
+        })(h));
+        slot.appendChild(addBtn);
+
         body.appendChild(slot);
 
         // half-hour dashed line
@@ -611,7 +666,22 @@
           var nowDot = document.createElement('div');
           nowDot.className = 'dv-now-dot';
           nowLine.appendChild(nowDot);
+          var nowLabel = document.createElement('span');
+          nowLabel.className = 'dv-now-label';
+          nowLabel.textContent = formatTime(nowMin);
+          nowLine.appendChild(nowLabel);
           body.appendChild(nowLine);
+
+          // Update position and label every minute
+          _nowLineTimer = setInterval(function() {
+            var n = new Date();
+            var nMin = n.getHours() * 60 + n.getMinutes();
+            if (nMin >= rangeStartMin && nMin < rangeEndMin) {
+              var px = ((nMin - rangeStartMin) / totalMinutes) * (hours.length * HOUR_HEIGHT);
+              nowLine.style.top = px + 'px';
+              nowLabel.textContent = formatTime(nMin);
+            }
+          }, 60000);
         }
       }
 
@@ -827,13 +897,21 @@
 
   // ── Wire up day nav buttons ──
   function wireNavButtons() {
-    var prevBtn = document.getElementById('dayNavPrev');
-    var nextBtn = document.getElementById('dayNavNext');
-    var todayBtn = document.getElementById('dayNavToday');
+    var prevBtn    = document.getElementById('dayNavPrev');
+    var nextBtn    = document.getElementById('dayNavNext');
+    var todayBtn   = document.getElementById('dayNavToday');
+    var compactBtn = document.getElementById('dvCompactToggle');
 
-    if (prevBtn) prevBtn.addEventListener('click', function() { navigateDay(-1); });
-    if (nextBtn) nextBtn.addEventListener('click', function() { navigateDay(1); });
+    if (prevBtn)  prevBtn.addEventListener('click',  function() { navigateDay(-1); });
+    if (nextBtn)  nextBtn.addEventListener('click',  function() { navigateDay(1); });
     if (todayBtn) todayBtn.addEventListener('click', function() { goToToday(); });
+    if (compactBtn) {
+      compactBtn.addEventListener('click', function() {
+        dvCompact = !dvCompact;
+        compactBtn.classList.toggle('active', dvCompact);
+        renderDailyView(currentViewDate);
+      });
+    }
   }
 
   // ── (Day part selector removed – full 24h scrollable view) ──

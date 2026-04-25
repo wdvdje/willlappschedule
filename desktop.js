@@ -199,25 +199,24 @@
   }
 
   function refreshEarnings() {
-    var body = document.getElementById('dtEarningsBody');
+    var body = document.getElementById('weeklySalaryDisplay');
     if (!body) return;
     var result = calcEarnings();
     var fmt    = function (d) { return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
 
-    // Update the panel title to reflect which week is shown
-    var titleEl = document.getElementById('dtEarningsTitle');
+    // Update the widget title to reflect which week is shown
+    var titleEl = document.getElementById('todayEarningsTitle');
     if (titleEl) {
       var todayRange = weekRange();
       var isSameWeek = result.range.start.getTime() === todayRange.start.getTime();
       titleEl.textContent = isSameWeek
-        ? "💼 This Week's Job Earnings"
-        : '💼 Job Earnings: ' + fmt(result.range.start) + ' – ' + fmt(result.range.end);
+        ? "💰 This Week's Job Earnings"
+        : '💰 Job Earnings: ' + fmt(result.range.start) + ' – ' + fmt(result.range.end);
     }
 
     if (!result.items.length) {
-      body.innerHTML = '<span style="color:#aaa">No job events this week (' +
-        fmt(result.range.start) + '–' + fmt(result.range.end) +
-        '). Add events on the <b>Work</b> page or with <b>job</b> category to track earnings.</span>';
+      body.innerHTML = '<span style="color:#aaa;font-size:0.82rem">No job events this week (' +
+        fmt(result.range.start) + '–' + fmt(result.range.end) + ').</span>';
       return;
     }
 
@@ -239,22 +238,6 @@
               'Total: $' + result.total.toFixed(2) + '</div>';
     }
     body.innerHTML = html;
-  }
-
-  function injectEarningsPanel() {
-    var dash = document.querySelector('.dashboard');
-    if (!dash || document.getElementById('dtEarningsPanel')) return;
-
-    var panel = document.createElement('div');
-    panel.id = 'dtEarningsPanel';
-    panel.style.cssText = 'margin:12px auto 0;padding:12px;background:#fff;' +
-                          'border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);' +
-                          'text-align:left;max-width:640px';
-    panel.innerHTML = '<h4 id="dtEarningsTitle" style="margin:0 0 8px;color:#333;font-size:0.95rem">' +
-                      "💼 This Week's Job Earnings</h4>" +
-                      '<div id="dtEarningsBody" style="font-size:0.88rem;color:#555"></div>';
-    dash.appendChild(panel);
-    refreshEarnings();
   }
 
   // ---------------------------------------------------------------------------
@@ -696,7 +679,6 @@
 
   var DESKTOP_ELEMENTS = {
     'dtCsvBtns':       'flex',
-    'dtEarningsPanel': 'block',
     'dtTaskBar':       'flex',
     'dtBulkToggle':    'inline-block',
     'dtAgendaSidebar': 'block',
@@ -871,7 +853,7 @@
   function initDesktop() {
     if (!isDesktop()) return;
     injectCsvButtons();
-    injectEarningsPanel();
+    refreshEarnings();
     injectTaskBar();
     injectBulkTaskBar();
     initWeekViewDnd();
@@ -887,7 +869,7 @@
     if (view === 'tasks')    { injectTaskBar(); injectBulkTaskBar(); if (_bulkMode) schedApply(); }
     if (view === 'settings') { injectCsvButtons(); }
     if (view === 'calendar' || view === 'today') {
-      injectEarningsPanel(); refreshEarnings();
+      refreshEarnings();
       /* Only show the fixed agenda sidebar if the integrated upcoming panel is NOT present */
       if (!document.getElementById('calUpcomingPanel')) {
         injectAgendaSidebar(); refreshAgenda();
