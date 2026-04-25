@@ -219,13 +219,13 @@
     });
 
     // catModal — closed by JS
-    _setupSheet('catModal', '> div', function () {
+    _setupSheet('catModal', ':scope > div', function () {
       var modal = document.getElementById('catModal');
       if (modal) modal.classList.add('hidden');
     });
 
     // jobModal — closed by JS
-    _setupSheet('jobModal', '> div', function () {
+    _setupSheet('jobModal', ':scope > div', function () {
       var modal = document.getElementById('jobModal');
       if (modal) modal.classList.add('hidden');
     });
