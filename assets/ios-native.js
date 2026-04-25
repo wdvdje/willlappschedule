@@ -583,6 +583,327 @@
   }
 
   /* ──────────────────────────────────────────────────────────
+     16. iPadOS 26 Floating Top Navigation pill
+         Shows on 768–1023px; dock button morphs it to sidebar.
+     ────────────────────────────────────────────────────────── */
+  function _initIpadTopNav() {
+    var nav     = document.getElementById('ipadTopNav');
+    var dockBtn = document.getElementById('ipadNavDockBtn');
+    if (!nav || !dockBtn) return;
+
+    var KEY_DOCKED = 'ipadNavDocked';
+
+    function _applyDockState(docked) {
+      document.body.classList.toggle('ipad-sidebar-docked', docked);
+      if (docked) {
+        dockBtn.textContent = '\u229F';          /* ⊟ — undock icon */
+        dockBtn.setAttribute('aria-label', 'Undock navigation');
+        dockBtn.setAttribute('title', 'Undock navigation');
+      } else {
+        dockBtn.textContent = '\u229E';          /* ⊞ — dock icon */
+        dockBtn.setAttribute('aria-label', 'Dock navigation as sidebar');
+        dockBtn.setAttribute('title', 'Dock navigation as sidebar');
+      }
+    }
+
+    // Restore saved dock preference
+    try {
+      _applyDockState(localStorage.getItem(KEY_DOCKED) === 'true');
+    } catch (_) {}
+
+    dockBtn.addEventListener('click', function () {
+      haptics.select();
+      var docked = !document.body.classList.contains('ipad-sidebar-docked');
+      _applyDockState(docked);
+      try { localStorage.setItem(KEY_DOCKED, docked ? 'true' : 'false'); } catch (_) {}
+    });
+
+    // Keep the active item in sync with the current view
+    function _updateActive() {
+      var view = (location.hash || '#today').replace('#', '') || 'today';
+      nav.querySelectorAll('.ipad-nav-item[data-view]').forEach(function (item) {
+        item.classList.toggle('active', item.dataset.view === view);
+      });
+    }
+
+    // SPA navigation: update hash without full page reload
+    nav.querySelectorAll('.ipad-nav-item[data-view]').forEach(function (item) {
+      item.addEventListener('click', function (e) {
+        e.preventDefault();
+        haptics.select();
+        var view = item.dataset.view || 'today';
+        if (location.hash.replace('#', '') !== view) {
+          location.hash = view;
+        }
+        window.dispatchEvent(new Event('hashchange'));
+      });
+    });
+
+    window.addEventListener('hashchange', _updateActive);
+    _updateActive();
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     17. HTML5 Drag and Drop for bucket / task items
+         Attaches draggable behaviour to .bucket-item elements.
+         Fires ios:dnd:reorder custom event for the app to handle.
+     ────────────────────────────────────────────────────────── */
+  function _initDragAndDrop() {
+    function _attachDnD(container) {
+      if (!container) return;
+      container.querySelectorAll('.bucket-item').forEach(function (item) {
+        if (item.dataset.dndInit) return;
+        item.dataset.dndInit = '1';
+        item.setAttribute('draggable', 'true');
+
+        item.addEventListener('dragstart', function (e) {
+          e.dataTransfer.effectAllowed = 'move';
+          // Carry the element's position index so the app can reorder
+          var siblings = Array.from(item.parentNode.querySelectorAll('.bucket-item'));
+          e.dataTransfer.setData('text/plain', String(siblings.indexOf(item)));
+          e.dataTransfer.setData('application/x-timescape-dnd', 'bucket-item');
+          item.classList.add('dnd-dragging');
+          haptics.light();
+        });
+
+        item.addEventListener('dragend', function () {
+          item.classList.remove('dnd-dragging');
+          document.querySelectorAll('.dnd-over').forEach(function (el) {
+            el.classList.remove('dnd-over');
+          });
+        });
+
+        item.addEventListener('dragover', function (e) {
+          if (!e.dataTransfer.types.includes('application/x-timescape-dnd')) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          item.classList.add('dnd-over');
+        });
+
+        item.addEventListener('dragleave', function () {
+          item.classList.remove('dnd-over');
+        });
+
+        item.addEventListener('drop', function (e) {
+          e.preventDefault();
+          item.classList.remove('dnd-over');
+          var srcIdx = e.dataTransfer.getData('text/plain');
+          var siblings = Array.from(item.parentNode.querySelectorAll('.bucket-item'));
+          var tgtIdx = siblings.indexOf(item);
+          if (srcIdx !== '' && String(tgtIdx) !== srcIdx) {
+            window.dispatchEvent(new CustomEvent('ios:dnd:reorder', {
+              detail: { sourceIndex: parseInt(srcIdx, 10), targetIndex: tgtIdx,
+                        container: item.parentNode }
+            }));
+            haptics.success();
+          }
+        });
+      });
+    }
+
+    // Attach to any bucket-body elements added dynamically
+    var _dndObserver = new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        m.addedNodes.forEach(function (node) {
+          if (node.nodeType !== 1) return;
+          if (node.classList && node.classList.contains('bucket-body')) {
+            _attachDnD(node);
+          }
+          if (node.querySelectorAll) {
+            node.querySelectorAll('.bucket-body').forEach(_attachDnD);
+          }
+        });
+      });
+    });
+    _dndObserver.observe(document.body, { childList: true, subtree: true });
+
+    // Attach to existing elements
+    document.querySelectorAll('.bucket-body').forEach(_attachDnD);
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     18. Custom context menus (right-click / long-press)
+         Replaces long-presses with native-style popover menus
+         for calendar day cells and task/bucket items.
+     ────────────────────────────────────────────────────────── */
+  function _initContextMenus() {
+    var _menu = null;
+
+    function _getMenu() {
+      if (_menu) return _menu;
+      _menu = document.createElement('div');
+      _menu.className = 'ios-context-menu';
+      _menu.setAttribute('role', 'menu');
+      document.body.appendChild(_menu);
+
+      // Close on outside pointer-down
+      document.addEventListener('mousedown', function (e) {
+        if (_menu && !_menu.contains(e.target)) _hideMenu();
+      }, true);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') _hideMenu();
+      });
+      return _menu;
+    }
+
+    function _hideMenu() {
+      if (!_menu) return;
+      _menu.classList.remove('visible');
+    }
+
+    function _showMenu(x, y, items) {
+      var menu = _getMenu();
+      menu.innerHTML = '';
+      items.forEach(function (item) {
+        if (item.separator) {
+          var sep = document.createElement('div');
+          sep.className = 'ios-ctx-separator';
+          menu.appendChild(sep);
+          return;
+        }
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'ios-ctx-item' + (item.danger ? ' danger' : '');
+        btn.setAttribute('role', 'menuitem');
+        btn.innerHTML = '<span style="flex-shrink:0">' + (item.icon || '') + '</span>' +
+                        '<span>' + (item.label || '') + '</span>';
+        btn.addEventListener('click', function () {
+          _hideMenu();
+          if (typeof item.action === 'function') item.action();
+          haptics.light();
+        });
+        menu.appendChild(btn);
+      });
+
+      // Position within viewport
+      menu.style.left = '0';
+      menu.style.top = '0';
+      menu.classList.add('visible');
+      var vw = window.innerWidth;
+      var vh = window.innerHeight;
+      var w = menu.offsetWidth || 200;
+      var h = menu.offsetHeight || 120;
+      menu.style.left = Math.max(8, Math.min(x, vw - w - 8)) + 'px';
+      menu.style.top  = Math.max(8, Math.min(y, vh - h - 8)) + 'px';
+    }
+
+    document.addEventListener('contextmenu', function (e) {
+      // ── Calendar day cell ──────────────────────────────────
+      var day = e.target.closest('.day[data-date]');
+      if (!day) {
+        // Fallback: day cells may store the date in a child element
+        var cell = e.target.closest('.day');
+        if (cell) {
+          var num = cell.querySelector('.day-number');
+          if (num) day = cell;
+        }
+      }
+      if (day) {
+        e.preventDefault();
+        var date = day.dataset.date || '';
+        _showMenu(e.clientX, e.clientY, [
+          {
+            icon: '+', label: 'New Event',
+            action: function () {
+              var inp = document.getElementById('quickAddInput');
+              if (inp) {
+                inp.value = date ? 'Event on ' + date + ' ' : '';
+                inp.focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }
+          },
+          {
+            icon: '✅', label: 'New Task',
+            action: function () {
+              var inp = document.getElementById('quickAddInput');
+              if (inp) {
+                inp.value = date ? 'Task on ' + date + ' ' : '';
+                inp.focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }
+          },
+          { separator: true },
+          {
+            icon: '📋', label: 'View Day',
+            action: function () { if (day.click) day.click(); }
+          }
+        ]);
+        return;
+      }
+
+      // ── Bucket / task list item ────────────────────────────
+      var bucketItem = e.target.closest('.bucket-item');
+      if (bucketItem) {
+        e.preventDefault();
+        _showMenu(e.clientX, e.clientY, [
+          {
+            icon: '✏️', label: 'Edit',
+            action: function () {
+              // Prefer a button with data-action="edit", then any .small-btn
+              var btn = bucketItem.querySelector('[data-action="edit"]') ||
+                        bucketItem.querySelector('.small-btn');
+              if (btn) btn.click();
+            }
+          },
+          { separator: true },
+          {
+            icon: '🗑️', label: 'Delete', danger: true,
+            action: function () {
+              // Prefer a button with data-action="delete" or aria-label containing "delete"
+              var btn = bucketItem.querySelector('[data-action="delete"]') ||
+                        bucketItem.querySelector('[aria-label*="elete"]') ||
+                        bucketItem.querySelector('[title*="elete"]');
+              if (!btn) {
+                // Fall back to last button in the item row (conventional placement)
+                var btns = bucketItem.querySelectorAll('button');
+                if (btns.length) btn = btns[btns.length - 1];
+              }
+              if (btn) btn.click();
+            }
+          }
+        ]);
+      }
+    });
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     19. Magic Keyboard shortcuts (Cmd+N = new item)
+         Complements the existing Ctrl+P (command palette) and
+         Ctrl+K (search) shortcuts already in desktop-calendar.js.
+     ────────────────────────────────────────────────────────── */
+  function _initIPadKeyboardShortcuts() {
+    document.addEventListener('keydown', function (e) {
+      // Skip if focus is in a text field or contenteditable element
+      var tag = document.activeElement && document.activeElement.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (document.activeElement && document.activeElement.isContentEditable) return;
+
+      var meta = e.metaKey || e.ctrlKey;
+
+      // Cmd+N / Ctrl+N — focus quick-add input (new item)
+      if (meta && e.key === 'n') {
+        e.preventDefault();
+        var inp = document.getElementById('quickAddInput');
+        if (inp) {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          // Small delay to let scroll settle before focusing
+          setTimeout(function () { inp.focus(); inp.select(); }, 80);
+        }
+        return;
+      }
+
+      // Cmd+, / Ctrl+, — open Settings
+      if (meta && e.key === ',') {
+        e.preventDefault();
+        location.hash = 'settings';
+        window.dispatchEvent(new Event('hashchange'));
+      }
+    });
+  }
+
+  /* ──────────────────────────────────────────────────────────
      15. Wire everything up after DOM is ready
      ────────────────────────────────────────────────────────── */
   function _init() {
@@ -596,6 +917,10 @@
     _initOrientationHandling();
     _initSearchIsland();
     _initScrollEdgeEffects();
+    _initIpadTopNav();
+    _initDragAndDrop();
+    _initContextMenus();
+    _initIPadKeyboardShortcuts();
   }
 
   if (document.readyState === 'loading') {
