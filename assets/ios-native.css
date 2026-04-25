@@ -52,7 +52,7 @@
   --ios-slow:          0.50s;
 
   /* iPad breakpoint: show sidebar from 768 px (iPad mini portrait) */
-  --ios-sidebar-w:     240px;
+  --ios-sidebar-w:     185px;
   --ios-sidebar-w-collapsed: 58px;
   --ios-sidebar-breakpoint: 768px;
   --ios-tab-h:         calc(62px + env(safe-area-inset-bottom,0px));
@@ -672,7 +672,6 @@ body.scroll-edge-top-off.scroll-edge-bottom-off main {
 }
 
 .sidebar-label {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -687,6 +686,14 @@ body.scroll-edge-top-off.scroll-edge-bottom-off main {
 
 .sidebar-bottom {
   margin-top: auto;
+}
+
+/* Apps and Settings buttons should look like the other nav links */
+button.sidebar-item {
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
 }
 
 /* Sidebar header with title + collapse toggle */
@@ -1293,7 +1300,7 @@ main {
 /* On iPad (768–1023px), sidebar uses full 210px width when expanded */
 @media (min-width: 768px) and (max-width: 1023px) {
   .desktop-sidebar:not(.collapsed) {
-    width: 210px;
+    width: 185px;
   }
   /* When collapsed (default on iPad), the existing 58px collapsed rules apply */
 }
@@ -2207,4 +2214,102 @@ main {
 
 .app-widget-pane.hidden {
   display: none !important;
+}
+
+/* ── App Window Modal — launched when clicking an app icon ──────── */
+#appWindowModal {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#appWindowModal.hidden {
+  display: none !important;
+}
+
+#appWindowOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+#appWindowPanel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--ios-glass-vibrant);
+  -webkit-backdrop-filter: var(--ios-glass-blur);
+  backdrop-filter: var(--ios-glass-blur);
+  border: 1px solid var(--ios-border-glass);
+  border-radius: var(--ios-r-lg);
+  box-shadow: var(--ios-shadow-glass);
+  padding: 0 20px calc(24px + env(safe-area-inset-bottom,0px));
+  animation: app-window-in var(--ios-slow) var(--ios-spring-soft) both;
+}
+
+@keyframes app-window-in {
+  from { transform: scale(0.94); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+@media (max-width: 767px) {
+  #appWindowModal {
+    align-items: flex-end;
+  }
+  #appWindowPanel {
+    border-radius: var(--ios-r-lg) var(--ios-r-lg) 0 0;
+    border-bottom: none;
+    animation: ios-sheet-up var(--ios-slow) var(--ios-spring-soft) both;
+  }
+}
+
+.app-window-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 0 14px;
+}
+
+#appWindowBackBtn {
+  background: none;
+  border: none;
+  color: var(--ios-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+
+#appWindowTitle {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ios-text);
+  flex: 1;
+}
+
+.app-window-pin-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--ios-text-3);
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+#appWindowContent {
+  padding-bottom: 12px;
 }

@@ -1811,7 +1811,6 @@
     try { renderDeskMeal();    } catch (e) { console.warn('[dp] meal failed', e); }
     try { renderDeskRoutine(); } catch (e) { console.warn('[dp] routine failed', e); }
     try { renderDeskGym();     } catch (e) { console.warn('[dp] gym failed', e); }
-    try { initToggleAllWidgets(); } catch (e) { console.warn('[dp] toggle-all failed', e); }
     try { initLayoutPicker();  } catch (e) { console.warn('[dp] layout-picker failed', e); }
   }
 
