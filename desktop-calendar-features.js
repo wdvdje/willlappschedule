@@ -235,14 +235,15 @@
       '  .cal-side-panel > div:last-child { flex:1;overflow-y:auto;min-height:0; }',
       '  body.dark-mode .cal-side-panel { background:#16213e;color:#e0e0e0; }',
       '  .cal-side-panel h4 { margin:0 0 8px;font-size:0.9rem;color:#4a90e2;display:flex;align-items:center;justify-content:space-between; }',
-      '  .cal-side-panel.collapsed { width:0;padding:0;overflow:hidden;opacity:0;pointer-events:none; }',
+      '  .cal-side-panel.collapsed { width:0;min-width:0;padding:0;overflow:hidden;opacity:0;pointer-events:none;border:none; }',
       '  .cal-panel-toggle { background:none;border:none;cursor:pointer;font-size:1rem;padding:0 2px;color:#888;line-height:1;flex-shrink:0; }',
       '  .cal-panel-toggle:hover { color:#4a90e2; }',
-      '  .cal-panel-expand-tab { display:none;position:sticky;top:72px;width:24px;flex-shrink:0;',
-      '    background:#fff;border-radius:8px;box-shadow:0 1px 8px rgba(0,0,0,0.08);cursor:pointer;',
-      '    padding:8px 2px;text-align:center;font-size:0.85rem;color:#888;writing-mode:vertical-rl;',
-      '    user-select:none;transition:background 0.15s; }',
-      '  .cal-panel-expand-tab:hover { background:#f0f6ff;color:#4a90e2; }',
+      /* Expand tab is position:fixed so it never occupies flex-row space */
+      '  .cal-panel-expand-tab { display:none;position:fixed;right:12px;top:50%;transform:translateY(-50%);width:28px;',
+      '    background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.12);cursor:pointer;z-index:500;',
+      '    padding:10px 2px;text-align:center;font-size:0.85rem;color:#888;writing-mode:vertical-rl;',
+      '    user-select:none;transition:background 0.15s,box-shadow 0.15s; }',
+      '  .cal-panel-expand-tab:hover { background:#f0f6ff;color:#4a90e2;box-shadow:0 4px 18px rgba(74,144,226,0.2); }',
       '  body.dark-mode .cal-panel-expand-tab { background:#16213e;color:#aaa; }',
       '  body.dark-mode .cal-panel-expand-tab:hover { background:#1e3055;color:#7ab3f5; }',
       '  .cal-panel-expand-tab.visible { display:block; }',
@@ -1410,11 +1411,12 @@
             '<button class="cal-domain-pill cal-up-domain" data-domain="home" style="font-size:0.72rem;padding:2px 7px">🏡</button>' +
             '<button class="cal-domain-pill cal-up-domain" data-domain="work" style="font-size:0.72rem;padding:2px 7px">💼</button>' +
           '</div>' +
-          '<select id="calUpcomingDaysSelect" style="width:100%;font-size:0.78rem;padding:3px 6px;border-radius:6px;border:1px solid #ddd">' +
-            '<option value="7">Next 7 days</option>' +
-            '<option value="30" selected>Next 30 days</option>' +
-            '<option value="90">Next 90 days</option>' +
-          '</select>' +
+          /* Pill row for days range (replaces select dropdown) */
+          '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px" id="calUpcomingDaysPills">' +
+            '<button class="cal-domain-pill cal-up-days active" data-days="7" style="font-size:0.72rem;padding:2px 7px">7d</button>' +
+            '<button class="cal-domain-pill cal-up-days" data-days="30" style="font-size:0.72rem;padding:2px 7px">30d</button>' +
+            '<button class="cal-domain-pill cal-up-days" data-days="90" style="font-size:0.72rem;padding:2px 7px">90d</button>' +
+          '</div>' +
         '</div>' +
         '<div id="calUpcomingPanelContent" style="font-size:0.82rem;color:#888">Loading...</div>' +
       '</div>';
@@ -1454,8 +1456,14 @@
         refreshUpcomingPanel();
       });
     });
-    var upDaysEl = document.getElementById('calUpcomingDaysSelect');
-    if (upDaysEl) upDaysEl.addEventListener('change', function () { refreshUpcomingPanel(); });
+    /* Wire days-range pill buttons */
+    sidePanel.querySelectorAll('.cal-up-days').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        sidePanel.querySelectorAll('.cal-up-days').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        refreshUpcomingPanel();
+      });
+    });
 
     /* Click outside calendar grid → deselect day, show upcoming */
     layout.addEventListener('click', function (e) {
@@ -1490,7 +1498,17 @@
     if (collapse) {
       panel.classList.add('collapsed');
       tab.classList.add('visible');
+      /* Hide panel from layout entirely after transition */
+      function onTransitionEnd() {
+        panel.removeEventListener('transitionend', onTransitionEnd);
+        if (panel.classList.contains('collapsed')) panel.style.display = 'none';
+      }
+      panel.addEventListener('transitionend', onTransitionEnd);
     } else {
+      /* Restore display before removing collapsed class so transition runs */
+      panel.style.display = '';
+      /* Force reflow so the display change takes effect before the transition */
+      void panel.offsetWidth;
       panel.classList.remove('collapsed');
       tab.classList.remove('visible');
     }
@@ -1529,8 +1547,8 @@
     /* Read filter state */
     var activeBtn = document.querySelector('.cal-up-domain.active');
     var domainFilter = activeBtn ? activeBtn.dataset.domain || 'all' : 'all';
-    var daysEl = document.getElementById('calUpcomingDaysSelect');
-    var days = daysEl ? parseInt(daysEl.value, 10) : 30;
+    var activeDaysBtn = document.querySelector('.cal-up-days.active');
+    var days = activeDaysBtn ? parseInt(activeDaysBtn.dataset.days, 10) : 7;
 
     var today = new Date();
     var todayStr = today.getFullYear() + '-' + p2(today.getMonth() + 1) + '-' + p2(today.getDate());
@@ -2437,26 +2455,39 @@
   function injectDayAddModal() {
     if (document.getElementById('dcfDayAddModal')) return;
 
-    /* Inject CSS */
+    /* Inject CSS — Liquid Glass style matching other app modals */
     var modalStyle = document.createElement('style');
     modalStyle.textContent = [
-      '.dcf-day-add-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.42);z-index:10010;display:none;align-items:center;justify-content:center}',
+      '.dcf-day-add-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.40);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);z-index:10010;display:none;align-items:center;justify-content:center}',
       '.dcf-day-add-overlay.open{display:flex}',
-      '.dcf-day-add-panel{background:#fff;border-radius:16px;width:92%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,0.2);padding:24px 24px 20px;box-sizing:border-box}',
-      'body.dark-mode .dcf-day-add-panel{background:#16213e;color:#e0e0e0}',
-      '.dcf-day-add-date{font-size:1.1rem;font-weight:700;color:#4a90e2;margin-bottom:14px;text-align:center}',
-      '.dcf-day-add-tabs{display:flex;gap:6px;margin-bottom:14px}',
-      '.dcf-day-add-tab{flex:1;padding:8px 4px;border-radius:10px;border:1.5px solid #ddd;background:#fff;cursor:pointer;font-size:0.88rem;font-weight:600;transition:all 0.12s;text-align:center}',
-      '.dcf-day-add-tab.active{background:#4a90e2;color:#fff;border-color:#4a90e2}',
-      'body.dark-mode .dcf-day-add-tab{background:#1e2d45;color:#ccc;border-color:#2a2a4a}',
-      'body.dark-mode .dcf-day-add-tab.active{background:#4a90e2;color:#fff}',
-      '.dcf-day-add-input{width:100%;box-sizing:border-box;padding:9px 12px;border-radius:10px;border:1.5px solid #ddd;font-size:0.95rem;margin-bottom:10px;background:#fff;color:#333}',
-      'body.dark-mode .dcf-day-add-input{background:#1e2d45;color:#e0e0e0;border-color:#2a2a4a}',
-      '.dcf-day-add-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}',
-      '.dcf-day-add-submit{padding:8px 20px;border-radius:10px;background:#4a90e2;color:#fff;border:none;font-size:0.9rem;font-weight:600;cursor:pointer}',
-      '.dcf-day-add-submit:hover{background:#2a70c2}',
-      '.dcf-day-add-cancel{padding:8px 16px;border-radius:10px;background:#f0f0f0;color:#555;border:none;font-size:0.9rem;cursor:pointer}',
-      'body.dark-mode .dcf-day-add-cancel{background:#1e2d45;color:#aaa}'
+      '@keyframes dcf-day-add-in{from{transform:scale(0.94) translateY(8px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}',
+      '.dcf-day-add-panel{',
+      '  background:var(--ios-glass-vibrant,rgba(255,255,255,0.85));',
+      '  -webkit-backdrop-filter:var(--ios-glass-blur,saturate(200%) blur(40px));',
+      '  backdrop-filter:var(--ios-glass-blur,saturate(200%) blur(40px));',
+      '  border:1px solid var(--ios-border-glass,rgba(255,255,255,0.45));',
+      '  border-radius:var(--ios-r-lg,24px);',
+      '  box-shadow:var(--ios-shadow-glass,0 8px 32px rgba(0,0,0,0.12),inset 0 1px 0 rgba(255,255,255,0.6));',
+      '  width:92%;max-width:420px;padding:0 24px 24px;box-sizing:border-box;',
+      '  animation:dcf-day-add-in var(--ios-slow,0.50s) var(--ios-spring-soft,cubic-bezier(0.22,1.0,0.36,1)) both}',
+      '.dcf-day-add-handle{width:36px;height:4px;background:rgba(60,60,67,0.18);border-radius:2px;margin:12px auto 18px;flex-shrink:0}',
+      '.dcf-day-add-date{font-size:1.05rem;font-weight:700;color:var(--ios-accent,#007AFF);margin-bottom:14px;text-align:center}',
+      '.dcf-day-add-tabs{display:flex;gap:6px;margin-bottom:14px;background:var(--ios-surface-2,#f2f2f7);border-radius:var(--ios-r-sm,14px);padding:3px}',
+      '.dcf-day-add-tab{flex:1;padding:7px 4px;border-radius:calc(var(--ios-r-sm,14px) - 2px);border:none;background:transparent;cursor:pointer;font-size:0.84rem;font-weight:600;transition:all var(--ios-fast,0.18s) var(--ios-spring,cubic-bezier(0.34,1.56,0.64,1));text-align:center;color:var(--ios-text-2,#48484a)}',
+      '.dcf-day-add-tab.active{background:var(--ios-surface,#fff);color:var(--ios-accent,#007AFF);box-shadow:0 1px 6px rgba(0,0,0,0.10)}',
+      '.dcf-day-add-input{width:100%;box-sizing:border-box;padding:10px 13px;border-radius:var(--ios-r-sm,14px);border:1.5px solid var(--ios-border,rgba(60,60,67,0.13));font-size:0.95rem;margin-bottom:10px;background:var(--ios-surface,#fff);color:var(--ios-text,#1c1c1e);outline:none;transition:border-color var(--ios-fast,0.18s)}',
+      '.dcf-day-add-input:focus{border-color:var(--ios-accent,#007AFF);box-shadow:0 0 0 3px rgba(0,122,255,0.16)}',
+      '.dcf-day-add-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:6px}',
+      '.dcf-day-add-submit{padding:9px 22px;border-radius:var(--ios-r-sm,14px);background:var(--ios-accent,#007AFF);color:#fff;border:none;font-size:0.9rem;font-weight:600;cursor:pointer;transition:background var(--ios-fast,0.18s),transform var(--ios-fast,0.18s) var(--ios-spring,cubic-bezier(0.34,1.56,0.64,1))}',
+      '.dcf-day-add-submit:hover{background:var(--ios-accent-dk,#0062CC)}',
+      '.dcf-day-add-submit:active{transform:scale(0.95)}',
+      '.dcf-day-add-cancel{padding:9px 16px;border-radius:var(--ios-r-sm,14px);background:rgba(120,120,128,0.14);color:var(--ios-text-2,#48484a);border:none;font-size:0.9rem;cursor:pointer;transition:background var(--ios-fast,0.18s)}',
+      '.dcf-day-add-cancel:hover{background:rgba(120,120,128,0.24)}',
+      /* Dark mode via CSS custom properties already handled; explicit dark-mode class fallback: */
+      'body.dark-mode .dcf-day-add-panel{background:rgba(44,44,46,0.90);border-color:rgba(255,255,255,0.14)}',
+      'body.dark-mode .dcf-day-add-tab.active{background:rgba(58,58,60,0.90);color:var(--ios-accent,#0a84ff)}',
+      'body.dark-mode .dcf-day-add-input{background:rgba(58,58,60,0.70);color:#f2f2f7;border-color:rgba(255,255,255,0.12)}',
+      'body.dark-mode .dcf-day-add-handle{background:rgba(255,255,255,0.22)}'
     ].join('\n');
     document.head.appendChild(modalStyle);
 
@@ -2468,6 +2499,7 @@
     overlay.setAttribute('aria-label', 'Add item');
     overlay.innerHTML = [
       '<div class="dcf-day-add-panel">',
+      '  <div class="dcf-day-add-handle"></div>',
       '  <div class="dcf-day-add-date" id="dcfDayAddDate"></div>',
       '  <div class="dcf-day-add-tabs">',
       '    <button class="dcf-day-add-tab active" data-kind="event">📅 Event</button>',
