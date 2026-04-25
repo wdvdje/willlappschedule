@@ -470,21 +470,20 @@
         slot.dataset.hour = h;
 
         // Inline add-event button (desktop only, shown on hover via CSS)
+        // h is a forEach callback parameter, so it is already properly closed over.
         var addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'dv-add-btn';
         addBtn.title = 'Add event at ' + formatHourLabel(h);
         addBtn.textContent = '+';
-        addBtn.addEventListener('click', (function(hour) {
-          return function(e) {
-            e.stopPropagation();
-            var timeStr    = pad2(hour) + ':00';
-            var endTimeStr = pad2((hour + 1) % 24) + ':00';
-            if (window.appUtils && typeof window.appUtils.openEditModalFill === 'function') {
-              window.appUtils.openEditModalFill({ date: dateStr, startTime: timeStr, endTime: endTimeStr, time: timeStr });
-            }
-          };
-        })(h));
+        addBtn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var timeStr    = pad2(h) + ':00';
+          var endTimeStr = pad2((h + 1) % 24) + ':00';
+          if (window.appUtils && typeof window.appUtils.openEditModalFill === 'function') {
+            window.appUtils.openEditModalFill({ date: dateStr, startTime: timeStr, endTime: endTimeStr, time: timeStr });
+          }
+        });
         slot.appendChild(addBtn);
 
         body.appendChild(slot);
@@ -672,7 +671,11 @@
           nowLine.appendChild(nowLabel);
           body.appendChild(nowLine);
 
-          // Update position and label every minute
+          // Update position and label every minute.
+          // Captured variables (rangeStartMin, totalMinutes, nowLine, nowLabel) remain
+          // valid for the lifetime of this timer because _nowLineTimer is cleared at the
+          // very start of the next renderDailyView call (before any DOM mutation), so
+          // this callback can never fire against a stale/detached element.
           _nowLineTimer = setInterval(function() {
             var n = new Date();
             var nMin = n.getHours() * 60 + n.getMinutes();
