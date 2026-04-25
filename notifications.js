@@ -48,8 +48,21 @@
       tag: payload.tag || ('ts-' + Date.now()),
       icon: payload.icon || '/icon-192.png',
       data: { url: payload.url || 'index.html#calendar' },
-      renotify: false
+      renotify: false,
+      vibrate: [100, 50, 100],
     };
+
+    // Show in-app banner if the app is in the foreground (document is visible)
+    if (typeof window.iosShowBanner === 'function' &&
+        document.visibilityState === 'visible') {
+      window.iosShowBanner(
+        (payload.emoji ? payload.emoji + ' ' : '') + (payload.title || 'Reminder'),
+        payload.body || '',
+        payload.emoji || '📅',
+        payload.url || null
+      );
+    }
+
     try {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg && reg.showNotification) return reg.showNotification(title, options);
