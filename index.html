@@ -70,6 +70,8 @@
   <main>
     <!-- Today page (default home) -->
     <section id="page-today" class="page">
+      <div id="todayLayout">
+      <div id="todayMainCol">
       <div id="welcomeWrapper" style="text-align:center;margin-top:8px;">
         <div id="welcomeText" style="font-size:1rem;color:#222;margin-bottom:6px">Welcome,</div>
       </div>
@@ -154,6 +156,17 @@
       </div>
 
       <div id="reminderBar" aria-live="polite" style="max-width:540px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>
+      </div><!-- end todayMainCol -->
+      <div id="todayAppsCol">
+        <div class="today-apps-col-inner">
+          <div class="today-apps-col-header">
+            <h3 class="today-apps-col-heading">Apps</h3>
+            <button type="button" id="todayOpenAppsBtn" class="today-apps-open-btn">⊞ All Apps</button>
+          </div>
+          <div id="todayPinnedApps" class="today-pinned-apps"></div>
+        </div>
+      </div><!-- end todayAppsCol -->
+      </div><!-- end todayLayout -->
     </section>
 
     <!-- Calendar page -->
@@ -410,36 +423,6 @@
     <section id="page-personal" class="page hidden">
       <h2>👤 Personal</h2>
       <div id="personalGrid" style="margin:0 auto;padding:0 12px;box-sizing:border-box">
-        <div class="personal-top-row">
-          <!-- Budget Widget -->
-          <div id="personalBudgetSection"></div>
-          <!-- Daily Focus / Top 3 Priorities -->
-          <div id="personalFocusSection"></div>
-          <!-- Hydration + Mood promoted alongside Budget/Focus on desktop -->
-          <div id="personalHydrationSection"></div>
-          <div id="personalMoodSection"></div>
-        </div>
-
-        <!-- Sleep: full-width banner between top row and main columns -->
-        <div id="personalSleepBanner">
-          <div id="personalSleepSection"></div>
-        </div>
-
-        <!-- Two-column area: each column flows independently so minimising
-             a widget in one column does NOT leave blank space in the other -->
-        <div id="personalColumns">
-          <div id="personalColLeft">
-            <!-- Meal Tracker — left column (7-col grid benefits from wider layout) -->
-            <div id="personalMealSection"></div>
-            <!-- Gym / Exercise Planner — left column (split panel benefits from wider layout) -->
-            <div id="personalGymSection"></div>
-          </div>
-          <div id="personalColRight">
-            <!-- Routine Checklists — right column (phases layout works at any width) -->
-            <div id="personalRoutineSection"></div>
-          </div>
-        </div>
-
         <!-- Toolbar -->
         <div id="personalToolbar" style="display:flex;justify-content:flex-end;margin-bottom:12px">
           <button id="addPersonalBucketBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Category</button>
@@ -614,38 +597,41 @@
       </div>
     </section>
 
-    <!-- Settings page -->
-    <section id="page-settings" class="page hidden">
-      <h2 style="text-align:center">Settings</h2>
+    <!-- Settings page — content lives in #settingsModal; shown when #settings hash navigated -->
+    <section id="page-settings" class="page hidden"></section>
+  </main>
 
-      <main style="max-width:640px;margin:18px auto;padding:12px;">
+  <!-- ══════════════════════════════════════════════════════
+       Settings Modal — full settings in a bottom-sheet panel
+       ══════════════════════════════════════════════════════ -->
+  <div id="settingsModal" class="settings-modal hidden" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="settings-modal-overlay" id="settingsModalOverlay"></div>
+    <div class="settings-modal-panel">
+      <div class="sheet-handle"></div>
+      <div class="settings-modal-header">
+        <h2 style="margin:0;font-size:1.15rem">⚙️ Settings</h2>
+        <button id="closeSettingsModal" class="settings-modal-close" aria-label="Close settings">✕</button>
+      </div>
+      <div class="settings-modal-body">
         <!-- User Profile -->
         <section id="userProfile" style="margin-top:12px">
           <h3>User Profile</h3>
-
           <label for="userName" style="display:block;font-weight:600;margin-top:8px">Name</label>
           <input id="userName" type="text" placeholder="Your name" />
-
-          <!-- ADDED: profile status indicator -->
           <div id="profileStatus" style="margin-top:6px;color:#666;font-size:0.95rem">Name not set</div>
-
           <label for="userHome" style="display:block;font-weight:600;margin-top:8px">Home address</label>
           <div class="places-suggestions" style="position:relative">
             <input id="userHome" type="text" placeholder="Enter your home address" autocomplete="off" />
             <div id="userHomeList" class="suggestions-list" style="display:none"></div>
           </div>
-
           <div style="display:flex;gap:8px;margin-top:8px">
             <button id="saveProfileBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save profile</button>
             <button id="clearProfileBtn" class="small-btn">Clear</button>
           </div>
-
           <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
         </section>
 
-
-
-        <!-- GitHub Gist sync (no extra account needed – uses existing GitHub login) -->
+        <!-- GitHub Gist sync -->
         <section id="gistSyncSettings" style="margin-top:18px">
           <h3>🔄 Sync Between Devices (GitHub)</h3>
           <p style="color:#555;font-size:0.9rem;margin:4px 0 10px">
@@ -672,7 +658,6 @@
           <div id="gistSyncStatus" style="margin-top:8px;color:#666;font-size:0.9rem">Not configured</div>
           <div style="margin-top:6px;font-size:0.82rem;color:#888">Gist ID: <span id="gistSyncIdDisplay" style="font-family:monospace">(none yet)</span></div>
         </section>
-
 
         <section id="dataBackupSettings" style="margin-top:18px">
           <h3>Data Backup</h3>
@@ -744,11 +729,61 @@
           </p>
           <div id="siriLinksList" style="display:flex;flex-direction:column;gap:8px"></div>
         </section>
-      </main>
-    </section>
-  </main>
+      </div><!-- end settings-modal-body -->
+    </div><!-- end settings-modal-panel -->
+  </div><!-- end settingsModal -->
 
-  <!-- Edit modal used by all pages -->
+  <!-- ══════════════════════════════════════════════════════
+       Apps Modal — icon grid + widget detail panels
+       ══════════════════════════════════════════════════════ -->
+  <div id="appsModal" class="apps-modal hidden" role="dialog" aria-modal="true" aria-label="Apps">
+    <div class="apps-modal-overlay" id="appsModalOverlay"></div>
+    <div class="apps-modal-panel">
+      <div class="sheet-handle"></div>
+      <div class="apps-modal-header">
+        <h2 style="margin:0;font-size:1.15rem">⊞ Apps</h2>
+        <button id="closeAppsModal" class="apps-modal-close" aria-label="Close apps">✕</button>
+      </div>
+
+      <!-- App icon grid (default view) -->
+      <div id="appsIconGrid" class="apps-icon-grid">
+        <button class="app-icon-btn" data-app="budget">    <span class="app-icon-emoji">💰</span><span class="app-icon-label">Budget</span></button>
+        <button class="app-icon-btn" data-app="hydration"> <span class="app-icon-emoji">💧</span><span class="app-icon-label">Hydration</span></button>
+        <button class="app-icon-btn" data-app="mood">      <span class="app-icon-emoji">😊</span><span class="app-icon-label">Mood</span></button>
+        <button class="app-icon-btn" data-app="focus">     <span class="app-icon-emoji">🎯</span><span class="app-icon-label">Focus</span></button>
+        <button class="app-icon-btn" data-app="sleep">     <span class="app-icon-emoji">😴</span><span class="app-icon-label">Sleep</span></button>
+        <button class="app-icon-btn" data-app="meal">      <span class="app-icon-emoji">🥗</span><span class="app-icon-label">Meals</span></button>
+        <button class="app-icon-btn" data-app="gym">       <span class="app-icon-emoji">🏋️</span><span class="app-icon-label">Gym</span></button>
+        <button class="app-icon-btn" data-app="routine">   <span class="app-icon-emoji">🌅</span><span class="app-icon-label">Routine</span></button>
+        <button class="app-icon-btn" data-app="jobs">      <span class="app-icon-emoji">💼</span><span class="app-icon-label">Jobs</span></button>
+      </div>
+
+      <!-- App detail panel (shown when an app icon is tapped) -->
+      <div id="appsDetailPanel" class="hidden">
+        <div class="apps-detail-nav">
+          <button id="appsDetailBack" class="apps-detail-back-btn">← Back</button>
+          <h3 id="appsDetailTitle" class="apps-detail-title"></h3>
+          <label class="apps-pin-label" title="Show this app on the Today page">
+            <input type="checkbox" id="appPinToggle" style="width:auto;margin:0" />
+            <span>Pin to Today</span>
+          </label>
+        </div>
+        <div id="appsDetailContent" class="apps-detail-content">
+          <!-- Widget containers (moved from Personal page; rendered by app.js / desktop-personal.js) -->
+          <div id="personalBudgetSection"    class="app-widget-pane hidden"></div>
+          <div id="personalFocusSection"     class="app-widget-pane hidden"></div>
+          <div id="personalHydrationSection" class="app-widget-pane hidden"></div>
+          <div id="personalMoodSection"      class="app-widget-pane hidden"></div>
+          <div id="personalSleepBanner"      class="app-widget-pane hidden">
+            <div id="personalSleepSection"></div>
+          </div>
+          <div id="personalMealSection"      class="app-widget-pane hidden"></div>
+          <div id="personalGymSection"       class="app-widget-pane hidden"></div>
+          <div id="personalRoutineSection"   class="app-widget-pane hidden"></div>
+        </div>
+      </div>
+    </div><!-- end apps-modal-panel -->
+  </div><!-- end appsModal -->
   <div id="editModal" role="dialog" aria-modal="true" class="hidden">
     <div class="panel">
       <h3 id="editModalHeading">Edit</h3>
@@ -912,18 +947,24 @@
       <div class="sidebar-app-title">📅 TimeScape</div>
       <button id="sidebarCollapseBtn" class="sidebar-collapse-btn" aria-label="Toggle sidebar" title="Toggle sidebar">☰</button>
     </div>
+    <span class="sidebar-section-label">Views</span>
     <a href="#today"     class="sidebar-item" data-view="today">    <span class="sidebar-icon">🏠</span><span class="sidebar-label">Today</span></a>
     <a href="#calendar"  class="sidebar-item" data-view="calendar"> <span class="sidebar-icon">🗓️</span><span class="sidebar-label">Calendar</span></a>
     <a href="#inbox"     class="sidebar-item" data-view="inbox">    <span class="sidebar-icon">📥</span><span class="sidebar-label">Inbox</span></a>
     <div class="sidebar-divider"></div>
+    <span class="sidebar-section-label">Domains</span>
     <a href="#personal"  class="sidebar-item" data-view="personal"> <span class="sidebar-icon">👤</span><span class="sidebar-label">Personal</span></a>
     <a href="#home"      class="sidebar-item" data-view="home">     <span class="sidebar-icon">🏡</span><span class="sidebar-label">Home</span></a>
     <a href="#work"      class="sidebar-item" data-view="work">     <span class="sidebar-icon">💼</span><span class="sidebar-label">Work</span></a>
     <div class="sidebar-divider"></div>
+    <span class="sidebar-section-label">Items</span>
+    <a href="#events"    class="sidebar-item" data-view="events">   <span class="sidebar-icon">📅</span><span class="sidebar-label">Events</span></a>
+    <a href="#reminders" class="sidebar-item" data-view="reminders"><span class="sidebar-icon">🔔</span><span class="sidebar-label">Reminders</span></a>
+    <a href="#tasks"     class="sidebar-item" data-view="tasks">    <span class="sidebar-icon">✅</span><span class="sidebar-label">Tasks</span></a>
     <div class="sidebar-bottom">
-      <a href="#tasks"    class="sidebar-item" data-view="tasks">   <span class="sidebar-icon">✅</span><span class="sidebar-label">Tasks</span></a>
-      <a href="#reminders" class="sidebar-item" data-view="reminders"><span class="sidebar-icon">🔔</span><span class="sidebar-label">Reminders</span></a>
-      <a href="#settings" class="sidebar-item" data-view="settings"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">Settings</span></a>
+      <div class="sidebar-divider"></div>
+      <button type="button" id="sidebarAppsBtn"     class="sidebar-item"><span class="sidebar-icon">⊞</span><span class="sidebar-label">Apps</span></button>
+      <button type="button" id="sidebarSettingsBtn" class="sidebar-item"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">Settings</span></button>
     </div>
   </nav>
 
@@ -1059,11 +1100,20 @@
 
     // SPA navigation helpers
     function showView(view) {
+      // Settings is now a modal — intercept here
+      if (view === 'settings') {
+        var sm = document.getElementById('settingsModal');
+        if (sm) { sm.classList.remove('hidden'); return; }
+      }
       document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
       const el = document.querySelector('#page-' + view);
       if (el) el.classList.remove('hidden');
       // Update active state on tab bar anchor items (excludes #moreTabBtn)
       document.querySelectorAll(_RIBBON_SEL).forEach(a => {
+        a.classList.toggle('active', a.dataset.view === view);
+      });
+      // Update active state on desktop sidebar items
+      document.querySelectorAll('.sidebar-item[data-view]').forEach(a => {
         a.classList.toggle('active', a.dataset.view === view);
       });
       // Mark More button active when a secondary section is shown
@@ -1088,8 +1138,169 @@
       location.href = 'index.html?_=' + Date.now() + '#' + view;
     }
 
+    // ── Apps Modal helpers ───────────────────────────────────────────
+    var _APP_TITLE_MAP = {
+      budget: '💰 Budget', hydration: '💧 Hydration', mood: '😊 Mood',
+      focus: '🎯 Daily Focus', sleep: '😴 Sleep', meal: '🥗 Meal Planner',
+      gym: '🏋️ Gym Planner', routine: '🌅 Daily Routine', jobs: '💼 Jobs'
+    };
+    var _APP_EMOJI_MAP = {
+      budget: '💰', hydration: '💧', mood: '😊', focus: '🎯',
+      sleep: '😴', meal: '🥗', gym: '🏋️', routine: '🌅', jobs: '💼'
+    };
+    var _APP_CONTAINER_MAP = {
+      budget: 'personalBudgetSection', hydration: 'personalHydrationSection',
+      mood: 'personalMoodSection', focus: 'personalFocusSection',
+      sleep: 'personalSleepBanner', meal: 'personalMealSection',
+      gym: 'personalGymSection', routine: 'personalRoutineSection'
+    };
+    var _APP_RENDER_MAP = {
+      budget: 'renderBudgetWidget', hydration: 'renderHydrationTracker',
+      mood: 'renderMoodCheckin', focus: 'renderDailyFocus',
+      sleep: 'renderSleepTracker', meal: 'renderMealTracker',
+      gym: 'renderGymPlanner', routine: 'renderRoutineChecklist'
+    };
+
+    function openAppsModal() {
+      var m = document.getElementById('appsModal');
+      if (!m) return;
+      m.classList.remove('hidden');
+      var grid = document.getElementById('appsIconGrid');
+      var detail = document.getElementById('appsDetailPanel');
+      if (grid) grid.classList.remove('hidden');
+      if (detail) detail.classList.add('hidden');
+    }
+
+    function closeAppsModal() {
+      var m = document.getElementById('appsModal');
+      if (m) m.classList.add('hidden');
+      document.querySelectorAll('.app-widget-pane').forEach(function(el) {
+        el.classList.add('hidden');
+      });
+    }
+
+    function openAppDetail(app) {
+      var grid = document.getElementById('appsIconGrid');
+      var detail = document.getElementById('appsDetailPanel');
+      var titleEl = document.getElementById('appsDetailTitle');
+      if (grid) grid.classList.add('hidden');
+      if (detail) detail.classList.remove('hidden');
+      if (titleEl) titleEl.textContent = _APP_TITLE_MAP[app] || app;
+
+      document.querySelectorAll('.app-widget-pane').forEach(function(el) {
+        el.classList.add('hidden');
+      });
+      var containerId = _APP_CONTAINER_MAP[app];
+      var container = containerId ? document.getElementById(containerId) : null;
+      if (container) container.classList.remove('hidden');
+
+      var renderFn = _APP_RENDER_MAP[app];
+      if (renderFn && typeof window[renderFn] === 'function') {
+        try { window[renderFn](); } catch(e) { /* ignore */ }
+      }
+
+      var pinToggle = document.getElementById('appPinToggle');
+      if (pinToggle) {
+        var pinned = {};
+        try { pinned = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
+        pinToggle.checked = !!pinned[app];
+        pinToggle.dataset.app = app;
+      }
+    }
+
+    function renderTodayPinnedApps() {
+      var col = document.getElementById('todayPinnedApps');
+      if (!col) return;
+      var pinned = {};
+      try { pinned = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
+      var apps = Object.keys(pinned).filter(function(k) { return pinned[k]; });
+      col.innerHTML = '';
+      if (!apps.length) {
+        col.innerHTML = '<p class="today-no-apps">No apps pinned yet.<br><small>Open Apps and pin one to show it here.</small></p>';
+        return;
+      }
+      apps.forEach(function(app) {
+        var card = document.createElement('button');
+        card.className = 'today-pinned-app-card';
+      var emojiMap = _APP_EMOJI_MAP;
+        card.innerHTML = '<span class="today-pinned-app-icon">' + (emojiMap[app] || '⊞') +
+          '</span><span class="today-pinned-app-name">' + (_APP_TITLE_MAP[app] || app) + '</span>';
+        card.addEventListener('click', function() { openAppsModal(); openAppDetail(app); });
+        col.appendChild(card);
+      });
+    }
+
+    function wireSidebarModals() {
+      var appsBtn = document.getElementById('sidebarAppsBtn');
+      if (appsBtn) appsBtn.addEventListener('click', openAppsModal);
+      var todayAppsBtn = document.getElementById('todayOpenAppsBtn');
+      if (todayAppsBtn) todayAppsBtn.addEventListener('click', openAppsModal);
+
+      var settingsBtn = document.getElementById('sidebarSettingsBtn');
+      if (settingsBtn) settingsBtn.addEventListener('click', function() {
+        var sm = document.getElementById('settingsModal');
+        if (sm) sm.classList.remove('hidden');
+      });
+
+      var closeSettings = document.getElementById('closeSettingsModal');
+      if (closeSettings) closeSettings.addEventListener('click', function() {
+        var sm = document.getElementById('settingsModal');
+        if (sm) sm.classList.add('hidden');
+      });
+      var settingsOverlay = document.getElementById('settingsModalOverlay');
+      if (settingsOverlay) settingsOverlay.addEventListener('click', function() {
+        var sm = document.getElementById('settingsModal');
+        if (sm) sm.classList.add('hidden');
+      });
+
+      var closeApps = document.getElementById('closeAppsModal');
+      if (closeApps) closeApps.addEventListener('click', closeAppsModal);
+      var appsOverlay = document.getElementById('appsModalOverlay');
+      if (appsOverlay) appsOverlay.addEventListener('click', closeAppsModal);
+
+      var appsGrid = document.getElementById('appsIconGrid');
+      if (appsGrid) {
+        appsGrid.addEventListener('click', function(e) {
+          var btn = e.target.closest('[data-app]');
+          if (!btn) return;
+          var app = btn.dataset.app;
+          if (app === 'jobs') { closeAppsModal(); navTo('work'); return; }
+          openAppDetail(app);
+        });
+      }
+
+      var backBtn = document.getElementById('appsDetailBack');
+      if (backBtn) backBtn.addEventListener('click', function() {
+        var grid = document.getElementById('appsIconGrid');
+        var detail = document.getElementById('appsDetailPanel');
+        if (grid) grid.classList.remove('hidden');
+        if (detail) detail.classList.add('hidden');
+        document.querySelectorAll('.app-widget-pane').forEach(function(el) { el.classList.add('hidden'); });
+      });
+
+      var pinToggle = document.getElementById('appPinToggle');
+      if (pinToggle) {
+        pinToggle.addEventListener('change', function() {
+          var app = pinToggle.dataset.app;
+          if (!app) return;
+          var p = {};
+          try { p = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
+          if (pinToggle.checked) p[app] = true; else delete p[app];
+          try { localStorage.setItem('pinnedApps', JSON.stringify(p)); } catch(e) {}
+          renderTodayPinnedApps();
+        });
+      }
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        var sm = document.getElementById('settingsModal');
+        if (sm && !sm.classList.contains('hidden')) { sm.classList.add('hidden'); return; }
+        var am = document.getElementById('appsModal');
+        if (am && !am.classList.contains('hidden')) { closeAppsModal(); }
+      });
+    }
+
     function wireRibbon() {
-      // Wire only anchor items that declare a destination view
       document.querySelectorAll(_RIBBON_SEL).forEach(a => {
         a.addEventListener('click', (e) => {
           e.preventDefault();
@@ -1143,11 +1354,13 @@
     Promise.all(viewSrcs.map(loadScript)).catch(() => { /* ignore load errors */ }).then(() => {
       wireRibbon();
       wireHeaderButtons();
+      wireSidebarModals();
       window.addEventListener('hashchange', () => showView(location.hash.replace('#', '') || 'today'));
       // initial view
       const initial = location.hash.replace('#', '') || 'today';
       showView(initial);
       updateHeaderFromProfile();
+      renderTodayPinnedApps();
       // Re-render calendar and day details now that utils.js (expandEvents) is loaded
       try { if (typeof generateCalendar === 'function') generateCalendar(); } catch(_) {}
       try { if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined' && selectedDay) showReminders(selectedDay); } catch(_) {}

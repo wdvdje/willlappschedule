@@ -601,20 +601,20 @@ body.scroll-edge-top-off.scroll-edge-bottom-off main {
 
 /* Two-column master-detail layout for larger iPads and desktop (≥1024px) */
 @media (min-width: 1024px) {
-  #page-today > #selectedDateArea {
+  #todayMainCol #selectedDateArea {
     display: grid;
     grid-template-columns: 1fr 1fr;
     column-gap: 20px;
-    max-width: 1100px !important;
+    max-width: 100% !important;
     align-items: start;
   }
-  #page-today > #selectedDateArea > #dayNavBar {
+  #todayMainCol #selectedDateArea > #dayNavBar {
     grid-column: 1 / -1;
   }
-  #page-today > #selectedDateArea > #dayTopBars {
+  #todayMainCol #selectedDateArea > #dayTopBars {
     grid-column: 1 / -1;
   }
-  #page-today > #selectedDateArea > .dashboard {
+  #todayMainCol #selectedDateArea > .dashboard {
     grid-column: 1 / -1;
   }
 }
@@ -1783,4 +1783,428 @@ main {
     border-color: var(--ios-accent) !important;
     color: var(--ios-accent) !important;
   }
+}
+
+/* ── Sidebar section labels ─────────────────────────────────────── */
+.sidebar-section-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ios-text-3);
+  padding: 10px 12px 3px;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Hide section labels when sidebar is collapsed */
+.desktop-sidebar.collapsed .sidebar-section-label {
+  display: none;
+}
+
+/* ── Today page two-column layout (tablet ≥768px / desktop) ─────── */
+#todayLayout {
+  display: flex;
+  flex-direction: column;
+}
+
+#todayMainCol {
+  flex: 1;
+  min-width: 0;
+}
+
+#todayAppsCol {
+  display: none; /* hidden on mobile */
+}
+
+@media (min-width: 768px) {
+  #todayLayout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    column-gap: 20px;
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 12px;
+    box-sizing: border-box;
+    align-items: start;
+  }
+
+  #todayMainCol {
+    /* stretch to fill left column */
+    min-width: 0;
+  }
+
+  /* Push selectedDateArea max-width to fill the column */
+  #todayMainCol #selectedDateArea,
+  #todayMainCol #quickAddBar,
+  #todayMainCol #welcomeWrapper,
+  #todayMainCol #reminderBar {
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+
+  #todayAppsCol {
+    display: block;
+    position: sticky;
+    top: calc(var(--ios-header-h, 54px) + 12px);
+  }
+}
+
+.today-apps-col-inner {
+  background: var(--ios-glass-card);
+  -webkit-backdrop-filter: var(--ios-glass-blur-sm);
+  backdrop-filter: var(--ios-glass-blur-sm);
+  border: 1px solid var(--ios-border-glass);
+  border-radius: var(--ios-r-md);
+  box-shadow: var(--ios-shadow-sm);
+  padding: 14px 14px 18px;
+  overflow: hidden;
+}
+
+.today-apps-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.today-apps-col-heading {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ios-text);
+}
+
+.today-apps-open-btn {
+  background: var(--ios-accent-bg);
+  color: var(--ios-accent);
+  border: 1px solid transparent;
+  border-radius: var(--ios-r-sm);
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--ios-fast) var(--ios-ease);
+}
+.today-apps-open-btn:hover {
+  background: rgba(0,122,255,0.18);
+}
+
+.today-pinned-apps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.today-no-apps {
+  color: var(--ios-text-3);
+  font-size: 0.85rem;
+  text-align: center;
+  margin: 12px 0;
+  line-height: 1.5;
+}
+
+.today-pinned-app-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--ios-surface);
+  border: 1px solid var(--ios-border);
+  border-radius: var(--ios-r-sm);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  color: var(--ios-text);
+  transition: background var(--ios-fast) var(--ios-ease),
+              transform var(--ios-fast) var(--ios-spring);
+}
+.today-pinned-app-card:hover {
+  background: var(--ios-surface-2);
+}
+.today-pinned-app-card:active {
+  transform: scale(0.97) !important;
+}
+.today-pinned-app-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+.today-pinned-app-name {
+  font-weight: 600;
+  flex: 1;
+}
+
+/* ── Settings Modal ─────────────────────────────────────────────── */
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10010;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.settings-modal.hidden {
+  display: none !important;
+}
+
+.settings-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.40);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.settings-modal-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 680px;
+  max-height: 92vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--ios-glass-vibrant);
+  -webkit-backdrop-filter: var(--ios-glass-blur);
+  backdrop-filter: var(--ios-glass-blur);
+  border: 1px solid var(--ios-border-glass);
+  border-bottom: none;
+  border-radius: var(--ios-r-lg) var(--ios-r-lg) 0 0;
+  box-shadow: var(--ios-shadow-glass);
+  animation: ios-sheet-up var(--ios-slow) var(--ios-spring-soft) both;
+  padding: 0 20px calc(20px + env(safe-area-inset-bottom,0px));
+}
+
+@media (min-width: 768px) {
+  .settings-modal {
+    align-items: center;
+  }
+  .settings-modal-panel {
+    border-radius: var(--ios-r-lg);
+    border: 1px solid var(--ios-border-glass);
+    max-height: 88vh;
+    animation: settings-modal-in var(--ios-slow) var(--ios-spring-soft) both;
+  }
+  @keyframes settings-modal-in {
+    from { transform: scale(0.95) translateY(8px); opacity: 0.6; }
+    to   { transform: scale(1)    translateY(0);   opacity: 1; }
+  }
+}
+
+.settings-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 14px;
+}
+
+.settings-modal-close {
+  background: rgba(120,120,128,0.14);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: var(--ios-text-2);
+  flex-shrink: 0;
+  transition: background var(--ios-fast) var(--ios-ease);
+}
+.settings-modal-close:hover {
+  background: rgba(120,120,128,0.24);
+}
+
+.settings-modal-body section {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--ios-border);
+}
+.settings-modal-body section:last-child {
+  border-bottom: none;
+}
+
+/* ── Apps Modal ─────────────────────────────────────────────────── */
+.apps-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10010;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.apps-modal.hidden {
+  display: none !important;
+}
+
+.apps-modal-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.40);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.apps-modal-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 680px;
+  max-height: 88vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  background: var(--ios-glass-vibrant);
+  -webkit-backdrop-filter: var(--ios-glass-blur);
+  backdrop-filter: var(--ios-glass-blur);
+  border: 1px solid var(--ios-border-glass);
+  border-bottom: none;
+  border-radius: var(--ios-r-lg) var(--ios-r-lg) 0 0;
+  box-shadow: var(--ios-shadow-glass);
+  animation: ios-sheet-up var(--ios-slow) var(--ios-spring-soft) both;
+  padding: 0 20px calc(20px + env(safe-area-inset-bottom,0px));
+}
+
+@media (min-width: 768px) {
+  .apps-modal {
+    align-items: center;
+  }
+  .apps-modal-panel {
+    border-radius: var(--ios-r-lg);
+    border: 1px solid var(--ios-border-glass);
+    max-height: 88vh;
+    animation: settings-modal-in var(--ios-slow) var(--ios-spring-soft) both;
+  }
+}
+
+.apps-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 14px;
+}
+
+.apps-modal-close {
+  background: rgba(120,120,128,0.14);
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: var(--ios-text-2);
+  flex-shrink: 0;
+  transition: background var(--ios-fast) var(--ios-ease);
+}
+.apps-modal-close:hover {
+  background: rgba(120,120,128,0.24);
+}
+
+/* App icon grid */
+.apps-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px 10px;
+  padding: 8px 0 20px;
+}
+
+@media (max-width: 480px) {
+  .apps-icon-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.app-icon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 8px 12px;
+  background: var(--ios-surface);
+  border: 1px solid var(--ios-border);
+  border-radius: var(--ios-r-md);
+  cursor: pointer;
+  transition: background var(--ios-fast) var(--ios-ease),
+              transform var(--ios-fast) var(--ios-spring),
+              box-shadow var(--ios-fast) var(--ios-ease);
+  box-shadow: var(--ios-shadow-sm);
+}
+.app-icon-btn:hover {
+  background: var(--ios-surface-2);
+  box-shadow: var(--ios-shadow-md);
+}
+.app-icon-btn:active {
+  transform: scale(0.92) !important;
+  opacity: 0.78;
+}
+.app-icon-emoji {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.app-icon-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ios-text-2);
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* App detail panel */
+.apps-detail-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.apps-detail-back-btn {
+  background: none;
+  border: none;
+  color: var(--ios-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+
+.apps-detail-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ios-text);
+  flex: 1;
+}
+
+.apps-pin-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: var(--ios-text-3);
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.apps-detail-content {
+  padding-bottom: 12px;
+}
+
+.app-widget-pane {
+  min-height: 60px;
+}
+
+.app-widget-pane.hidden {
+  display: none !important;
 }
