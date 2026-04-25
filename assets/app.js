@@ -1929,6 +1929,13 @@ function _renderWeatherCards(container, section, selDate, selISO){
   if (hasAny){
     container.innerHTML = html;
     section.style.display = '';
+    /* Scroll the week grid so today's card is centred in the visible area */
+    var grid = container.querySelector('.weather-week-grid');
+    var todayCard = grid && grid.querySelector('.wdc-today');
+    if (grid && todayCard) {
+      var scrollTarget = todayCard.offsetLeft - (grid.offsetWidth - todayCard.offsetWidth) / 2;
+      grid.scrollLeft = Math.max(0, scrollTarget);
+    }
   }
 }
 

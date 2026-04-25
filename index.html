@@ -1277,6 +1277,15 @@
       }
     }
 
+    function _scrollWeatherGridToToday(root) {
+      var grid = root && root.querySelector('.weather-week-grid');
+      var todayCard = grid && grid.querySelector('.wdc-today');
+      if (grid && todayCard) {
+        var scrollTarget = todayCard.offsetLeft - (grid.offsetWidth - todayCard.offsetWidth) / 2;
+        grid.scrollLeft = Math.max(0, scrollTarget);
+      }
+    }
+
     function _renderWeatherAppContent(container) {
       // Reuse the existing weather widget section data if available
       var wSection = document.getElementById('weatherWidgetSection');
@@ -1287,6 +1296,7 @@
             '<p style="font-size:0.85rem;color:var(--ios-text-3);margin:0 0 10px">Full forecast — current conditions and weekly outlook.</p>' +
             '<div id="appWeatherFullContent">' + wContent.innerHTML + '</div>' +
           '</div>';
+        _scrollWeatherGridToToday(container);
       } else {
         container.innerHTML =
           '<div class="app-weather-full">' +
@@ -1300,7 +1310,10 @@
             try { window.fetchWeather(); } catch(_) {}
             if (wContent && wContent.innerHTML.trim()) {
               var fw = document.getElementById('appWeatherFullContent');
-              if (fw) fw.innerHTML = wContent.innerHTML;
+              if (fw) {
+                fw.innerHTML = wContent.innerHTML;
+                _scrollWeatherGridToToday(fw);
+              }
             }
           }, 800);
         }
