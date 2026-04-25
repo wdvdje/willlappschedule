@@ -531,7 +531,59 @@
   }
 
   /* ──────────────────────────────────────────────────────────
-     13. Wire everything up after DOM is ready
+     13. Search island button — opens global search modal
+     ────────────────────────────────────────────────────────── */
+  function _initSearchIsland() {
+    var btn = document.getElementById('tabSearchIslandBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', function () {
+      haptics.light();
+      if (typeof window.openSearch === 'function') {
+        window.openSearch();
+      } else {
+        // Fallback: show the modal directly if app.js hasn't loaded yet
+        var modal = document.getElementById('searchModal');
+        var inp   = document.getElementById('searchInput');
+        if (modal) { modal.style.display = 'flex'; }
+        if (inp)   { inp.value = ''; inp.focus(); }
+      }
+    });
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     14. Scroll edge effects — toggle body classes based on
+         scroll position so the CSS mask fades work correctly.
+         When at the very top, remove top fade (nothing above).
+         When at the very bottom, remove bottom fade (nothing below).
+     ────────────────────────────────────────────────────────── */
+  function _initScrollEdgeEffects() {
+    var THRESHOLD = 4; // px tolerance
+
+    function _updateEdges() {
+      var scrollEl = document.scrollingElement || document.documentElement;
+      var atTop    = scrollEl.scrollTop <= THRESHOLD;
+      var atBottom = scrollEl.scrollTop + scrollEl.clientHeight >= scrollEl.scrollHeight - THRESHOLD;
+
+      document.body.classList.toggle('scroll-edge-top-off', atTop);
+      document.body.classList.toggle('scroll-edge-bottom-off', atBottom);
+    }
+
+    // Run immediately and on scroll
+    _updateEdges();
+    window.addEventListener('scroll', _updateEdges, { passive: true });
+
+    // Re-check when pages switch (content height changes)
+    window.addEventListener('hashchange', function () {
+      requestAnimationFrame(_updateEdges);
+    });
+    window.addEventListener('app:data:updated', function () {
+      requestAnimationFrame(_updateEdges);
+    });
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     15. Wire everything up after DOM is ready
      ────────────────────────────────────────────────────────── */
   function _init() {
     _initPageTransitions();
@@ -542,6 +594,8 @@
     _initSwipeBack();
     _initPushPrompt();
     _initOrientationHandling();
+    _initSearchIsland();
+    _initScrollEdgeEffects();
   }
 
   if (document.readyState === 'loading') {

@@ -845,13 +845,13 @@
   </div>
 
   <!-- Undo toast -->
-  <div id="undoToast" style="position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 16px;border-radius:24px;display:flex;gap:12px;align-items:center;z-index:9998;font-size:0.88rem;box-shadow:0 4px 20px rgba(0,0,0,0.25);opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap">
+  <div id="undoToast" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 16px;border-radius:24px;display:flex;gap:12px;align-items:center;z-index:9998;font-size:0.88rem;box-shadow:0 4px 20px rgba(0,0,0,0.25);opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap">
     <span id="undoMessage">Item deleted.</span>
     <button id="undoBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:12px;padding:4px 10px;cursor:pointer;font-size:0.82rem">Undo</button>
   </div>
 
   <!-- Keyboard shortcuts panel -->
-  <div id="shortcutHints" style="display:none;position:fixed;bottom:76px;right:16px;background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:9997;font-size:0.83rem;max-width:240px;text-align:left">
+  <div id="shortcutHints" style="display:none;position:fixed;bottom:90px;right:16px;background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:9997;font-size:0.83rem;max-width:240px;text-align:left">
     <b style="display:block;margin-bottom:8px">Keyboard shortcuts</b>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center">
       <kbd>N</kbd><span>Quick add</span>
@@ -926,14 +926,18 @@
   })();
   </script>
 
-  <!-- bottom ribbon navigation -->
-  <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-    <a href="#personal" class="r-item" data-view="personal"><span>👤</span><span class="r-label">Personal</span></a>
-    <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
-    <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
-    <a href="#home" class="r-item" data-view="home"><span>🏡</span><span class="r-label">Home</span></a>
-    <a href="#work" class="r-item" data-view="work"><span>💼</span><span class="r-label">Work</span></a>
-  </nav>
+  <!-- bottom ribbon navigation — iOS 26 floating pill tab bar + search island -->
+  <div class="tab-bar-wrapper" role="none">
+    <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
+      <a href="#personal" class="r-item" data-view="personal"><span>👤</span><span class="r-label">Personal</span></a>
+      <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+      <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
+      <a href="#home" class="r-item" data-view="home"><span>🏡</span><span class="r-label">Home</span></a>
+      <a href="#work" class="r-item" data-view="work"><span>💼</span><span class="r-label">Work</span></a>
+    </nav>
+    <!-- Search island — separate pill to the right of the tab bar -->
+    <button type="button" class="tab-search-island" id="tabSearchIslandBtn" aria-label="Search" title="Search (Ctrl+K)">🔍</button>
+  </div>
 
   <!-- Ensure ribbon links always target a cache-busted index.html, but avoid full reload when already on index -->
   <script>

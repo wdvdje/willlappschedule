@@ -132,22 +132,47 @@ header .header-btn:active {
   opacity: 0.75 !important;
 }
 
-/* ── 5. Glass bottom tab bar + iOS-style pill indicator ─────────── */
+/* ── 5. iOS 26 Floating pill tab bar + Search island ────────────── */
+
+/*
+ * iOS 26 design: tab bar lifts off the screen edge into an inset,
+ * pill-shaped "floating" container.  The search button lives as a
+ * separate "island" to the right, visually distinct from the tabs.
+ */
 .bottom-ribbon {
+  /* Lift bar off the bottom edge — inset from all sides */
+  left: 12px !important;
+  right: 12px !important;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+  height: auto !important;
+
+  /* Pill container */
+  border-radius: var(--ios-r-xl) !important;
+  border-top: none !important;
+
+  /* Liquid Glass */
   background: var(--ios-glass) !important;
   -webkit-backdrop-filter: var(--ios-glass-blur) !important;
   backdrop-filter: var(--ios-glass-blur) !important;
-  border-top: 1px solid var(--ios-border-glass) !important;
-  box-shadow: 0 -1px 0 var(--ios-border), 0 -4px 16px rgba(0,0,0,0.06) !important;
-  padding: 4px 10px !important;
-  gap: 0 !important;
+  border: 1px solid var(--ios-border-glass) !important;
+  box-shadow: var(--ios-shadow-glass) !important;
+
+  padding: 6px 8px !important;
+  gap: 2px !important;
+
+  /* Smooth entrance / resize */
+  transition: left var(--ios-normal) var(--ios-spring-soft),
+              right var(--ios-normal) var(--ios-spring-soft),
+              bottom var(--ios-normal) var(--ios-spring-soft),
+              opacity var(--ios-fast) var(--ios-ease) !important;
 }
 
+/* Tabs inside the pill */
 .bottom-ribbon .r-item {
   border: none !important;
-  border-radius: var(--ios-r-sm) !important;
+  border-radius: var(--ios-r-lg) !important;
   color: var(--ios-text-3) !important;
-  padding: 6px 4px !important;
+  padding: 7px 8px !important;
   transition: background var(--ios-fast) var(--ios-ease),
               color var(--ios-fast) var(--ios-ease),
               transform var(--ios-fast) var(--ios-spring) !important;
@@ -174,6 +199,70 @@ header .header-btn:active {
 .bottom-ribbon .r-item:active {
   transform: scale(0.88) !important;
   opacity: 0.70 !important;
+}
+
+/* ── Search island — separate pill to the right ─────────────────── */
+/*
+ * The search island sits to the right of the tab pill, sharing the
+ * same visual row but as a distinct floating element.
+ */
+.tab-bar-wrapper {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  pointer-events: none; /* allow touches to pass through the gap */
+}
+
+/* Re-position the ribbon inside the wrapper */
+.tab-bar-wrapper .bottom-ribbon {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  flex: 1;
+  pointer-events: auto;
+}
+
+/* Search island pill */
+.tab-search-island {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--ios-glass);
+  -webkit-backdrop-filter: var(--ios-glass-blur);
+  backdrop-filter: var(--ios-glass-blur);
+  border: 1px solid var(--ios-border-glass);
+  box-shadow: var(--ios-shadow-glass);
+  color: var(--ios-accent);
+  font-size: 1.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--ios-fast) var(--ios-ease),
+              transform var(--ios-fast) var(--ios-spring),
+              opacity var(--ios-fast) var(--ios-ease);
+  user-select: none;
+  -webkit-user-select: none;
+  /* Align with the tab bar height */
+  align-self: center;
+  margin-bottom: 0;
+}
+.tab-search-island:hover {
+  background: var(--ios-glass-vibrant);
+}
+.tab-search-island:active {
+  transform: scale(0.88);
+  opacity: 0.72;
 }
 
 /* ── 6. Bottom-sheet modals ─────────────────────────────────────── */
@@ -294,9 +383,109 @@ header .header-btn:active {
   animation: ios-sheet-up var(--ios-slow) var(--ios-spring-soft) both;
 }
 
-/* ── 7. Desktop / iPad sidebar (macOS app panel) ─────────────────── */
+/* ── 7. iOS 26 Scroll Edge Effects ───────────────────────────────── */
+/*
+ * Content fades/blurs as it approaches the top and bottom edges,
+ * ensuring the status bar (top) and floating tab bar (bottom)
+ * remain legible over any scrolled content.
+ *
+ * We use a CSS mask on <main> that fades out the first and last
+ * ~48 px of content.  JS (ios-native.js) adds/removes the
+ * .scroll-edge-top / .scroll-edge-bottom body classes to enable
+ * the effect only when there is content to hide in that direction.
+ */
+
+/* Default: both edges have the fade mask */
+main {
+  /* Webkit mask for content fade at edges — scroll-edge effect */
+  -webkit-mask-image:
+    linear-gradient(to bottom,
+      transparent 0px,
+      black 52px,
+      black calc(100% - 52px),
+      transparent 100%);
+  mask-image:
+    linear-gradient(to bottom,
+      transparent 0px,
+      black 52px,
+      black calc(100% - 52px),
+      transparent 100%);
+  /* Animate the mask transitions for smooth fade in/out */
+  transition: -webkit-mask-image var(--ios-fast) var(--ios-ease),
+              mask-image var(--ios-fast) var(--ios-ease);
+}
+
+/* At top edge — no fade at top (no content hidden above) */
+body.scroll-edge-top-off main {
+  -webkit-mask-image:
+    linear-gradient(to bottom,
+      black 0px,
+      black calc(100% - 52px),
+      transparent 100%);
+  mask-image:
+    linear-gradient(to bottom,
+      black 0px,
+      black calc(100% - 52px),
+      transparent 100%);
+}
+
+/* At bottom edge — no fade at bottom (no content hidden below) */
+body.scroll-edge-bottom-off main {
+  -webkit-mask-image:
+    linear-gradient(to bottom,
+      transparent 0px,
+      black 52px,
+      black 100%);
+  mask-image:
+    linear-gradient(to bottom,
+      transparent 0px,
+      black 52px,
+      black 100%);
+}
+
+/* Both edges off (short content that doesn't scroll) */
+body.scroll-edge-top-off.scroll-edge-bottom-off main {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Also apply to dedicated scroll containers inside pages */
+.daily-view-timeline,
+#searchResults {
+  -webkit-mask-image:
+    linear-gradient(to bottom,
+      transparent 0px,
+      black 32px,
+      black calc(100% - 32px),
+      transparent 100%);
+  mask-image:
+    linear-gradient(to bottom,
+      transparent 0px,
+      black 32px,
+      black calc(100% - 32px),
+      transparent 100%);
+}
+
+/* ── 7b. Adaptive sidebar (iPad/Mac) — graceful tab bar → sidebar ── */
+/*
+ * On larger screens the floating tab bar slides off-screen and the
+ * sidebar slides in from the left.  The .tab-bar-wrapper fades out
+ * and the .desktop-sidebar fades/slides in for a seamless transition.
+ */
 .desktop-sidebar {
   display: none;
+  /* Slide-in from left on appearance */
+  transform: translateX(0);
+  opacity: 1;
+  transition: width var(--ios-normal) var(--ios-spring-soft),
+              transform var(--ios-normal) var(--ios-spring-soft),
+              opacity var(--ios-normal) var(--ios-ease);
+}
+
+/* Tab bar wrapper fades out on wider viewports */
+.tab-bar-wrapper {
+  transition: opacity var(--ios-normal) var(--ios-ease),
+              transform var(--ios-normal) var(--ios-spring-soft);
 }
 
 @media (min-width: 768px) {
@@ -318,6 +507,14 @@ header .header-btn:active {
     gap: 2px;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* Animate sidebar entrance from slightly off-left */
+    animation: ios-sidebar-in var(--ios-slow) var(--ios-spring-soft) both;
+  }
+
+  /* Sidebar entrance animation */
+  @keyframes ios-sidebar-in {
+    from { transform: translateX(-24px); opacity: 0.5; }
+    to   { transform: translateX(0);     opacity: 1; }
   }
 
   /* Push page content right to clear sidebar */
@@ -339,7 +536,8 @@ header .header-btn:active {
     top: 0 !important;
   }
 
-  /* Hide mobile bottom ribbon */
+  /* Hide mobile tab bar + wrapper; sidebar takes over navigation */
+  .tab-bar-wrapper,
   .bottom-ribbon {
     display: none !important;
   }
@@ -350,6 +548,17 @@ header .header-btn:active {
   }
   main {
     padding-bottom: calc(20px + env(safe-area-inset-bottom,0px)) !important;
+    /* Remove bottom edge mask — tab bar is gone */
+    -webkit-mask-image:
+      linear-gradient(to bottom,
+        transparent 0px,
+        black 52px,
+        black 100%);
+    mask-image:
+      linear-gradient(to bottom,
+        transparent 0px,
+        black 52px,
+        black 100%);
   }
 
   /* Header position fix for sticky inside offset context */

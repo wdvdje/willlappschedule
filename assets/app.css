@@ -120,7 +120,8 @@ input[type="text"],input[type="date"],input[type="time"],select{padding:8px;bord
 .bottom-ribbon .r-item.active { background:linear-gradient(0deg, rgba(74,144,226,0.10), transparent); color:#4a90e2; border-color:#4a90e2; }
 
 /* mobile adjustments so page content won't be hidden behind ribbon */
-body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
+/* iOS 26: floating tab bar is inset — extra padding covers bar + gap above safe area */
+body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
 
 /* overlay input (mobile): small label positioned over date/time inputs */
 .overlay-input{ position:relative; display:block; }
@@ -502,7 +503,7 @@ kbd { display:inline-block; background:#f0f0f0; border:1px solid #ccc; border-ra
 
 /* ===== Desktop layout (>900px) ===== */
 @media (min-width: 901px) {
-  body { padding-bottom: calc(80px + env(safe-area-inset-bottom, 0)); }
+  body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
   .page { max-width: none; }
   /* Calendar page: expand wider than other pages, near full viewport width */
   #page-calendar { max-width: none; margin-left: 8px; margin-right: 8px; padding: 0 8px; overflow-x: hidden; transition: max-width var(--ios-normal) var(--ios-ease); }
@@ -1171,7 +1172,7 @@ body.dark-mode .cal-add-type-btn:hover { border-color: #4a90e2; background: #263
 /* ── Styles previously inlined in index.html ─────────── */
 header #appHeaderTitle { flex:1; text-align:center; }
 
-main{padding-bottom:calc(92px + env(safe-area-inset-bottom, 0px));}
+main{padding-bottom:calc(100px + env(safe-area-inset-bottom, 0px));}
 
 .hidden{display:none}
 
