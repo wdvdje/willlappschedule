@@ -969,6 +969,7 @@
         <a href="#work"     class="more-sheet-item" data-view="work">    <span class="more-sheet-icon">💼</span><span class="more-sheet-label">Work</span></a>
         <a href="#inbox"    class="more-sheet-item" data-view="inbox">   <span class="more-sheet-icon">📥</span><span class="more-sheet-label">Inbox</span></a>
         <a href="#events"   class="more-sheet-item" data-view="events">  <span class="more-sheet-icon">📅</span><span class="more-sheet-label">Events</span></a>
+        <button type="button" id="moreSheetAppsBtn" class="more-sheet-item" aria-label="Open Apps"><span class="more-sheet-icon">⊞</span><span class="more-sheet-label">Apps</span></button>
         <a href="#settings" class="more-sheet-item" data-view="settings"><span class="more-sheet-icon">⚙️</span><span class="more-sheet-label">Settings</span></a>
       </div>
     </div>
@@ -1358,7 +1359,7 @@
       var apps = Object.keys(pinned).filter(function(k) { return pinned[k]; });
       col.innerHTML = '';
       if (!apps.length) {
-        col.innerHTML = '<p class="today-no-apps">No apps pinned yet.<br><small>Open ⊞ Apps from the sidebar and pin one.</small></p>';
+        col.innerHTML = '<p class="today-no-apps">No apps pinned yet.<br><small><button id="todayOpenAppsBtn" class="today-open-apps-link">⊞ Open Apps</button> to pin one.</small></p>';
         return;
       }
       apps.forEach(function(app) {
@@ -1374,8 +1375,41 @@
     function wireSidebarModals() {
       var appsBtn = document.getElementById('sidebarAppsBtn');
       if (appsBtn) appsBtn.addEventListener('click', openAppsModal);
-      var todayAppsBtn = document.getElementById('todayOpenAppsBtn');
-      if (todayAppsBtn) todayAppsBtn.addEventListener('click', openAppsModal);
+
+      // More sheet (mobile) Apps button — close sheet then open modal
+      var moreSheetAppsBtn = document.getElementById('moreSheetAppsBtn');
+      if (moreSheetAppsBtn) {
+        moreSheetAppsBtn.addEventListener('click', function() {
+          var sheet = document.getElementById('moreSheet');
+          var moreTabBtn = document.getElementById('moreTabBtn');
+          if (sheet && !sheet.classList.contains('hidden')) {
+            var panel = sheet.querySelector('.more-sheet-panel');
+            if (panel) {
+              panel.style.transition = 'transform 0.28s cubic-bezier(0.22,1,0.36,1), opacity 0.22s ease';
+              panel.style.transform  = 'translateY(100%) scale(0.98)';
+              panel.style.opacity    = '0.6';
+              setTimeout(function() {
+                panel.style.transition = '';
+                panel.style.transform  = '';
+                panel.style.opacity    = '';
+                sheet.classList.add('hidden');
+              }, 280);
+            } else {
+              sheet.classList.add('hidden');
+            }
+            if (moreTabBtn) moreTabBtn.setAttribute('aria-expanded', 'false');
+          }
+          // Small delay so the sheet close animation has started before the modal opens
+          setTimeout(openAppsModal, 60);
+        });
+      }
+
+      // Today page "Open Apps" button (dynamically rendered, use delegation)
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('#todayOpenAppsBtn')) {
+          openAppsModal();
+        }
+      });
 
       var settingsBtn = document.getElementById('sidebarSettingsBtn');
       if (settingsBtn) settingsBtn.addEventListener('click', function() {
