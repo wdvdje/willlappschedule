@@ -10701,6 +10701,17 @@ function getJournalFolders() { return safeParseStorage('journalFolders', []); }
 function setJournalFolders(v) { try { localStorage.setItem('journalFolders', JSON.stringify(v)); } catch(_) {} }
 function generateJournalId() { return 'j:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
 
+/* Safe HTML-to-plain-text using a temporary DOM element (avoids regex-based tag stripping). */
+function _jvStripHtml(html) {
+  try {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+  } catch(_) {
+    return (html || '').replace(/[\s\S]*?(?=<|$)/g, '').trim();
+  }
+}
+
 /* ── Streak counter ── */
 function calcJournalStreak() {
   var entries = getJournalEntries();
@@ -10733,7 +10744,7 @@ function renderTodayJournalPreview() {
   el.innerHTML = recent.map(function(e) {
     var d = new Date(e.createdAt || Date.now());
     var dateStr = monthNames[d.getMonth()].slice(0, 3) + ' ' + d.getDate();
-    var preview = e.title || (e.body || '').replace(/<[^>]+>/g, '').slice(0, 40) || 'Untitled';
+    var preview = e.title || _jvStripHtml(e.body || '').slice(0, 40) || 'Untitled';
     return '<div style="font-size:0.82rem;padding:3px 0;border-bottom:1px solid var(--ios-border,#f0f0f0);overflow:hidden;white-space:nowrap;text-overflow:ellipsis">' +
       '<span style="color:var(--ios-text-3,#999);margin-right:5px">' + escapeHTML(dateStr) + '</span>' +
       (e.mood ? e.mood + ' ' : '') +
@@ -10784,7 +10795,7 @@ function renderJournalWidget() {
         var d = new Date(e.createdAt || Date.now());
         var dateStr = monthNames[d.getMonth()].slice(0, 3) + ' ' + pad2(d.getDate());
         var folder = folders.find(function(f){ return f.id === e.folderId; });
-        var bodyText = (e.body || '').replace(/<[^>]+>/g, '').trim();
+        var bodyText = _jvStripHtml(e.body || '').trim();
         var preview = e.title || bodyText.slice(0, 50) || 'Untitled';
         var row = document.createElement('div');
         row.className = 'jw-recent-row';
@@ -10831,7 +10842,7 @@ function renderJournalWidget() {
       allEntries.unshift({
         id: generateJournalId(),
         title: title,
-        body: bodyText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'),
+        body: escapeHTML(bodyText).replace(/\n/g, '<br>'),
         folderId: null,
         tags: [],
         mood: _selectedMood,
@@ -11051,7 +11062,7 @@ function renderJournalAppFull(container) {
     var q = _jState.search.toLowerCase().trim();
     if (q) {
       filtered = filtered.filter(function(e) {
-        var bodyPlain = (e.body || '').replace(/<[^>]+>/g, '').toLowerCase();
+        var bodyPlain = _jvStripHtml(e.body || '').toLowerCase();
         return (e.title || '').toLowerCase().indexOf(q) !== -1 || bodyPlain.indexOf(q) !== -1;
       });
     }
@@ -11083,7 +11094,7 @@ function renderJournalAppFull(container) {
         var d = new Date(e.createdAt || Date.now());
         var dateStr = monthNames[d.getMonth()].slice(0,3) + ' ' + pad2(d.getDate()) + ', ' + d.getFullYear();
         var folder  = folders.find(function(f){ return f.id === e.folderId; });
-        var bodyText = (e.body || '').replace(/<[^>]+>/g,'').trim();
+        var bodyText = _jvStripHtml(e.body || '').trim();
         var wc = bodyText ? bodyText.split(/\s+/).filter(Boolean).length : 0;
 
         var row = document.createElement('div');
@@ -11183,8 +11194,9 @@ function renderJournalAppFull(container) {
         var ed = editorPanel.querySelector('.jv-editor-body');
         if (!ed) return;
         ed.focus();
-        if (def.cmd === 'h1' || def.cmd === 'h2' || def.cmd === 'h3') {
-          document.execCommand('formatBlock', false, '<' + def.cmd + '>');
+        var _headingTags = { h1: '<h1>', h2: '<h2>', h3: '<h3>' };
+        if (_headingTags[def.cmd]) {
+          document.execCommand('formatBlock', false, _headingTags[def.cmd]);
         } else if (def.cmd === 'checklist') {
           document.execCommand('insertHTML', false,
             '<div><label><input type="checkbox"> <span>&#8203;</span></label></div>');
@@ -11219,8 +11231,8 @@ function renderJournalAppFull(container) {
     exportBtn.addEventListener('click', function() {
       var ed = editorPanel.querySelector('.jv-editor-body');
       var titleEl = editorPanel.querySelector('.jv-title-input');
-      var text = ((titleEl ? titleEl.value : '') ? (titleEl.value + '\n\n') : '') +
-                 (ed ? (ed.innerText || '') : '');
+      var titleVal = titleEl ? titleEl.value.trim() : '';
+      var text = (titleVal ? titleVal + '\n\n' : '') + (ed ? (ed.innerText || '') : '');
       try {
         navigator.clipboard.writeText(text).then(function() {
           exportBtn.innerHTML = '✅';
