@@ -808,6 +808,18 @@
           </p>
           <div id="siriLinksList" style="display:flex;flex-direction:column;gap:8px"></div>
         </section>
+
+        <!-- Theme Accent Color -->
+        <section id="themeColorSection" style="margin-top:18px">
+          <h3>🎨 Theme Accent Color</h3>
+          <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Choose the accent color used across all apps and widgets.</p>
+          <div class="theme-color-swatch-grid" id="themeColorSwatches"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
+            <label style="font-weight:600;font-size:0.9rem">Custom:</label>
+            <input type="color" id="themeColorCustomPicker" style="width:44px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc"/>
+            <button id="themeColorCustomApplyBtn" class="small-btn" style="background:#4a90e2;color:#fff">Apply</button>
+          </div>
+        </section>
       </div><!-- end settings-modal-body -->
     </div><!-- end settings-modal-panel -->
   </div><!-- end settingsModal -->
@@ -1281,6 +1293,13 @@
       var detail = document.getElementById('appsDetailPanel');
       if (grid) grid.classList.remove('hidden');
       if (detail) detail.classList.add('hidden');
+      // Wire drag-to-reorder if not already wired
+      if (grid && !grid._dndWired) {
+        setTimeout(function() {
+          var fn = window._wireAppsGridDnd;
+          if (typeof fn === 'function') fn();
+        }, 0);
+      }
     }
 
     function closeAppsModal() {
@@ -1412,18 +1431,18 @@
         _renderWeatherAppContent(content);
       } else if (app === 'jobs') {
         _renderJobsAppContent(content);
-      } else if (app === 'sleep' || app === 'gym') {
-        // Sleep and gym medium view: use the full-view render functions directly
-        // so content is always visible (their widget-pane approach shows nothing).
-        var medFn = _APP_FULL_RENDER_MAP[app];
-        if (medFn && typeof window[medFn] === 'function') {
-          try { window[medFn](content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading app.</p>'; }
+      } else if (app === 'sleep') {
+        // Sleep medium view: use dedicated compact view
+        if (typeof window.renderSleepAppMedium === 'function') {
+          try { window.renderSleepAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Sleep.</p>'; }
+        }
+      } else if (app === 'gym') {
+        // Gym medium view: use the full-view render function directly
+        var gymMedFn = _APP_FULL_RENDER_MAP['gym'];
+        if (gymMedFn && typeof window[gymMedFn] === 'function') {
+          try { window[gymMedFn](content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Gym.</p>'; }
         }
       } else if (app === 'chores') {
-        if (typeof window.renderChoresAppMedium === 'function') {
-          try { window.renderChoresAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Chores.</p>'; }
-        }
-      } else if (app === 'groceries') {
         if (typeof window.renderGroceriesAppMedium === 'function') {
           try { window.renderGroceriesAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Groceries.</p>'; }
         }
@@ -1751,6 +1770,129 @@
         var am = document.getElementById('appsModal');
         if (am && !am.classList.contains('hidden')) { closeAppsModal(); }
       });
+
+      /* ── Theme Accent Color ── */
+      var _THEME_PRESETS = [
+        { color: '#4a90e2', label: 'Blue (default)' },
+        { color: '#5856d6', label: 'Indigo' },
+        { color: '#34aadc', label: 'Sky Blue' },
+        { color: '#27ae60', label: 'Green' },
+        { color: '#2ecc71', label: 'Mint' },
+        { color: '#e74c3c', label: 'Red' },
+        { color: '#ff6b35', label: 'Orange' },
+        { color: '#f39c12', label: 'Yellow' },
+        { color: '#9b59b6', label: 'Purple' },
+        { color: '#e91e63', label: 'Pink' },
+        { color: '#00bcd4', label: 'Cyan' },
+        { color: '#795548', label: 'Brown' }
+      ];
+      function _applyThemeColor(color) {
+        document.documentElement.style.setProperty('--ios-accent', color);
+        try { localStorage.setItem('themeAccentColor', color); } catch(e) {}
+      }
+      function _initThemeColor() {
+        var saved = localStorage.getItem('themeAccentColor');
+        if (saved) _applyThemeColor(saved);
+      }
+      _initThemeColor();
+      var swatchGrid = document.getElementById('themeColorSwatches');
+      if (swatchGrid) {
+        var savedColor = localStorage.getItem('themeAccentColor') || '#4a90e2';
+        _THEME_PRESETS.forEach(function(p) {
+          var sw = document.createElement('button');
+          sw.className = 'theme-color-swatch' + (savedColor.toLowerCase() === p.color.toLowerCase() ? ' active' : '');
+          sw.style.background = p.color;
+          sw.title = p.label;
+          sw.setAttribute('aria-label', p.label);
+          sw.addEventListener('click', function() {
+            swatchGrid.querySelectorAll('.theme-color-swatch').forEach(function(s) { s.classList.remove('active'); });
+            sw.classList.add('active');
+            _applyThemeColor(p.color);
+            var customPicker = document.getElementById('themeColorCustomPicker');
+            if (customPicker) customPicker.value = p.color;
+          });
+          swatchGrid.appendChild(sw);
+        });
+      }
+      var customPicker = document.getElementById('themeColorCustomPicker');
+      var customApplyBtn = document.getElementById('themeColorCustomApplyBtn');
+      if (customPicker) {
+        var savedC = localStorage.getItem('themeAccentColor') || '#4a90e2';
+        customPicker.value = savedC;
+      }
+      if (customApplyBtn) {
+        customApplyBtn.addEventListener('click', function() {
+          var color = customPicker ? customPicker.value : '';
+          if (!color) return;
+          if (swatchGrid) swatchGrid.querySelectorAll('.theme-color-swatch').forEach(function(s) { s.classList.remove('active'); });
+          _applyThemeColor(color);
+        });
+      }
+
+      /* ── Apps grid drag-to-reorder ── */
+      function _getAppsOrder() {
+        try { var o = JSON.parse(localStorage.getItem('appsGridOrder') || 'null'); if (Array.isArray(o)) return o; } catch(e) {}
+        return null;
+      }
+      function _saveAppsOrder(order) {
+        try { localStorage.setItem('appsGridOrder', JSON.stringify(order)); } catch(e) {}
+      }
+      function _applyAppsOrder() {
+        var order = _getAppsOrder();
+        if (!order) return;
+        var grid = document.getElementById('appsIconGrid');
+        if (!grid) return;
+        order.forEach(function(app) {
+          var btn = grid.querySelector('[data-app="' + app + '"]');
+          if (btn) grid.appendChild(btn);
+        });
+      }
+      _applyAppsOrder();
+      function _wireAppsGridDnd() {
+        var grid = document.getElementById('appsIconGrid');
+        if (!grid || grid._dndWired) return;
+        grid._dndWired = true;
+        var _dragSrc = null;
+        grid.querySelectorAll('.app-icon-btn').forEach(function(btn) {
+          btn.setAttribute('draggable', 'true');
+          btn.addEventListener('dragstart', function(e) {
+            _dragSrc = btn;
+            btn.classList.add('app-icon-btn--dragging');
+            e.dataTransfer.effectAllowed = 'move';
+          });
+          btn.addEventListener('dragend', function() {
+            btn.classList.remove('app-icon-btn--dragging');
+            grid.querySelectorAll('.app-icon-btn--over').forEach(function(b) { b.classList.remove('app-icon-btn--over'); });
+            // Save new order
+            var newOrder = Array.from(grid.querySelectorAll('.app-icon-btn[data-app]')).map(function(b) { return b.dataset.app; });
+            _saveAppsOrder(newOrder);
+          });
+          btn.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (btn !== _dragSrc) {
+              grid.querySelectorAll('.app-icon-btn--over').forEach(function(b) { b.classList.remove('app-icon-btn--over'); });
+              btn.classList.add('app-icon-btn--over');
+            }
+          });
+          btn.addEventListener('drop', function(e) {
+            e.preventDefault();
+            if (_dragSrc && _dragSrc !== btn) {
+              var btns = Array.from(grid.querySelectorAll('.app-icon-btn'));
+              var srcIdx = btns.indexOf(_dragSrc);
+              var tgtIdx = btns.indexOf(btn);
+              if (srcIdx < tgtIdx) {
+                grid.insertBefore(_dragSrc, btn.nextSibling);
+              } else {
+                grid.insertBefore(_dragSrc, btn);
+              }
+            }
+            btn.classList.remove('app-icon-btn--over');
+          });
+        });
+      }
+      _wireAppsGridDnd();
+      window._wireAppsGridDnd = _wireAppsGridDnd;
     }
 
     function wireRibbon() {

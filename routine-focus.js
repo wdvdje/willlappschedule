@@ -528,7 +528,7 @@
     });
 
     if (!_phases.length) {
-      alert('No routine phases scheduled for today. Set up your routine in the Personal page.');
+      alert('No routine phases scheduled for today. Add phases in the Routine app (tap ＋ Add Phase) and set up your schedule.');
       return;
     }
 
@@ -569,7 +569,7 @@
   var STYLES = [
     /* Backdrop — dimmed scrim so app is visibly behind the sheet */
     '#routineFocusBackdrop {',
-    '  position: fixed; inset: 0; z-index: 9999;',
+    '  position: fixed; inset: 0; z-index: 10030;',
     '  background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);',
     '  animation: rfBackdropIn 0.25s ease forwards;',
     '}',
@@ -579,7 +579,7 @@
     '}',
     /* Sheet — slides up from bottom, leaving rounded top corners */
     '#routineFocusOverlay {',
-    '  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10000;',
+    '  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10031;',
     '  max-height: 92vh;',
     '  background: linear-gradient(160deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);',
     '  color: #fff; display: flex; flex-direction: column;',

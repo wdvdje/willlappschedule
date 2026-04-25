@@ -9717,6 +9717,105 @@ function renderSleepAppFull(container) {
   });
 }
 
+/* ── Sleep App — Medium View ────────────────────────────────────────── */
+function renderSleepAppMedium(container) {
+  container.innerHTML = '';
+  var sleep = getPersonalSleep();
+  var today = getTodayISO();
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var todayDay = DAYS[new Date().getDay()];
+  var todaySched = sleep.schedule[todayDay] || { bedtime: '22:30', wake: '07:00' };
+  var todayLog = sleep.log && sleep.log[today];
+
+  var wrap = document.createElement('div');
+  wrap.className = 'sleep-med-wrap';
+
+  /* ── Tonight's schedule pill ── */
+  var schedRow = document.createElement('div');
+  schedRow.className = 'sleep-med-sched';
+  schedRow.innerHTML =
+    '<span class="sleep-med-sched-item"><span class="sleep-med-icon">🌙</span>' +
+      '<span class="sleep-med-val">' + escapeHTML(todaySched.bedtime || '—') + '</span>' +
+      '<span class="sleep-med-lbl">Bedtime</span>' +
+    '</span>' +
+    '<span class="sleep-med-sched-divider">→</span>' +
+    '<span class="sleep-med-sched-item"><span class="sleep-med-icon">☀️</span>' +
+      '<span class="sleep-med-val">' + escapeHTML(todaySched.wake || '—') + '</span>' +
+      '<span class="sleep-med-lbl">Wake</span>' +
+    '</span>';
+  wrap.appendChild(schedRow);
+
+  /* ── Today's logged sleep summary ── */
+  var logSection = document.createElement('div');
+  logSection.className = 'sleep-med-log';
+  if (todayLog && todayLog.bedtime && todayLog.wakeTime) {
+    var bm = _fvTimeToMins(todayLog.bedtime), wm = _fvTimeToMins(todayLog.wakeTime);
+    var dur = wm > bm ? wm - bm : (1440 - bm) + wm;
+    var stars = todayLog.quality ? '⭐'.repeat(todayLog.quality) : '';
+    logSection.innerHTML =
+      '<div class="sleep-med-logged">' +
+        '<span class="sleep-med-check">✅</span>' +
+        '<span class="sleep-med-dur"><strong>' + Math.floor(dur / 60) + 'h ' + (dur % 60) + 'm</strong> logged</span>' +
+        (stars ? '<span class="sleep-med-stars">' + stars + '</span>' : '') +
+      '</div>';
+  } else {
+    logSection.innerHTML =
+      '<div class="sleep-med-unlogged">No sleep logged today</div>' +
+      '<div class="sleep-med-quick-log">' +
+        '<label style="font-size:0.78rem">Bed<input type="time" class="sleep-med-inp" id="sleepMedBed" value="' + escapeHTML(todaySched.bedtime) + '"/></label>' +
+        '<label style="font-size:0.78rem">Wake<input type="time" class="sleep-med-inp" id="sleepMedWake" value="' + escapeHTML(todaySched.wake) + '"/></label>' +
+        '<button class="app-fv-save-btn sleep-med-log-btn" style="font-size:0.78rem;padding:4px 10px">Log</button>' +
+      '</div>';
+  }
+  wrap.appendChild(logSection);
+
+  /* ── 7-night mini bar chart ── */
+  var past7 = [];
+  for (var ni = 6; ni >= 0; ni--) {
+    var dd = new Date(); dd.setDate(dd.getDate() - ni);
+    var iso = dd.getFullYear() + '-' + pad2(dd.getMonth() + 1) + '-' + pad2(dd.getDate());
+    var e = sleep.log && sleep.log[iso]; var durN = 0;
+    if (e && e.bedtime && e.wakeTime) { var b2 = _fvTimeToMins(e.bedtime), w2 = _fvTimeToMins(e.wakeTime); durN = w2 > b2 ? w2 - b2 : (1440 - b2) + w2; }
+    past7.push({ iso: iso, dur: durN, quality: e ? (e.quality || 0) : 0, day: DAYS[dd.getDay()] });
+  }
+  var maxDur7 = Math.max.apply(null, past7.map(function(d) { return d.dur; }));
+  if (maxDur7 < 1) maxDur7 = 480;
+  var chartWrap = document.createElement('div');
+  chartWrap.className = 'sleep-med-chart';
+  var barsHTML = '<div class="sleep-med-bars">';
+  past7.forEach(function(d) {
+    var pct = d.dur > 0 ? Math.max(8, Math.round(d.dur / maxDur7 * 100)) : 4;
+    var fill = d.quality >= 4 ? '#27ae60' : d.quality >= 3 ? '#4a90e2' : d.quality >= 1 ? '#e67e22' : (d.dur > 0 ? '#a0c4ef' : '#e8e8e8');
+    var label = d.iso === today ? '<span class="sleep-med-bar-today">' + d.day + '</span>' : d.day;
+    barsHTML += '<div class="sleep-med-bar-col">' +
+      '<div class="sleep-med-bar" style="height:' + pct + '%;background:' + fill + '" title="' + (d.dur ? Math.floor(d.dur/60) + 'h ' + (d.dur%60) + 'm' : 'none') + '"></div>' +
+      '<div class="sleep-med-bar-lbl">' + label + '</div>' +
+    '</div>';
+  });
+  barsHTML += '</div>';
+  chartWrap.innerHTML = barsHTML;
+  wrap.appendChild(chartWrap);
+
+  container.appendChild(wrap);
+
+  /* Wire quick-log button */
+  var logBtn = container.querySelector('.sleep-med-log-btn');
+  if (logBtn) {
+    logBtn.addEventListener('click', function() {
+      var bedInp  = container.querySelector('#sleepMedBed');
+      var wakeInp = container.querySelector('#sleepMedWake');
+      if (!bedInp || !bedInp.value || !wakeInp || !wakeInp.value) return;
+      var s = getPersonalSleep();
+      if (!s.log) s.log = {};
+      s.log[today] = { bedtime: bedInp.value, wakeTime: wakeInp.value, quality: 0 };
+      setPersonalSleep(s);
+      renderSleepAppMedium(container);
+    });
+  }
+}
+window.renderSleepAppMedium = renderSleepAppMedium;
+
+
 function renderMoodAppFull(container) {
   container.innerHTML='';
   var moods=getPersonalMood(),today=getTodayISO();
@@ -9989,10 +10088,13 @@ function _mfSparkline(values, W, H, color) {
 /* ── Tab 1: Today ── */
 function _mfToday(body, container) {
   var today = getTodayISO();
+  // Use a per-container selected date; default to today, allow any date
+  if (!container._mfSelectedDate) container._mfSelectedDate = today;
+  var selDate = container._mfSelectedDate;
   var allMeals = getPersonalMeals();
   var goal = getCalorieGoal();
   var macroGoals = getMacroGoals();
-  var todayMeals = allMeals[today] || {};
+  var todayMeals = allMeals[selDate] || {};
   var totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
   _MF_TYPES.forEach(function(t) {
     var m = todayMeals[t.key] || {};
@@ -10010,7 +10112,15 @@ function _mfToday(body, container) {
   wrap.className = 'mf-today-wrap';
   var chartCol = document.createElement('div');
   chartCol.className = 'mf-today-charts';
+  var isToday = selDate === today;
+  var displayLabel = isToday ? 'Today' : selDate;
   chartCol.innerHTML =
+    '<div class="mf-date-nav">' +
+      '<button class="app-fv-link-btn mf-date-prev-btn" title="Previous day">‹</button>' +
+      '<input type="date" class="app-fv-text-input mf-date-picker" value="' + selDate + '" style="text-align:center;font-size:0.82rem;max-width:130px"/>' +
+      '<button class="app-fv-link-btn mf-date-next-btn" title="Next day">›</button>' +
+      (isToday ? '' : '<button class="app-fv-link-btn mf-date-today-btn" style="font-size:0.75rem">Today</button>') +
+    '</div>' +
     '<div class="mf-donut-main">' +
       _mfDonut(calPct, 120, calColor, Math.round(calPct * 100) + '%') +
       '<div class="mf-donut-main-label"><strong>' + totalCal + '</strong> / ' + goal + ' cal</div>' +
@@ -10032,7 +10142,7 @@ function _mfToday(body, container) {
     '<div class="mf-goal-row"><label>🎯 Goal: <input type="number" class="app-fv-num-input mf-cal-goal-inp" value="' + goal + '" min="0" step="50"/> cal</label></div>';
   var timelineCol = document.createElement('div');
   timelineCol.className = 'mf-today-timeline';
-  var tlHTML = '<h3 class="app-full-col-heading">🍽️ Today\'s Meals</h3>';
+  var tlHTML = '<h3 class="app-full-col-heading">🍽️ ' + escapeHTML(displayLabel) + '\'s Meals</h3>';
   _MF_TYPES.forEach(function(t) {
     var m = todayMeals[t.key] || {};
     var hasMeal = !!(m.name && m.name.trim());
@@ -10088,13 +10198,43 @@ function _mfToday(body, container) {
   });
   tlHTML += '<div class="mf-quick-row">' +
     '<button class="app-fv-link-btn mf-quick-fav-btn">⭐ Quick-add from Favorites</button>' +
-    '<button class="app-fv-link-btn mf-quick-water-btn">💧 Log Water</button>' +
+    (isToday ? '<button class="app-fv-link-btn mf-quick-water-btn">💧 Log Water</button>' : '') +
     '</div>' +
     '<div id="mfQuickFavPanel" style="display:none;margin-top:6px"></div>';
   timelineCol.innerHTML = tlHTML;
   wrap.appendChild(chartCol);
   wrap.appendChild(timelineCol);
   body.appendChild(wrap);
+  /* Wire: date navigation */
+  var datePicker = chartCol.querySelector('.mf-date-picker');
+  if (datePicker) {
+    datePicker.addEventListener('change', function() {
+      if (datePicker.value) { container._mfSelectedDate = datePicker.value; renderMealAppFull(container); }
+    });
+  }
+  var prevBtn = chartCol.querySelector('.mf-date-prev-btn');
+  if (prevBtn) {
+    prevBtn.addEventListener('click', function() {
+      var d = new Date(selDate + 'T12:00:00'); d.setDate(d.getDate() - 1);
+      container._mfSelectedDate = d.toISOString().slice(0, 10);
+      renderMealAppFull(container);
+    });
+  }
+  var nextBtn = chartCol.querySelector('.mf-date-next-btn');
+  if (nextBtn) {
+    nextBtn.addEventListener('click', function() {
+      var d = new Date(selDate + 'T12:00:00'); d.setDate(d.getDate() + 1);
+      container._mfSelectedDate = d.toISOString().slice(0, 10);
+      renderMealAppFull(container);
+    });
+  }
+  var todayBtn = chartCol.querySelector('.mf-date-today-btn');
+  if (todayBtn) {
+    todayBtn.addEventListener('click', function() {
+      container._mfSelectedDate = today;
+      renderMealAppFull(container);
+    });
+  }
   /* Wire: cal goal */
   var calGoalInp = chartCol.querySelector('.mf-cal-goal-inp');
   if (calGoalInp) {
@@ -10117,7 +10257,7 @@ function _mfToday(body, container) {
       if (panel) panel.style.display = 'none';
     });
   });
-  /* Wire: save */
+  /* Wire: save — use selDate not today */
   body.querySelectorAll('.mf-save-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var key = btn.dataset.meal;
@@ -10128,7 +10268,7 @@ function _mfToday(body, container) {
       var timeInp  = panel.querySelector('.mf-inp-time');
       var notesInp = panel.querySelector('.mf-inp-notes');
       var meals = getPersonalMeals();
-      if (!meals[today]) meals[today] = {};
+      if (!meals[selDate]) meals[selDate] = {};
       var entry = {
         name:     nameInp  ? nameInp.value.trim() : '',
         calories: calInp   ? (parseInt(calInp.value,  10) || 0) : 0,
@@ -10138,7 +10278,7 @@ function _mfToday(body, container) {
       panel.querySelectorAll('.mf-inp-macro').forEach(function(inp) {
         entry[inp.dataset.macro] = parseInt(inp.value, 10) || 0;
       });
-      meals[today][key] = entry;
+      meals[selDate][key] = entry;
       setPersonalMeals(meals);
       renderMealAppFull(container);
     });
@@ -10211,8 +10351,8 @@ function _mfToday(body, container) {
           if (!slot) return;
           var fav = allFavs[fi];
           var meals = getPersonalMeals();
-          if (!meals[today]) meals[today] = {};
-          meals[today][slot] = { name: fav.name || '', calories: fav.calories || 0,
+          if (!meals[selDate]) meals[selDate] = {};
+          meals[selDate][slot] = { name: fav.name || '', calories: fav.calories || 0,
             protein: fav.protein || 0, carbs: fav.carbs || 0, fat: fav.fat || 0, time: '' };
           setPersonalMeals(meals);
           renderMealAppFull(container);
@@ -10406,11 +10546,11 @@ function _mfRecipes(body, container) {
   }
   var html = '<h3 class="app-full-col-heading">📖 Recipes Hub</h3>' +
     '<div class="mf-recipe-toolbar">' +
-      '<input type="text" class="app-fv-text-input mf-recipe-search" placeholder="🔍 Search recipes…"/>' +
+      '<input type="text" class="app-fv-text-input mf-recipe-search" placeholder="🔍 Search my recipes…"/>' +
       '<button class="app-fv-save-btn mf-recipe-new-btn">＋ New Recipe</button>' +
     '</div>';
   if (!recipes.length) {
-    html += '<div class="mf-recipe-empty">No recipes yet. Create your first recipe!</div>';
+    html += '<div class="mf-recipe-empty">No recipes yet. Create your first recipe or search online below!</div>';
   } else {
     html += '<div class="mf-recipe-list" id="mfRecipeList">';
     recipes.forEach(function(r, ri) {
@@ -10445,6 +10585,16 @@ function _mfRecipes(body, container) {
     });
     html += '</div>';
   }
+  // External recipe search section
+  html +=
+    '<div class="mf-ext-search-section">' +
+      '<h4 class="app-full-section-heading" style="margin-top:18px">🌐 Search Online Recipes</h4>' +
+      '<div class="mf-recipe-toolbar">' +
+        '<input type="text" class="app-fv-text-input mf-ext-recipe-query" placeholder="Search MealDB (e.g. Chicken, Pasta…)"/>' +
+        '<button class="app-fv-save-btn mf-ext-recipe-search-btn">Search</button>' +
+      '</div>' +
+      '<div class="mf-ext-recipe-results" id="mfExtRecipeResults"></div>' +
+    '</div>';
   body.innerHTML = html;
   var searchInp = body.querySelector('.mf-recipe-search');
   if (searchInp) {
@@ -10523,6 +10673,81 @@ function _mfRecipes(body, container) {
       renderMealAppFull(container);
     });
   });
+
+  /* ── External recipe search via TheMealDB (free public API) ── */
+  var extQueryInp = body.querySelector('.mf-ext-recipe-query');
+  var extSearchBtn = body.querySelector('.mf-ext-recipe-search-btn');
+  var extResults = body.querySelector('#mfExtRecipeResults');
+
+  function _doExtRecipeSearch() {
+    var q = extQueryInp ? extQueryInp.value.trim() : '';
+    if (!q || !extResults) return;
+    extResults.innerHTML = '<p style="color:var(--ios-text-3);font-size:0.82rem;padding:6px 0">Searching…</p>';
+    fetch('https://www.themealdb.com/api/json/v1/1/search.php?s=' + encodeURIComponent(q))
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        var meals = data.meals || [];
+        if (!meals.length) {
+          extResults.innerHTML = '<p style="color:var(--ios-text-3);font-size:0.82rem;padding:6px 0">No results found. Try a different term.</p>';
+          return;
+        }
+        var html2 = '<div class="mf-ext-recipe-list">';
+        meals.slice(0, 12).forEach(function(meal, mi) {
+          html2 += '<div class="mf-ext-recipe-card" data-mi="' + mi + '">' +
+            (meal.strMealThumb ? '<img class="mf-ext-recipe-thumb" src="' + escapeHTML(meal.strMealThumb) + '/preview" alt="" loading="lazy"/>' : '') +
+            '<div class="mf-ext-recipe-info">' +
+              '<div class="mf-ext-recipe-name">' + escapeHTML(meal.strMeal || '') + '</div>' +
+              '<div class="mf-ext-recipe-src">' + escapeHTML(meal.strCategory || '') + (meal.strArea ? ' · ' + escapeHTML(meal.strArea) : '') + '</div>' +
+            '</div>' +
+            '<div class="mf-ext-recipe-actions">' +
+              '<button class="app-fv-save-btn mf-ext-save-btn" data-mi="' + mi + '" style="font-size:0.72rem;padding:3px 8px">＋ Save</button>' +
+              (meal.strSource ? '<a href="' + escapeHTML(meal.strSource) + '" target="_blank" rel="noopener noreferrer" class="app-fv-link-btn" style="font-size:0.72rem">View →</a>' : '') +
+            '</div>' +
+          '</div>';
+        });
+        html2 += '</div>';
+        extResults.innerHTML = html2;
+        // Wire save buttons
+        extResults.querySelectorAll('.mf-ext-save-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var mi = parseInt(btn.dataset.mi, 10);
+            var meal = meals[mi];
+            if (!meal) return;
+            // Build ingredient list from up to 20 ingredients in MealDB format
+            var ings = [];
+            for (var i = 1; i <= 20; i++) {
+              var ingName = meal['strIngredient' + i];
+              var ingMeasure = meal['strMeasure' + i];
+              if (ingName && ingName.trim()) {
+                ings.push({ name: ingName.trim(), amount: (ingMeasure || '').trim(), unit: 'g', calories: 0, protein: 0, carbs: 0, fat: 0 });
+              }
+            }
+            var recs = getPersonalRecipes();
+            recs.push({
+              id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+              name: meal.strMeal || '',
+              emoji: '🍽️',
+              description: meal.strCategory ? meal.strCategory + (meal.strArea ? ' · ' + meal.strArea : '') : '',
+              tags: [meal.strCategory, meal.strArea].filter(Boolean),
+              servings: 4,
+              ingredients: ings,
+              totals: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+              favorite: false,
+              sourceUrl: meal.strSource || meal.strYoutube || ''
+            });
+            setPersonalRecipes(recs);
+            btn.textContent = '✅ Saved!';
+            btn.disabled = true;
+          });
+        });
+      })
+      .catch(function() {
+        if (extResults) extResults.innerHTML = '<p style="color:#e74c3c;font-size:0.82rem;padding:6px 0">Search failed. Check your internet connection.</p>';
+      });
+  }
+
+  if (extSearchBtn) extSearchBtn.addEventListener('click', _doExtRecipeSearch);
+  if (extQueryInp) extQueryInp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); _doExtRecipeSearch(); } });
 }
 
 function _mfRecipeForm(body, container, editIdx) {
@@ -10807,9 +11032,30 @@ function renderGymAppFull(container) {
   var layout=document.createElement('div');layout.className='app-full-two-col';
   var left=document.createElement('div');left.className='app-full-col';
   var right=document.createElement('div');right.className='app-full-col';
+  // Build workout log section
   var lHTML='<h3 class="app-full-col-heading">\ud83c\udfcb\ufe0f Today\'s Workout</h3>';
-  if(!routines.length){lHTML+='<p style="font-size:0.85rem;color:var(--ios-text-3)">No routines set up yet. Go to the Personal page to add gym routines.</p>';}
-  else{routines.forEach(function(routine,ri){lHTML+='<div class="app-gym-routine"><div class="app-gym-routine-name">'+escapeHTML(routine.name||'Routine '+(ri+1))+'</div>';(routine.exercises||[]).forEach(function(ex,ei){var exLog=(todayLog[ri]&&todayLog[ri][ei])||{sets:ex.sets||3,reps:ex.reps||10,weight:''};lHTML+='<div class="app-gym-ex-row"><span class="app-gym-ex-name">'+escapeHTML(ex.name||'')+'</span><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="sets" value="'+(exLog.sets||3)+'" min="1" max="20"/><span style="font-size:0.75rem;color:var(--ios-text-3)">\u00d7</span><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="reps" value="'+(exLog.reps||10)+'" min="1" max="100"/><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="weight" value="'+(exLog.weight||'')+'" min="0" step="2.5" placeholder="kg"/></div>';});lHTML+='</div>';});lHTML+='<button id="gymFvSave" class="app-fv-save-btn" style="margin-top:10px">\ud83d\udcbe Save Today\'s Log</button>';}
+  // Add-routine form (always visible so routines can be managed right here)
+  lHTML+='<div class="app-gym-add-row">' +
+    '<input type="text" id="gymFvRoutineNameInp" class="app-fv-text-input" placeholder="New routine name (e.g. Upper Body)" style="flex:1"/>' +
+    '<button id="gymFvAddRoutineBtn" class="app-fv-save-btn" style="flex-shrink:0">＋ Add Routine</button>' +
+  '</div>';
+  if(!routines.length){lHTML+='<p style="font-size:0.85rem;color:var(--ios-text-3);margin:8px 0">No routines yet — create one above to get started!</p>';}
+  else{routines.forEach(function(routine,ri){lHTML+='<div class="app-gym-routine">' +
+    '<div class="app-gym-routine-name" style="display:flex;align-items:center;justify-content:space-between">' +
+      '<span>'+escapeHTML(routine.name||'Routine '+(ri+1))+'</span>' +
+      '<button class="app-fv-link-btn app-gym-del-routine-btn" data-ri="'+ri+'" style="color:#e74c3c;font-size:0.78rem">\ud83d\uddd1\ufe0f Del</button>' +
+    '</div>';
+    (routine.exercises||[]).forEach(function(ex,ei){var exLog=(todayLog[ri]&&todayLog[ri][ei])||{sets:ex.sets||3,reps:ex.reps||10,weight:''};lHTML+='<div class="app-gym-ex-row"><span class="app-gym-ex-name">'+escapeHTML(ex.name||'')+'</span><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="sets" value="'+(exLog.sets||3)+'" min="1" max="20"/><span style="font-size:0.75rem;color:var(--ios-text-3)">\u00d7</span><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="reps" value="'+(exLog.reps||10)+'" min="1" max="100"/><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="weight" value="'+(exLog.weight||'')+'" min="0" step="2.5" placeholder="kg"/>' +
+      '<button class="app-fv-link-btn app-gym-del-ex-btn" data-ri="'+ri+'" data-ei="'+ei+'" style="color:#e74c3c;margin-left:4px;font-size:0.78rem">\u2715</button>' +
+    '</div>';});
+    lHTML+='<div class="app-gym-add-ex-row" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">' +
+      '<input type="text" class="app-gym-ex-name-inp app-fv-text-input" data-ri="'+ri+'" placeholder="Exercise name" style="flex:2;min-width:120px"/>' +
+      '<input type="number" class="app-gym-ex-sets-inp app-fv-num-small" data-ri="'+ri+'" placeholder="Sets" min="1" style="width:50px"/>' +
+      '<input type="text" class="app-gym-ex-reps-inp app-fv-num-small" data-ri="'+ri+'" placeholder="Reps" style="width:50px"/>' +
+      '<input type="text" class="app-gym-ex-wt-inp app-fv-num-small" data-ri="'+ri+'" placeholder="kg" style="width:50px"/>' +
+      '<button class="app-fv-save-btn app-gym-add-ex-btn" data-ri="'+ri+'" style="padding:3px 8px;font-size:0.78rem">＋</button>' +
+    '</div>' +
+  '</div>';});lHTML+='<button id="gymFvSave" class="app-fv-save-btn" style="margin-top:10px">\ud83d\udcbe Save Today\'s Log</button>';}
   left.innerHTML=lHTML;
   var bodyM=safeParseStorage('personalBodyMeasurements',[]),latestM=bodyM[bodyM.length-1]||{};
   var rHTML='<h3 class="app-full-col-heading">\ud83d\udcaa 1-Rep Max Calculator</h3><p style="font-size:0.82rem;color:var(--ios-text-3);margin:0 0 10px">Epley formula: weight \u00d7 (1 + reps/30)</p><div class="app-1rm-form"><label>Weight <input type="number" id="ormWeight" class="app-fv-num-input" placeholder="kg" min="0" step="2.5"/></label><label>Reps <input type="number" id="ormReps" class="app-fv-num-input" placeholder="reps" min="1" max="30"/></label><button id="ormCalc" class="app-fv-save-btn">Calculate</button></div><div id="ormResult" class="app-1rm-result"></div>';
@@ -10817,6 +11063,40 @@ function renderGymAppFull(container) {
   if(bodyM.length){var weightBars=bodyM.slice(-8).map(function(m){return{label:(m.date||'').slice(5),value:parseFloat(m.weight)||0,iso:m.date||''};});if(weightBars.some(function(b){return b.value>0;})){rHTML+='<h4 class="app-full-section-heading" style="margin-top:12px">Weight trend</h4>'+_fvBarChart(weightBars,220,70,12,16,8,8,today);}rHTML+='<div class="app-body-history">';bodyM.slice(-5).reverse().forEach(function(m){rHTML+='<div class="app-body-hist-row"><span style="color:var(--ios-text-3);font-size:0.78rem">'+escapeHTML(m.date||'')+'</span><span>'+(m.weight?m.weight+' kg':'')+'</span><span>'+(m.fat?m.fat+'% fat':'')+'</span></div>';});rHTML+='</div>';}
   right.innerHTML=rHTML;
   layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+  // Wire: add routine
+  var addRoutineBtn=container.querySelector('#gymFvAddRoutineBtn');
+  if(addRoutineBtn)addRoutineBtn.addEventListener('click',function(){
+    var inp=container.querySelector('#gymFvRoutineNameInp');
+    var name=inp?inp.value.trim():'';
+    if(!name){if(inp){inp.focus();inp.style.outline='2px solid #e74c3c';setTimeout(function(){inp.style.outline='';},1200);}return;}
+    var g=getPersonalGym();g.routines.push({name:name,exercises:[]});setPersonalGym(g);renderGymAppFull(container);
+  });
+  // Wire: delete routine
+  container.querySelectorAll('.app-gym-del-routine-btn').forEach(function(btn){btn.addEventListener('click',function(){
+    if(!confirm('Delete this routine?'))return;
+    var g=getPersonalGym();g.routines.splice(parseInt(btn.dataset.ri,10),1);setPersonalGym(g);renderGymAppFull(container);
+  });});
+  // Wire: add exercise
+  container.querySelectorAll('.app-gym-add-ex-btn').forEach(function(btn){btn.addEventListener('click',function(){
+    var ri=parseInt(btn.dataset.ri,10);
+    var row=btn.parentElement;
+    var name=(row.querySelector('.app-gym-ex-name-inp')||{}).value||'';
+    if(!name.trim()){return;}
+    var g=getPersonalGym();
+    g.routines[ri].exercises.push({
+      name:name.trim(),
+      sets:(row.querySelector('.app-gym-ex-sets-inp')||{}).value||'',
+      reps:(row.querySelector('.app-gym-ex-reps-inp')||{}).value||'',
+      weight:(row.querySelector('.app-gym-ex-wt-inp')||{}).value||''
+    });
+    setPersonalGym(g);renderGymAppFull(container);
+  });});
+  // Wire: delete exercise
+  container.querySelectorAll('.app-gym-del-ex-btn').forEach(function(btn){btn.addEventListener('click',function(){
+    var g=getPersonalGym();
+    var ri=parseInt(btn.dataset.ri,10),ei=parseInt(btn.dataset.ei,10);
+    g.routines[ri].exercises.splice(ei,1);setPersonalGym(g);renderGymAppFull(container);
+  });});
   container.querySelectorAll('.app-gym-inp').forEach(function(inp){inp.addEventListener('change',function(){var ri=parseInt(inp.dataset.ri,10),ei=parseInt(inp.dataset.ei,10);var g=getPersonalGym();if(!g.log)g.log={};if(!g.log[today])g.log[today]={};if(!g.log[today][ri])g.log[today][ri]={};if(!g.log[today][ri][ei])g.log[today][ri][ei]={};g.log[today][ri][ei][inp.dataset.field]=parseFloat(inp.value)||0;setPersonalGym(g);});});
   var saveGym=container.querySelector('#gymFvSave');if(saveGym)saveGym.addEventListener('click',function(){saveGym.textContent='\u2705 Saved!';setTimeout(function(){saveGym.textContent='\ud83d\udcbe Save Today\'s Log';},1500);});
   var ormCalc=container.querySelector('#ormCalc');if(ormCalc)ormCalc.addEventListener('click',function(){var wt=parseFloat((container.querySelector('#ormWeight')||{}).value)||0;var rp=parseInt((container.querySelector('#ormReps')||{}).value,10)||0;var res=container.querySelector('#ormResult');if(!wt||!rp){if(res)res.textContent='Enter weight and reps.';return;}var orm=(wt*(1+rp/30)).toFixed(1);if(res)res.innerHTML='<strong>'+orm+' kg</strong> estimated 1RM';});
