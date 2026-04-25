@@ -411,8 +411,7 @@ main {
       black calc(100% - 52px),
       transparent 100%);
   /* Animate the mask transitions for smooth fade in/out */
-  transition: -webkit-mask-image var(--ios-fast) var(--ios-ease),
-              mask-image var(--ios-fast) var(--ios-ease);
+  /* Note: mask-image is not animatable; transitions are intentionally omitted */
 }
 
 /* At top edge — no fade at top (no content hidden above) */
@@ -537,8 +536,7 @@ body.scroll-edge-top-off.scroll-edge-bottom-off main {
   }
 
   /* Hide mobile tab bar + wrapper; sidebar takes over navigation */
-  .tab-bar-wrapper,
-  .bottom-ribbon {
+  .tab-bar-wrapper {
     display: none !important;
   }
 
