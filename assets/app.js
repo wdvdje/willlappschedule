@@ -1798,10 +1798,9 @@ function updateDayElapsedRing(){
   }
 }
 
-/* Weekly salary display removed – earnings are shown in the Work page widget */
+/* Weekly salary display — content is managed by renderTodayEarningsPreview() in the right column widget */
 function updateWeeklySalary(){
-  var el = document.getElementById('weeklySalaryDisplay');
-  if (el) { el.innerHTML = ''; el.onclick = null; }
+  // no-op: earnings are rendered by renderTodayEarningsPreview() into weeklySalaryDisplay
 }
 
 /* ── Dashboard Weather Widget (Open-Meteo, no API key) ─────── */

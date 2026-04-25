@@ -126,12 +126,11 @@
             <span class="ring-label">Day Elapsed</span>
           </div>
         </div>
-        <div class="weekly-salary" id="weeklySalaryDisplay"></div>
       </section>
 
         <!-- Daily view controls -->
-        <div id="dailyViewControls" style="display:flex;gap:8px;align-items:center;margin:10px 0;">
-          <div style="margin-left:auto;color:#666;font-size:0.95rem" id="dailyViewInfo"></div>
+        <div id="dailyViewControls" style="margin:10px 0;">
+          <div style="color:#666;font-size:0.95rem;margin-bottom:4px" id="dailyViewInfo"></div>
         </div>
 
         <!-- Hourly grid container (vertical timeline) -->
@@ -167,13 +166,13 @@
             <div id="inboxWidgetList"></div>
           </div>
 
-          <!-- Earnings Preview Widget -->
+          <!-- This Week's Job Earnings Widget -->
           <div id="todayEarningsWidget" class="today-right-widget today-earnings-preview">
             <div class="today-earnings-preview-header">
-              <span>💰 Earnings</span>
+              <span>💰 This Week's Job Earnings</span>
               <button type="button" class="today-widget-open-btn" data-app="jobs">Open →</button>
             </div>
-            <div id="todayEarningsPreviewContent" class="today-earnings-preview-content"></div>
+            <div id="weeklySalaryDisplay" class="today-earnings-preview-content"></div>
           </div>
         </div>
       </div><!-- end todayAppsCol -->
@@ -1318,7 +1317,7 @@
     }
 
     function renderTodayEarningsPreview() {
-      var el = document.getElementById('todayEarningsPreviewContent');
+      var el = document.getElementById('weeklySalaryDisplay');
       if (!el) return;
       try {
         var jobs = JSON.parse(localStorage.getItem('jobs') || '[]');
