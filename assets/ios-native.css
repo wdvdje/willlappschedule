@@ -1911,6 +1911,16 @@ main {
   margin: 12px 0;
   line-height: 1.5;
 }
+.today-open-apps-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ios-accent, #4a90e2);
+  font-size: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 600;
+}
 
 .today-pinned-app-card {
   display: flex;
