@@ -9568,46 +9568,902 @@ function renderHydrationAppFull(container) {
   container.querySelectorAll('.app-hyd-day-inp').forEach(function(inp){inp.addEventListener('change',function(){var h=getPersonalHydration();if(!h.goalByDay)h.goalByDay={};h.goalByDay[inp.dataset.day]=parseInt(inp.value,10)||8;setPersonalHydration(h);});});
 }
 
-function renderMealAppFull(container) {
-  container.innerHTML='';
-  var today=getTodayISO(),allMeals=safeParseStorage('personalMeals',{}),goal=getCalorieGoal();
-  var favs=safeParseStorage('personalMealFavorites',[]);
-  var TYPES=[{key:'breakfast',icon:'\ud83c\udf05',label:'Breakfast'},{key:'lunch',icon:'\u2600\ufe0f',label:'Lunch'},{key:'dinner',icon:'\ud83c\udf19',label:'Dinner'},{key:'snacks',icon:'\ud83c\udf4e',label:'Snacks'}];
-  var todayMeals=allMeals[today]||{},totalCal=0,totalP=0,totalC=0,totalF=0;
-  TYPES.forEach(function(t){var m=todayMeals[t.key]||{};totalCal+=(parseInt(m.calories,10)||0);totalP+=(parseInt(m.protein,10)||0);totalC+=(parseInt(m.carbs,10)||0);totalF+=(parseInt(m.fat,10)||0);});
-  var calPct=goal>0?Math.min(100,Math.round(totalCal/goal*100)):0;
-  var layout=document.createElement('div');layout.className='app-full-two-col';
-  var left=document.createElement('div');left.className='app-full-col';
-  var right=document.createElement('div');right.className='app-full-col';
-  var lHTML='<h3 class="app-full-col-heading">\ud83e\udd57 Today\'s Meals</h3>';
-  TYPES.forEach(function(t){
-    var m=todayMeals[t.key]||{};
-    lHTML+='<div class="app-meal-fv-row"><div class="app-meal-fv-icon">'+t.icon+'</div><div class="app-meal-fv-info"><div class="app-meal-fv-label">'+t.label+'</div><div class="app-meal-fv-name">'+escapeHTML(m.name||'Not planned')+'</div>'+(m.calories?'<div style="font-size:0.75rem;color:var(--ios-text-3)">'+m.calories+' cal'+(m.protein?' \u00b7 P:'+m.protein+'g':'')+(m.carbs?' C:'+m.carbs+'g':'')+(m.fat?' F:'+m.fat+'g':'')+'</div>':'')+
-    '</div><button class="app-meal-fv-edit-btn" data-key="'+t.key+'">\u270f\ufe0f</button></div>'+
-    '<div class="app-meal-fv-edit-panel" id="mfvPanel_'+t.key+'" style="display:none"><input type="text" class="app-meal-fv-name-inp" placeholder="Meal name" value="'+escapeHTML(m.name||'')+'"/><div class="app-meal-fv-fields"><input type="number" class="app-meal-fv-cal" placeholder="Cal" min="0" value="'+(m.calories||'')+'"/><input type="time" class="app-meal-fv-time" value="'+(m.time||'')+'" title="Meal time"/></div><div class="app-meal-fv-macros"><input type="number" class="app-meal-fv-macro" placeholder="Protein g" min="0" value="'+(m.protein||'')+'" data-macro="protein"/><input type="number" class="app-meal-fv-macro" placeholder="Carbs g" min="0" value="'+(m.carbs||'')+'" data-macro="carbs"/><input type="number" class="app-meal-fv-macro" placeholder="Fat g" min="0" value="'+(m.fat||'')+'" data-macro="fat"/></div><div style="display:flex;gap:6px;margin-top:6px"><button class="app-meal-save-btn app-fv-save-btn" data-key="'+t.key+'">Save</button><button class="app-meal-cancel-btn app-fv-link-btn" data-key="'+t.key+'">Cancel</button><button class="app-meal-fav-btn app-fv-link-btn" data-key="'+t.key+'" title="Save as favourite">\u2b50</button></div></div>';
-  });
-  lHTML+='<div class="app-meal-fv-progress"><div class="app-meal-pbar"><div style="width:'+calPct+'%;background:'+(calPct>100?'#e74c3c':'var(--ios-accent)')+';height:6px;border-radius:3px"></div></div><div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-top:4px"><span>'+totalCal+' / '+goal+' cal ('+calPct+'%)</span><span style="color:var(--ios-text-3)">P:'+totalP+'g  C:'+totalC+'g  F:'+totalF+'g</span></div><div class="app-meal-goal-row"><span>\ud83c\udfaf Goal:</span><input type="number" id="mfvGoalInp" class="app-fv-num-input" value="'+goal+'" min="0" step="50"/><span>cal</span></div></div>';
-  left.innerHTML=lHTML;
 
-  var DAY_S2=['Su','Mo','Tu','We','Th','Fr','Sa'];
-  var weekBars=[];
-  for(var ni=6;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());var wm=allMeals[iso]||{},wCal=0;['breakfast','lunch','dinner','snacks'].forEach(function(k){wCal+=(parseInt((wm[k]||{}).calories,10)||0);});weekBars.push({label:DAY_S2[dd.getDay()],value:wCal,iso:iso});}
-  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcca Weekly Calories</h3>'+_fvBarChart(weekBars,220,90,14,18,10,10,today)+
-    '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0 12px">Goal: '+goal+' cal/day</p>';
-  rHTML+='<h4 class="app-full-section-heading">\u2b50 Saved Favourites</h4>';
-  if(favs.length){rHTML+='<div class="app-meal-favs-list">';favs.forEach(function(fav,fi){rHTML+='<div class="app-meal-fav-row"><div><strong>'+escapeHTML(fav.name||'')+'</strong><div style="font-size:0.75rem;color:var(--ios-text-3)">'+(fav.calories||0)+' cal'+(fav.protein?' \u00b7 P:'+fav.protein+'g':'')+'</div></div><button class="app-meal-fav-use-btn app-fv-link-btn" data-fi="'+fi+'">\uff0b Add</button></div>';});rHTML+='</div>';}
-  else{rHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No favourites saved yet. Use \u2b50 next to a meal to save it.</p>';}
-  right.innerHTML=rHTML;
-  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+/* ══════════════════════════════════════════════════════════════
+   MEAL PLANNER — FULL-SCREEN TABBED DASHBOARD
+   ══════════════════════════════════════════════════════════════ */
 
-  container.querySelectorAll('.app-meal-fv-edit-btn').forEach(function(btn){btn.addEventListener('click',function(){var p=container.querySelector('#mfvPanel_'+btn.dataset.key);if(p)p.style.display=p.style.display==='none'?'':'none';});});
-  container.querySelectorAll('.app-meal-cancel-btn').forEach(function(btn){btn.addEventListener('click',function(){var p=container.querySelector('#mfvPanel_'+btn.dataset.key);if(p)p.style.display='none';});});
-  container.querySelectorAll('.app-meal-save-btn').forEach(function(btn){btn.addEventListener('click',function(){var key=btn.dataset.key;var panel=container.querySelector('#mfvPanel_'+key);if(!panel)return;var nameInp=panel.querySelector('.app-meal-fv-name-inp');var calInp=panel.querySelector('.app-meal-fv-cal');var timeInp=panel.querySelector('.app-meal-fv-time');var macroInps=panel.querySelectorAll('.app-meal-fv-macro');var meals=safeParseStorage('personalMeals',{});if(!meals[today])meals[today]={};meals[today][key]={name:nameInp?nameInp.value.trim():'',calories:calInp?(parseInt(calInp.value,10)||0):0,time:timeInp?timeInp.value:'',protein:0,carbs:0,fat:0};macroInps.forEach(function(inp){meals[today][key][inp.dataset.macro]=parseInt(inp.value,10)||0;});localStorage.setItem('personalMeals',JSON.stringify(meals));renderMealAppFull(container);});});
-  container.querySelectorAll('.app-meal-fav-btn').forEach(function(btn){btn.addEventListener('click',function(){var key=btn.dataset.key;var panel=container.querySelector('#mfvPanel_'+key);if(!panel)return;var nameInp=panel.querySelector('.app-meal-fv-name-inp');var calInp=panel.querySelector('.app-meal-fv-cal');var pInp=panel.querySelector('[data-macro="protein"]');var ef=safeParseStorage('personalMealFavorites',[]);ef.push({name:nameInp?nameInp.value.trim():'',calories:calInp?(parseInt(calInp.value,10)||0):0,protein:pInp?(parseInt(pInp.value,10)||0):0});localStorage.setItem('personalMealFavorites',JSON.stringify(ef));renderMealAppFull(container);});});
-  container.querySelectorAll('.app-meal-fav-use-btn').forEach(function(btn){btn.addEventListener('click',function(){var fi=parseInt(btn.dataset.fi,10);var fav=favs[fi];if(!fav)return;var meals2=safeParseStorage('personalMeals',{});if(!meals2[today])meals2[today]={};var found=['breakfast','lunch','dinner','snacks'].find(function(k){return !(meals2[today][k]&&meals2[today][k].name);});var key=found||'breakfast';meals2[today][key]={name:fav.name,calories:fav.calories||0,protein:fav.protein||0,carbs:0,fat:0,time:''};localStorage.setItem('personalMeals',JSON.stringify(meals2));renderMealAppFull(container);});});
-  var goalInp2=container.querySelector('#mfvGoalInp');
-  if(goalInp2)goalInp2.addEventListener('change',function(){setCalorieGoal(parseInt(goalInp2.value,10)||2000);renderMealAppFull(container);});
+var _MF_TYPES = [
+  { key: 'breakfast', icon: '🌅', label: 'Breakfast', color: '#f39c12' },
+  { key: 'lunch',     icon: '☀️',  label: 'Lunch',     color: '#27ae60' },
+  { key: 'dinner',    icon: '🌙',  label: 'Dinner',    color: '#9b59b6' },
+  { key: 'snacks',    icon: '🍎',  label: 'Snacks',    color: '#e74c3c' }
+];
+
+function getMacroGoals() {
+  return safeParseStorage('personalMacroGoals', { protein: 150, carbs: 200, fat: 65 });
 }
+function setMacroGoals(v) { localStorage.setItem('personalMacroGoals', JSON.stringify(v)); }
+function getPersonalRecipes() { return safeParseStorage('personalRecipes', []); }
+function setPersonalRecipes(v) { localStorage.setItem('personalRecipes', JSON.stringify(v)); }
+
+function renderMealAppFull(container) {
+  var tab = container._mfTab || 'today';
+  container._mfTab = tab;
+  container.innerHTML = '';
+  var TABS = [
+    { key: 'today',     label: '📅 Today' },
+    { key: 'week',      label: '📊 Week' },
+    { key: 'nutrition', label: '🧬 Nutrition' },
+    { key: 'recipes',   label: '📖 Recipes' },
+    { key: 'favorites', label: '⭐ Favorites' }
+  ];
+  var tabBar = document.createElement('div');
+  tabBar.className = 'mf-tab-bar';
+  TABS.forEach(function(t) {
+    var btn = document.createElement('button');
+    btn.className = 'mf-tab-btn' + (t.key === tab ? ' active' : '');
+    btn.textContent = t.label;
+    btn.addEventListener('click', function() {
+      container._mfTab = t.key;
+      renderMealAppFull(container);
+    });
+    tabBar.appendChild(btn);
+  });
+  container.appendChild(tabBar);
+  var body = document.createElement('div');
+  body.className = 'mf-tab-body';
+  container.appendChild(body);
+  if (tab === 'today')         _mfToday(body, container);
+  else if (tab === 'week')     _mfWeek(body, container);
+  else if (tab === 'nutrition')_mfNutrition(body, container);
+  else if (tab === 'recipes')  _mfRecipes(body, container);
+  else if (tab === 'favorites')_mfFavorites(body, container);
+}
+
+/* SVG donut ring helper */
+function _mfDonut(pct, size, color, label) {
+  var r = (size - 8) / 2, cx = size / 2, cy = size / 2;
+  var circ = 2 * Math.PI * r;
+  var dash = Math.min(pct, 1) * circ;
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="#e0e0e0" stroke-width="7"/>' +
+    '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="7"' +
+    ' stroke-dasharray="' + dash.toFixed(1) + ' ' + circ.toFixed(1) + '"' +
+    ' stroke-linecap="round" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>' +
+    '<text x="' + cx + '" y="' + (cy + 4) + '" text-anchor="middle" font-size="' + Math.round(size * 0.16) + '" font-weight="700" fill="currentColor">' + label + '</text>' +
+    '</svg>';
+}
+
+/* Sparkline SVG helper */
+function _mfSparkline(values, W, H, color) {
+  if (!values || values.length < 2) return '<div class="fv-chart-empty">No data</div>';
+  var max = Math.max.apply(null, values);
+  if (max <= 0) return '<div class="fv-chart-empty">No data</div>';
+  var n = values.length;
+  var pts = values.map(function(v, i) {
+    var x = (i / (n - 1)) * (W - 8) + 4;
+    var y = H - 6 - (v / max) * (H - 12);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  });
+  return '<svg width="100%" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' +
+    '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round"/>' +
+    '</svg>';
+}
+
+/* ── Tab 1: Today ── */
+function _mfToday(body, container) {
+  var today = getTodayISO();
+  var allMeals = getPersonalMeals();
+  var goal = getCalorieGoal();
+  var macroGoals = getMacroGoals();
+  var todayMeals = allMeals[today] || {};
+  var totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
+  _MF_TYPES.forEach(function(t) {
+    var m = todayMeals[t.key] || {};
+    totalCal += (parseInt(m.calories, 10) || 0);
+    totalP   += (parseInt(m.protein,  10) || 0);
+    totalC   += (parseInt(m.carbs,    10) || 0);
+    totalF   += (parseInt(m.fat,      10) || 0);
+  });
+  var calPct = goal > 0 ? totalCal / goal : 0;
+  var pPct   = macroGoals.protein > 0 ? totalP / macroGoals.protein : 0;
+  var cPct   = macroGoals.carbs   > 0 ? totalC / macroGoals.carbs   : 0;
+  var fPct   = macroGoals.fat     > 0 ? totalF / macroGoals.fat     : 0;
+  var calColor = calPct > 1 ? '#e74c3c' : (calPct > 0.8 ? '#27ae60' : 'var(--ios-accent, #4a90e2)');
+  var wrap = document.createElement('div');
+  wrap.className = 'mf-today-wrap';
+  var chartCol = document.createElement('div');
+  chartCol.className = 'mf-today-charts';
+  chartCol.innerHTML =
+    '<div class="mf-donut-main">' +
+      _mfDonut(calPct, 120, calColor, Math.round(calPct * 100) + '%') +
+      '<div class="mf-donut-main-label"><strong>' + totalCal + '</strong> / ' + goal + ' cal</div>' +
+    '</div>' +
+    '<div class="mf-macro-rings">' +
+      '<div class="mf-macro-ring-item">' +
+        _mfDonut(pPct, 64, '#e74c3c', Math.round(pPct * 100) + '%') +
+        '<div class="mf-macro-ring-lbl">Protein<br><span>' + totalP + '/' + macroGoals.protein + 'g</span></div>' +
+      '</div>' +
+      '<div class="mf-macro-ring-item">' +
+        _mfDonut(cPct, 64, '#f39c12', Math.round(cPct * 100) + '%') +
+        '<div class="mf-macro-ring-lbl">Carbs<br><span>' + totalC + '/' + macroGoals.carbs + 'g</span></div>' +
+      '</div>' +
+      '<div class="mf-macro-ring-item">' +
+        _mfDonut(fPct, 64, '#9b59b6', Math.round(fPct * 100) + '%') +
+        '<div class="mf-macro-ring-lbl">Fat<br><span>' + totalF + '/' + macroGoals.fat + 'g</span></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="mf-goal-row"><label>🎯 Goal: <input type="number" class="app-fv-num-input mf-cal-goal-inp" value="' + goal + '" min="0" step="50"/> cal</label></div>';
+  var timelineCol = document.createElement('div');
+  timelineCol.className = 'mf-today-timeline';
+  var tlHTML = '<h3 class="app-full-col-heading">🍽️ Today\'s Meals</h3>';
+  _MF_TYPES.forEach(function(t) {
+    var m = todayMeals[t.key] || {};
+    var hasMeal = !!(m.name && m.name.trim());
+    var macroHtml = '';
+    if (m.protein || m.carbs || m.fat) {
+      macroHtml = '<div class="mf-meal-macros">' +
+        (m.protein ? '<span class="mf-macro-pill protein">P ' + m.protein + 'g</span>' : '') +
+        (m.carbs   ? '<span class="mf-macro-pill carbs">C ' + m.carbs + 'g</span>' : '') +
+        (m.fat     ? '<span class="mf-macro-pill fat">F ' + m.fat + 'g</span>' : '') +
+        (m.fiber   ? '<span class="mf-macro-pill fiber">Fi ' + m.fiber + 'g</span>' : '') +
+        '</div>';
+    }
+    var noteHtml = m.notes ? '<div class="mf-meal-notes">' + escapeHTML(m.notes) + '</div>' : '';
+    tlHTML +=
+      '<div class="mf-meal-card" style="--meal-color:' + t.color + '">' +
+        '<div class="mf-meal-card-bar"></div>' +
+        '<div class="mf-meal-card-body">' +
+          '<div class="mf-meal-card-row">' +
+            '<span class="mf-meal-icon">' + t.icon + '</span>' +
+            '<div class="mf-meal-card-info">' +
+              '<div class="mf-meal-card-label">' + escapeHTML(t.label) +
+                (m.time ? ' <span class="mf-meal-time">@ ' + escapeHTML(m.time) + '</span>' : '') +
+              '</div>' +
+              '<div class="mf-meal-card-name">' + escapeHTML(m.name || 'Not planned') + '</div>' +
+              macroHtml + noteHtml +
+            '</div>' +
+            '<div class="mf-meal-card-right">' +
+              (hasMeal ? '<span class="mf-meal-cal-badge">' + (m.calories || 0) + ' cal</span>' : '') +
+              '<button class="mf-meal-edit-btn" data-meal="' + t.key + '">✏️</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="mf-meal-edit-panel" id="mfEdit_' + t.key + '" style="display:none">' +
+            '<input type="text" class="mf-inp mf-inp-name app-fv-text-input" placeholder="What are you eating?" value="' + escapeHTML(m.name || '') + '"/>' +
+            '<div class="mf-inp-row">' +
+              '<input type="number" class="mf-inp mf-inp-cal app-fv-num-small" placeholder="Cal" min="0" value="' + (m.calories || '') + '"/>' +
+              '<input type="time" class="mf-inp mf-inp-time app-fv-time-small" value="' + escapeHTML(m.time || '') + '" title="Meal time"/>' +
+            '</div>' +
+            '<div class="mf-inp-row">' +
+              '<label class="mf-macro-inp-lbl">P<input type="number" class="mf-inp mf-inp-macro app-fv-num-small" data-macro="protein" placeholder="g" min="0" value="' + (m.protein || '') + '"/></label>' +
+              '<label class="mf-macro-inp-lbl">C<input type="number" class="mf-inp mf-inp-macro app-fv-num-small" data-macro="carbs" placeholder="g" min="0" value="' + (m.carbs || '') + '"/></label>' +
+              '<label class="mf-macro-inp-lbl">F<input type="number" class="mf-inp mf-inp-macro app-fv-num-small" data-macro="fat" placeholder="g" min="0" value="' + (m.fat || '') + '"/></label>' +
+              '<label class="mf-macro-inp-lbl">Fi<input type="number" class="mf-inp mf-inp-macro app-fv-num-small" data-macro="fiber" placeholder="g" min="0" value="' + (m.fiber || '') + '"/></label>' +
+            '</div>' +
+            '<input type="text" class="mf-inp mf-inp-notes app-fv-note-input" placeholder="Notes (optional)" value="' + escapeHTML(m.notes || '') + '"/>' +
+            '<div class="mf-edit-btns">' +
+              '<button class="app-fv-save-btn mf-save-btn" data-meal="' + t.key + '">Save</button>' +
+              '<button class="app-fv-cancel-btn mf-cancel-btn" data-meal="' + t.key + '">Cancel</button>' +
+              '<button class="app-fv-link-btn mf-fav-btn" data-meal="' + t.key + '" title="Save as favourite">⭐ Fav</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+  });
+  tlHTML += '<div class="mf-quick-row">' +
+    '<button class="app-fv-link-btn mf-quick-fav-btn">⭐ Quick-add from Favorites</button>' +
+    '<button class="app-fv-link-btn mf-quick-water-btn">💧 Log Water</button>' +
+    '</div>' +
+    '<div id="mfQuickFavPanel" style="display:none;margin-top:6px"></div>';
+  timelineCol.innerHTML = tlHTML;
+  wrap.appendChild(chartCol);
+  wrap.appendChild(timelineCol);
+  body.appendChild(wrap);
+  /* Wire: cal goal */
+  var calGoalInp = chartCol.querySelector('.mf-cal-goal-inp');
+  if (calGoalInp) {
+    calGoalInp.addEventListener('change', function() {
+      setCalorieGoal(parseInt(calGoalInp.value, 10) || 2000);
+      renderMealAppFull(container);
+    });
+  }
+  /* Wire: edit toggles */
+  body.querySelectorAll('.mf-meal-edit-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var panel = body.querySelector('#mfEdit_' + btn.dataset.meal);
+      if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    });
+  });
+  /* Wire: cancel */
+  body.querySelectorAll('.mf-cancel-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var panel = body.querySelector('#mfEdit_' + btn.dataset.meal);
+      if (panel) panel.style.display = 'none';
+    });
+  });
+  /* Wire: save */
+  body.querySelectorAll('.mf-save-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var key = btn.dataset.meal;
+      var panel = body.querySelector('#mfEdit_' + key);
+      if (!panel) return;
+      var nameInp  = panel.querySelector('.mf-inp-name');
+      var calInp   = panel.querySelector('.mf-inp-cal');
+      var timeInp  = panel.querySelector('.mf-inp-time');
+      var notesInp = panel.querySelector('.mf-inp-notes');
+      var meals = getPersonalMeals();
+      if (!meals[today]) meals[today] = {};
+      var entry = {
+        name:     nameInp  ? nameInp.value.trim() : '',
+        calories: calInp   ? (parseInt(calInp.value,  10) || 0) : 0,
+        time:     timeInp  ? timeInp.value : '',
+        notes:    notesInp ? notesInp.value.trim() : ''
+      };
+      panel.querySelectorAll('.mf-inp-macro').forEach(function(inp) {
+        entry[inp.dataset.macro] = parseInt(inp.value, 10) || 0;
+      });
+      meals[today][key] = entry;
+      setPersonalMeals(meals);
+      renderMealAppFull(container);
+    });
+  });
+  /* Wire: fav star */
+  body.querySelectorAll('.mf-fav-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var key = btn.dataset.meal;
+      var panel = body.querySelector('#mfEdit_' + key);
+      if (!panel) return;
+      var nameInp = panel.querySelector('.mf-inp-name');
+      var calInp  = panel.querySelector('.mf-inp-cal');
+      var pInp    = panel.querySelector('[data-macro="protein"]');
+      var cInp    = panel.querySelector('[data-macro="carbs"]');
+      var fInp    = panel.querySelector('[data-macro="fat"]');
+      var name = nameInp ? nameInp.value.trim() : '';
+      if (!name) return;
+      var favs = safeParseStorage('personalMealFavorites', []);
+      favs.push({
+        name:     name,
+        calories: calInp ? (parseInt(calInp.value, 10) || 0) : 0,
+        protein:  pInp   ? (parseInt(pInp.value,  10) || 0) : 0,
+        carbs:    cInp   ? (parseInt(cInp.value,  10) || 0) : 0,
+        fat:      fInp   ? (parseInt(fInp.value,  10) || 0) : 0
+      });
+      localStorage.setItem('personalMealFavorites', JSON.stringify(favs));
+      btn.textContent = '✅ Saved!';
+      setTimeout(function() { btn.textContent = '⭐ Fav'; }, 1500);
+    });
+  });
+  /* Wire: quick-add from favorites */
+  var quickFavBtn = body.querySelector('.mf-quick-fav-btn');
+  var quickFavPanel = body.querySelector('#mfQuickFavPanel');
+  if (quickFavBtn && quickFavPanel) {
+    quickFavBtn.addEventListener('click', function() {
+      if (quickFavPanel.style.display !== 'none') { quickFavPanel.style.display = 'none'; return; }
+      var favs = safeParseStorage('personalMealFavorites', []);
+      var recFavs = getPersonalRecipes().filter(function(r) { return r.favorite; });
+      var allFavs = favs.concat(recFavs.map(function(r) {
+        return { name: r.name, calories: r.totals ? (r.totals.calories || 0) : 0,
+          protein: r.totals ? (r.totals.protein || 0) : 0,
+          carbs:   r.totals ? (r.totals.carbs   || 0) : 0,
+          fat:     r.totals ? (r.totals.fat     || 0) : 0 };
+      }));
+      if (!allFavs.length) {
+        quickFavPanel.innerHTML = '<p style="color:var(--ios-text-3);font-size:0.82rem;padding:6px 0">No favorites saved yet.</p>';
+        quickFavPanel.style.display = 'block';
+        return;
+      }
+      var html = '<div class="mf-quick-fav-list">';
+      allFavs.forEach(function(fav, fi) {
+        html += '<div class="mf-quick-fav-item">' +
+          '<div><strong>' + escapeHTML(fav.name || '') + '</strong><span class="mf-meal-time"> ' + (fav.calories || 0) + ' cal</span></div>' +
+          '<select class="app-fv-select mf-fav-slot-sel" data-fi="' + fi + '">' +
+            '<option value="">→ slot</option>' +
+            '<option value="breakfast">Breakfast</option><option value="lunch">Lunch</option>' +
+            '<option value="dinner">Dinner</option><option value="snacks">Snacks</option>' +
+          '</select>' +
+          '<button class="app-fv-save-btn mf-fav-use-btn" data-fi="' + fi + '">Add</button>' +
+          '</div>';
+      });
+      html += '</div>';
+      quickFavPanel.innerHTML = html;
+      quickFavPanel.style.display = 'block';
+      quickFavPanel.querySelectorAll('.mf-fav-use-btn').forEach(function(useBtn) {
+        useBtn.addEventListener('click', function() {
+          var fi = parseInt(useBtn.dataset.fi, 10);
+          var sel = quickFavPanel.querySelector('.mf-fav-slot-sel[data-fi="' + fi + '"]');
+          var slot = sel ? sel.value : '';
+          if (!slot) return;
+          var fav = allFavs[fi];
+          var meals = getPersonalMeals();
+          if (!meals[today]) meals[today] = {};
+          meals[today][slot] = { name: fav.name || '', calories: fav.calories || 0,
+            protein: fav.protein || 0, carbs: fav.carbs || 0, fat: fav.fat || 0, time: '' };
+          setPersonalMeals(meals);
+          renderMealAppFull(container);
+        });
+      });
+    });
+  }
+  /* Wire: log water shortcut */
+  var waterBtn = body.querySelector('.mf-quick-water-btn');
+  if (waterBtn) {
+    waterBtn.addEventListener('click', function() {
+      var h = safeParseStorage('personalHydration', { goal: 8, log: {} });
+      if (!h.log) h.log = {};
+      var cur = typeof h.log[today] === 'number' ? h.log[today] : 0;
+      h.log[today] = cur + 1;
+      localStorage.setItem('personalHydration', JSON.stringify(h));
+      waterBtn.textContent = '✅ +1 glass logged!';
+      setTimeout(function() { waterBtn.textContent = '💧 Log Water'; }, 1500);
+    });
+  }
+}
+
+/* ── Tab 2: Week ── */
+function _mfWeek(body, container) {
+  var today = getTodayISO();
+  var allMeals = getPersonalMeals();
+  var goal = getCalorieGoal();
+  var macroGoals = getMacroGoals();
+  var days = getMealWeekDays();
+  var weekTotals = days.map(function(wd) {
+    var day = allMeals[wd.iso] || {};
+    var cal = 0, p = 0, c = 0, f = 0;
+    _MF_TYPES.forEach(function(t) {
+      var m = day[t.key] || {};
+      cal += parseInt(m.calories, 10) || 0;
+      p   += parseInt(m.protein,  10) || 0;
+      c   += parseInt(m.carbs,    10) || 0;
+      f   += parseInt(m.fat,      10) || 0;
+    });
+    return { iso: wd.iso, dayName: wd.dayName, label: wd.label, cal: cal, p: p, c: c, f: f, isToday: wd.iso === today };
+  });
+  var avg = Math.round(weekTotals.reduce(function(s, d) { return s + d.cal; }, 0) / 7);
+  var best = weekTotals.reduce(function(b, d) { return d.cal > b.cal ? d : b; }, weekTotals[0]);
+  var streak = 0;
+  for (var si = weekTotals.length - 1; si >= 0; si--) { if (weekTotals[si].cal > 0) streak++; else break; }
+  var html = '<h3 class="app-full-col-heading">📊 This Week</h3><div class="mf-week-grid">';
+  weekTotals.forEach(function(d) {
+    var pct = goal > 0 ? Math.min(100, Math.round(d.cal / goal * 100)) : 0;
+    var barColor = pct > 100 ? '#e74c3c' : (pct >= 80 ? '#27ae60' : 'var(--ios-accent)');
+    var meals = allMeals[d.iso] || {};
+    var pills = _MF_TYPES.map(function(t) {
+      var m = meals[t.key] || {};
+      return m.name ? '<div class="mf-week-pill" style="border-left:3px solid ' + t.color + '">' + escapeHTML(m.name.length > 12 ? m.name.slice(0, 12) + '…' : m.name) + '</div>' : '';
+    }).join('');
+    html += '<div class="mf-week-col' + (d.isToday ? ' today' : '') + '">' +
+      '<div class="mf-week-col-hdr">' + d.dayName + '<span class="mf-week-col-date">' + d.label + '</span></div>' +
+      '<div class="mf-week-meals">' + (pills || '<div class="mf-week-empty">—</div>') + '</div>' +
+      '<div class="mf-week-cal-total">' + (d.cal ? d.cal + ' cal' : '—') + '</div>' +
+      '<div class="mf-week-bar-wrap"><div class="mf-week-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+      '<div class="mf-week-pct">' + pct + '%</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  html += '<div class="mf-week-stats">' +
+    '<div class="mf-week-stat"><div class="mf-week-stat-val">' + avg + '</div><div class="mf-week-stat-lbl">Avg cal/day</div></div>' +
+    '<div class="mf-week-stat"><div class="mf-week-stat-val">' + (best.cal || 0) + '</div><div class="mf-week-stat-lbl">Best day (' + best.dayName + ')</div></div>' +
+    '<div class="mf-week-stat"><div class="mf-week-stat-val">' + streak + '</div><div class="mf-week-stat-lbl">Day streak</div></div>' +
+  '</div>';
+  var macros = [
+    { key: 'p', label: 'Protein', color: '#e74c3c' },
+    { key: 'c', label: 'Carbs',   color: '#f39c12' },
+    { key: 'f', label: 'Fat',     color: '#9b59b6' }
+  ];
+  html += '<h4 class="app-full-section-heading">📈 Weekly Macro Trends</h4><div class="mf-macro-trends">';
+  macros.forEach(function(macro) {
+    var vals = weekTotals.map(function(d) { return d[macro.key]; });
+    var weekAvg = Math.round(vals.reduce(function(a, b) { return a + b; }, 0) / 7);
+    html += '<div class="mf-macro-trend-row">' +
+      '<div class="mf-macro-trend-lbl" style="color:' + macro.color + '">' + macro.label + '</div>' +
+      '<div class="mf-macro-trend-spark">' + _mfSparkline(vals, 180, 36, macro.color) + '</div>' +
+      '<div class="mf-macro-trend-avg">' + weekAvg + 'g avg</div>' +
+    '</div>';
+  });
+  html += '</div>';
+  body.innerHTML = html;
+}
+
+/* ── Tab 3: Nutrition ── */
+function _mfNutrition(body, container) {
+  var today = getTodayISO();
+  var allMeals = getPersonalMeals();
+  var goal = getCalorieGoal();
+  var macroGoals = getMacroGoals();
+  var todayMeals = allMeals[today] || {};
+  var totals = { cal: 0, p: 0, c: 0, f: 0, fi: 0, sug: 0, sod: 0 };
+  _MF_TYPES.forEach(function(t) {
+    var m = todayMeals[t.key] || {};
+    totals.cal += parseInt(m.calories, 10) || 0;
+    totals.p   += parseInt(m.protein,  10) || 0;
+    totals.c   += parseInt(m.carbs,    10) || 0;
+    totals.f   += parseInt(m.fat,      10) || 0;
+    totals.fi  += parseInt(m.fiber,    10) || 0;
+    totals.sug += parseInt(m.sugar,    10) || 0;
+    totals.sod += parseInt(m.sodium,   10) || 0;
+  });
+  var calFromP = totals.p * 4, calFromC = totals.c * 4, calFromF = totals.f * 9;
+  var ratioTotal = calFromP + calFromC + calFromF || 1;
+  var pRatioPct = Math.round(calFromP / ratioTotal * 100);
+  var cRatioPct = Math.round(calFromC / ratioTotal * 100);
+  var fRatioPct = 100 - pRatioPct - cRatioPct;
+  var rows = [
+    { label: '🔥 Calories', val: totals.cal, tgt: goal,               unit: 'cal', color: 'var(--ios-accent)' },
+    { label: '🥩 Protein',  val: totals.p,   tgt: macroGoals.protein, unit: 'g',   color: '#e74c3c' },
+    { label: '🍞 Carbs',    val: totals.c,   tgt: macroGoals.carbs,   unit: 'g',   color: '#f39c12' },
+    { label: '🥑 Fat',      val: totals.f,   tgt: macroGoals.fat,     unit: 'g',   color: '#9b59b6' },
+    { label: '🌿 Fiber',    val: totals.fi,  tgt: 25,                 unit: 'g',   color: '#27ae60' },
+    { label: '🍬 Sugar',    val: totals.sug, tgt: 50,                 unit: 'g',   color: '#e67e22' },
+    { label: '🧂 Sodium',   val: totals.sod, tgt: 2300,               unit: 'mg',  color: '#3498db' }
+  ];
+  var html = '<h3 class="app-full-col-heading">🧬 Nutrition Details</h3><div class="mf-nutrition-table">';
+  rows.forEach(function(row) {
+    var pct = row.tgt > 0 ? Math.min(100, Math.round(row.val / row.tgt * 100)) : 0;
+    html += '<div class="mf-nut-row">' +
+      '<div class="mf-nut-label">' + row.label + '</div>' +
+      '<div class="mf-nut-bar-wrap"><div class="mf-nut-bar-fill" style="width:' + pct + '%;background:' + row.color + '"></div></div>' +
+      '<div class="mf-nut-vals">' + row.val + ' / ' + row.tgt + ' ' + row.unit + ' <span class="mf-nut-pct">(' + pct + '%)</span></div>' +
+    '</div>';
+  });
+  html += '</div>';
+  html += '<h4 class="app-full-section-heading">⚖️ Macro Ratio (% of calories)</h4>' +
+    '<div class="mf-ratio-bar">' +
+      '<div class="mf-ratio-seg" style="width:' + pRatioPct + '%;background:#e74c3c" title="Protein ' + pRatioPct + '%"></div>' +
+      '<div class="mf-ratio-seg" style="width:' + cRatioPct + '%;background:#f39c12" title="Carbs ' + cRatioPct + '%"></div>' +
+      '<div class="mf-ratio-seg" style="width:' + fRatioPct + '%;background:#9b59b6" title="Fat ' + fRatioPct + '%"></div>' +
+    '</div>' +
+    '<div class="mf-ratio-legend">' +
+      '<span style="color:#e74c3c">🥩 P ' + pRatioPct + '%</span>' +
+      '<span style="color:#f39c12">🍞 C ' + cRatioPct + '%</span>' +
+      '<span style="color:#9b59b6">🥑 F ' + fRatioPct + '%</span>' +
+    '</div>';
+  var mGoals = getMacroGoals();
+  html += '<h4 class="app-full-section-heading">⚙️ Macro Goals</h4>' +
+    '<div class="mf-macro-goals-form">' +
+      '<label class="mf-mg-lbl">Protein (g)<input type="number" class="app-fv-num-input mf-mg-inp" data-macro="protein" value="' + mGoals.protein + '" min="0"/></label>' +
+      '<label class="mf-mg-lbl">Carbs (g)<input type="number" class="app-fv-num-input mf-mg-inp" data-macro="carbs"   value="' + mGoals.carbs   + '" min="0"/></label>' +
+      '<label class="mf-mg-lbl">Fat (g)<input type="number" class="app-fv-num-input mf-mg-inp" data-macro="fat"     value="' + mGoals.fat     + '" min="0"/></label>' +
+      '<button class="app-fv-save-btn mf-mg-save-btn">Save Goals</button>' +
+    '</div>';
+  var days = getMealWeekDays();
+  var weekMacros = { cal: [], p: [], c: [], f: [] };
+  days.forEach(function(wd) {
+    var day = allMeals[wd.iso] || {};
+    var wCal = 0, wP = 0, wC = 0, wF = 0;
+    _MF_TYPES.forEach(function(t) {
+      var m = day[t.key] || {};
+      wCal += parseInt(m.calories, 10) || 0;
+      wP   += parseInt(m.protein,  10) || 0;
+      wC   += parseInt(m.carbs,    10) || 0;
+      wF   += parseInt(m.fat,      10) || 0;
+    });
+    weekMacros.cal.push(wCal); weekMacros.p.push(wP); weekMacros.c.push(wC); weekMacros.f.push(wF);
+  });
+  html += '<h4 class="app-full-section-heading">📈 7-Day Macro Trends</h4><div class="mf-nut-sparks">' +
+    '<div class="mf-nut-spark-item"><div class="mf-nut-spark-lbl" style="color:var(--ios-accent)">Calories</div>' + _mfSparkline(weekMacros.cal, 140, 36, 'var(--ios-accent)') + '</div>' +
+    '<div class="mf-nut-spark-item"><div class="mf-nut-spark-lbl" style="color:#e74c3c">Protein</div>' + _mfSparkline(weekMacros.p, 140, 36, '#e74c3c') + '</div>' +
+    '<div class="mf-nut-spark-item"><div class="mf-nut-spark-lbl" style="color:#f39c12">Carbs</div>' + _mfSparkline(weekMacros.c, 140, 36, '#f39c12') + '</div>' +
+    '<div class="mf-nut-spark-item"><div class="mf-nut-spark-lbl" style="color:#9b59b6">Fat</div>' + _mfSparkline(weekMacros.f, 140, 36, '#9b59b6') + '</div>' +
+  '</div>';
+  body.innerHTML = html;
+  var mgSave = body.querySelector('.mf-mg-save-btn');
+  if (mgSave) {
+    mgSave.addEventListener('click', function() {
+      var goals = getMacroGoals();
+      body.querySelectorAll('.mf-mg-inp').forEach(function(inp) {
+        goals[inp.dataset.macro] = parseInt(inp.value, 10) || 0;
+      });
+      setMacroGoals(goals);
+      renderMealAppFull(container);
+    });
+  }
+}
+
+/* ── Tab 4: Recipes Hub ── */
+function _mfRecipes(body, container) {
+  var recipes = getPersonalRecipes();
+  container._mfRecipeMode = container._mfRecipeMode || 'list';
+  var mode = container._mfRecipeMode;
+  if (mode === 'create' || mode === 'edit') {
+    _mfRecipeForm(body, container, mode === 'edit' ? container._mfEditRecipeIdx : null);
+    return;
+  }
+  var html = '<h3 class="app-full-col-heading">📖 Recipes Hub</h3>' +
+    '<div class="mf-recipe-toolbar">' +
+      '<input type="text" class="app-fv-text-input mf-recipe-search" placeholder="🔍 Search recipes…"/>' +
+      '<button class="app-fv-save-btn mf-recipe-new-btn">＋ New Recipe</button>' +
+    '</div>';
+  if (!recipes.length) {
+    html += '<div class="mf-recipe-empty">No recipes yet. Create your first recipe!</div>';
+  } else {
+    html += '<div class="mf-recipe-list" id="mfRecipeList">';
+    recipes.forEach(function(r, ri) {
+      var tags = (r.tags || []).map(function(t) { return '<span class="mf-recipe-tag">' + escapeHTML(t) + '</span>'; }).join('');
+      html += '<div class="mf-recipe-card" data-ri="' + ri + '">' +
+        '<div class="mf-recipe-card-top">' +
+          '<span class="mf-recipe-emoji">' + escapeHTML(r.emoji || '🍽️') + '</span>' +
+          '<div class="mf-recipe-card-info">' +
+            '<div class="mf-recipe-card-name">' + escapeHTML(r.name || '') + '</div>' +
+            '<div class="mf-recipe-card-meta">' + (r.servings || 1) + ' serving' + ((r.servings || 1) !== 1 ? 's' : '') + (r.totals ? ' · ' + (r.totals.calories || 0) + ' cal/serving' : '') + '</div>' +
+            (r.totals ? '<div class="mf-recipe-card-macros">P ' + (r.totals.protein || 0) + 'g · C ' + (r.totals.carbs || 0) + 'g · F ' + (r.totals.fat || 0) + 'g</div>' : '') +
+            (tags ? '<div class="mf-recipe-tags">' + tags + '</div>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="mf-recipe-card-actions">' +
+          '<button class="app-fv-save-btn mf-recipe-add-btn" data-ri="' + ri + '" style="font-size:0.76rem;padding:4px 10px">📅 Add to Meal</button>' +
+          '<button class="app-fv-link-btn mf-recipe-fav-btn" data-ri="' + ri + '">' + (r.favorite ? '⭐ Saved' : '⭐ Fav') + '</button>' +
+          '<button class="app-fv-link-btn mf-recipe-edit-btn" data-ri="' + ri + '">✏️ Edit</button>' +
+          '<button class="app-fv-link-btn mf-recipe-del-btn" data-ri="' + ri + '">🗑️</button>' +
+        '</div>' +
+        '<div class="mf-recipe-add-panel" id="mfRecipeAdd_' + ri + '" style="display:none">' +
+          '<select class="app-fv-select mf-recipe-day-sel">' +
+            getMealWeekDays().map(function(wd) { return '<option value="' + wd.iso + '">' + wd.dayName + ' ' + wd.label + '</option>'; }).join('') +
+          '</select>' +
+          '<select class="app-fv-select mf-recipe-slot-sel">' +
+            '<option value="breakfast">Breakfast</option><option value="lunch">Lunch</option>' +
+            '<option value="dinner">Dinner</option><option value="snacks">Snacks</option>' +
+          '</select>' +
+          '<button class="app-fv-save-btn mf-recipe-confirm-add-btn" data-ri="' + ri + '">Add</button>' +
+        '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+  }
+  body.innerHTML = html;
+  var searchInp = body.querySelector('.mf-recipe-search');
+  if (searchInp) {
+    searchInp.addEventListener('input', function() {
+      var q = searchInp.value.toLowerCase();
+      body.querySelectorAll('.mf-recipe-card').forEach(function(card) {
+        var name = (card.querySelector('.mf-recipe-card-name') || {}).textContent || '';
+        card.style.display = name.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+      });
+    });
+  }
+  var newBtn = body.querySelector('.mf-recipe-new-btn');
+  if (newBtn) {
+    newBtn.addEventListener('click', function() {
+      container._mfRecipeMode = 'create';
+      renderMealAppFull(container);
+    });
+  }
+  body.querySelectorAll('.mf-recipe-add-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var ri = btn.dataset.ri;
+      var panel = body.querySelector('#mfRecipeAdd_' + ri);
+      if (panel) panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+    });
+  });
+  body.querySelectorAll('.mf-recipe-confirm-add-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var ri = parseInt(btn.dataset.ri, 10);
+      var panel = body.querySelector('#mfRecipeAdd_' + ri);
+      var recipe = recipes[ri];
+      if (!recipe || !panel) return;
+      var daySel  = panel.querySelector('.mf-recipe-day-sel');
+      var slotSel = panel.querySelector('.mf-recipe-slot-sel');
+      var dateISO = daySel  ? daySel.value  : getTodayISO();
+      var slot    = slotSel ? slotSel.value : 'breakfast';
+      var meals = getPersonalMeals();
+      if (!meals[dateISO]) meals[dateISO] = {};
+      meals[dateISO][slot] = {
+        name:     recipe.name || '',
+        calories: recipe.totals ? (recipe.totals.calories || 0) : 0,
+        protein:  recipe.totals ? (recipe.totals.protein  || 0) : 0,
+        carbs:    recipe.totals ? (recipe.totals.carbs    || 0) : 0,
+        fat:      recipe.totals ? (recipe.totals.fat      || 0) : 0,
+        recipeId: recipe.id || ''
+      };
+      setPersonalMeals(meals);
+      panel.style.display = 'none';
+      btn.textContent = '✅ Added!';
+      setTimeout(function() { btn.textContent = 'Add'; }, 1500);
+    });
+  });
+  body.querySelectorAll('.mf-recipe-fav-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var ri = parseInt(btn.dataset.ri, 10);
+      var recs = getPersonalRecipes();
+      if (!recs[ri]) return;
+      recs[ri].favorite = !recs[ri].favorite;
+      setPersonalRecipes(recs);
+      renderMealAppFull(container);
+    });
+  });
+  body.querySelectorAll('.mf-recipe-edit-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      container._mfRecipeMode = 'edit';
+      container._mfEditRecipeIdx = parseInt(btn.dataset.ri, 10);
+      renderMealAppFull(container);
+    });
+  });
+  body.querySelectorAll('.mf-recipe-del-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (!confirm('Delete this recipe?')) return;
+      var ri = parseInt(btn.dataset.ri, 10);
+      var recs = getPersonalRecipes();
+      recs.splice(ri, 1);
+      setPersonalRecipes(recs);
+      renderMealAppFull(container);
+    });
+  });
+}
+
+function _mfRecipeForm(body, container, editIdx) {
+  var isEdit = editIdx != null;
+  var recipes = getPersonalRecipes();
+  var recipe = isEdit ? (recipes[editIdx] || {}) : {};
+  var ingredients = recipe.ingredients && recipe.ingredients.length
+    ? recipe.ingredients
+    : [{ name: '', amount: '', unit: 'g', calories: 0, protein: 0, carbs: 0, fat: 0 }];
+  var html = '<div class="mf-recipe-form-header">' +
+    '<button class="app-fv-link-btn mf-recipe-back-btn">← Back</button>' +
+    '<h3 class="app-full-col-heading" style="margin-bottom:0">' + (isEdit ? '✏️ Edit Recipe' : '＋ New Recipe') + '</h3>' +
+  '</div>' +
+  '<div class="mf-recipe-form">' +
+    '<div class="mf-rf-row">' +
+      '<label class="mf-rf-lbl">Emoji<input type="text" class="mf-inp app-fv-num-small mf-rf-emoji" maxlength="2" value="' + escapeHTML(recipe.emoji || '🍽️') + '"/></label>' +
+      '<label class="mf-rf-lbl" style="flex:1">Name<input type="text" class="mf-inp app-fv-text-input mf-rf-name" placeholder="e.g. Chicken Stir Fry" value="' + escapeHTML(recipe.name || '') + '"/></label>' +
+      '<label class="mf-rf-lbl">Servings<input type="number" class="mf-inp app-fv-num-small mf-rf-servings" min="1" value="' + (recipe.servings || 1) + '"/></label>' +
+    '</div>' +
+    '<label class="mf-rf-lbl">Tags (comma-separated)<input type="text" class="mf-inp app-fv-text-input mf-rf-tags" placeholder="e.g. high-protein, vegetarian" value="' + escapeHTML((recipe.tags || []).join(', ')) + '"/></label>' +
+    '<label class="mf-rf-lbl">Description<input type="text" class="mf-inp app-fv-text-input mf-rf-desc" placeholder="Optional" value="' + escapeHTML(recipe.description || '') + '"/></label>' +
+    '<h4 class="app-full-section-heading">🥗 Ingredients</h4>' +
+    '<div class="mf-ing-header"><span>Name</span><span>Amt</span><span>Unit</span><span>Cal</span><span>P g</span><span>C g</span><span>F g</span><span></span></div>' +
+    '<div class="mf-ing-list" id="mfIngList">';
+  ingredients.forEach(function(ing, ii) { html += _mfIngRow(ing); });
+  html += '</div><button class="app-fv-link-btn mf-add-ing-btn">＋ Add Ingredient</button>' +
+    '<div class="mf-rf-totals" id="mfRfTotals"></div>' +
+    '<div class="mf-rf-actions">' +
+      '<button class="app-fv-save-btn mf-rf-save-btn">' + (isEdit ? 'Update' : 'Save Recipe') + '</button>' +
+      (isEdit ? '<button class="app-fv-link-btn mf-rf-fav-btn">⭐ ' + (recipe.favorite ? 'Remove Fav' : 'Save as Fav') + '</button>' : '') +
+    '</div>' +
+  '</div>';
+  body.innerHTML = html;
+  function recalcTotals() {
+    var t = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+    body.querySelectorAll('.mf-ing-row').forEach(function(row) {
+      t.calories += parseInt((row.querySelector('.mf-ing-cal') || {}).value, 10) || 0;
+      t.protein  += parseInt((row.querySelector('.mf-ing-p')   || {}).value, 10) || 0;
+      t.carbs    += parseInt((row.querySelector('.mf-ing-c')   || {}).value, 10) || 0;
+      t.fat      += parseInt((row.querySelector('.mf-ing-f')   || {}).value, 10) || 0;
+    });
+    var srv = Math.max(1, parseInt((body.querySelector('.mf-rf-servings') || {}).value, 10) || 1);
+    var div = body.querySelector('#mfRfTotals');
+    if (div) {
+      div.innerHTML = '<div class="mf-rf-total-row">' +
+        '<span>Per serving (' + srv + '):</span>' +
+        '<span>🔥 ' + Math.round(t.calories / srv) + ' cal</span>' +
+        '<span>🥩 P ' + Math.round(t.protein / srv) + 'g</span>' +
+        '<span>🍞 C ' + Math.round(t.carbs / srv) + 'g</span>' +
+        '<span>🥑 F ' + Math.round(t.fat / srv) + 'g</span>' +
+      '</div>';
+    }
+    return { calories: Math.round(t.calories / srv), protein: Math.round(t.protein / srv), carbs: Math.round(t.carbs / srv), fat: Math.round(t.fat / srv) };
+  }
+  recalcTotals();
+  body.addEventListener('input', recalcTotals);
+  body.querySelectorAll('.mf-ing-row').forEach(function(row) { _mfWireIngRow(row, body); });
+  var addIngBtn = body.querySelector('.mf-add-ing-btn');
+  if (addIngBtn) {
+    addIngBtn.addEventListener('click', function() {
+      var list = body.querySelector('#mfIngList');
+      if (!list) return;
+      var tmp = document.createElement('div');
+      tmp.innerHTML = _mfIngRow({ name: '', amount: '', unit: 'g', calories: 0, protein: 0, carbs: 0, fat: 0 });
+      var row = tmp.firstElementChild;
+      list.appendChild(row);
+      _mfWireIngRow(row, body);
+    });
+  }
+  var backBtn = body.querySelector('.mf-recipe-back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', function() {
+      container._mfRecipeMode = 'list';
+      renderMealAppFull(container);
+    });
+  }
+  var saveBtn = body.querySelector('.mf-rf-save-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function() {
+      var name = (body.querySelector('.mf-rf-name') || {}).value || '';
+      if (!name.trim()) { alert('Please enter a recipe name.'); return; }
+      var srv  = Math.max(1, parseInt((body.querySelector('.mf-rf-servings') || {}).value, 10) || 1);
+      var tags = ((body.querySelector('.mf-rf-tags') || {}).value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+      var ings = [];
+      body.querySelectorAll('.mf-ing-row').forEach(function(row) {
+        ings.push({
+          name:     (row.querySelector('.mf-ing-name') || {}).value || '',
+          amount:   (row.querySelector('.mf-ing-amt')  || {}).value || '',
+          unit:     (row.querySelector('.mf-ing-unit') || {}).value || 'g',
+          calories: parseInt((row.querySelector('.mf-ing-cal') || {}).value, 10) || 0,
+          protein:  parseInt((row.querySelector('.mf-ing-p')   || {}).value, 10) || 0,
+          carbs:    parseInt((row.querySelector('.mf-ing-c')   || {}).value, 10) || 0,
+          fat:      parseInt((row.querySelector('.mf-ing-f')   || {}).value, 10) || 0
+        });
+      });
+      var totals = recalcTotals();
+      var recs = getPersonalRecipes();
+      var rec = {
+        id:          isEdit ? (recipe.id || Date.now().toString(36) + Math.random().toString(36).slice(2)) : Date.now().toString(36) + Math.random().toString(36).slice(2),
+        name:        name.trim(),
+        emoji:       (body.querySelector('.mf-rf-emoji') || {}).value || '🍽️',
+        description: (body.querySelector('.mf-rf-desc') || {}).value || '',
+        tags:        tags,
+        servings:    srv,
+        ingredients: ings,
+        totals:      totals,
+        favorite:    isEdit ? (recipe.favorite || false) : false
+      };
+      if (isEdit) { recs[editIdx] = rec; } else { recs.push(rec); }
+      setPersonalRecipes(recs);
+      container._mfRecipeMode = 'list';
+      renderMealAppFull(container);
+    });
+  }
+  var favBtn = body.querySelector('.mf-rf-fav-btn');
+  if (favBtn && isEdit) {
+    favBtn.addEventListener('click', function() {
+      var recs = getPersonalRecipes();
+      if (!recs[editIdx]) return;
+      recs[editIdx].favorite = !recs[editIdx].favorite;
+      setPersonalRecipes(recs);
+      container._mfRecipeMode = 'list';
+      renderMealAppFull(container);
+    });
+  }
+}
+
+function _mfIngRow(ing) {
+  var units = ['g','oz','cup','tbsp','tsp','ml','piece'];
+  var unitOpts = units.map(function(u) { return '<option value="' + u + '"' + (ing.unit === u ? ' selected' : '') + '>' + u + '</option>'; }).join('');
+  return '<div class="mf-ing-row">' +
+    '<input type="text" class="mf-ing-name app-fv-text-input" placeholder="Ingredient" value="' + escapeHTML(ing.name || '') + '"/>' +
+    '<input type="text" class="mf-ing-amt app-fv-num-small" placeholder="Amt" value="' + escapeHTML(String(ing.amount || '')) + '"/>' +
+    '<select class="mf-ing-unit app-fv-select">' + unitOpts + '</select>' +
+    '<input type="number" class="mf-ing-cal app-fv-num-small" placeholder="Cal" min="0" value="' + (ing.calories || '') + '"/>' +
+    '<input type="number" class="mf-ing-p app-fv-num-small" placeholder="P" min="0" value="' + (ing.protein || '') + '"/>' +
+    '<input type="number" class="mf-ing-c app-fv-num-small" placeholder="C" min="0" value="' + (ing.carbs || '') + '"/>' +
+    '<input type="number" class="mf-ing-f app-fv-num-small" placeholder="F" min="0" value="' + (ing.fat || '') + '"/>' +
+    '<button class="mf-ing-del-btn app-fv-link-btn" title="Remove">✕</button>' +
+  '</div>';
+}
+
+function _mfWireIngRow(row, body) {
+  var delBtn = row ? row.querySelector('.mf-ing-del-btn') : null;
+  if (delBtn) {
+    delBtn.addEventListener('click', function() {
+      row.remove();
+      body.dispatchEvent(new Event('input'));
+    });
+  }
+}
+
+/* ── Tab 5: Favorites ── */
+function _mfFavorites(body, container) {
+  var favs = safeParseStorage('personalMealFavorites', []);
+  var recFavs = getPersonalRecipes().filter(function(r) { return r.favorite; });
+  var sortBy = container._mfFavSort || 'name';
+  container._mfFavSort = sortBy;
+  var allFavs = favs.map(function(f, i) {
+    return { _type: 'manual', _idx: i, name: f.name || '', calories: f.calories || 0, protein: f.protein || 0, carbs: f.carbs || 0, fat: f.fat || 0 };
+  }).concat(recFavs.map(function(r) {
+    return { _type: 'recipe', _id: r.id, name: r.name || '',
+      calories: r.totals ? (r.totals.calories || 0) : 0,
+      protein:  r.totals ? (r.totals.protein  || 0) : 0,
+      carbs:    r.totals ? (r.totals.carbs    || 0) : 0,
+      fat:      r.totals ? (r.totals.fat      || 0) : 0 };
+  }));
+  if (sortBy === 'calories') { allFavs.sort(function(a, b) { return b.calories - a.calories; }); }
+  else { allFavs.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); }); }
+  var html = '<h3 class="app-full-col-heading">⭐ Favorites</h3>' +
+    '<div class="mf-fav-toolbar">' +
+      '<span style="font-size:0.82rem;color:var(--ios-text-3)">' + allFavs.length + ' saved</span>' +
+      '<div class="mf-fav-sort">Sort: ' +
+        '<button class="app-fv-link-btn mf-fav-sort-btn' + (sortBy === 'name' ? ' active' : '') + '" data-sort="name">Name</button> | ' +
+        '<button class="app-fv-link-btn mf-fav-sort-btn' + (sortBy === 'calories' ? ' active' : '') + '" data-sort="calories">Calories</button>' +
+      '</div>' +
+    '</div>';
+  if (!allFavs.length) {
+    html += '<div class="mf-recipe-empty">No favorites yet. Star meals or recipes to save them here.</div>';
+  } else {
+    html += '<div class="mf-fav-list">';
+    allFavs.forEach(function(fav, fi) {
+      html += '<div class="mf-fav-item">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">' +
+          '<div class="mf-fav-item-info">' +
+            '<div class="mf-fav-item-name">' + escapeHTML(fav.name) + (fav._type === 'recipe' ? ' <span class="mf-recipe-tag">recipe</span>' : '') + '</div>' +
+            '<div class="mf-fav-item-macros">' + fav.calories + ' cal' +
+              (fav.protein ? ' · P ' + fav.protein + 'g' : '') +
+              (fav.carbs   ? ' · C ' + fav.carbs   + 'g' : '') +
+              (fav.fat     ? ' · F ' + fav.fat     + 'g' : '') +
+            '</div>' +
+          '</div>' +
+          '<div class="mf-fav-item-actions">' +
+            '<button class="app-fv-save-btn mf-fav-add-today-btn" data-fi="' + fi + '" style="font-size:0.74rem;padding:3px 8px">➕ Add</button>' +
+            (fav._type === 'manual' ? '<button class="app-fv-link-btn mf-fav-del-btn" data-idx="' + fav._idx + '" style="color:#e74c3c" title="Remove">✕</button>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="mf-fav-add-panel" id="mfFavAdd_' + fi + '" style="display:none;gap:6px;flex-wrap:wrap;margin-top:6px">' +
+          '<select class="app-fv-select mf-fav-slot-sel">' +
+            '<option value="breakfast">Breakfast</option><option value="lunch">Lunch</option>' +
+            '<option value="dinner">Dinner</option><option value="snacks">Snacks</option>' +
+          '</select>' +
+          '<button class="app-fv-save-btn mf-fav-confirm-btn" data-fi="' + fi + '">Add to Today</button>' +
+        '</div>' +
+      '</div>';
+    });
+    html += '</div>';
+  }
+  html += '<h4 class="app-full-section-heading">＋ New Favorite</h4>' +
+    '<div class="mf-new-fav-form">' +
+      '<input type="text" class="app-fv-text-input mf-nf-name" placeholder="Meal name"/>' +
+      '<input type="number" class="app-fv-num-small mf-nf-cal" placeholder="Cal" min="0"/>' +
+      '<label class="mf-macro-inp-lbl">P<input type="number" class="app-fv-num-small mf-nf-p" placeholder="g" min="0"/></label>' +
+      '<label class="mf-macro-inp-lbl">C<input type="number" class="app-fv-num-small mf-nf-c" placeholder="g" min="0"/></label>' +
+      '<label class="mf-macro-inp-lbl">F<input type="number" class="app-fv-num-small mf-nf-f" placeholder="g" min="0"/></label>' +
+      '<button class="app-fv-save-btn mf-nf-save-btn">Save</button>' +
+    '</div>';
+  body.innerHTML = html;
+  body.querySelectorAll('.mf-fav-sort-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      container._mfFavSort = btn.dataset.sort;
+      renderMealAppFull(container);
+    });
+  });
+  body.querySelectorAll('.mf-fav-add-today-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var panel = body.querySelector('#mfFavAdd_' + btn.dataset.fi);
+      if (panel) panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+    });
+  });
+  body.querySelectorAll('.mf-fav-confirm-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var fi = parseInt(btn.dataset.fi, 10);
+      var fav = allFavs[fi];
+      if (!fav) return;
+      var panel = body.querySelector('#mfFavAdd_' + fi);
+      var slotSel = panel ? panel.querySelector('.mf-fav-slot-sel') : null;
+      var slot = slotSel ? slotSel.value : 'breakfast';
+      var today = getTodayISO();
+      var meals = getPersonalMeals();
+      if (!meals[today]) meals[today] = {};
+      meals[today][slot] = { name: fav.name, calories: fav.calories || 0, protein: fav.protein || 0, carbs: fav.carbs || 0, fat: fav.fat || 0, time: '' };
+      setPersonalMeals(meals);
+      if (panel) panel.style.display = 'none';
+      btn.textContent = '✅ Added!';
+      setTimeout(function() { btn.textContent = 'Add to Today'; }, 1500);
+    });
+  });
+  body.querySelectorAll('.mf-fav-del-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var idx = parseInt(btn.dataset.idx, 10);
+      var fs = safeParseStorage('personalMealFavorites', []);
+      fs.splice(idx, 1);
+      localStorage.setItem('personalMealFavorites', JSON.stringify(fs));
+      renderMealAppFull(container);
+    });
+  });
+  var nfSave = body.querySelector('.mf-nf-save-btn');
+  if (nfSave) {
+    nfSave.addEventListener('click', function() {
+      var name = (body.querySelector('.mf-nf-name') || {}).value || '';
+      if (!name.trim()) return;
+      var fs = safeParseStorage('personalMealFavorites', []);
+      fs.push({
+        name:     name.trim(),
+        calories: parseInt((body.querySelector('.mf-nf-cal') || {}).value, 10) || 0,
+        protein:  parseInt((body.querySelector('.mf-nf-p')   || {}).value, 10) || 0,
+        carbs:    parseInt((body.querySelector('.mf-nf-c')   || {}).value, 10) || 0,
+        fat:      parseInt((body.querySelector('.mf-nf-f')   || {}).value, 10) || 0
+      });
+      localStorage.setItem('personalMealFavorites', JSON.stringify(fs));
+      renderMealAppFull(container);
+    });
+  }
+}
+
 
 function renderGymAppFull(container) {
   container.innerHTML='';
