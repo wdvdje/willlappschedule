@@ -85,6 +85,31 @@ body {
   color: var(--ios-text) !important;
 }
 
+/* ── 3a. Kill "webby" tap highlight & callout ──────────────────── */
+/* Removes the grey box Safari flashes on tap, and prevents the   */
+/* system long-press callout menu on icon/nav elements.           */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+[role="button"],
+.r-item,
+.sidebar-item,
+.ipad-nav-item,
+.ipad-nav-dock-btn,
+.tab-search-island,
+.day,
+.bucket-item,
+.dv-event-block,
+.chore-tpl-item,
+.small-btn {
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* ── 4. Sticky glass header — Liquid Glass ─────────────────────── */
 header {
   background: var(--ios-glass) !important;
@@ -130,6 +155,7 @@ header .header-btn:hover {
 header .header-btn:active {
   transform: scale(0.93) !important;
   opacity: 0.75 !important;
+  box-shadow: inset 0 0 8px rgba(255,255,255,0.35) !important;
 }
 
 /* ── 5. iOS 26 Floating pill tab bar + Search island ────────────── */
@@ -195,10 +221,13 @@ header .header-btn:active {
   color: inherit !important;
 }
 
-/* Tap press feedback */
+/* Tap press feedback — Liquid Glass "compressed" feel */
 .bottom-ribbon .r-item:active {
   transform: scale(0.88) !important;
   opacity: 0.70 !important;
+  background: rgba(255,255,255,0.20) !important;
+  box-shadow: inset 0 0 10px rgba(255,255,255,0.50),
+              0 2px 5px rgba(0,0,0,0.10) !important;
 }
 
 /* ── Search island — separate pill to the right ─────────────────── */
@@ -263,6 +292,8 @@ header .header-btn:active {
 .tab-search-island:active {
   transform: scale(0.88);
   opacity: 0.72;
+  box-shadow: inset 0 0 10px rgba(255,255,255,0.45),
+              0 2px 5px rgba(0,0,0,0.10);
 }
 
 /* ── 6. Bottom-sheet modals ─────────────────────────────────────── */
@@ -629,6 +660,8 @@ body.scroll-edge-top-off.scroll-edge-bottom-off main {
 .sidebar-item:active {
   transform: scale(0.96);
   opacity: 0.75;
+  box-shadow: inset 0 0 8px rgba(255,255,255,0.30),
+              0 1px 3px rgba(0,0,0,0.06);
 }
 
 .sidebar-icon {
@@ -792,6 +825,8 @@ button:active,
 [role="button"]:active {
   transform: scale(0.95) !important;
   opacity: 0.78 !important;
+  box-shadow: inset 0 0 8px rgba(255,255,255,0.30),
+              0 1px 3px rgba(0,0,0,0.06) !important;
 }
 
 /* Day cells */
@@ -1447,6 +1482,9 @@ textarea:focus-visible {
 .ipad-nav-item:active {
   transform: scale(0.90);
   opacity: 0.72;
+  background: rgba(255,255,255,0.20) !important;
+  box-shadow: inset 0 0 10px rgba(255,255,255,0.50),
+              0 2px 5px rgba(0,0,0,0.10);
 }
 .ipad-nav-icon { font-size: 1.1rem; line-height: 1; }
 .ipad-nav-label { line-height: 1; }
