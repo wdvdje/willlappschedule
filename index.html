@@ -9,6 +9,29 @@
   <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="TimeScape" />
+  <!-- Apple Intelligence / Visual Intelligence hooks -->
+  <meta name="description" content="TimeScape Planner — your personal schedule, tasks, and life planner. Manage your calendar, habits, meals, gym sessions, work earnings, and more in one place." />
+  <meta name="keywords" content="planner, calendar, schedule, tasks, reminders, habits, productivity, iOS, PWA" />
+  <!-- Open Graph for system-level summarisation, sharing, and search -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="TimeScape Planner" />
+  <meta property="og:description" content="Your personal schedule, tasks, and life planner — calendar, habits, meals, gym, work earnings, and more." />
+  <meta property="og:image" content="assets/icon.svg" />
+  <meta property="og:locale" content="en_US" />
+  <!-- Structured data: helps Apple Intelligence understand app context -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "TimeScape Planner",
+    "description": "Your personal schedule, tasks, and life planner — calendar, habits, meals, gym, work earnings, and more.",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "iOS, Android, Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "image": "assets/icon.svg",
+    "featureList": "Calendar, Tasks, Reminders, Habits, Meal Planner, Gym Tracker, Work Earnings"
+  }
+  </script>
   <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMzYiIHk9IjUyIiB3aWR0aD0iMTIwIiBoZWlnaHQ9Ijk2IiByeD0iOCIgZmlsbD0id2hpdGUiLz48cmVjdCB4PSIzNiIgeT0iNTIiIHdpZHRoPSIxMjAiIGhlaWdodD0iMjgiIHJ4PSI4IiBmaWxsPSIjMjU2OGMzIi8+PHJlY3QgeD0iNjQiIHk9IjQwIiB3aWR0aD0iMTIiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIvPjxyZWN0IHg9IjExNiIgeT0iNDAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9IndoaXRlIi8+PHJlY3QgeD0iNTAiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iODYiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMTIyIiB5PSI5NiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iIzRhOTBlMiIvPjxyZWN0IHg9IjUwIiB5PSIxMjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIGZpbGw9IiM0YTkwZTIiLz48cmVjdCB4PSI4NiIgeT0iMTI0IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PC9zdmc+" />
   <!-- iOS splash screens: prevent white flash on PWA launch for common iPhone sizes -->
   <!-- iPhone 16 Pro Max (440x956 @3x) -->
@@ -31,6 +54,8 @@
   <title>TimeScape Planner</title>
   <link rel="stylesheet" href="./assets/app.css" />
   <link rel="stylesheet" href="./assets/ios-native.css" />
+  <!-- Resolve og:image and JSON-LD image to absolute URL at runtime -->
+  <script>try{var _b=new URL('assets/icon.svg',location.href).href;document.querySelector('meta[property="og:image"]')&&document.querySelector('meta[property="og:image"]').setAttribute('content',_b);var _ld=document.querySelector('script[type="application/ld+json"]');if(_ld){var _d=JSON.parse(_ld.textContent);_d.image=_b;_ld.textContent=JSON.stringify(_d);}}catch(e){}</script>
   <!-- Prevent dark-mode flash: apply class before first paint -->
   <script>try{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body&&document.body.classList.add('dark-mode')}catch(e){}</script>
 </head>
