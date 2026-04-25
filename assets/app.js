@@ -11709,6 +11709,20 @@ function setHouseholdMembers(v) { try { localStorage.setItem('householdMembers',
 function generateMemberId() { return 'm:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
 var _MEMBER_COLORS = ['#4a90e2','#27ae60','#e67e22','#9b59b6','#e74c3c','#1abc9c','#f39c12','#e056a0'];
 
+/** Sanitize a color value to ensure it's a safe CSS hex color before use in HTML. */
+function _safeCSSColor(color) {
+  if (typeof color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(color)) return color;
+  return '#4a90e2'; // fallback to default blue
+}
+
+/**
+ * Regex that matches a leading quantity phrase in a recipe ingredient line.
+ * Captures patterns like "2", "1/2", "2 cups", "1 tbsp", "200 g", etc.
+ * The full match (group 0) is the quantity + unit + trailing space to strip
+ * from the ingredient name.
+ */
+var _RECIPE_QTY_PATTERN = /^(\d[\d\s/]*(?:cups?|tbsp?|tsp?|oz|lbs?|g|kg|ml|l|pieces?|cloves?|cans?|pkg)?\s+)/i;
+
 /* ── Chore Points Config ──────────────────────────────────────────── */
 function getChoresPointsConfig() { return safeParseStorage('choresPointsConfig', {low:1,medium:2,high:3}); }
 function setChoresPointsConfig(v) { try { localStorage.setItem('choresPointsConfig', JSON.stringify(v)); } catch(_) {} }
@@ -11797,10 +11811,11 @@ function renderChoresAppMedium(container) {
         try { renderBucketPage('home'); } catch(_) {}
       });
       var assignedMember = t.assignedTo ? members.find(function(m) { return m.id === t.assignedTo; }) : null;
+      var safeColor = assignedMember ? _safeCSSColor(assignedMember.color) : '';
       var innerHTML =
         '<span class="ca-med-emoji">' + (t.emoji || '📋') + '</span>' +
         '<span class="ca-med-title">' + escapeHTML(t.title || '') + '</span>' +
-        (assignedMember ? '<span class="ca-med-assignee" style="background:' + assignedMember.color + '22;color:' + assignedMember.color + '">' + escapeHTML(assignedMember.name) + '</span>' : '') +
+        (assignedMember ? '<span class="ca-med-assignee" style="background:' + safeColor + '22;color:' + safeColor + '">' + escapeHTML(assignedMember.name) + '</span>' : '') +
         (t.energy ? '<span class="energy-badge ' + t.energy + '">' + (_ENERGY_LABELS[t.energy] || t.energy) + '</span>' : '');
       li.innerHTML = innerHTML;
       li.insertBefore(cb, li.firstChild);
@@ -11863,7 +11878,8 @@ function renderChoresAppFull(container) {
   lHTML += '<div class="ca-members-list">';
   if (members.length) {
     members.forEach(function(m, mi) {
-      lHTML += '<div class="ca-member-row" style="border-left:4px solid ' + m.color + '">' +
+      var mc = _safeCSSColor(m.color);
+      lHTML += '<div class="ca-member-row" style="border-left:4px solid ' + mc + '">' +
         '<span class="ca-member-name">' + escapeHTML(m.name) + '</span>' +
         '<button type="button" class="ca-del-member-btn app-fv-cancel-btn" data-mi="' + mi + '" style="padding:2px 8px;font-size:0.78rem;border:1px solid #e74c3c;color:#e74c3c">✕ Remove</button>' +
       '</div>';
@@ -11876,7 +11892,8 @@ function renderChoresAppFull(container) {
     '<input type="text" id="caNewMemberName" class="app-fv-text-input" placeholder="Member name…" maxlength="30" />' +
     '<div id="caColorPicker" class="ca-color-picker">' +
     _MEMBER_COLORS.map(function(c) {
-      return '<button type="button" class="ca-color-swatch" data-color="' + c + '" style="background:' + c + '" title="' + c + '"></button>';
+      var sc = _safeCSSColor(c);
+      return '<button type="button" class="ca-color-swatch" data-color="' + sc + '" style="background:' + sc + '" title="' + sc + '"></button>';
     }).join('') +
     '</div>' +
     '<button type="button" id="caAddMemberBtn" class="app-fv-save-btn" style="margin-top:6px">+ Add Member</button>' +
@@ -11967,9 +11984,10 @@ function renderChoresAppFull(container) {
     var medals = ['🥇','🥈','🥉'];
     rHTML += '<div class="ca-scoreboard">';
     sortedMembers.forEach(function(m, rank) {
+      var mc = _safeCSSColor(m.color);
       rHTML += '<div class="ca-score-row">' +
         '<span>' + (medals[rank] || (rank+1) + '.') + '</span>' +
-        '<span class="ca-score-name" style="color:' + m.color + '">' + escapeHTML(m.name) + '</span>' +
+        '<span class="ca-score-name" style="color:' + mc + '">' + escapeHTML(m.name) + '</span>' +
         '<span class="ca-score-pts">' + (memberScores[m.id] || 0) + ' pts</span>' +
       '</div>';
     });
@@ -12545,7 +12563,7 @@ function renderGroceriesAppFull(container) {
       if (btn.dataset.dir === 'up' && idx > 0) {
         var tmp = order[idx]; order[idx] = order[idx-1]; order[idx-1] = tmp;
       } else if (btn.dataset.dir === 'down' && idx < order.length - 1) {
-        var tmp2 = order[idx]; order[idx] = order[idx+1]; order[idx+1] = tmp2;
+        var swapVal = order[idx]; order[idx] = order[idx+1]; order[idx+1] = swapVal;
       }
       setGroceryAisleOrder(order);
       renderGroceriesAppFull(container);
@@ -12572,7 +12590,7 @@ function renderGroceriesAppFull(container) {
     var al = getActiveGroceryListObj();
     var newItems = (al.items || []).slice();
     lines.forEach(function(line) {
-      var qtyMatch = line.match(/^(\d[\d\s\/]*(?:cups?|tbsp?|tsp?|oz|lbs?|g|kg|ml|l|pieces?|cloves?|cans?|pkg)?\s+)/i);
+      var qtyMatch = line.match(_RECIPE_QTY_PATTERN);
       var qty = '', text = line;
       if (qtyMatch) { qty = qtyMatch[1].trim(); text = line.slice(qtyMatch[0].length).trim() || line; }
       newItems.push({ id: nextGroceryId(), text: text, qty: qty, price: 0, section: sec, inCart: false, added: getTodayISO() });
