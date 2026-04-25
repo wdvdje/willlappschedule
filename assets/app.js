@@ -10708,7 +10708,8 @@ function _jvStripHtml(html) {
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || '';
   } catch(_) {
-    return (html || '').replace(/[\s\S]*?(?=<|$)/g, '').trim();
+    /* Fallback: return empty string rather than potentially unsafe content */
+    return '';
   }
 }
 
