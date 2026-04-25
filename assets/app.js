@@ -10732,7 +10732,8 @@ function renderRoutineAppFull(container) {
         container.appendChild(routineSection);
         return;
       }
-    } catch(e) { /* fall through to basic view */ }
+      /* personalRoutineSection not found — fall through to basic view */
+    } catch(e) { /* render failed — fall through to basic view */ }
   }
 
   /* ── Fallback: basic two-column view ── */
