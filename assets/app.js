@@ -2969,7 +2969,7 @@ function setRemindersFromArray(arr){
 function buildExportPayload(){
   return {
     meta: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       appVersion: 'unknown',
       exportedAt: new Date().toISOString()
     },
@@ -2996,7 +2996,22 @@ function buildExportPayload(){
       personalHydration: safeParseStorage('personalHydration', {}),
       personalMood: safeParseStorage('personalMood', []),
       personalMealFavorites: safeParseStorage('personalMealFavorites', []),
-      personalMealPrepLog: safeParseStorage('personalMealPrepLog', {})
+      personalMealPrepLog: safeParseStorage('personalMealPrepLog', {}),
+      inbox: getInbox(),
+      journalEntries: safeParseStorage('journalEntries', []),
+      journalFolders: safeParseStorage('journalFolders', []),
+      personalBudget: safeParseStorage('personalBudget', {}),
+      personalMacroGoals: safeParseStorage('personalMacroGoals', {}),
+      personalRecipes: safeParseStorage('personalRecipes', []),
+      personalBodyMeasurements: safeParseStorage('personalBodyMeasurements', []),
+      personalSavingsGoals: safeParseStorage('personalSavingsGoals', []),
+      groceryList: safeParseStorage('groceryList', []),
+      homeStreaks: safeParseStorage('homeStreaks', {}),
+      choreTemplatesCustom: safeParseStorage('choreTemplatesCustom', []),
+      earningsSettings: safeParseStorage('earningsSettings', {}),
+      schoolABSchedule: safeParseStorage('schoolABSchedule', {}),
+      morningBriefingEnabled: localStorage.getItem('morningBriefingEnabled') || null,
+      morningBriefingTime: localStorage.getItem('morningBriefingTime') || null
     }
   };
 }
@@ -3111,10 +3126,27 @@ function parseImportPayload(parsed){
   const personalMood = Array.isArray(data.personalMood) ? data.personalMood : undefined;
   const personalMealFavorites = Array.isArray(data.personalMealFavorites) ? data.personalMealFavorites : undefined;
   const personalMealPrepLog = (data.personalMealPrepLog && typeof data.personalMealPrepLog === 'object' && !Array.isArray(data.personalMealPrepLog)) ? data.personalMealPrepLog : undefined;
+  const inbox = Array.isArray(data.inbox) ? data.inbox : undefined;
+  const journalEntries = Array.isArray(data.journalEntries) ? data.journalEntries : undefined;
+  const journalFolders = Array.isArray(data.journalFolders) ? data.journalFolders : undefined;
+  const personalBudget = (data.personalBudget && typeof data.personalBudget === 'object' && !Array.isArray(data.personalBudget)) ? data.personalBudget : undefined;
+  const personalMacroGoals = (data.personalMacroGoals && typeof data.personalMacroGoals === 'object' && !Array.isArray(data.personalMacroGoals)) ? data.personalMacroGoals : undefined;
+  const personalRecipes = Array.isArray(data.personalRecipes) ? data.personalRecipes : undefined;
+  const personalBodyMeasurements = Array.isArray(data.personalBodyMeasurements) ? data.personalBodyMeasurements : undefined;
+  const personalSavingsGoals = Array.isArray(data.personalSavingsGoals) ? data.personalSavingsGoals : undefined;
+  const groceryList = Array.isArray(data.groceryList) ? data.groceryList : undefined;
+  const homeStreaks = (data.homeStreaks && typeof data.homeStreaks === 'object' && !Array.isArray(data.homeStreaks)) ? data.homeStreaks : undefined;
+  const choreTemplatesCustom = Array.isArray(data.choreTemplatesCustom) ? data.choreTemplatesCustom : undefined;
+  const earningsSettings = (data.earningsSettings && typeof data.earningsSettings === 'object' && !Array.isArray(data.earningsSettings)) ? data.earningsSettings : undefined;
+  const schoolABSchedule = (data.schoolABSchedule && typeof data.schoolABSchedule === 'object' && !Array.isArray(data.schoolABSchedule)) ? data.schoolABSchedule : undefined;
+  const morningBriefingEnabled = data.morningBriefingEnabled != null ? data.morningBriefingEnabled : undefined;
+  const morningBriefingTime = data.morningBriefingTime != null ? data.morningBriefingTime : undefined;
 
   return { events, tasks, reminders, jobs, taskCategories, userProfile, personalBuckets, homeBuckets, domainColors, userOffDays, dayStartHour, dayEndHour,
     personalMeals, personalCalorieGoal, personalSleep, personalGym, personalFocus, personalRoutines, personalRoutineLog, personalHydration, personalMood,
-    personalMealFavorites, personalMealPrepLog };
+    personalMealFavorites, personalMealPrepLog, inbox, journalEntries, journalFolders, personalBudget, personalMacroGoals, personalRecipes,
+    personalBodyMeasurements, personalSavingsGoals, groceryList, homeStreaks, choreTemplatesCustom, earningsSettings, schoolABSchedule,
+    morningBriefingEnabled, morningBriefingTime };
 }
 
 function eventKey(x){
@@ -3238,6 +3270,22 @@ function applyImportData(importData, mode){
     if (Array.isArray(importData.personalMood)) localStorage.setItem('personalMood', JSON.stringify(importData.personalMood));
     if (Array.isArray(importData.personalMealFavorites)) localStorage.setItem('personalMealFavorites', JSON.stringify(importData.personalMealFavorites));
     if (importData.personalCalorieGoal != null) localStorage.setItem('personalCalorieGoal', importData.personalCalorieGoal);
+    // Additional user data, settings, and preferences
+    if (Array.isArray(importData.inbox)) localStorage.setItem('inbox', JSON.stringify(importData.inbox));
+    if (Array.isArray(importData.journalEntries)) localStorage.setItem('journalEntries', JSON.stringify(importData.journalEntries));
+    if (Array.isArray(importData.journalFolders)) localStorage.setItem('journalFolders', JSON.stringify(importData.journalFolders));
+    if (importData.personalBudget && typeof importData.personalBudget === 'object') localStorage.setItem('personalBudget', JSON.stringify(importData.personalBudget));
+    if (importData.personalMacroGoals && typeof importData.personalMacroGoals === 'object') localStorage.setItem('personalMacroGoals', JSON.stringify(importData.personalMacroGoals));
+    if (Array.isArray(importData.personalRecipes)) localStorage.setItem('personalRecipes', JSON.stringify(importData.personalRecipes));
+    if (Array.isArray(importData.personalBodyMeasurements)) localStorage.setItem('personalBodyMeasurements', JSON.stringify(importData.personalBodyMeasurements));
+    if (Array.isArray(importData.personalSavingsGoals)) localStorage.setItem('personalSavingsGoals', JSON.stringify(importData.personalSavingsGoals));
+    if (Array.isArray(importData.groceryList)) localStorage.setItem('groceryList', JSON.stringify(importData.groceryList));
+    if (importData.homeStreaks && typeof importData.homeStreaks === 'object') localStorage.setItem('homeStreaks', JSON.stringify(importData.homeStreaks));
+    if (Array.isArray(importData.choreTemplatesCustom)) localStorage.setItem('choreTemplatesCustom', JSON.stringify(importData.choreTemplatesCustom));
+    if (importData.earningsSettings && typeof importData.earningsSettings === 'object') localStorage.setItem('earningsSettings', JSON.stringify(importData.earningsSettings));
+    if (importData.schoolABSchedule && typeof importData.schoolABSchedule === 'object') localStorage.setItem('schoolABSchedule', JSON.stringify(importData.schoolABSchedule));
+    if (importData.morningBriefingEnabled != null) localStorage.setItem('morningBriefingEnabled', importData.morningBriefingEnabled);
+    if (importData.morningBriefingTime != null) localStorage.setItem('morningBriefingTime', importData.morningBriefingTime);
     writeUserProfile(importData.userProfile || readUserProfile());
     refreshAfterImport();
     return {
@@ -3350,6 +3398,52 @@ function applyImportData(importData, mode){
   }
   if (importData.personalCalorieGoal != null && !localStorage.getItem('personalCalorieGoal')) {
     localStorage.setItem('personalCalorieGoal', importData.personalCalorieGoal);
+  }
+  // Merge additional user data, settings, and preferences (imported fills in if not already set locally)
+  if (Array.isArray(importData.inbox) && importData.inbox.length && !localStorage.getItem('inbox')) {
+    localStorage.setItem('inbox', JSON.stringify(importData.inbox));
+  }
+  if (Array.isArray(importData.journalEntries) && importData.journalEntries.length && !localStorage.getItem('journalEntries')) {
+    localStorage.setItem('journalEntries', JSON.stringify(importData.journalEntries));
+  }
+  if (Array.isArray(importData.journalFolders) && importData.journalFolders.length && !localStorage.getItem('journalFolders')) {
+    localStorage.setItem('journalFolders', JSON.stringify(importData.journalFolders));
+  }
+  if (importData.personalBudget && typeof importData.personalBudget === 'object' && !localStorage.getItem('personalBudget')) {
+    localStorage.setItem('personalBudget', JSON.stringify(importData.personalBudget));
+  }
+  if (importData.personalMacroGoals && typeof importData.personalMacroGoals === 'object' && !localStorage.getItem('personalMacroGoals')) {
+    localStorage.setItem('personalMacroGoals', JSON.stringify(importData.personalMacroGoals));
+  }
+  if (Array.isArray(importData.personalRecipes) && importData.personalRecipes.length && !localStorage.getItem('personalRecipes')) {
+    localStorage.setItem('personalRecipes', JSON.stringify(importData.personalRecipes));
+  }
+  if (Array.isArray(importData.personalBodyMeasurements) && importData.personalBodyMeasurements.length && !localStorage.getItem('personalBodyMeasurements')) {
+    localStorage.setItem('personalBodyMeasurements', JSON.stringify(importData.personalBodyMeasurements));
+  }
+  if (Array.isArray(importData.personalSavingsGoals) && importData.personalSavingsGoals.length && !localStorage.getItem('personalSavingsGoals')) {
+    localStorage.setItem('personalSavingsGoals', JSON.stringify(importData.personalSavingsGoals));
+  }
+  if (Array.isArray(importData.groceryList) && importData.groceryList.length && !localStorage.getItem('groceryList')) {
+    localStorage.setItem('groceryList', JSON.stringify(importData.groceryList));
+  }
+  if (importData.homeStreaks && typeof importData.homeStreaks === 'object' && !localStorage.getItem('homeStreaks')) {
+    localStorage.setItem('homeStreaks', JSON.stringify(importData.homeStreaks));
+  }
+  if (Array.isArray(importData.choreTemplatesCustom) && importData.choreTemplatesCustom.length && !localStorage.getItem('choreTemplatesCustom')) {
+    localStorage.setItem('choreTemplatesCustom', JSON.stringify(importData.choreTemplatesCustom));
+  }
+  if (importData.earningsSettings && typeof importData.earningsSettings === 'object' && !localStorage.getItem('earningsSettings')) {
+    localStorage.setItem('earningsSettings', JSON.stringify(importData.earningsSettings));
+  }
+  if (importData.schoolABSchedule && typeof importData.schoolABSchedule === 'object' && !localStorage.getItem('schoolABSchedule')) {
+    localStorage.setItem('schoolABSchedule', JSON.stringify(importData.schoolABSchedule));
+  }
+  if (importData.morningBriefingEnabled != null && !localStorage.getItem('morningBriefingEnabled')) {
+    localStorage.setItem('morningBriefingEnabled', importData.morningBriefingEnabled);
+  }
+  if (importData.morningBriefingTime != null && !localStorage.getItem('morningBriefingTime')) {
+    localStorage.setItem('morningBriefingTime', importData.morningBriefingTime);
   }
   refreshAfterImport();
 
