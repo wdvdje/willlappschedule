@@ -14857,7 +14857,14 @@ function renderChoresAppMedium(container) {
   });
   var todayTasks = allTasks.filter(function(t) { return t.date === today; });
   var doneTasks  = todayTasks.filter(function(t) { return t.done; });
-  var pct = todayTasks.length ? Math.round(doneTasks.length / todayTasks.length * 100) : 0;
+
+  // Include synced home bucket items in today's count
+  var syncedToday = getSyncedHomeChoreItems().filter(function(it) { return it.date === today; });
+  var syncedDone  = syncedToday.filter(function(it) { return it.done; });
+
+  var totalToday = todayTasks.length + syncedToday.length;
+  var totalDone  = doneTasks.length + syncedDone.length;
+  var pct = totalToday ? Math.round(totalDone / totalToday * 100) : 0;
   var circumference = 113.1;
   var offset = circumference - (pct / 100) * circumference;
   var ringColor = pct === 100 ? '#27ae60' : '#4a90e2';
@@ -14879,7 +14886,7 @@ function renderChoresAppMedium(container) {
       '<span class="ring-label">Done</span>' +
     '</div>' +
     '<div class="ca-med-stat-pills">' +
-      '<div class="home-stat-pill"><span class="home-stat-num done">' + doneTasks.length + '/' + todayTasks.length + '</span><span class="home-stat-label">Today</span></div>' +
+      '<div class="home-stat-pill"><span class="home-stat-num done">' + totalDone + '/' + totalToday + '</span><span class="home-stat-label">Today</span></div>' +
       '<div class="home-stat-pill"><span class="home-stat-num overdue">' + allTasks.filter(function(t){ return !t.done && t.date && t.date < today; }).length + '</span><span class="home-stat-label">Overdue</span></div>' +
     '</div>';
   wrap.appendChild(statsRow);
@@ -14892,12 +14899,13 @@ function renderChoresAppMedium(container) {
 
   var ul = document.createElement('ul');
   ul.className = 'ca-med-list';
-  if (!todayTasks.length) {
+  if (!totalToday) {
     var li = document.createElement('li');
     li.className = 'ca-med-empty';
     li.textContent = 'No chores scheduled for today.';
     ul.appendChild(li);
   } else {
+    // Regular home tasks
     todayTasks.forEach(function(t) {
       var li = document.createElement('li');
       li.className = 'ca-med-item' + (t.done ? ' done' : '');
@@ -14922,6 +14930,55 @@ function renderChoresAppMedium(container) {
         (t.energy ? '<span class="energy-badge ' + t.energy + '">' + (_ENERGY_LABELS[t.energy] || t.energy) + '</span>' : '');
       li.innerHTML = innerHTML;
       li.insertBefore(cb, li.firstChild);
+      ul.appendChild(li);
+    });
+
+    // Synced home bucket items
+    var homeBuckets = getBuckets('home');
+    syncedToday.forEach(function(it) {
+      var li = document.createElement('li');
+      li.className = 'ca-med-item' + (it.done ? ' done' : '');
+      var bucketObj = homeBuckets.find(function(b) { return b.id === it.bucketId; });
+      if (it.type === 'task') {
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!it.done;
+        cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0';
+        cb.addEventListener('change', function() {
+          markSyncedItemDone('task', it.id, cb.checked);
+          renderChoresAppMedium(container);
+        });
+        li.innerHTML =
+          '<span class="ca-med-emoji">' + it.emoji + '</span>' +
+          '<span class="ca-med-title">' + escapeHTML(it.title) + '</span>' +
+          (bucketObj ? '<span style="font-size:0.68rem;color:var(--ios-text-3)">[' + escapeHTML(bucketObj.name) + ']</span>' : '') +
+          (it.energy ? '<span class="energy-badge ' + it.energy + '">' + (_ENERGY_LABELS[it.energy] || it.energy) + '</span>' : '') +
+          '<span style="font-size:0.68rem;color:var(--ios-accent);margin-left:auto">🔗</span>';
+        li.insertBefore(cb, li.firstChild);
+      } else if (it.type === 'reminder') {
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!it.done;
+        cb.title = 'Mark as read';
+        cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0';
+        cb.addEventListener('change', function() {
+          markSyncedItemDone('reminder', it.id, cb.checked);
+          renderChoresAppMedium(container);
+        });
+        li.innerHTML =
+          '<span class="ca-med-emoji">' + it.emoji + '</span>' +
+          '<span class="ca-med-title">' + escapeHTML(it.title) + '</span>' +
+          (bucketObj ? '<span style="font-size:0.68rem;color:var(--ios-text-3)">[' + escapeHTML(bucketObj.name) + ']</span>' : '') +
+          '<span style="font-size:0.68rem;color:var(--ios-accent);margin-left:auto">🔗</span>';
+        li.insertBefore(cb, li.firstChild);
+      } else {
+        // Event — done when time passed
+        li.innerHTML =
+          '<span class="ca-med-emoji">' + it.emoji + '</span>' +
+          '<span class="ca-med-title">' + escapeHTML(it.title) + '</span>' +
+          (bucketObj ? '<span style="font-size:0.68rem;color:var(--ios-text-3)">[' + escapeHTML(bucketObj.name) + ']</span>' : '') +
+          '<span style="font-size:0.68rem;color:' + (it.done ? '#27ae60' : 'var(--ios-accent)') + ';margin-left:auto">' + (it.done ? '✓ Past' : '📅') + '</span>';
+      }
       ul.appendChild(li);
     });
   }
@@ -14962,6 +15019,68 @@ function renderChoresAppMedium(container) {
 }
 
 /* ── Chores App — Full View ───────────────────────────────────────── */
+function getChoreSyncedBuckets() { return safeParseStorage('choreSyncedBuckets', []); }
+function setChoreSyncedBuckets(v) { try { localStorage.setItem('choreSyncedBuckets', JSON.stringify(v)); } catch(_) {} }
+
+/* Return all home-bucket items (tasks + reminders + events) whose bucketId is in the synced list.
+   Returns an array of { type:'task'|'reminder'|'event', id, bucketId, title, emoji, energy, date, done } */
+function getSyncedHomeChoreItems() {
+  var synced = getChoreSyncedBuckets();
+  if (!synced.length) return [];
+  var today = getTodayISO();
+  var items = [];
+
+  // Tasks
+  getTasks().forEach(function(t) {
+    if (synced.indexOf(t.bucketId) !== -1 && getDomainOfItem(t) === 'home') {
+      items.push({ type: 'task', id: t.id, bucketId: t.bucketId, title: t.title || '', emoji: t.emoji || '📋', energy: t.energy || 'low', date: t.date || '', done: !!t.done });
+    }
+  });
+
+  // Events — "done" when time has passed
+  getEvents().forEach(function(ev) {
+    if (synced.indexOf(ev.bucketId) !== -1 && getDomainOfItem(ev) === 'home') {
+      var eventDate = ev.date || '';
+      var isDone = eventDate && eventDate < today;
+      items.push({ type: 'event', id: ev.id, bucketId: ev.bucketId, title: ev.title || ev.name || '', emoji: ev.emoji || '📅', energy: ev.energy || 'low', date: eventDate, done: isDone });
+    }
+  });
+
+  // Reminders
+  var remMap = getReminders();
+  Object.keys(remMap).forEach(function(dk) {
+    (remMap[dk] || []).forEach(function(r) {
+      if (synced.indexOf(r.bucketId) !== -1 && getDomainOfItem(r) === 'home') {
+        items.push({ type: 'reminder', id: r.id, bucketId: r.bucketId, title: r.text || r.title || '', emoji: r.emoji || '🔔', energy: r.energy || 'low', date: dk, done: !!r.done });
+      }
+    });
+  });
+
+  return items;
+}
+
+/* Mark a synced item done and propagate across the PWA */
+function markSyncedItemDone(type, id, done) {
+  if (type === 'task') {
+    var tasks = getTasks();
+    var idx = tasks.findIndex(function(t) { return String(t.id) === String(id); });
+    if (idx !== -1) { tasks[idx].done = done; setTasks(tasks); }
+    try { renderHomeDashboard(); } catch(_) {}
+    try { renderBucketPage('home'); } catch(_) {}
+  } else if (type === 'reminder') {
+    var remMap = getReminders();
+    var updated = false;
+    Object.keys(remMap).forEach(function(dk) {
+      (remMap[dk] || []).forEach(function(r) {
+        if (String(r.id) === String(id)) { r.done = done; updated = true; }
+      });
+    });
+    if (updated) setReminders(remMap);
+    try { if (selectedDay) showReminders(selectedDay); } catch(_) {}
+  }
+  // Events are time-based; no manual marking needed
+}
+
 function renderChoresAppFull(container) {
   container.innerHTML = '';
   var today = getTodayISO();
@@ -14976,34 +15095,10 @@ function renderChoresAppFull(container) {
   var left  = document.createElement('div'); left.className  = 'app-full-col';
   var right = document.createElement('div'); right.className = 'app-full-col';
 
-  /* ── LEFT: Members, Points Config, Today's Assignments ── */
-  var lHTML = '<h3 class="app-full-col-heading">👥 Household Members</h3>';
-  lHTML += '<div class="ca-members-list">';
-  if (members.length) {
-    members.forEach(function(m, mi) {
-      var mc = _safeCSSColor(m.color);
-      lHTML += '<div class="ca-member-row" style="border-left:4px solid ' + mc + '">' +
-        '<span class="ca-member-name">' + escapeHTML(m.name) + '</span>' +
-        '<button type="button" class="ca-del-member-btn app-fv-cancel-btn" data-mi="' + mi + '" style="padding:2px 8px;font-size:0.78rem;border:1px solid #e74c3c;color:#e74c3c">✕ Remove</button>' +
-      '</div>';
-    });
-  } else {
-    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No members yet. Add one below.</p>';
-  }
-  lHTML += '</div>';
-  lHTML += '<div class="ca-add-member-form">' +
-    '<input type="text" id="caNewMemberName" class="app-fv-text-input" placeholder="Member name…" maxlength="30" />' +
-    '<div id="caColorPicker" class="ca-color-picker">' +
-    _MEMBER_COLORS.map(function(c) {
-      var sc = _safeCSSColor(c);
-      return '<button type="button" class="ca-color-swatch" data-color="' + sc + '" style="background:' + sc + '" title="' + sc + '"></button>';
-    }).join('') +
-    '</div>' +
-    '<button type="button" id="caAddMemberBtn" class="app-fv-save-btn" style="margin-top:6px">+ Add Member</button>' +
-  '</div>';
+  /* ── LEFT: Points Config, Home Bucket Sync, Today's Assignments ── */
 
   /* Points config */
-  lHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">⭐ Points Per Chore</h3>';
+  var lHTML = '<h3 class="app-full-col-heading">⭐ Points Per Chore</h3>';
   lHTML += '<div class="ca-pts-config">';
   ['low','medium','high'].forEach(function(lvl) {
     lHTML += '<div class="ca-pts-row">' +
@@ -15015,10 +15110,29 @@ function renderChoresAppFull(container) {
   lHTML += '<button type="button" id="caSavePtsBtn" class="app-fv-save-btn" style="margin-top:8px">Save Points</button>';
   lHTML += '</div>';
 
-  /* Today's assignments */
+  /* Home bucket sync */
+  var syncedBuckets = getChoreSyncedBuckets();
+  var homeBuckets   = getBuckets('home');
+  lHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">🔗 Sync Home Buckets</h3>';
+  lHTML += '<p style="font-size:0.78rem;color:var(--ios-text-3);margin:0 0 8px">Check buckets to include their items as chores in Today\'s tracker, points, and history.</p>';
+  if (!homeBuckets.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No Home buckets yet. Add buckets from the Home page.</p>';
+  } else {
+    lHTML += '<div class="ca-sync-list">';
+    homeBuckets.forEach(function(b) {
+      var checked = syncedBuckets.indexOf(b.id) !== -1;
+      lHTML += '<label class="ca-sync-row"><input type="checkbox" class="ca-sync-cb" data-bucketid="' + escapeHTML(String(b.id)) + '"' + (checked ? ' checked' : '') + ' />' +
+        '<span>' + escapeHTML((b.emoji || '📂') + ' ' + b.name) + '</span></label>';
+    });
+    lHTML += '</div>';
+    lHTML += '<button type="button" id="caSaveSyncBtn" class="app-fv-save-btn" style="margin-top:8px">Save Sync</button>';
+  }
+
+  /* Today's assignments (combined tasks + synced items) */
   var todayTasks = allTasks.filter(function(t) { return t.date === today; });
+  var syncedItems = getSyncedHomeChoreItems().filter(function(it) { return it.date === today; });
   lHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">📋 Today\'s Assignments</h3>';
-  if (!todayTasks.length) {
+  if (!todayTasks.length && !syncedItems.length) {
     lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No chores scheduled today.</p>';
   } else {
     lHTML += '<div class="ca-assignment-list">';
@@ -15033,7 +15147,19 @@ function renderChoresAppFull(container) {
         '</select>' +
       '</div>';
     });
-    lHTML += '</div><button type="button" id="caSaveAssignBtn" class="app-fv-save-btn" style="margin-top:8px">Save Assignments</button>';
+    syncedItems.forEach(function(it) {
+      var bucketObj = homeBuckets.find(function(b) { return b.id === it.bucketId; });
+      lHTML += '<div class="ca-assign-row ca-assign-synced">' +
+        '<span class="ca-assign-task">' + it.emoji + ' ' + escapeHTML(it.title) +
+          (bucketObj ? ' <span style="font-size:0.72rem;color:var(--ios-text-3)">[' + escapeHTML(bucketObj.name) + ']</span>' : '') +
+        '</span>' +
+        '<span style="font-size:0.72rem;color:var(--ios-accent);margin-left:auto">🔗 Synced</span>' +
+      '</div>';
+    });
+    lHTML += '</div>';
+    if (todayTasks.length) {
+      lHTML += '<button type="button" id="caSaveAssignBtn" class="app-fv-save-btn" style="margin-top:8px">Save Assignments</button>';
+    }
   }
 
   left.innerHTML = lHTML;
@@ -15121,39 +15247,7 @@ function renderChoresAppFull(container) {
   layout.appendChild(right);
   container.appendChild(layout);
 
-  /* Wire member management */
-  var _selectedMemberColor = _MEMBER_COLORS[0];
-  container.querySelectorAll('.ca-color-swatch').forEach(function(sw) {
-    sw.addEventListener('click', function() {
-      _selectedMemberColor = sw.dataset.color;
-      container.querySelectorAll('.ca-color-swatch').forEach(function(s) { s.classList.remove('selected'); });
-      sw.classList.add('selected');
-    });
-  });
-  var firstSwatch = container.querySelector('.ca-color-swatch');
-  if (firstSwatch) firstSwatch.classList.add('selected');
-
-  var addMemberBtn = container.querySelector('#caAddMemberBtn');
-  if (addMemberBtn) addMemberBtn.addEventListener('click', function() {
-    var nameInp = container.querySelector('#caNewMemberName');
-    var name = nameInp ? nameInp.value.trim() : '';
-    if (!name) { if (nameInp) nameInp.focus(); return; }
-    var mems = getHouseholdMembers();
-    mems.push({ id: generateMemberId(), name: name, color: _selectedMemberColor });
-    setHouseholdMembers(mems);
-    renderChoresAppFull(container);
-  });
-
-  container.querySelectorAll('.ca-del-member-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var mi = parseInt(btn.dataset.mi, 10);
-      var mems = getHouseholdMembers();
-      mems.splice(mi, 1);
-      setHouseholdMembers(mems);
-      renderChoresAppFull(container);
-    });
-  });
-
+  /* Wire points config save */
   var savePtsBtn = container.querySelector('#caSavePtsBtn');
   if (savePtsBtn) savePtsBtn.addEventListener('click', function() {
     var cfg = {};
@@ -15165,6 +15259,27 @@ function renderChoresAppFull(container) {
     setTimeout(function() { savePtsBtn.textContent = 'Save Points'; }, 1500);
   });
 
+  /* Wire home bucket sync save */
+  var saveSyncBtn = container.querySelector('#caSaveSyncBtn');
+  if (saveSyncBtn) saveSyncBtn.addEventListener('click', function() {
+    var selected = [];
+    container.querySelectorAll('.ca-sync-cb').forEach(function(cb) {
+      if (cb.checked) {
+        var bid = cb.dataset.bucketid;
+        // bucket IDs may be numbers
+        var parsed = isNaN(bid) ? bid : parseInt(bid, 10);
+        selected.push(parsed);
+      }
+    });
+    setChoreSyncedBuckets(selected);
+    saveSyncBtn.textContent = '✓ Saved';
+    setTimeout(function() {
+      saveSyncBtn.textContent = 'Save Sync';
+      renderChoresAppFull(container);
+    }, 1000);
+  });
+
+  /* Wire assignment save */
   var saveAssignBtn = container.querySelector('#caSaveAssignBtn');
   if (saveAssignBtn) saveAssignBtn.addEventListener('click', function() {
     var tasks = getTasks();

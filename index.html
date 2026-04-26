@@ -1582,6 +1582,10 @@
         if (typeof window.renderChoresAppMedium === 'function') {
           try { window.renderChoresAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Chores.</p>'; }
         }
+      } else if (app === 'groceries') {
+        if (typeof window.renderGroceriesAppMedium === 'function') {
+          try { window.renderGroceriesAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Groceries.</p>'; }
+        }
       } else {
         var containerId = _APP_CONTAINER_MAP[app];
         if (containerId) {
@@ -2204,32 +2208,40 @@
         // Set a descriptive window title
         document.title = (_APP_TITLE_MAP[childApp] || childApp) + ' — TimeScape';
 
-        // Open the app fullscreen. Retry until the render function is ready (scripts may still be loading).
-        // 12 attempts × 250 ms = up to 3 seconds of grace time.
+        // Hide the modal wrapper entirely — in child window the app fills the OS window directly
+        var appModal = document.getElementById('appWindowModal');
+        if (appModal) appModal.style.display = 'none';
+
+        // Create a full-screen root container directly in <body>
+        var childRoot = document.createElement('div');
+        childRoot.id = 'childAppRoot';
+        document.body.appendChild(childRoot);
+
+        // Render the full app view into the root. Retry until render fn is ready.
         var CHILD_INIT_RETRIES = 12;
-        function tryOpenChildApp(attempts) {
+        function tryRenderChildApp(attempts) {
           var fullFn = _APP_FULL_RENDER_MAP[childApp];
           if (fullFn && typeof window[fullFn] === 'function') {
-            openAppDetail(childApp, { fullscreen: true });
+            _currentApp = childApp;
+            try { window[fullFn](childRoot); } catch(e) {
+              childRoot.innerHTML = '<p style="padding:20px;color:#888">Error loading ' + escapeHTML(_APP_TITLE_MAP[childApp] || childApp) + '.</p>';
+            }
           } else if (attempts > 0) {
-            setTimeout(function() { tryOpenChildApp(attempts - 1); }, 250);
+            setTimeout(function() { tryRenderChildApp(attempts - 1); }, 250);
           } else {
-            // Render functions not yet available — open anyway (will show error gracefully)
-            openAppDetail(childApp, { fullscreen: true });
+            childRoot.innerHTML = '<p style="padding:20px;color:#888">Could not load ' + escapeHTML(_APP_TITLE_MAP[childApp] || childApp) + '.</p>';
           }
         }
-        tryOpenChildApp(CHILD_INIT_RETRIES);
+        tryRenderChildApp(CHILD_INIT_RETRIES);
 
-        // Override the close (red) traffic-light button to close the child window.
-        // window.close() works when the window was opened via window.open(); some browsers
-        // may silently ignore it for user-opened tabs, which is safe to disregard.
-        var closeBtn = document.getElementById('appWindowCloseBtn');
-        if (closeBtn) {
-          closeBtn.addEventListener('click', function() { try { window.close(); } catch(e) {} });
-        }
-
-        // Real-time sync: re-render when the parent window modifies localStorage
-        window.addEventListener('storage', _handleStorageSync);
+        // Real-time sync: re-render child app when parent window modifies localStorage
+        window.addEventListener('storage', function() {
+          if (!_currentApp) return;
+          var fullFn = _APP_FULL_RENDER_MAP[_currentApp];
+          if (fullFn && typeof window[fullFn] === 'function') {
+            try { window[fullFn](childRoot); } catch(e) {}
+          }
+        });
       })();
     });
 

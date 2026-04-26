@@ -1825,7 +1825,7 @@ body.dark-mode .weather-day-desc { color: var(--ios-text-3); }
 
 .steps-toggle-btn { font-size:0.75rem; background:none; border:none; color:var(--ios-accent); cursor:pointer; padding:0; margin-top:3px; text-decoration:underline; }
 
-.chore-tpl-modal { position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:center; justify-content:center; z-index:9999; }
+.chore-tpl-modal { position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:center; justify-content:center; z-index:10030; }
 
 .chore-tpl-modal:not(.hidden) { display:flex; }
 

@@ -4292,6 +4292,25 @@ body.child-window-mode .app-window-header {
   display: none !important;
 }
 
+/* ── Child-window direct-render root ──────────────────────────────── */
+/* The app is rendered into #childAppRoot, which fills the entire OS   */
+/* window viewport without any modal wrapper.                          */
+#childAppRoot {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--ios-bg, #f2f2f7);
+  color: var(--ios-text, #1c1c1e);
+  padding: 16px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+/* Let full two-column layouts breathe in child windows */
+#childAppRoot .app-full-two-col {
+  gap: 24px;
+}
+
 /* ── Haptic visual proxy (@media hover: none = touch device) ─────── */
 /* On iOS, navigator.vibrate is absent and AudioContext feedback is    */
 /* subtle.  These :active scale transforms provide a reliable tactile  */
