@@ -28,6 +28,8 @@ header .header-btn .header-btn-label { font-size:0.75rem; }
 .item-controls{margin-left:8px}
 .small-btn{padding:6px 12px;background:#888;color:#fff;border:1.5px solid transparent;border-radius:10px;margin-left:6px;cursor:pointer;transition:background var(--ios-fast) var(--ios-ease), border-color var(--ios-fast) var(--ios-ease)}
 .small-btn:hover{opacity:0.9}
+.btn-primary{background:var(--ios-accent,#4a90e2);color:#fff;border-color:var(--ios-accent,#4a90e2)}
+.btn-primary:hover{background:var(--ios-accent-dk,#0062cc);border-color:var(--ios-accent-dk,#0062cc);opacity:1}
 .tasks,.events,.reminders,.dashboard{max-width:540px;margin:18px auto;text-align:left;padding:0 12px;box-sizing:border-box}
 input[type="text"],input[type="date"],input[type="time"],select{padding:8px;border-radius:var(--ios-r-xs);border:1px solid var(--ios-border);width:100%;box-sizing:border-box;margin-top:6px}
 .mobile-row{display:flex;gap:8px;align-items:center}

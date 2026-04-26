@@ -436,7 +436,7 @@
           </select>
         </div>
         <div style="margin-top:10px">
-          <button id="addReminderBtn" type="button" class="small-btn" style="background:#4a90e2;color:#fff;border:none;padding:7px 18px;border-radius:10px;font-size:0.92rem;cursor:pointer">＋ Add Reminder</button>
+          <button id="addReminderBtn" type="button" class="small-btn btn-primary" style="padding:7px 18px;font-size:0.92rem">＋ Add Reminder</button>
         </div>
       </form>
       <ul id="reminderPageList" style="margin-top:14px"></ul>
@@ -489,7 +489,7 @@
           </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
             <button id="catCancelBtn" type="button" class="small-btn">Cancel</button>
-            <button id="catAddBtn" type="button" style="background:#4a90e2;color:#fff;border:none;padding:6px 10px;border-radius:10px">Add</button>
+            <button id="catAddBtn" type="button" class="small-btn btn-primary" style="padding:6px 10px">Add</button>
           </div>
         </div>
       </div>
@@ -624,6 +624,7 @@
               <input id="jobPayPeriodStart" type="date" placeholder="First pay date" style="flex:1" />
             </div>
             <p style="font-size:0.78rem;color:#888;margin:4px 0 0">Set when you get paid. Syncs with Budget widget.</p>
+            <div id="jobPayPeriodStatus" style="margin-top:4px;font-size:0.82rem;color:#27ae60;display:none"></div>
           </div>
 
           <!-- Per-Job Off-Days -->
@@ -633,14 +634,18 @@
             <div style="display:flex;gap:8px;align-items:center">
               <input id="jobOffDayDate" type="date" style="flex:1" />
               <input id="jobOffDayLabel" type="text" placeholder="Label (optional)" style="flex:1" />
-              <button type="button" id="addJobOffDayBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+              <button type="button" id="addJobOffDayBtn" class="small-btn btn-primary">Add</button>
             </div>
             <ul id="jobOffDaysList" style="list-style:none;padding:0;margin:6px 0 0"></ul>
+            <details id="jobOffDaysSummary" style="margin-top:8px;font-size:0.82rem;color:#555">
+              <summary style="cursor:pointer;font-weight:600;color:#666">📋 Effective off-days (merged view)</summary>
+              <div id="jobOffDaysSummaryContent" style="margin-top:6px;padding:6px 8px;background:#f9f9f9;border-radius:6px;color:#555;font-size:0.8rem"></div>
+            </details>
           </div>
 
           <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
             <button id="cancelJobBtn" type="button" class="small-btn">Cancel</button>
-            <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
+            <button id="saveJobBtn" class="small-btn btn-primary">Save job</button>
           </div>
         </div>
       </div>
@@ -702,7 +707,7 @@
           </div>
           <small style="color:#888;font-size:0.8rem">Used to estimate travel time in event buffer tooltips</small>
           <div style="display:flex;gap:8px;margin-top:8px">
-            <button id="saveProfileBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save profile</button>
+            <button id="saveProfileBtn" class="small-btn btn-primary">Save profile</button>
             <button id="clearProfileBtn" class="small-btn">Clear</button>
           </div>
           <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
@@ -711,7 +716,7 @@
         <section id="dataBackupSettings" style="margin-top:18px">
           <h3>Data Backup</h3>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-            <button id="exportDataBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export JSON</button>
+            <button id="exportDataBtn" class="small-btn btn-primary">Export JSON</button>
             <select id="dataImportMode" style="width:180px">
               <option value="overwrite">Import mode: Overwrite</option>
               <option value="merge">Import mode: Merge</option>
@@ -732,7 +737,7 @@
               Connect an iCloud Drive folder once. Your data will sync automatically in the background every time it changes.
             </p>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-              <button id="icloudConnectBtn" class="small-btn" style="background:#4a90e2;color:#fff">Connect iCloud Drive Folder</button>
+              <button id="icloudConnectBtn" class="small-btn btn-primary">Connect iCloud Drive Folder</button>
               <button id="icloudDisconnectBtn" class="small-btn">Disconnect</button>
             </div>
             <div id="icloudMacStatus" style="margin-top:8px;color:#666;font-size:0.9rem">No folder connected.</div>
@@ -749,7 +754,7 @@
               Export your data as a JSON file to save to iCloud Drive via the Files app, or import a previously saved file.
             </p>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-              <button id="icloudExportBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export to Files / iCloud Drive</button>
+              <button id="icloudExportBtn" class="small-btn btn-primary">Export to Files / iCloud Drive</button>
               <button id="icloudImportBtn" class="small-btn">Import from Files / iCloud Drive</button>
             </div>
             <div id="icloudIosStatus" style="margin-top:8px;color:#666;font-size:0.9rem"></div>
@@ -761,18 +766,23 @@
           </div>
         </section>
 
-        <!-- Morning Briefing -->
-        <section id="morningBriefingSettings" style="margin-top:18px">
-          <h3>Morning Briefing</h3>
-          <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Get a daily push notification with today's schedule.</p>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
-            <label style="margin:0;font-weight:600">Enable</label>
-            <input id="morningBriefingEnabled" type="checkbox" style="width:auto;margin:0" />
-            <label style="margin:0 0 0 12px;font-weight:600">Time</label>
-            <input id="morningBriefingTime" type="time" value="08:00" style="width:130px" />
-          </div>
-          <button id="saveMorningBriefingBtn" class="small-btn" style="background:#4a90e2;color:#fff;margin-top:8px">Save briefing settings</button>
-          <div id="morningBriefingStatus" style="margin-top:6px;color:#666;font-size:0.9rem"></div>
+        <!-- Notifications group -->
+        <section id="notificationsSection" style="margin-top:18px;border:1px solid #eee;border-radius:10px;padding:12px 14px">
+          <h3 style="margin:0 0 12px">🔔 Notifications</h3>
+
+          <!-- Morning Briefing -->
+          <section id="morningBriefingSettings" style="margin-top:0">
+            <h4 style="margin:0 0 4px;font-size:0.95rem">Morning Briefing</h4>
+            <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Get a daily push notification with today's schedule.</p>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+              <label style="margin:0;font-weight:600">Enable</label>
+              <input id="morningBriefingEnabled" type="checkbox" style="width:auto;margin:0" />
+              <label style="margin:0 0 0 12px;font-weight:600">Time</label>
+              <input id="morningBriefingTime" type="time" value="08:00" style="width:130px" />
+            </div>
+            <button id="saveMorningBriefingBtn" class="small-btn btn-primary" style="margin-top:8px">Save briefing settings</button>
+            <div id="morningBriefingStatus" style="margin-top:6px;color:#666;font-size:0.9rem"></div>
+          </section>
         </section>
 
         <!-- Domain Colors -->
@@ -808,7 +818,7 @@
             <p style="font-size:0.78rem;color:#888;margin:0">Apps items are automatically tagged when created inside an app (e.g. Sleep reminders). You cannot manually assign items to Apps.</p>
           </div>
           <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
-            <button id="saveDomainColorsBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save colors</button>
+            <button id="saveDomainColorsBtn" class="small-btn btn-primary">Save colors</button>
             <button id="resetDomainColorsBtn" class="small-btn">Reset to defaults</button>
             <span id="domainColorStatus" style="font-size:0.9rem;color:#27ae60;margin-left:8px"></span>
           </div>
@@ -832,7 +842,7 @@
           <div style="display:flex;align-items:center;gap:8px;margin-top:10px">
             <label style="font-weight:600;font-size:0.9rem">Custom:</label>
             <input type="color" id="themeColorCustomPicker" style="width:44px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc"/>
-            <button id="themeColorCustomApplyBtn" class="small-btn" style="background:#4a90e2;color:#fff">Apply</button>
+            <button id="themeColorCustomApplyBtn" class="small-btn btn-primary">Apply</button>
           </div>
         </section>
         <!-- Keyboard Shortcuts — desktop only -->
@@ -907,17 +917,8 @@
         <button class="app-icon-btn" data-app="groceries">  <span class="app-icon-emoji">🛒</span><span class="app-icon-label">Groceries</span></button>
       </div>
 
-      <!-- App detail panel (shown when an app icon is tapped) -->
-      <div id="appsDetailPanel" class="hidden">
-        <div class="apps-detail-nav">
-          <button id="appsDetailBack" class="apps-detail-back-btn">← Back</button>
-          <h3 id="appsDetailTitle" class="apps-detail-title"></h3>
-          <label class="apps-pin-label" title="Show this app on the Today page">
-            <input type="checkbox" id="appPinToggle" style="width:auto;margin:0" />
-            <span>Pin to Today</span>
-          </label>
-        </div>
-        <div id="appsDetailContent" class="apps-detail-content">
+      <!-- Hidden widget-pane parking area; populated by app window logic -->
+      <div id="appsDetailContent" class="hidden">
           <!-- Widget containers (moved from Personal page; rendered by app.js / desktop-personal.js) -->
           <div id="personalClothesSection" class="app-widget-pane hidden"></div>
           <div id="personalBudgetSection"    class="app-widget-pane hidden"></div>
@@ -933,7 +934,6 @@
           <div id="personalJournalSection"   class="app-widget-pane hidden"></div>
           <!-- Routine Analytics Stats (rendered by routine-analytics.js) -->
           <div id="personalRoutineStatsSection" class="app-widget-pane hidden"></div>
-        </div>
       </div>
     </div><!-- end apps-modal-panel -->
   </div><!-- end appsModal -->
@@ -1062,7 +1062,7 @@
         </div>
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
           <button type="button" id="cancelEdit" class="small-btn">Cancel</button>
-          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:10px">Save</button>
+          <button type="submit" id="saveEdit" class="small-btn btn-primary" style="padding:8px 12px">Save</button>
         </div>
       </form>
     </div>
@@ -1084,7 +1084,7 @@
   <!-- Undo toast -->
   <div id="undoToast" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 16px;border-radius:24px;display:flex;gap:12px;align-items:center;z-index:9998;font-size:0.88rem;box-shadow:0 4px 20px rgba(0,0,0,0.25);opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap">
     <span id="undoMessage">Item deleted.</span>
-    <button id="undoBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:12px;padding:4px 10px;cursor:pointer;font-size:0.82rem">Undo</button>
+    <button id="undoBtn" class="small-btn btn-primary" style="border-radius:12px;padding:4px 10px;font-size:0.82rem">Undo</button>
   </div>
 
   <!-- App notification toast (popup blocked, window closed, etc.) -->
@@ -1399,9 +1399,7 @@
       if (!m) return;
       m.classList.remove('hidden');
       var grid = document.getElementById('appsIconGrid');
-      var detail = document.getElementById('appsDetailPanel');
       if (grid) grid.classList.remove('hidden');
-      if (detail) detail.classList.add('hidden');
       // Wire drag-to-reorder if not already wired
       if (grid && !grid._dndWired) {
         setTimeout(function() {

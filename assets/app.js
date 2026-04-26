@@ -365,6 +365,82 @@ function isCurrentHourForDate(year, monthIndex, day, hourCell){
 /* Temporary storage for off-days being edited in the modal */
 var _jobModalOffDays = [];
 
+function _updateJobPayPeriodStatus() {
+  var statusEl = document.getElementById('jobPayPeriodStatus');
+  if (!statusEl) return;
+  var ppTypeEl = document.getElementById('jobPayPeriodType');
+  var hasType = ppTypeEl && ppTypeEl.value;
+  if (hasType) {
+    statusEl.textContent = '✅ Pay period active — connected to Budget widget';
+    statusEl.style.display = 'block';
+  } else {
+    statusEl.textContent = '';
+    statusEl.style.display = 'none';
+  }
+}
+
+function _renderJobOffDaysSummary() {
+  var summaryContent = document.getElementById('jobOffDaysSummaryContent');
+  if (!summaryContent) return;
+
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
+  var cutoffDate = new Date(today);
+  cutoffDate.setDate(cutoffDate.getDate() + 90);
+  var cutoffStr = cutoffDate.getFullYear() + '-' + pad2(cutoffDate.getMonth() + 1) + '-' + pad2(cutoffDate.getDate());
+
+  /* Federal holidays for current and next year within 90-day window */
+  function nthWD(year, month, weekday, nth) {
+    var count = 0;
+    for (var day = 1; day <= 31; day++) {
+      var dt = new Date(year, month, day);
+      if (dt.getMonth() !== month) break;
+      if (dt.getDay() === weekday) { count++; if (count === nth) return day; }
+    }
+    return 1;
+  }
+  function lastWD(year, month, weekday) {
+    var last = new Date(year, month + 1, 0);
+    return last.getDate() - ((7 + last.getDay() - weekday) % 7);
+  }
+  var federalSet = {};
+  [today.getFullYear(), today.getFullYear() + 1].forEach(function(yr) {
+    [yr+'-01-01', yr+'-06-19', yr+'-07-04', yr+'-11-11', yr+'-12-25',
+     yr+'-01-'+pad2(nthWD(yr,0,1,3)),
+     yr+'-02-'+pad2(nthWD(yr,1,1,3)),
+     yr+'-05-'+pad2(lastWD(yr,4,1)),
+     yr+'-09-'+pad2(nthWD(yr,8,1,1)),
+     yr+'-10-'+pad2(nthWD(yr,9,1,2)),
+     yr+'-11-'+pad2(nthWD(yr,10,4,4))
+    ].forEach(function(d) { if (d >= todayStr && d <= cutoffStr) federalSet[d] = true; });
+  });
+  var federalCount = Object.keys(federalSet).length;
+
+  /* Global user off-days in window */
+  var userOffDays = [];
+  try { userOffDays = JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) {}
+  var globalCount = 0;
+  userOffDays.forEach(function(entry) {
+    var d = typeof entry === 'string' ? entry : (entry && entry.date ? entry.date : '');
+    if (d && d >= todayStr && d <= cutoffStr && !federalSet[d]) globalCount++;
+  });
+
+  /* This job's own off-days in window */
+  var jobCount = 0;
+  _jobModalOffDays.forEach(function(entry) {
+    var d = typeof entry === 'string' ? entry : (entry && entry.date ? entry.date : '');
+    if (d && d >= todayStr && d <= cutoffStr) jobCount++;
+  });
+
+  var total = federalCount + globalCount + jobCount;
+  summaryContent.innerHTML =
+    federalCount + ' federal holiday' + (federalCount !== 1 ? 's' : '') +
+    ' + ' + globalCount + ' global off-day' + (globalCount !== 1 ? 's' : '') +
+    ' + ' + jobCount + ' job off-day' + (jobCount !== 1 ? 's' : '') +
+    ' = <strong>' + total + ' date' + (total !== 1 ? 's' : '') + ' skipped in next 90 days</strong>' +
+    '<br><span style="color:#aaa;font-size:0.75rem">These are all dates the A/B repeat pattern will skip for this job.</span>';
+}
+
 function showJobModal(jobId) {
   try {
     var modal = document.getElementById('jobModal');
@@ -389,6 +465,7 @@ function showJobModal(jobId) {
         var ppStartEl = document.getElementById('jobPayPeriodStart');
         if (ppTypeEl) ppTypeEl.value = (job.payPeriod && job.payPeriod.type) || '';
         if (ppStartEl) ppStartEl.value = (job.payPeriod && job.payPeriod.startDate) || '';
+        _updateJobPayPeriodStatus();
         var heading = document.getElementById('jobModalHeading');
         if (heading) heading.textContent = 'Edit Job';
       }
@@ -397,7 +474,9 @@ function showJobModal(jobId) {
       var heading = document.getElementById('jobModalHeading');
       if (heading) heading.textContent = 'Add Job';
     }
+    _updateJobPayPeriodStatus();
     renderJobOffDaysList();
+    _renderJobOffDaysSummary();
     modal.classList.remove('hidden');
     setTimeout(function() {
       var nameInput = document.getElementById('jobName');
@@ -441,6 +520,7 @@ function renderJobOffDaysList() {
     removeBtn.addEventListener('click', function() {
       _jobModalOffDays.splice(i, 1);
       renderJobOffDaysList();
+      _renderJobOffDaysSummary();
     });
     li.appendChild(removeBtn);
     ul.appendChild(li);
@@ -548,6 +628,8 @@ function clearJobForm(){
       if (saveBtn) saveBtn.addEventListener('click', function(e){ e.preventDefault(); saveJobFromUI(); });
       if (cancelBtn) cancelBtn.addEventListener('click', function(e){ e.preventDefault(); hideJobModal(); });
       if (addWorkBtn) addWorkBtn.addEventListener('click', function(){ showJobModal(); });
+      var ppTypeEl = document.getElementById('jobPayPeriodType');
+      if (ppTypeEl) ppTypeEl.addEventListener('change', _updateJobPayPeriodStatus);
       if (addOffDayBtn) addOffDayBtn.addEventListener('click', function() {
         var dateInp = document.getElementById('jobOffDayDate');
         var labelInp = document.getElementById('jobOffDayLabel');
@@ -563,6 +645,7 @@ function clearJobForm(){
         if (dateInp) dateInp.value = '';
         if (labelInp) labelInp.value = '';
         renderJobOffDaysList();
+        _renderJobOffDaysSummary();
       });
       // Click outside modal to close
       var modal = document.getElementById('jobModal');
@@ -2683,7 +2766,7 @@ function renderWorkEarnings(){
       html += '<div><label for="we-monthly-goal">Monthly goal ($)</label><input id="we-monthly-goal" type="number" min="0" step="1" value="'+escHtml(settings.monthlyGoal||'')+'" placeholder="0" /></div>';
       html += '<div><label for="we-tax-rate">Tax rate (%)</label><input id="we-tax-rate" type="number" min="0" max="100" step="0.5" value="'+escHtml(settings.taxRate||'')+'" placeholder="0" /></div>';
       html += '</div>';
-      html += '<button class="we-nav-btn" data-we-action="save-settings" style="margin-top:8px;background:#4a90e2;color:#fff;border-color:#4a90e2">Save</button>';
+      html += '<button class="we-nav-btn btn-primary" data-we-action="save-settings" style="margin-top:8px">Save</button>';
       html += '</div>';
     }
 
@@ -9618,8 +9701,16 @@ function renderBudgetWidget() {
     var incomeSection = document.createElement('div');
     incomeSection.style.cssText = 'margin-bottom:10px';
     var jobIncome = calcBudgetJobIncome();
+    var connectedJobs = getJobs().filter(function(j) { return j.payPeriod && j.payPeriod.type; });
+    var connectedLabel = '';
+    if (connectedJobs.length) {
+      connectedLabel = '<div style="font-size:0.78rem;color:#555;margin-bottom:4px">Income from: ' +
+        connectedJobs.map(function(j) { return escapeHTML((j.emoji ? j.emoji + ' ' : '') + j.name); }).join(', ') +
+        '</div>';
+    }
     incomeSection.innerHTML =
       '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">📈 Income (last 30 days)</div>' +
+      connectedLabel +
       '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">' +
         '<span>Job earnings</span>' +
         '<span style="color:#27ae60;font-weight:600">$' + jobIncome.toFixed(2) + '</span>' +
@@ -9646,7 +9737,7 @@ function renderBudgetWidget() {
     addCatRow.innerHTML =
       '<input type="text" id="budgetCatName" placeholder="Category name" style="flex:1;min-width:80px;font-size:0.78rem;border:1px solid #ddd;border-radius:8px;padding:4px 6px" />' +
       '<input type="color" id="budgetCatColor" value="#4a90e2" style="width:28px;height:28px;border:none;border-radius:4px;padding:0;cursor:pointer" />' +
-      '<button id="budgetAddCatBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:4px 8px;font-size:0.78rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+      '<button id="budgetAddCatBtn" class="btn-primary" style="border:none;border-radius:8px;padding:4px 8px;font-size:0.78rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
     catSection.appendChild(addCatRow);
     body.appendChild(catSection);
 
@@ -9691,7 +9782,7 @@ function renderBudgetWidget() {
         '<option value="quarterly">Quarterly</option>' +
         '<option value="yearly">Yearly</option>' +
       '</select>' +
-      '<button id="budgetAddBillBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+      '<button id="budgetAddBillBtn" class="btn-primary" style="border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
     billsSection.appendChild(addBillRow);
     body.appendChild(billsSection);
 
@@ -10482,7 +10573,7 @@ function initCalendarAddItemPopup() {
     /* Buttons */
     html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">' +
       '<button type="button" id="calAddBack" style="padding:7px 14px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;cursor:pointer;font-size:0.88rem">Back</button>' +
-      '<button type="button" id="calAddSave" style="padding:7px 14px;border:none;border-radius:8px;background:#4a90e2;color:#fff;cursor:pointer;font-size:0.88rem;font-weight:600">Save</button>' +
+      '<button type="button" id="calAddSave" class="btn-primary" style="padding:7px 14px;border:none;border-radius:8px;cursor:pointer;font-size:0.88rem;font-weight:600">Save</button>' +
       '</div>';
 
     step2.innerHTML = html;
@@ -10861,7 +10952,7 @@ function wireFirstRunOnboarding() {
       '<li>Use the <strong>bottom navigation</strong> to switch between Today, Calendar, Personal, Home, and Work views.</li>' +
       '<li>Press <strong>?</strong> on a keyboard anytime to see all keyboard shortcuts.</li>' +
     '</ol>' +
-    '<button id="onboardingDismiss" style="background:#4a90e2;color:#fff;border:none;border-radius:12px;padding:12px 32px;font-size:1rem;cursor:pointer;font-weight:600">Let\'s go! 🚀</button>';
+    '<button id="onboardingDismiss" class="btn-primary" style="border:none;border-radius:12px;padding:12px 32px;font-size:1rem;cursor:pointer;font-weight:600">Let\'s go! 🚀</button>';
 
   overlay.appendChild(panel);
   document.body.appendChild(overlay);
@@ -14411,7 +14502,7 @@ function renderJournalWidget() {
           '<span class="jw-mood-opt" data-mood="🥳" style="font-size:1.2rem;cursor:pointer" title="Excited">🥳</span>' +
           '<span class="jw-mood-opt" data-mood="😴" style="font-size:1.2rem;cursor:pointer" title="Tired">😴</span>' +
         '</div>' +
-        '<button id="jwSaveBtn" style="margin-left:auto;background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.82rem;cursor:pointer;font-weight:600">＋ Save</button>' +
+        '<button id="jwSaveBtn" class="btn-primary" style="margin-left:auto;border:none;border-radius:8px;padding:6px 14px;font-size:0.82rem;cursor:pointer;font-weight:600">＋ Save</button>' +
       '</div>';
     body.appendChild(qa);
 

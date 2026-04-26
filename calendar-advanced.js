@@ -902,7 +902,7 @@
       '  <option value="">System default (' + (Intl.DateTimeFormat().resolvedOptions().timeZone || 'local') + ')</option>',
       '</select>',
       '<div style="display:flex;gap:8px;margin-top:8px">',
-      '  <button id="dtTzSave" class="small-btn" style="background:#4a90e2;color:#fff">Save timezone</button>',
+      '  <button id="dtTzSave" class="small-btn btn-primary">Save timezone</button>',
       '  <button id="dtTzClear" class="small-btn">Reset to system</button>',
       '</div>',
       '<div id="dtTzStatus" style="margin-top:6px;font-size:0.85rem;color:#666"></div>'
