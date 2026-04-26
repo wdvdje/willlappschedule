@@ -23,7 +23,7 @@ function safeParseStorage(key, fallback){
 }
 
 /* ----- Domain color preferences ----- */
-const DOMAIN_COLOR_DEFAULTS = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c' };
+const DOMAIN_COLOR_DEFAULTS = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c', apps: '#ff6b6b' };
 
 function getDomainColors() {
   const stored = safeParseStorage('domainColors', {});
@@ -5415,6 +5415,7 @@ const DOMAIN_META = {
 function applyDomainColorCSS() {
   const c = getDomainColors();
   const css = [
+    '.event-preview[data-domain="apps"]{--domain-color:' + c.apps + ';--domain-bg:' + hexToRgba(c.apps, 0.10) + '}',
     '.event-preview[data-domain="work"]{--domain-color:' + c.work + ';--domain-bg:' + hexToRgba(c.work, 0.10) + '}',
     '.event-preview[data-domain="home"]{--domain-color:' + c.home + ';--domain-bg:' + hexToRgba(c.home, 0.10) + '}',
     '.event-preview[data-domain="personal"]{--domain-color:' + c.personal + ';--domain-bg:' + hexToRgba(c.personal, 0.10) + '}',
@@ -5435,7 +5436,7 @@ function wireDomainColorEditor() {
   var DEFAULTS = DOMAIN_COLOR_DEFAULTS;
 
   function updateHexLabels() {
-    var ids = { work: 'dcWork', home: 'dcHome', personal: 'dcPersonal', holiday: 'dcHoliday' };
+    var ids = { work: 'dcWork', home: 'dcHome', personal: 'dcPersonal', holiday: 'dcHoliday', apps: 'dcApps' };
     Object.keys(ids).forEach(function (key) {
       var inp = document.getElementById(ids[key]);
       var lbl = document.getElementById(ids[key] + 'Hex');
@@ -5449,10 +5450,11 @@ function wireDomainColorEditor() {
     if ((inp = document.getElementById('dcHome')))     inp.value = colors.home;
     if ((inp = document.getElementById('dcPersonal'))) inp.value = colors.personal;
     if ((inp = document.getElementById('dcHoliday')))  inp.value = colors.holiday;
+    if ((inp = document.getElementById('dcApps')))     inp.value = colors.apps || DEFAULTS.apps;
     updateHexLabels();
   }
 
-  ['dcWork', 'dcHome', 'dcPersonal', 'dcHoliday'].forEach(function (id) {
+  ['dcWork', 'dcHome', 'dcPersonal', 'dcHoliday', 'dcApps'].forEach(function (id) {
     var el = document.getElementById(id);
     if (el) el.addEventListener('input', updateHexLabels);
   });
@@ -5467,7 +5469,8 @@ function wireDomainColorEditor() {
         work:     (document.getElementById('dcWork')     || {}).value || DEFAULTS.work,
         home:     (document.getElementById('dcHome')     || {}).value || DEFAULTS.home,
         personal: (document.getElementById('dcPersonal') || {}).value || DEFAULTS.personal,
-        holiday:  (document.getElementById('dcHoliday')  || {}).value || DEFAULTS.holiday
+        holiday:  (document.getElementById('dcHoliday')  || {}).value || DEFAULTS.holiday,
+        apps:     (document.getElementById('dcApps')     || {}).value || DEFAULTS.apps
       };
       localStorage.setItem('domainColors', JSON.stringify(colors));
       applyDomainColorCSS();
@@ -5503,6 +5506,7 @@ function inferDomainFromItem(item) {
 
 /* Get the domain of an item, preferring explicit domain field */
 function getDomainOfItem(item) {
+  if (item && item.domain === 'apps') return 'apps';
   if (item && item.domain && DOMAIN_META[item.domain]) return item.domain;
   return inferDomainFromItem(item);
 }
@@ -10334,6 +10338,35 @@ function renderSleepAppFull(container) {
     return '<span class="app-fv-pill">'+pad2(Math.floor(bm/60))+':'+pad2(bm%60)+' ('+c+' cycles)</span>';
   }).join('');
   lHTML+='<div class="app-sleep-alarm-box"><strong>\ud83d\udca1 Ideal bedtimes for '+todaySched.wake+' wake:</strong><div class="app-sleep-cycle-pills">'+cyclePills+'</div></div>';
+
+  /* ── Reminders section ── */
+  var sleepRems = sleep.reminders || { bedtimeEnabled: false, bedtimeTime: todaySched.bedtime || '22:00', bedtimeOffset: '30m', wakeEnabled: false, wakeTime: todaySched.wake || '07:00' };
+  lHTML += '<h4 class="app-full-section-heading">\ud83d\udd14 Sleep Reminders</h4>' +
+    '<div class="app-sleep-reminders-grid">' +
+      '<div class="app-sleep-rem-row">' +
+        '<label class="app-sleep-rem-label">' +
+          '<input type="checkbox" id="sleepFvBedReminderEnabled" class="app-sleep-rem-check"' + (sleepRems.bedtimeEnabled ? ' checked' : '') + ' />' +
+          '\ud83c\udf19 Bedtime reminder' +
+        '</label>' +
+        '<input type="time" id="sleepFvBedReminderTime" class="app-sleep-rem-time" value="' + escapeHTML(sleepRems.bedtimeTime || '22:00') + '" />' +
+        '<select id="sleepFvBedReminderOffset" class="app-sleep-rem-select">' +
+          '<option value="at"' + (sleepRems.bedtimeOffset === 'at' ? ' selected' : '') + '>At time</option>' +
+          '<option value="15m"' + (sleepRems.bedtimeOffset === '15m' ? ' selected' : '') + '>15 min before</option>' +
+          '<option value="30m"' + ((!sleepRems.bedtimeOffset || sleepRems.bedtimeOffset === '30m') ? ' selected' : '') + '>30 min before</option>' +
+          '<option value="1h"' + (sleepRems.bedtimeOffset === '1h' ? ' selected' : '') + '>1 hour before</option>' +
+        '</select>' +
+      '</div>' +
+      '<div class="app-sleep-rem-row">' +
+        '<label class="app-sleep-rem-label">' +
+          '<input type="checkbox" id="sleepFvWakeReminderEnabled" class="app-sleep-rem-check"' + (sleepRems.wakeEnabled ? ' checked' : '') + ' />' +
+          '\u2600\ufe0f Wake-up reminder' +
+        '</label>' +
+        '<input type="time" id="sleepFvWakeReminderTime" class="app-sleep-rem-time" value="' + escapeHTML(sleepRems.wakeTime || '07:00') + '" />' +
+      '</div>' +
+      '<button id="sleepFvSaveReminders" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
+      '<p id="sleepFvRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
+    '</div>';
+
   left.innerHTML=lHTML;
 
   var past14=[];
@@ -10390,6 +10423,49 @@ function renderSleepAppFull(container) {
     s.log[today]={bedtime:bed?bed.value:'',wakeTime:wake?wake.value:'',quality:qual&&qual.value?parseInt(qual.value,10):0};
     setPersonalSleep(s);renderSleepAppFull(container);
   });
+
+  /* ── Wire sleep reminders save ── */
+  var saveRemsBtn = container.querySelector('#sleepFvSaveReminders');
+  if (saveRemsBtn) {
+    saveRemsBtn.addEventListener('click', function() {
+      var bedEnabled  = !!(container.querySelector('#sleepFvBedReminderEnabled') || {}).checked;
+      var bedTime     = (container.querySelector('#sleepFvBedReminderTime') || {}).value || '22:00';
+      var bedOffset   = (container.querySelector('#sleepFvBedReminderOffset') || {}).value || '30m';
+      var wakeEnabled = !!(container.querySelector('#sleepFvWakeReminderEnabled') || {}).checked;
+      var wakeTime    = (container.querySelector('#sleepFvWakeReminderTime') || {}).value || '07:00';
+
+      /* Persist reminder prefs on the sleep data */
+      var s = getPersonalSleep();
+      s.reminders = { bedtimeEnabled: bedEnabled, bedtimeTime: bedTime, bedtimeOffset: bedOffset, wakeEnabled: wakeEnabled, wakeTime: wakeTime };
+      setPersonalSleep(s);
+
+      /* Write today's reminders into the reminders store with domain:'apps' */
+      var rems = getReminders();
+      var removeAppSleepRems = function(dateKey) {
+        if (!rems[dateKey]) return;
+        rems[dateKey] = rems[dateKey].filter(function(r) { return !(r.domain === 'apps' && r.appSource === 'sleep'); });
+        if (!rems[dateKey].length) delete rems[dateKey];
+      };
+      /* Schedule for each of the next 7 days */
+      for (var di = 0; di < 7; di++) {
+        var dt = new Date(); dt.setDate(dt.getDate() + di);
+        var dk = dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate());
+        removeAppSleepRems(dk);
+        if (bedEnabled) {
+          if (!rems[dk]) rems[dk] = [];
+          rems[dk].push({ text: '\ud83c\udf19 Bedtime reminder', time: bedTime, notify: bedOffset, domain: 'apps', appSource: 'sleep' });
+        }
+        if (wakeEnabled) {
+          if (!rems[dk]) rems[dk] = [];
+          rems[dk].push({ text: '\u2600\ufe0f Wake-up reminder', time: wakeTime, notify: 'at', domain: 'apps', appSource: 'sleep' });
+        }
+      }
+      setReminders(rems);
+
+      var statusEl = container.querySelector('#sleepFvRemStatus');
+      if (statusEl) { statusEl.textContent = '\u2713 Reminders saved!'; setTimeout(function(){ statusEl.textContent = ''; }, 2500); }
+    });
+  }
 }
 
 /* ── Sleep App — Medium View ────────────────────────────────────────── */

@@ -596,6 +596,33 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
 .week-chip.task { background:#e6f7e6; border-left:3px solid var(--ios-success); }
 .week-chip.reminder { background:#fff3e0; border-left:3px solid var(--ios-amber); }
 
+/* ===== Week Page Controls (.week-page-controls) ===== */
+
+.week-page-controls {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.week-page-controls .cal-nav-arrow {
+  background: rgba(120,120,128,0.10);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ios-accent, #4a90e2);
+  font-size: 1rem;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.week-page-controls .cal-nav-arrow:hover {
+  background: rgba(120,120,128,0.20);
+}
+
 /* ===== Week View Timeline (.wv-*) ===== */
 
 /* Outer container – card-style wrapper matching the daily view */
