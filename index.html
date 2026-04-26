@@ -2101,6 +2101,26 @@
       var weekToday = document.getElementById('weekPageTodayBtn');
       var weekTwoWk = document.getElementById('weekPageTwoWeekToggle');
 
+      // Create #twoWeekPageView once during initialisation so it is always available
+      var pageWeekEl = document.getElementById('page-week');
+      if (pageWeekEl && !document.getElementById('twoWeekPageView')) {
+        var _twpv = document.createElement('div');
+        _twpv.id = 'twoWeekPageView';
+        _twpv.style.display = 'none';
+        _twpv.setAttribute('aria-label', '2-week view');
+        pageWeekEl.appendChild(_twpv);
+      }
+
+      function _rerenderWeekPage() {
+        var twoWkPageEl = document.getElementById('twoWeekPageView');
+        var inTwoWkMode = twoWkPageEl && twoWkPageEl.style.display !== 'none';
+        if (inTwoWkMode) {
+          if (typeof window.renderTwoWeekView === 'function') try { window.renderTwoWeekView(twoWkPageEl); } catch(_) {}
+        } else {
+          if (typeof renderWeekView === 'function') try { renderWeekView(); } catch(_) {}
+        }
+      }
+
       function _navWeek(delta) {
         try {
           var ws = _getWeekStartDate();
@@ -2109,13 +2129,7 @@
           window.selectedMonth = ws.getMonth();
           window.selectedDay   = ws.getDate();
         } catch(_) {}
-        var twoWkPageEl = document.getElementById('twoWeekPageView');
-        var inTwoWkMode = twoWkPageEl && twoWkPageEl.style.display !== 'none';
-        if (inTwoWkMode) {
-          if (typeof window.renderTwoWeekView === 'function') try { window.renderTwoWeekView(twoWkPageEl); } catch(_) {}
-        } else {
-          if (typeof renderWeekView === 'function') try { renderWeekView(); } catch(_) {}
-        }
+        _rerenderWeekPage();
         _updateWeekPageLabel();
       }
 
@@ -2126,30 +2140,15 @@
         window.selectedYear  = now.getFullYear();
         window.selectedMonth = now.getMonth();
         window.selectedDay   = now.getDate();
-        var twoWkPageEl = document.getElementById('twoWeekPageView');
-        var inTwoWkMode = twoWkPageEl && twoWkPageEl.style.display !== 'none';
-        if (inTwoWkMode) {
-          if (typeof window.renderTwoWeekView === 'function') try { window.renderTwoWeekView(twoWkPageEl); } catch(_) {}
-        } else {
-          if (typeof renderWeekView === 'function') try { renderWeekView(); } catch(_) {}
-        }
+        _rerenderWeekPage();
         _updateWeekPageLabel();
       });
 
       // Two-week toggle
       if (weekTwoWk) {
         weekTwoWk.addEventListener('click', function() {
-          var pageWeek = document.getElementById('page-week');
-          var wvEl = document.getElementById('weekView');
-          // Use a dedicated element inside page-week so it is visible when on the week page
-          var twoWkEl = pageWeek && pageWeek.querySelector('#twoWeekPageView');
-          if (!twoWkEl && pageWeek) {
-            twoWkEl = document.createElement('div');
-            twoWkEl.id = 'twoWeekPageView';
-            twoWkEl.style.display = 'none';
-            twoWkEl.setAttribute('aria-label', '2-week view');
-            pageWeek.appendChild(twoWkEl);
-          }
+          var wvEl    = document.getElementById('weekView');
+          var twoWkEl = document.getElementById('twoWeekPageView');
           if (!twoWkEl) return;
           var showing = twoWkEl.style.display !== 'none';
           if (showing) {
