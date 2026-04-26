@@ -1490,7 +1490,8 @@
       var baseUrl = window.location.href.split('?')[0].split('#')[0];
       var url = baseUrl + '?childApp=' + encodeURIComponent(app);
 
-      var win = window.open(url, 'timescape_app_' + app);
+      var win = window.open(url, 'timescape_app_' + app,
+        'width=480,height=700,left=120,top=80,toolbar=0,menubar=0,location=0,scrollbars=1,resizable=1,status=0');
       if (!win || win.closed) {
         _showAppToast('Pop-up blocked — please allow pop-ups for this site in your browser settings.', 5000);
         return;

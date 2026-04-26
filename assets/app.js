@@ -635,8 +635,14 @@ function generateCalendar(){
       indicators.push({kind:'event', emoji: ev.emoji || '📌', title: (ev.time?`[${ev.time}] `:'') + (ev.title||''), id: ev.id, domain: domain, shortTitle: ev.title || ''});
     });
     if (h) indicators.push({kind:'holiday', emoji: h.emoji || '🏳️', title: h.name, domain: 'holiday', shortTitle: h.name});
-    if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
-    if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
+    if (dayReminders.length) {
+      const remDomain = (typeof getDomainOfItem === 'function') ? getDomainOfItem(dayReminders[0]) : 'personal';
+      indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`, domain: remDomain, shortTitle: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
+    }
+    if (dayTasks.length) {
+      const taskDomain = (typeof getDomainOfItem === 'function') ? getDomainOfItem(dayTasks[0]) : 'personal';
+      indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`, domain: taskDomain, shortTitle: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
+    }
 
     /* ⊞ Apps badge — shown when any reminder that day has domain:'apps' */
     const hasAppRems = dayReminders.some(function(r) { return r.domain === 'apps'; });
@@ -4013,6 +4019,44 @@ function renderWeekView() {
     return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha || 0.15) + ')';
   }
 
+  /* ── Hover tooltip helpers ── */
+  var _wvTip = document.getElementById('wvHoverTooltip');
+  if (!_wvTip) {
+    _wvTip = document.createElement('div');
+    _wvTip.id = 'wvHoverTooltip';
+    _wvTip.className = 'wv-hover-tooltip';
+    document.body.appendChild(_wvTip);
+  }
+  function wvShowTooltip(mouseEvt, it) {
+    var emoji = it.emoji || (it.kind === 'reminder' ? '🔔' : it.kind === 'task' ? '✅' : '📌');
+    var timeStr = '';
+    if (it.hasTimes) {
+      var sh = Math.floor(it.startMin / 60), sm = it.startMin % 60;
+      var eh = Math.floor(it.endMin / 60), em = it.endMin % 60;
+      timeStr = pad2(sh) + ':' + pad2(sm) + ' – ' + pad2(eh) + ':' + pad2(em);
+    }
+    var kindLabel = it.kind === 'event' ? 'Event' : it.kind === 'task' ? 'Task' : it.kind === 'reminder' ? 'Reminder' : 'Routine';
+    var html = '<strong>' + (emoji ? escapeHTML(emoji) + '\u00a0' : '') + escapeHTML(it.title) + '</strong>';
+    if (timeStr) html += '<br><span class="wv-tip-time">' + escapeHTML(timeStr) + '</span>';
+    html += '<br><span class="wv-tip-kind">' + kindLabel + '</span>';
+    _wvTip.innerHTML = html;
+    _wvTip.style.borderLeftColor = it.color || '#4a90e2';
+    wvMoveTooltip(mouseEvt);
+    _wvTip.classList.add('wv-hover-tooltip--visible');
+  }
+  function wvMoveTooltip(mouseEvt) {
+    if (!_wvTip) return;
+    var x = mouseEvt.clientX + 14, y = mouseEvt.clientY - 8;
+    var tw = _wvTip.offsetWidth || 200, th = _wvTip.offsetHeight || 60;
+    if (x + tw > window.innerWidth - 8) x = mouseEvt.clientX - tw - 14;
+    if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
+    _wvTip.style.left = x + 'px';
+    _wvTip.style.top  = y + 'px';
+  }
+  function wvHideTooltip() {
+    if (_wvTip) _wvTip.classList.remove('wv-hover-tooltip--visible');
+  }
+
   /* ── Load routine phases with per-day sleep-schedule overrides (mirrors daily-view.js loadRoutinePhases) ── */
   function wvGetRoutinePhases(dateStr) {
     try {
@@ -4073,19 +4117,23 @@ function renderWeekView() {
       var s = wvTimeToMin(t.time);
       var isAllDay = (s === null);
       if (isAllDay) { s = 9 * 60; }
+      var tDomain = getDomainOfItem(t);
+      var tIdx = allTasks.indexOf(t);
       items.push({ kind: 'task', title: t.title || t.text || 'Task', emoji: (t.emoji || '').trim(),
         startMin: s, endMin: s + 30, hasTimes: !isAllDay, isAllDay: isAllDay,
-        color: '#27ae60', raw: t });
+        color: domainColors[tDomain] || '#27ae60', raw: t, taskIdx: tIdx });
     });
     /* Reminders */
     var rems = allReminders[dateStr] || [];
-    rems.forEach(function(r) {
+    rems.forEach(function(r, ridx) {
       var s = wvTimeToMin(r.time);
       var isAllDay = (s === null);
       if (isAllDay) { s = 9 * 60; }
+      var rDomain = getDomainOfItem(r);
       items.push({ kind: 'reminder', title: r.text || r.title || 'Reminder', emoji: (r.emoji || '').trim(),
         startMin: s, endMin: s + 15, hasTimes: !isAllDay, isAllDay: isAllDay,
-        color: '#e67e22', raw: r });
+        color: domainColors[rDomain] || '#e67e22', raw: r,
+        reminderKey: dateStr, reminderIdx: ridx });
     });
     /* Routine phases (morning/evening start times from sleep schedule) */
     wvGetRoutinePhases(dateStr).forEach(function(phase) {
@@ -4233,7 +4281,16 @@ function renderWeekView() {
         (function(it) {
           chip.addEventListener('click', function(e) {
             e.stopPropagation();
-            if (it.kind === 'event' && typeof editEvent === 'function') editEvent(it.raw._baseId || it.raw.id, it.raw.occurrenceDate);
+            if (it.kind === 'event' && typeof editEvent === 'function') {
+              editEvent(it.raw._baseId || it.raw.id, it.raw.occurrenceDate);
+            } else if (it.kind === 'task' && typeof editTask === 'function') {
+              editTask(it.taskIdx);
+            } else if (it.kind === 'reminder' && typeof editReminder === 'function') {
+              var dp = it.reminderKey.split('-');
+              selectedYear = parseInt(dp[0], 10);
+              selectedMonth = parseInt(dp[1], 10) - 1;
+              editReminder(parseInt(dp[2], 10), it.reminderIdx);
+            }
           });
         })(item);
         cell.appendChild(chip);
@@ -4364,7 +4421,24 @@ function renderWeekView() {
             ev.stopPropagation();
             if (it.kind === 'event' && typeof editEvent === 'function') {
               editEvent(it.raw._baseId || it.raw.id, it.raw.occurrenceDate);
+            } else if (it.kind === 'task' && typeof editTask === 'function') {
+              editTask(it.taskIdx);
+            } else if (it.kind === 'reminder' && typeof editReminder === 'function') {
+              var dp = it.reminderKey.split('-');
+              selectedYear = parseInt(dp[0], 10);
+              selectedMonth = parseInt(dp[1], 10) - 1;
+              editReminder(parseInt(dp[2], 10), it.reminderIdx);
             }
+          });
+          /* Hover tooltip */
+          block.addEventListener('mouseenter', function(ev) {
+            wvShowTooltip(ev, it);
+          });
+          block.addEventListener('mousemove', function(ev) {
+            wvMoveTooltip(ev);
+          });
+          block.addEventListener('mouseleave', function() {
+            wvHideTooltip();
           });
         })(item);
 
