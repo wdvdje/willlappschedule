@@ -450,6 +450,47 @@
     var newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
     try { window.history.replaceState(null, '', newUrl); } catch (_) {}
 
+    /* Clipboard-based import: the iOS Shortcut copies the base64 JSON to the
+     * clipboard and opens the app with ?import-data=clipboard to avoid the
+     * "URI too long" error that occurs when large payloads are embedded in the URL. */
+    if (encoded === 'clipboard') {
+      if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+        var statusElC = el('icloudIosStatus') || el('icloudMacStatus');
+        if (statusElC) {
+          statusElC.textContent = '⚠️ Clipboard API not available in this browser.';
+          statusElC.style.color = '#b00020';
+        }
+        return;
+      }
+      navigator.clipboard.readText().then(function (text) {
+        try {
+          var json = atob(text.trim());
+          var parsed = JSON.parse(json);
+          _applyParsed(parsed);
+          var statusEl = el('icloudIosStatus') || el('icloudMacStatus');
+          if (statusEl) {
+            statusEl.textContent = '✅ Imported from iCloud Shortcut at ' + new Date().toLocaleTimeString();
+            statusEl.style.color = '#27ae60';
+          }
+        } catch (e) {
+          console.warn('iCloud Sync: clipboard import failed to decode/apply data', e);
+          var statusEl = el('icloudIosStatus') || el('icloudMacStatus');
+          if (statusEl) {
+            statusEl.textContent = '⚠️ Shortcut import failed: ' + (e && e.message ? e.message : 'invalid data');
+            statusEl.style.color = '#b00020';
+          }
+        }
+      }).catch(function (e) {
+        console.warn('iCloud Sync: clipboard read failed', e);
+        var statusEl = el('icloudIosStatus') || el('icloudMacStatus');
+        if (statusEl) {
+          statusEl.textContent = '⚠️ Could not read clipboard: ' + (e && e.message ? e.message : 'permission denied');
+          statusEl.style.color = '#b00020';
+        }
+      });
+      return;
+    }
+
     try {
       var json = atob(encoded);
       var parsed = JSON.parse(json);
