@@ -3367,3 +3367,38 @@ body.dark-mode .mf-ext-recipe-card { border-color: var(--ios-border); }
 
 /* ── Meal Planner date nav ────────────────────────────────── */
 .mf-date-nav { display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:8px; }
+
+/* ── Week-view hover tooltip ──────────────────────────────── */
+.wv-hover-tooltip {
+  position: fixed;
+  z-index: 10000;
+  background: var(--ios-surface, #fff);
+  border: 1px solid var(--ios-border, #e5e5ea);
+  border-left: 4px solid #4a90e2;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  max-width: 240px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  white-space: normal;
+  color: var(--ios-text, #1c1c1e);
+}
+.wv-hover-tooltip.wv-hover-tooltip--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.wv-tip-time {
+  color: var(--ios-text-2, #6e6e73);
+  font-size: 0.78rem;
+}
+.wv-tip-kind {
+  color: var(--ios-text-3, #aeaeb2);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

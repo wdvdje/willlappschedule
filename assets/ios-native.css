@@ -4085,6 +4085,9 @@ body.view-week {
 body.view-week main {
   overflow: hidden;
   padding-bottom: 0 !important;
+  /* Disable scroll-edge fade so the controls bar at the top is fully visible */
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
 }
 body.view-week #page-week {
   display: flex !important;
@@ -4176,7 +4179,33 @@ body.child-window-mode #appWindowExpandBtn {
   visibility: hidden !important;
 }
 
+/* Hide the traffic-light buttons — the OS window already has close/minimise/maximise */
+body.child-window-mode .traffic-lights {
+  display: none !important;
+}
+
 /* Hide the pin toggle — pinning is managed from the main window */
 body.child-window-mode .app-window-pin-label {
   display: none !important;
+}
+
+/* ── Child-window responsive overrides ──────────────────────────────────
+   The popup is a real OS window; prevent it from collapsing into a
+   mobile/tablet layout when the user resizes it small.  Give the panel a
+   sensible minimum width and let it scroll horizontally rather than
+   reflowing to a narrow-screen design.
+   ─────────────────────────────────────────────────────────────────────── */
+body.child-window-mode #appWindowPanel {
+  min-width: 320px;
+}
+
+body.child-window-mode #appWindowContent {
+  overflow-x: auto;
+  min-width: 0;
+}
+
+/* Keep the app-window header laid out in a single row regardless of width */
+body.child-window-mode .app-window-header {
+  flex-wrap: nowrap;
+  min-width: 0;
 }
