@@ -3992,6 +3992,39 @@ function renderWeekView() {
     return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha || 0.15) + ')';
   }
 
+  /* ── Load routine phases with per-day sleep-schedule overrides (mirrors daily-view.js loadRoutinePhases) ── */
+  function wvGetRoutinePhases(dateStr) {
+    try {
+      var r = safeParseStorage('personalRoutines', {});
+      var phases;
+      if (r.phases && Array.isArray(r.phases) && r.phases.length > 0) {
+        phases = r.phases.map(function(p) { return JSON.parse(JSON.stringify(p)); });
+      } else {
+        phases = [];
+        ['morning', 'evening'].forEach(function(period) {
+          var steps = r[period] || [];
+          if (steps.length > 0) {
+            phases.push({ id: period, name: period === 'morning' ? 'Morning' : 'Evening',
+              emoji: period === 'morning' ? '🌅' : '🌙',
+              startTime: period === 'morning' ? '06:30' : '21:00', steps: steps });
+          }
+        });
+      }
+      if (dateStr && r.sleepScheduleTimes) {
+        var d = new Date(dateStr + 'T12:00:00');
+        var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+        var dayTimes = r.sleepScheduleTimes[dayName];
+        if (dayTimes) {
+          phases.forEach(function(phase) {
+            if (phase.id === 'morning' && dayTimes.morningStart) phase.startTime = dayTimes.morningStart;
+            if (phase.id === 'evening' && dayTimes.eveningStart) phase.startTime = dayTimes.eveningStart;
+          });
+        }
+      }
+      return phases;
+    } catch (_) { return []; }
+  }
+
   /* ── Collect scheduled items for one day ── */
   function wvGetDayItems(dateStr) {
     var items = [];
@@ -4005,7 +4038,8 @@ function renderWeekView() {
       var domain = getDomainOfItem(ev);
       items.push({ kind: 'event', title: ev.title || 'Event', emoji: (ev.emoji || '').trim(),
         startMin: s, endMin: e, hasTimes: !isAllDay, isAllDay: isAllDay,
-        color: domainColors[domain] || domainColors.personal || '#9b59b6', raw: ev });
+        color: domainColors[domain] || domainColors.personal || '#9b59b6', raw: ev,
+        preBuffer: parseInt(ev.preBuffer, 10) || 0, postBuffer: parseInt(ev.postBuffer, 10) || 0 });
     });
     /* Tasks */
     allTasks.filter(function(t) { return normalizeDate(t.date) === dateStr; }).forEach(function(t) {
@@ -4025,6 +4059,15 @@ function renderWeekView() {
       items.push({ kind: 'reminder', title: r.text || r.title || 'Reminder', emoji: (r.emoji || '').trim(),
         startMin: s, endMin: s + 15, hasTimes: !isAllDay, isAllDay: isAllDay,
         color: '#e67e22', raw: r });
+    });
+    /* Routine phases (morning/evening start times from sleep schedule) */
+    wvGetRoutinePhases(dateStr).forEach(function(phase) {
+      var s = wvTimeToMin(phase.startTime);
+      if (s === null) return;
+      items.push({ kind: 'routine', title: 'Start ' + (phase.name || 'Routine'),
+        emoji: (phase.emoji || '📋').trim(),
+        startMin: s, endMin: s + 15, hasTimes: true, isAllDay: false,
+        color: domainColors.personal || '#9b59b6', raw: phase });
     });
     return items;
   }
@@ -4278,6 +4321,12 @@ function renderWeekView() {
         if (emoji) html += '<span class="dv-ev-emoji">' + emoji + '</span>';
         html += '<span class="dv-ev-title">' + escapeHTML(item.title) + '</span>';
         if (timeLabel) html += '<br><span class="dv-ev-time">' + escapeHTML(timeLabel) + '</span>';
+        if (item.hasTimes && ((item.preBuffer || 0) > 0 || (item.postBuffer || 0) > 0)) {
+          var bufParts = [];
+          if (item.preBuffer > 0) bufParts.push('🚗 ' + item.preBuffer + 'm before');
+          if (item.postBuffer > 0) bufParts.push(item.postBuffer + 'm after');
+          html += '<br><span class="dv-ev-buffer-note">' + bufParts.join(' · ') + '</span>';
+        }
         block.innerHTML = html;
 
         (function(it) {
@@ -4290,6 +4339,48 @@ function renderWeekView() {
         })(item);
 
         col.appendChild(block);
+
+        /* Pre-buffer block (travel/prep time before the event) */
+        if ((item.preBuffer || 0) > 0 && item.hasTimes) {
+          var preEnd = startMin;
+          var preStart = Math.max(preEnd - item.preBuffer, RANGE_START * 60);
+          if (preEnd > preStart) {
+            var preTopPx = ((preStart - RANGE_START * 60) / totalMinutes) * totalPx;
+            var preHeightPx = ((preEnd - preStart) / totalMinutes) * totalPx;
+            if (preHeightPx >= 2) {
+              var preBuf = document.createElement('div');
+              preBuf.className = 'dv-buffer-block dv-buffer-pre';
+              preBuf.style.top = preTopPx + 'px';
+              preBuf.style.height = preHeightPx + 'px';
+              preBuf.style.left = leftPct + '%';
+              preBuf.style.width = (colW - 1) + '%';
+              preBuf.title = item.preBuffer + ' min travel/prep before ' + escapeHTML(item.title);
+              preBuf.innerHTML = '<span class="dv-buffer-label">🚗 ' + item.preBuffer + 'm</span>';
+              col.appendChild(preBuf);
+            }
+          }
+        }
+
+        /* Post-buffer block (wind-down/travel time after the event) */
+        if ((item.postBuffer || 0) > 0 && item.hasTimes) {
+          var postStart = endMin;
+          var postEnd = Math.min(postStart + item.postBuffer, RANGE_END * 60);
+          if (postEnd > postStart) {
+            var postTopPx = ((postStart - RANGE_START * 60) / totalMinutes) * totalPx;
+            var postHeightPx = ((postEnd - postStart) / totalMinutes) * totalPx;
+            if (postHeightPx >= 2) {
+              var postBuf = document.createElement('div');
+              postBuf.className = 'dv-buffer-block dv-buffer-post';
+              postBuf.style.top = postTopPx + 'px';
+              postBuf.style.height = postHeightPx + 'px';
+              postBuf.style.left = leftPct + '%';
+              postBuf.style.width = (colW - 1) + '%';
+              postBuf.title = item.postBuffer + ' min wind-down after ' + escapeHTML(item.title);
+              postBuf.innerHTML = '<span class="dv-buffer-label">' + item.postBuffer + 'm</span>';
+              col.appendChild(postBuf);
+            }
+          }
+        }
       });
 
       /* ── Current-time "now" line (today's column only) ── */
