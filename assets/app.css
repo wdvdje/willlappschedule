@@ -2061,6 +2061,12 @@ body.dark-mode .weather-day-desc { color: var(--ios-text-3); }
 
 .routine-section-label { font-weight:600; font-size:0.85rem; margin:8px 0 4px; color:#666; display:flex; align-items:center; gap:4px; }
 
+.routine-sync-row { display:flex; align-items:center; margin-bottom:8px; }
+
+.routine-sync-label { display:flex; align-items:center; gap:6px; font-size:0.82rem; color:var(--ios-accent); cursor:pointer; user-select:none; }
+
+.routine-sync-label input[type="checkbox"] { width:15px; height:15px; accent-color:var(--ios-accent); cursor:pointer; }
+
 .routine-item { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:0.85rem; }
 
 .routine-item input[type="checkbox"] { width:16px; height:16px; cursor:pointer; flex-shrink:0; accent-color:var(--ios-purple); }
@@ -2096,6 +2102,49 @@ body.dark-mode .weather-day-desc { color: var(--ios-text-3); }
 .hydration-goal-input { width:52px; font-size:0.82rem; border:1px solid #d8e0ec; border-radius:6px; padding:3px 7px; text-align:center; }
 
 .hydration-reset { font-size:0.78rem; background:none; border:none; color:#888; cursor:pointer; text-decoration:underline; }
+
+/* ── Clothes App ── */
+.clothes-weather-rec { display:flex; align-items:center; gap:8px; background:linear-gradient(135deg,#e8f4ff,#f0f8ff); border:1px solid #c8e0f5; border-radius:10px; padding:10px 14px; margin-bottom:10px; font-size:0.88rem; color:#2c6a9a; font-weight:500; }
+.clothes-weather-rec-full { margin-bottom:14px; font-size:0.95rem; padding:12px 16px; }
+.clothes-rec-emoji { font-size:1.4rem; flex-shrink:0; }
+.clothes-section-title { font-weight:600; font-size:0.83rem; color:#666; margin:10px 0 4px; }
+.clothes-empty { font-size:0.8rem; color:#aaa; padding:4px 0; }
+.clothes-laundry-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:7px 0; border-bottom:1px solid #f0f0f0; margin-bottom:8px; font-size:0.85rem; }
+.clothes-laundry-row.overdue .clothes-laundry-status { color:#e74c3c; font-weight:600; }
+.clothes-laundry-label { font-weight:600; white-space:nowrap; }
+.clothes-laundry-status { flex:1; }
+.clothes-laundry-btn { font-size:0.78rem; background:var(--ios-accent); color:#fff; border:none; border-radius:8px; padding:4px 10px; cursor:pointer; white-space:nowrap; }
+.clothes-outfit-row { display:flex; align-items:center; gap:6px; font-size:0.83rem; padding:3px 0; }
+.clothes-outfit-name { font-weight:500; }
+.clothes-outfit-tags { font-size:0.76rem; color:#888; background:#f0f0f0; border-radius:10px; padding:1px 7px; }
+.clothes-wish-row { display:flex; align-items:center; gap:8px; font-size:0.83rem; padding:3px 0; }
+.clothes-wish-link { color:var(--ios-accent); text-decoration:none; font-weight:500; }
+.clothes-wish-link:hover { text-decoration:underline; }
+.clothes-wish-price { font-size:0.76rem; color:#27ae60; background:#eafaf1; border-radius:10px; padding:1px 7px; }
+/* Full view */
+.clothes-laundry-status-block { background:#fafbfc; border:1px solid #e8ecf2; border-radius:10px; padding:12px; margin-bottom:10px; }
+.clothes-laundry-status-block.overdue { background:#fff5f5; border-color:#fcc; }
+.clothes-laundry-status-line { font-size:0.88rem; margin-bottom:8px; }
+.clothes-laundry-settings { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:8px; font-size:0.82rem; }
+.clothes-setting-label { font-size:0.82rem; }
+.clothes-setting-check { display:flex; align-items:center; gap:4px; }
+.clothes-interval-input { width:46px; font-size:0.82rem; border:1px solid #d8e0ec; border-radius:6px; padding:2px 6px; text-align:center; }
+.clothes-save-btn { font-size:0.78rem; background:var(--ios-success); color:#fff; border:none; border-radius:8px; padding:4px 10px; cursor:pointer; }
+.clothes-add-row { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.clothes-text-input { flex:1; min-width:100px; font-size:0.82rem; border:1px solid #d8e0ec; border-radius:6px; padding:4px 8px; }
+.clothes-add-btn { background:var(--ios-purple); color:#fff; border:none; border-radius:8px; padding:4px 12px; cursor:pointer; font-size:0.82rem; white-space:nowrap; }
+.clothes-list { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; }
+.clothes-outfit-card { display:flex; align-items:flex-start; gap:10px; background:#fafbfc; border:1px solid #e8ecf2; border-radius:10px; padding:8px; }
+.clothes-outfit-img { width:52px; height:52px; object-fit:cover; border-radius:8px; flex-shrink:0; }
+.clothes-outfit-info { flex:1; font-size:0.85rem; }
+.clothes-outfit-desc { font-size:0.78rem; color:#888; margin-top:2px; }
+.clothes-del-btn { background:none; border:none; color:var(--ios-danger); cursor:pointer; font-size:0.9rem; padding:2px 6px; flex-shrink:0; }
+.clothes-wish-card { display:flex; flex-direction:column; gap:2px; background:#fafbfc; border:1px solid #e8ecf2; border-radius:10px; padding:8px 10px; position:relative; }
+.clothes-wish-main { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.clothes-wish-notes { font-size:0.78rem; color:#888; }
+.clothes-outfits-heading { margin-top:18px; }
+
+
 
 .mood-row { display:flex; gap:6px; justify-content:center; margin-bottom:10px; flex-wrap:wrap; }
 

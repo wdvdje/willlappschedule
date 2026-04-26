@@ -852,6 +852,7 @@
 
       <!-- App icon grid (default view) -->
       <div id="appsIconGrid" class="apps-icon-grid">
+        <button class="app-icon-btn" data-app="clothes">    <span class="app-icon-emoji">👗</span><span class="app-icon-label">Clothes</span></button>
         <button class="app-icon-btn" data-app="budget">     <span class="app-icon-emoji">💰</span><span class="app-icon-label">Budget</span></button>
         <button class="app-icon-btn" data-app="hydration">  <span class="app-icon-emoji">💧</span><span class="app-icon-label">Hydration</span></button>
         <button class="app-icon-btn" data-app="mood">       <span class="app-icon-emoji">😊</span><span class="app-icon-label">Mood</span></button>
@@ -879,6 +880,7 @@
         </div>
         <div id="appsDetailContent" class="apps-detail-content">
           <!-- Widget containers (moved from Personal page; rendered by app.js / desktop-personal.js) -->
+          <div id="personalClothesSection" class="app-widget-pane hidden"></div>
           <div id="personalBudgetSection"    class="app-widget-pane hidden"></div>
           <div id="personalFocusSection"     class="app-widget-pane hidden"></div>
           <div id="personalHydrationSection" class="app-widget-pane hidden"></div>
@@ -1324,27 +1326,31 @@
       focus: '🎯 Daily Focus', sleep: '😴 Sleep', meal: '🥗 Meal Planner',
       gym: '🏋️ Gym Planner', routine: '🌅 Daily Routine',
       weather: '🌤️ Weather', jobs: '💼 Job Earnings', journal: '📓 Journal',
-      chores: '🏡 Chores', groceries: '🛒 Groceries'
+      chores: '🏡 Chores', groceries: '🛒 Groceries',
+      clothes: '👗 Clothes'
     };
     var _APP_EMOJI_MAP = {
       budget: '💰', hydration: '💧', mood: '😊', focus: '🎯',
       sleep: '😴', meal: '🥗', gym: '🏋️', routine: '🌅',
       weather: '🌤️', jobs: '💼', journal: '📓',
-      chores: '🏡', groceries: '🛒'
+      chores: '🏡', groceries: '🛒',
+      clothes: '👗'
     };
     var _APP_CONTAINER_MAP = {
       budget: 'personalBudgetSection', hydration: 'personalHydrationSection',
       mood: 'personalMoodSection', focus: 'personalFocusSection',
       sleep: 'personalSleepBanner', meal: 'personalMealSection',
       gym: 'personalGymSection', routine: 'personalRoutineSection',
-      journal: 'personalJournalSection'
+      journal: 'personalJournalSection',
+      clothes: 'personalClothesSection'
     };
     var _APP_RENDER_MAP = {
       budget: 'renderBudgetWidget', hydration: 'renderHydrationTracker',
       mood: 'renderMoodCheckin', focus: 'renderDailyFocus',
       sleep: 'renderSleepTracker', meal: 'renderMealTracker',
       gym: 'renderGymPlanner', routine: 'renderRoutineChecklist',
-      journal: 'renderJournalWidget'
+      journal: 'renderJournalWidget',
+      clothes: 'renderClothesWidget'
     };
 
     function openAppsModal() {
@@ -1527,7 +1533,8 @@
       budget:  'renderBudgetAppFull',
       journal: 'renderJournalAppFull',
       chores:     'renderChoresAppFull',
-      groceries:  'renderGroceriesAppFull'
+      groceries:  'renderGroceriesAppFull',
+      clothes:    'renderClothesAppFull'
     };
 
     // Render either medium (widget) or full-view content into the app window

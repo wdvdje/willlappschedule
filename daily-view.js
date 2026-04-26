@@ -138,8 +138,8 @@
         });
       }
 
-      /* Apply per-day overrides from bedtime manager if available */
-      if (dateStr && r.sleepScheduleTimes) {
+      /* Apply per-day overrides from bedtime manager if sync is enabled */
+      if (dateStr && r.sleepScheduleTimes && r.syncEnabled) {
         var d = new Date(dateStr + 'T12:00:00');
         var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
         var dayTimes = r.sleepScheduleTimes[dayName];
