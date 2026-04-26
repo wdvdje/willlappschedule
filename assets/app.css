@@ -421,7 +421,7 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
 /* ===== Inline add-item overlay on half-hour slots ===== */
 .dv-hour-slot { position: relative; }
 .dv-add-slot {
-  display: none; /* desktop only */
+  display: none; /* hidden on mobile; enabled via media query below */
   position: absolute;
   inset: 0;
   opacity: 0;
@@ -433,7 +433,7 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
   align-items: center;
   justify-content: center;
   z-index: 3;
-  pointer-events: none;
+  pointer-events: none; /* keeps pointer-events off until display:flex is active on desktop */
 }
 .dv-add-slot-plus {
   font-size: 1.1rem;

@@ -4190,8 +4190,8 @@ function renderWeekView() {
     if (advSection) advSection.style.display = '';
     var bRow = document.getElementById('editBucketRow');
     if (bRow) bRow.style.display = 'none';
-    try { if (typeof populateAdvancedSpecs === 'function') populateAdvancedSpecs('editAdvSpecList', []); } catch(_) {}
-    try { var rep = document.getElementById('editRepeat'); if (rep) rep.dispatchEvent(new Event('change')); } catch(_) {}
+    try { if (typeof populateAdvancedSpecs === 'function') populateAdvancedSpecs('editAdvSpecList', []); } catch(_) { /* optional helper — safe to skip if not loaded */ }
+    try { var rep = document.getElementById('editRepeat'); if (rep) rep.dispatchEvent(new Event('change')); } catch(_) { /* safe to skip if repeat UI not present */ }
     if (typeof showModalFieldsFor === 'function') showModalFieldsFor('event');
     if (typeof openEditModal    === 'function') openEditModal('Add Event');
   }
