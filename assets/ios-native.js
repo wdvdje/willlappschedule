@@ -28,22 +28,88 @@
 
   /* ──────────────────────────────────────────────────────────
      2.  Haptic feedback wrapper — iOS 26 richer patterns
+     navigator.vibrate() is not supported on iOS and silently fails.
+     Fallback: Web Audio API micro-click (short oscillator burst) which
+     can trigger the Taptic Engine on iOS Safari.  A second fallback
+     applies a CSS :active visual-proxy class so there is always some
+     tactile cue even when audio is blocked.
      ────────────────────────────────────────────────────────── */
-  function haptic(pattern) {
+  var _audioCtx = null;
+
+  // Lazily create AudioContext on first user gesture so browsers allow it
+  function _getAudioCtx() {
+    if (_audioCtx) return _audioCtx;
     try {
-      if (navigator.vibrate) navigator.vibrate(pattern || [10]);
+      _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (_) {}
+    return _audioCtx;
+  }
+
+  /**
+   * Play a micro-click tone through Web Audio.
+   * @param {number} freq     Oscillator frequency in Hz
+   * @param {number} duration Burst length in seconds
+   * @param {number} gain     Peak amplitude (0–1)
+   */
+  function _audioTick(freq, duration, gain) {
+    var ctx = _getAudioCtx();
+    if (!ctx) return;
+    try {
+      // Resume context if it was suspended (autoplay policy)
+      if (ctx.state === 'suspended') ctx.resume();
+
+      var osc = ctx.createOscillator();
+      var amp = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+
+      amp.gain.setValueAtTime(0, ctx.currentTime);
+      amp.gain.linearRampToValueAtTime(gain, ctx.currentTime + duration * 0.1);
+      amp.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
+
+      osc.connect(amp);
+      amp.connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + duration);
     } catch (_) {}
   }
 
-  // Semantic haptic helpers (mirrors iOS impact/notification feedback)
+  /**
+   * Core haptic driver.
+   * Tries navigator.vibrate (Android/some browsers) first.
+   * Falls back to Web Audio micro-click on iOS Safari.
+   *
+   * @param {number[]} pattern  vibrate pattern in ms
+   * @param {number}   freq     Web Audio frequency (Hz)
+   * @param {number}   duration Web Audio burst (s)
+   * @param {number}   gain     Web Audio amplitude (0–1)
+   */
+  function haptic(pattern, freq, duration, gain) {
+    var vibrated = false;
+    try {
+      if (navigator.vibrate) {
+        navigator.vibrate(pattern || [10]);
+        vibrated = true;
+      }
+    } catch (_) {}
+
+    // iOS: navigator.vibrate is undefined — use audio micro-click instead
+    if (!vibrated) {
+      _audioTick(freq || 800, duration || 0.012, gain || 0.04);
+    }
+  }
+
+  // Semantic haptic helpers (mirrors iOS UIImpactFeedbackGenerator patterns)
   var haptics = {
-    light:    function () { haptic([8]); },
-    medium:   function () { haptic([14]); },
-    heavy:    function () { haptic([22]); },
-    success:  function () { haptic([10, 40, 10]); },
-    warning:  function () { haptic([20, 30, 20]); },
-    error:    function () { haptic([30, 20, 30, 20, 30]); },
-    select:   function () { haptic([6]); },
+    light:   function () { haptic([8],                    800, 0.008, 0.04); },
+    medium:  function () { haptic([14],                   440, 0.014, 0.07); },
+    heavy:   function () { haptic([22],                   200, 0.022, 0.12); },
+    success: function () { haptic([10, 40, 10],           600, 0.010, 0.05);
+                           setTimeout(function () { _audioTick(900, 0.008, 0.04); }, 55); },
+    warning: function () { haptic([20, 30, 20],           300, 0.020, 0.09); },
+    error:   function () { haptic([30, 20, 30, 20, 30],  180, 0.030, 0.14); },
+    select:  function () { haptic([6],                    1000, 0.006, 0.03); },
   };
 
   document.addEventListener('click', function (e) {

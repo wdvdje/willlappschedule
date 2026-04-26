@@ -4291,3 +4291,30 @@ body.child-window-mode #appWindowContent {
 body.child-window-mode .app-window-header {
   display: none !important;
 }
+
+/* ── Haptic visual proxy (@media hover: none = touch device) ─────── */
+/* On iOS, navigator.vibrate is absent and AudioContext feedback is    */
+/* subtle.  These :active scale transforms provide a reliable tactile  */
+/* visual cue that mirrors the iOS "spring" press feel.               */
+@media (hover: none) {
+  button:active,
+  a.r-item:active,
+  a.sidebar-item:active,
+  .more-sheet-item:active,
+  .cal-add-type-btn:active,
+  .chore-tpl-item:active,
+  .dv-event-block:active {
+    transform: scale(0.97) !important;
+    transition: transform 0.08s var(--ios-ease) !important;
+  }
+
+  .day:active {
+    transform: scale(0.96) !important;
+    transition: transform 0.08s var(--ios-ease) !important;
+  }
+
+  .bucket-header:active {
+    transform: scale(0.98) !important;
+    transition: transform 0.08s var(--ios-ease) !important;
+  }
+}
