@@ -8630,7 +8630,7 @@ function getPersonalClothes() {
     laundry: { lastDone: '', intervalDays: 7, reminderEnabled: false },
     outfits: [],
     wishlist: [],
-    weeklyOutfitPlan: {}
+    weeklyOutfitPlan: {} /* { weekISO: 'YYYY-Www', days: { Mon: outfitId, Tue: outfitId, … } } */
   });
 }
 function setPersonalClothes(data) { localStorage.setItem('personalClothes', JSON.stringify(data)); }
@@ -15018,10 +15018,10 @@ function renderChoresAppMedium(container) {
 
   // Include synced home bucket items in today's count
   var syncedToday = getSyncedHomeChoreItems().filter(function(it) { return it.date === today; });
-  var syncedDone  = syncedToday.filter(function(it) { return it.done; });
+  var syncedDoneItems = syncedToday.filter(function(it) { return it.done; });
 
   var totalToday = todayTasks.length + syncedToday.length;
-  var totalDone  = doneTasks.length + syncedDone.length;
+  var totalDone  = doneTasks.length + syncedDoneItems.length;
   var pct = totalToday ? Math.round(totalDone / totalToday * 100) : 0;
   var circumference = 113.1;
   var offset = circumference - (pct / 100) * circumference;
@@ -16025,7 +16025,7 @@ function renderGroceriesAppFull(container) {
         bud.bills.splice(existIdx, 1);
       }
       setPersonalBudget(bud);
-      try { renderBudgetWidget(); } catch(_) {}
+      try { renderBudgetWidget(); } catch(e) { /* Non-fatal: budget widget may not be rendered in current view */ }
     }
     saveBudgetBtn.textContent = '✓ Saved';
     setTimeout(function() { saveBudgetBtn.textContent = 'Save Budget'; }, 1500);
