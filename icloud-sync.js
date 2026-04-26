@@ -404,8 +404,28 @@
     if (_writeTimer) clearTimeout(_writeTimer);
     _writeTimer = setTimeout(function () {
       _writeTimer = null;
-      writeToFolder();
+      writeToFolder().then(function (ok) {
+        /* If the write failed because we are offline, register a Background
+         * Sync tag so the SW retries it automatically when connectivity
+         * returns.  Supported on iOS 16+ standalone; silently ignored elsewhere. */
+        if (!ok && 'serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(function (reg) {
+            if (reg.sync && typeof reg.sync.register === 'function') {
+              reg.sync.register('icloud-sync').catch(function () {});
+            }
+          }).catch(function () {});
+        }
+      });
     }, 1500);
+  }
+
+  /* Listen for the SW Background Sync message and retry the write. */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function (ev) {
+      if (ev && ev.data && ev.data.type === 'bg-sync:icloud') {
+        writeToFolder().catch(function () {});
+      }
+    });
   }
 
   /*

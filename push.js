@@ -147,7 +147,23 @@
   (function init() {
     if ('serviceWorker' in navigator) {
       // try to register early but ignore errors
-      registerSW().catch(()=>{});
+      registerSW().then(function (reg) {
+        if (!reg) return;
+        // ── Periodic Background Sync: re-arm reminders every 15 minutes ──
+        // Available on iOS 16.4+ PWA standalone and Chrome on Android.
+        // Silently ignored when the API or permission is unavailable.
+        if ('periodicSync' in reg) {
+          navigator.permissions.query({ name: 'periodic-background-sync' })
+            .then(function (status) {
+              if (status.state === 'granted') {
+                return reg.periodicSync.register('reminder-check', {
+                  minInterval: 15 * 60 * 1000
+                });
+              }
+            })
+            .catch(function () {});
+        }
+      }).catch(function () {});
     }
     document.addEventListener('DOMContentLoaded', () => {
       wireUi();
