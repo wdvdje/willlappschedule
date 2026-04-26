@@ -7589,8 +7589,7 @@ function syncRoutineTimesFromSleep() {
     /* Compute morning end: wake time plus total morning routine duration */
     if (sched.wake && morningDur > 0) {
       var wakeMin = timeToMinutes(sched.wake);
-      var mEnd = wakeMin + morningDur;
-      if (mEnd >= 1440) mEnd -= 1440;
+      var mEnd = (wakeMin + morningDur) % 1440;
       routines.sleepScheduleTimes[day].morningEnd = pad2(Math.floor(mEnd / 60)) + ':' + pad2(mEnd % 60);
     }
     /* Compute evening start: bedtime minus total evening routine duration */

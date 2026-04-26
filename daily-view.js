@@ -151,6 +151,7 @@
               if (dayTimes.morningEnd) {
                 phase.endTime = dayTimes.morningEnd;
               } else {
+                /* 10 min per step matches the DEFAULT_STEP_DURATION used in syncRoutineTimesFromSleep */
                 var DEFAULT_STEP_DUR = 10;
                 var totalDur = (phase.steps || []).reduce(function(sum, step) {
                   return sum + (parseInt(step.duration, 10) || DEFAULT_STEP_DUR);
