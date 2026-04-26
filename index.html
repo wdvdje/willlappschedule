@@ -63,6 +63,7 @@
   <!-- Dark mode initialized in <head> above; also handled by ios-native.js -->
   <script>try{if(!document.body.classList.contains('dark-mode')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body.classList.add('dark-mode')}catch(e){}</script>
   <header id="appHeader">
+    <button type="button" class="header-btn" id="headerInboxBtn" aria-label="Inbox">📥<span class="header-btn-label">Inbox</span></button>
     <span id="appHeaderTitle">📅 TimeScape Planner</span>
     <button type="button" class="header-btn" id="headerAddItemBtn" aria-label="Add Item"><span>＋</span><span class="header-btn-label">Add</span></button>
   </header>
@@ -242,12 +243,6 @@
           <button id="nextBtn" class="cal-nav-arrow" aria-label="Next month"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
         <div class="cal-controls-row" style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap">
-          <!-- View dropdown toggle -->
-          <button id="viewDropdownToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="viewDropdownBar">📐 View <span id="viewArrow" style="font-size:0.7rem">▸</span></button>
-          <div id="viewDropdownBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
-            <button id="viewMonthBtn" class="view-toggle-btn active" title="Month view">Month</button>
-            <button id="viewWeekBtn" class="view-toggle-btn" title="Week view">Week</button>
-          </div>
           <!-- Filter toggle -->
           <button id="categoryFilterToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="categoryFilterBar">🔍 Filter <span id="filterArrow" style="font-size:0.7rem">▸</span></button>
           <div id="categoryFilterBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
@@ -258,9 +253,6 @@
       </div>
 
       <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
-
-      <!-- Week view (shown when week toggle active) -->
-      <div id="weekView" style="display:none;overflow-x:auto;max-width:100%;margin:0 auto 12px" aria-label="Week view"></div>
 
       <!-- Cross-domain upcoming summary -->
       <div id="calendarSummary" style="max-width:900px;margin:16px auto 0;padding:0 12px;box-sizing:border-box">
@@ -280,6 +272,20 @@
         </div>
         <div id="calendarSummaryList"></div>
       </div>
+    </section>
+
+    <!-- Week page -->
+    <section id="page-week" class="page hidden">
+      <!-- Week navigation bar -->
+      <div class="week-page-controls" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;padding:8px 12px 4px">
+        <button id="weekPagePrevBtn" class="cal-nav-arrow" aria-label="Previous week"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span id="weekPageLabel" aria-live="polite" style="font-size:1.1rem;font-weight:700;min-width:220px;text-align:center"></span>
+        <button id="weekPageNextBtn" class="cal-nav-arrow" aria-label="Next week"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M7.5 5L12.5 10L7.5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button id="weekPageTodayBtn" class="cat-filter-btn" style="font-weight:600" aria-label="Go to this week">This week</button>
+        <button id="weekPageTwoWeekToggle" class="cat-filter-btn" style="font-weight:600" aria-pressed="false" title="Toggle 2-week view">2 weeks</button>
+      </div>
+      <!-- The week timeline lives here; the two-week view is auto-injected after it by desktop-calendar-features.js -->
+      <div id="weekView" style="overflow-x:auto;max-width:100%;margin:0 auto 12px" aria-label="Week view"></div>
     </section>
 
     <!-- Events page -->
@@ -791,6 +797,12 @@
               <input id="dcHoliday" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
               <span id="dcHolidayHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
             </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <label style="font-weight:600;width:90px">⊞ Apps</label>
+              <input id="dcApps" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+              <span id="dcAppsHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+            </div>
+            <p style="font-size:0.78rem;color:#888;margin:0">Apps items are automatically tagged when created inside an app (e.g. Sleep reminders). You cannot manually assign items to Apps.</p>
           </div>
           <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
             <button id="saveDomainColorsBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save colors</button>
@@ -889,6 +901,7 @@
     <div id="appWindowPanel">
       <div class="sheet-handle"></div>
       <div class="app-window-header">
+        <button id="appWindowCloseBtn" class="app-window-close-btn" aria-label="Close app">✕</button>
         <button id="appWindowBackBtn" aria-label="Back to Apps">← Apps</button>
         <h2 id="appWindowTitle"></h2>
         <label class="app-window-pin-label" title="Show this app on the Today page">
@@ -1054,6 +1067,7 @@
         <a href="#home"     class="more-sheet-item" data-view="home">    <span class="more-sheet-icon">🏡</span><span class="more-sheet-label">Home</span></a>
         <a href="#work"     class="more-sheet-item" data-view="work">    <span class="more-sheet-icon">💼</span><span class="more-sheet-label">Work</span></a>
         <a href="#inbox"    class="more-sheet-item" data-view="inbox">   <span class="more-sheet-icon">📥</span><span class="more-sheet-label">Inbox</span></a>
+        <a href="#reminders" class="more-sheet-item" data-view="reminders"><span class="more-sheet-icon">🔔</span><span class="more-sheet-label">Reminders</span></a>
         <a href="#events"   class="more-sheet-item" data-view="events">  <span class="more-sheet-icon">📅</span><span class="more-sheet-label">Events</span></a>
         <button type="button" id="moreSheetJournalBtn" class="more-sheet-item" aria-label="Open Journal"><span class="more-sheet-icon">📓</span><span class="more-sheet-label">Journal</span></button>
         <button type="button" id="moreSheetAppsBtn" class="more-sheet-item" aria-label="Open Apps"><span class="more-sheet-icon">⊞</span><span class="more-sheet-label">Apps</span></button>
@@ -1070,8 +1084,8 @@
     </div>
     <span class="sidebar-section-label">Views</span>
     <a href="#today"     class="sidebar-item" data-view="today">    <span class="sidebar-icon">🏠</span><span class="sidebar-label">Today</span></a>
-    <a href="#calendar"  class="sidebar-item" data-view="calendar"> <span class="sidebar-icon">🗓️</span><span class="sidebar-label">Calendar</span></a>
-    <a href="#inbox"     class="sidebar-item" data-view="inbox">    <span class="sidebar-icon">📥</span><span class="sidebar-label">Inbox</span></a>
+    <a href="#week"      class="sidebar-item" data-view="week">     <span class="sidebar-icon">📆</span><span class="sidebar-label">Week</span></a>
+    <a href="#calendar"  class="sidebar-item" data-view="calendar"> <span class="sidebar-icon">🗓️</span><span class="sidebar-label">Month</span></a>
     <div class="sidebar-divider"></div>
     <span class="sidebar-section-label">Domains</span>
     <a href="#personal"  class="sidebar-item" data-view="personal"> <span class="sidebar-icon">👤</span><span class="sidebar-label">Personal</span></a>
@@ -1133,9 +1147,9 @@
   <div class="tab-bar-wrapper" role="none">
     <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
       <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
-      <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+      <a href="#week" class="r-item" data-view="week"><span>📆</span><span class="r-label">Week</span></a>
+      <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Month</span></a>
       <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
-      <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
       <button type="button" class="r-item" id="moreTabBtn" aria-label="More sections" aria-expanded="false"><span>⋯</span><span class="r-label">More</span></button>
     </nav>
     <!-- Search island — separate pill to the right of the tab bar -->
@@ -1209,14 +1223,43 @@
 
     // Section-name map for dynamic header title
     const _viewTitles = {
-      today: '🏠 Today', calendar: '🗓️ Calendar', tasks: '✅ Tasks',
+      today: '🏠 Today', calendar: '🗓️ Month', week: '📆 Week', tasks: '✅ Tasks',
       reminders: '🔔 Reminders', personal: '👤 Personal', home: '🏡 Home',
       work: '💼 Work', inbox: '📥 Inbox', events: '📅 Events', settings: '⚙️ Settings'
     };
     // Views that live behind the "More" tab button
-    const _moreViews = new Set(['personal','home','work','inbox','events','settings']);
+    const _moreViews = new Set(['personal','home','work','inbox','events','settings','reminders']);
 
     // SPA navigation helpers
+
+    // Returns the current week's start Date, using selectedYear/Month/Day if set.
+    // Falls back to the Sunday-based week of today if getWeekStart is not yet loaded.
+    function _getWeekStartDate() {
+      if (typeof getWeekStart === 'function') {
+        return getWeekStart(
+          window.selectedYear  || new Date().getFullYear(),
+          window.selectedMonth != null ? window.selectedMonth : new Date().getMonth(),
+          window.selectedDay   || 1
+        );
+      }
+      // Fallback: Sunday-anchored week (locale-neutral; Sunday = getDay() 0)
+      var d = new Date();
+      d.setDate(d.getDate() - d.getDay());
+      return d;
+    }
+
+    function _updateWeekPageLabel() {
+      try {
+        var ws = _getWeekStartDate();
+        var we = new Date(ws); we.setDate(ws.getDate() + 6);
+        var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var label = MONTHS[ws.getMonth()] + ' ' + ws.getDate() + ' \u2013 ' +
+          MONTHS[we.getMonth()] + ' ' + we.getDate() + ', ' + we.getFullYear();
+        var lbl = document.getElementById('weekPageLabel');
+        if (lbl) lbl.textContent = label;
+      } catch(_) {}
+    }
+
     function showView(view) {
       // Settings is now a modal — intercept here
       if (view === 'settings') {
@@ -1240,6 +1283,15 @@
       // Dynamic header title
       const titleEl = document.getElementById('appHeaderTitle');
       if (titleEl) titleEl.textContent = _viewTitles[view] || '📅 TimeScape Planner';
+      // Trigger renderWeekView when navigating to the week page
+      if (view === 'week') {
+        setTimeout(function() {
+          if (typeof renderWeekView === 'function') {
+            try { renderWeekView(); } catch(_) {}
+          }
+          _updateWeekPageLabel();
+        }, 0);
+      }
       // notify view scripts to (re)render for the active view
       window.dispatchEvent(new CustomEvent('view:show', { detail: { view } }));
     }
@@ -1717,6 +1769,10 @@
         openAppsModal();
       });
 
+      // App window modal: close button exits entirely (no return to apps grid)
+      var appWindowCloseBtn = document.getElementById('appWindowCloseBtn');
+      if (appWindowCloseBtn) appWindowCloseBtn.addEventListener('click', closeAppWindow);
+
       // App window modal: expand/fullscreen toggle
       var appWindowExpandBtn = document.getElementById('appWindowExpandBtn');
       if (appWindowExpandBtn) {
@@ -1941,6 +1997,57 @@
         headerSettings.addEventListener('click', function(e) {
           e.preventDefault();
           navTo('settings');
+        });
+      }
+
+      // Week page navigation buttons
+      var weekPrev  = document.getElementById('weekPagePrevBtn');
+      var weekNext  = document.getElementById('weekPageNextBtn');
+      var weekToday = document.getElementById('weekPageTodayBtn');
+      var weekTwoWk = document.getElementById('weekPageTwoWeekToggle');
+
+      function _navWeek(delta) {
+        try {
+          var ws = _getWeekStartDate();
+          ws.setDate(ws.getDate() + delta);
+          window.selectedYear  = ws.getFullYear();
+          window.selectedMonth = ws.getMonth();
+          window.selectedDay   = ws.getDate();
+        } catch(_) {}
+        if (typeof renderWeekView === 'function') try { renderWeekView(); } catch(_) {}
+        _updateWeekPageLabel();
+      }
+
+      if (weekPrev)  weekPrev.addEventListener('click',  function() { _navWeek(-7); });
+      if (weekNext)  weekNext.addEventListener('click',  function() { _navWeek(7); });
+      if (weekToday) weekToday.addEventListener('click', function() {
+        var now = new Date();
+        window.selectedYear  = now.getFullYear();
+        window.selectedMonth = now.getMonth();
+        window.selectedDay   = now.getDate();
+        if (typeof renderWeekView === 'function') try { renderWeekView(); } catch(_) {}
+        _updateWeekPageLabel();
+      });
+
+      // Two-week toggle
+      if (weekTwoWk) {
+        weekTwoWk.addEventListener('click', function() {
+          var twoWkEl = document.getElementById('twoWeekView');
+          var wvEl    = document.getElementById('weekView');
+          if (!twoWkEl) return;
+          var showing = !twoWkEl.classList.contains('hidden') && twoWkEl.style.display !== 'none';
+          if (showing) {
+            twoWkEl.style.display = 'none';
+            if (wvEl) wvEl.style.display = '';
+            weekTwoWk.setAttribute('aria-pressed', 'false');
+            weekTwoWk.classList.remove('active');
+          } else {
+            if (wvEl) wvEl.style.display = 'none';
+            twoWkEl.style.display = '';
+            weekTwoWk.setAttribute('aria-pressed', 'true');
+            weekTwoWk.classList.add('active');
+            if (typeof window.renderTwoWeekView === 'function') try { window.renderTwoWeekView(); } catch(_) {}
+          }
         });
       }
     }
