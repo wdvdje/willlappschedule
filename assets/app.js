@@ -8629,28 +8629,70 @@ function getPersonalClothes() {
   return safeParseStorage('personalClothes', {
     laundry: { lastDone: '', intervalDays: 7, reminderEnabled: false },
     outfits: [],
-    wishlist: []
+    wishlist: [],
+    weeklyOutfitPlan: {}
   });
 }
 function setPersonalClothes(data) { localStorage.setItem('personalClothes', JSON.stringify(data)); }
 
-function _clothesWeatherRec() {
-  var COLD_F = 60, WARM_F = 75; /* Fahrenheit thresholds for clothing recommendation */
-  var COLD_C = 15, WARM_C = 24; /* Celsius equivalents */
-  var today = getTodayISO();
-  if (!_dashWeatherCache || !_dashWeatherCache[today]) return null;
-  var w = _dashWeatherCache[today];
+/* Return ISO week string "YYYY-Www" for a given Date (or today) */
+function _getISOWeekStr(date) {
+  var d = date ? new Date(date) : new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  var yearStart = new Date(d.getFullYear(), 0, 1);
+  var week = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  return d.getFullYear() + '-W' + (week < 10 ? '0' : '') + week;
+}
+
+/* Return clothing recommendation for a single day from _dashWeatherCache */
+function _clothesWeatherRecForDay(isoDate) {
+  var COLD_F = 60, WARM_F = 75;
+  var COLD_C = 15, WARM_C = 24;
+  if (!_dashWeatherCache || !_dashWeatherCache[isoDate]) return null;
+  var w = _dashWeatherCache[isoDate];
   var high = w.high;
   var isFahrenheit = (_dashWeatherUnit === '°F');
   var threshold_cold = isFahrenheit ? COLD_F : COLD_C;
   var threshold_warm = isFahrenheit ? WARM_F : WARM_C;
   if (high < threshold_cold) {
-    return { emoji: '🧥', text: 'Long sleeves & jacket recommended (' + high + _dashWeatherUnit + ')' };
+    return { emoji: '🧥', text: 'Jacket (' + high + _dashWeatherUnit + ')' };
   } else if (high <= threshold_warm) {
+    return { emoji: '👕', text: 'Light layers (' + high + _dashWeatherUnit + ')' };
+  } else {
+    return { emoji: '☀️', text: 'Short sleeves (' + high + _dashWeatherUnit + ')' };
+  }
+}
+
+/* Return clothing recommendation for today (backwards-compat) */
+function _clothesWeatherRec() {
+  var rec = _clothesWeatherRecForDay(getTodayISO());
+  if (!rec) return null;
+  // Use the longer description for the widget banner
+  var COLD_F = 60, WARM_F = 75, COLD_C = 15, WARM_C = 24;
+  var w = _dashWeatherCache[getTodayISO()];
+  var high = w.high;
+  var isFahrenheit = (_dashWeatherUnit === '°F');
+  if (high < (isFahrenheit ? COLD_F : COLD_C)) {
+    return { emoji: '🧥', text: 'Long sleeves & jacket recommended (' + high + _dashWeatherUnit + ')' };
+  } else if (high <= (isFahrenheit ? WARM_F : WARM_C)) {
     return { emoji: '👕', text: 'Light layers recommended (' + high + _dashWeatherUnit + ')' };
   } else {
     return { emoji: '☀️', text: 'Short sleeves — it\'s warm! (' + high + _dashWeatherUnit + ')' };
   }
+}
+
+/* Return array of { iso, dayName, rec } for the next 7 days */
+function _clothesWeather7Days() {
+  var days = [];
+  var DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for (var di = 0; di < 7; di++) {
+    var d = new Date(); d.setDate(d.getDate() + di);
+    var iso = d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+    var label = di === 0 ? 'Today' : di === 1 ? 'Tomorrow' : DAY_NAMES[d.getDay()];
+    days.push({ iso: iso, dayName: label, date: d.getMonth()+1 + '/' + d.getDate(), rec: _clothesWeatherRecForDay(iso) });
+  }
+  return days;
 }
 
 function _clothesLaundryDaysAgo(lastDone) {
@@ -8669,13 +8711,36 @@ function renderClothesWidget() {
   var today = getTodayISO();
 
   var card = buildPWCard('clothesCard', '👗', 'Clothes', function(body) {
-    /* ── Weather recommendation ── */
-    var rec = _clothesWeatherRec();
-    if (rec) {
-      var recEl = document.createElement('div');
-      recEl.className = 'clothes-weather-rec';
-      recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
-      body.appendChild(recEl);
+    /* ── 7-day weather outfit strip ── */
+    var weatherDays = _clothesWeather7Days();
+    var hasWeather = weatherDays.some(function(d) { return d.rec; });
+    if (hasWeather) {
+      var weatherTitle = document.createElement('div');
+      weatherTitle.className = 'clothes-section-title';
+      weatherTitle.textContent = '🌤️ 7-Day Outfit Guide';
+      body.appendChild(weatherTitle);
+
+      var strip = document.createElement('div');
+      strip.className = 'clothes-weather-7day-strip';
+      weatherDays.forEach(function(d) {
+        var cell = document.createElement('div');
+        cell.className = 'clothes-w7-cell' + (d.iso === today ? ' today' : '');
+        cell.innerHTML =
+          '<div class="clothes-w7-dayname">' + escapeHTML(d.dayName) + '</div>' +
+          '<div class="clothes-w7-emoji">' + (d.rec ? d.rec.emoji : '—') + '</div>' +
+          '<div class="clothes-w7-rec">' + (d.rec ? escapeHTML(d.rec.text) : 'No data') + '</div>';
+        strip.appendChild(cell);
+      });
+      body.appendChild(strip);
+    } else {
+      /* Fallback to today-only banner if no 7-day data yet */
+      var rec = _clothesWeatherRec();
+      if (rec) {
+        var recEl = document.createElement('div');
+        recEl.className = 'clothes-weather-rec';
+        recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
+        body.appendChild(recEl);
+      }
     }
 
     /* ── Laundry tracker ── */
@@ -8767,13 +8832,36 @@ function renderClothesAppFull(container) {
   var clothes = getPersonalClothes();
   var today = getTodayISO();
 
-  /* ── Weather recommendation header ── */
-  var rec = _clothesWeatherRec();
-  if (rec) {
-    var recEl = document.createElement('div');
-    recEl.className = 'clothes-weather-rec clothes-weather-rec-full';
-    recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
-    container.appendChild(recEl);
+  /* ── 7-day weather outfit strip ── */
+  var weatherDays = _clothesWeather7Days();
+  var hasWeather = weatherDays.some(function(d) { return d.rec; });
+  if (hasWeather) {
+    var weatherHeader = document.createElement('h3');
+    weatherHeader.className = 'app-full-col-heading';
+    weatherHeader.textContent = '🌤️ 7-Day Outfit Guide';
+    container.appendChild(weatherHeader);
+
+    var strip = document.createElement('div');
+    strip.className = 'clothes-weather-7day-strip clothes-weather-7day-strip-full';
+    weatherDays.forEach(function(d) {
+      var cell = document.createElement('div');
+      cell.className = 'clothes-w7-cell' + (d.iso === today ? ' today' : '');
+      cell.innerHTML =
+        '<div class="clothes-w7-dayname">' + escapeHTML(d.dayName) + '</div>' +
+        '<div class="clothes-w7-date">' + escapeHTML(d.date) + '</div>' +
+        '<div class="clothes-w7-emoji">' + (d.rec ? d.rec.emoji : '—') + '</div>' +
+        '<div class="clothes-w7-rec">' + (d.rec ? escapeHTML(d.rec.text) : 'No data') + '</div>';
+      strip.appendChild(cell);
+    });
+    container.appendChild(strip);
+  } else {
+    var rec = _clothesWeatherRec();
+    if (rec) {
+      var recEl = document.createElement('div');
+      recEl.className = 'clothes-weather-rec clothes-weather-rec-full';
+      recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
+      container.appendChild(recEl);
+    }
   }
 
   var layout = document.createElement('div');
@@ -8851,9 +8939,79 @@ function renderClothesAppFull(container) {
   rHTML += '</div>';
   right.innerHTML = rHTML;
 
+  /* ── Weekly Outfit Planner ── */
+  var currentWeekISO = _getISOWeekStr();
+  var weekPlan = clothes.weeklyOutfitPlan || {};
+  // Reset plan if it belongs to a different week
+  var planWeekISO = weekPlan.weekISO;
+  var planDays = (planWeekISO === currentWeekISO) ? (weekPlan.days || {}) : {};
+
+  var outfits = clothes.outfits || [];
+  var DAY_NAMES_FULL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  var plannerSection = document.createElement('div');
+  plannerSection.className = 'clothes-weekly-planner';
+  var plannerTitle = document.createElement('h3');
+  plannerTitle.className = 'app-full-col-heading';
+  plannerTitle.textContent = '📅 Weekly Outfit Planner';
+  plannerSection.appendChild(plannerTitle);
+
+  if (!outfits.length) {
+    var noOutfitsMsg = document.createElement('p');
+    noOutfitsMsg.style.cssText = 'font-size:0.82rem;color:var(--ios-text-3)';
+    noOutfitsMsg.textContent = 'Save some outfits above to start planning your week.';
+    plannerSection.appendChild(noOutfitsMsg);
+  } else {
+    var grid = document.createElement('div');
+    grid.className = 'clothes-plan-grid';
+    DAY_NAMES_FULL.forEach(function(dayName) {
+      var cell = document.createElement('div');
+      cell.className = 'clothes-plan-cell';
+      var label = document.createElement('div');
+      label.className = 'clothes-plan-day';
+      label.textContent = dayName;
+      var sel = document.createElement('select');
+      sel.className = 'clothes-plan-sel app-fv-select';
+      sel.dataset.day = dayName;
+      var noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = '— None —';
+      sel.appendChild(noneOpt);
+      outfits.forEach(function(o) {
+        var opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = o.name;
+        if (planDays[dayName] === o.id) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      cell.appendChild(label);
+      cell.appendChild(sel);
+      grid.appendChild(cell);
+    });
+    plannerSection.appendChild(grid);
+
+    var planSaveBtn = document.createElement('button');
+    planSaveBtn.className = 'app-fv-save-btn';
+    planSaveBtn.style.marginTop = '10px';
+    planSaveBtn.textContent = 'Save Weekly Plan';
+    planSaveBtn.addEventListener('click', function() {
+      var newDays = {};
+      plannerSection.querySelectorAll('.clothes-plan-sel').forEach(function(s) {
+        if (s.value) newDays[s.dataset.day] = s.value;
+      });
+      var c = getPersonalClothes();
+      c.weeklyOutfitPlan = { weekISO: currentWeekISO, days: newDays };
+      setPersonalClothes(c);
+      planSaveBtn.textContent = '✓ Saved';
+      setTimeout(function() { planSaveBtn.textContent = 'Save Weekly Plan'; }, 1500);
+    });
+    plannerSection.appendChild(planSaveBtn);
+  }
+
   layout.appendChild(left);
   layout.appendChild(right);
   container.appendChild(layout);
+  container.appendChild(plannerSection);
 
   /* Wire laundry done button */
   var laundryDoneBtn = container.querySelector('#clfLaundryDoneBtn');
