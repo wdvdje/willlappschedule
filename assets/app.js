@@ -15562,23 +15562,81 @@ function renderGroceriesAppFull(container) {
   }
   lHTML += '</div>';
 
-  /* Recipe import */
+  /* Recipe import — tabbed: Recipes Hub | Weekly Meals | Manual Text */
+  var savedRecipes = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+  var weekMeals    = (typeof getPersonalMeals   === 'function') ? getPersonalMeals()   : {};
+  var weekDays     = (typeof getMealWeekDays     === 'function') ? getMealWeekDays()     : [];
+  // Flatten this week's planned meals that have a name
+  var weekMealOptions = [];
+  weekDays.forEach(function(wd) {
+    var dayMeals = weekMeals[wd.iso] || {};
+    ['breakfast','lunch','dinner','snacks'].forEach(function(slot) {
+      var m = dayMeals[slot];
+      if (m && m.name) weekMealOptions.push({ label: wd.dayName + ' ' + slot + ' — ' + m.name, recipeId: m.recipeId || '' });
+    });
+  });
+
   lHTML += '<h4 class="app-full-section-heading">📄 Recipe Import</h4>';
-  lHTML += '<div class="gaf-recipe-import">' +
-    '<textarea id="gafRecipeText" class="app-fv-note-input" rows="4" placeholder="Paste ingredients, one per line:\n2 cups flour\n1 tsp salt\n3 eggs…"></textarea>' +
-    '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">' +
-    '<select id="gafRecipeSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>' +
-    '<button type="button" id="gafImportBtn" class="app-fv-save-btn">Import All</button>' +
-    '</div>' +
+  lHTML += '<div class="gaf-recipe-tabs">' +
+    '<button type="button" class="gaf-recipe-tab active" data-tab="hub">📖 Recipe Hub</button>' +
+    '<button type="button" class="gaf-recipe-tab" data-tab="meals">🍽️ Weekly Meals</button>' +
+    '<button type="button" class="gaf-recipe-tab" data-tab="text">✏️ Manual Text</button>' +
   '</div>';
+
+  // Tab: Recipes Hub
+  lHTML += '<div class="gaf-recipe-tab-panel" id="gafTabHub">';
+  if (!savedRecipes.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No saved recipes yet. Add recipes in the Meal Planner → Recipes Hub.</p>';
+  } else {
+    lHTML += '<select id="gafHubRecipeSel" class="app-fv-select" style="width:100%;margin-bottom:6px"><option value="">— Pick a recipe —</option>';
+    savedRecipes.forEach(function(r, ri) {
+      lHTML += '<option value="' + ri + '">' + escapeHTML((r.emoji || '🍽️') + ' ' + (r.name || '')) + '</option>';
+    });
+    lHTML += '</select>';
+    lHTML += '<div id="gafHubIngredientPreview" style="font-size:0.8rem;color:var(--ios-text-3);min-height:24px"></div>';
+    lHTML += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">';
+    lHTML += '<select id="gafHubSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>';
+    lHTML += '<button type="button" id="gafHubImportBtn" class="app-fv-save-btn">Import Ingredients</button>';
+    lHTML += '</div>';
+  }
+  lHTML += '</div>';
+
+  // Tab: Weekly Meals
+  lHTML += '<div class="gaf-recipe-tab-panel" id="gafTabMeals" style="display:none">';
+  if (!weekMealOptions.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No meals planned this week. Add meals in the Meal Planner.</p>';
+  } else {
+    lHTML += '<select id="gafMealSel" class="app-fv-select" style="width:100%;margin-bottom:6px"><option value="">— Pick a planned meal —</option>';
+    weekMealOptions.forEach(function(opt, wi) {
+      lHTML += '<option value="' + wi + '">' + escapeHTML(opt.label) + '</option>';
+    });
+    lHTML += '</select>';
+    lHTML += '<div id="gafMealIngredientPreview" style="font-size:0.8rem;color:var(--ios-text-3);min-height:24px"></div>';
+    lHTML += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">';
+    lHTML += '<select id="gafMealSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>';
+    lHTML += '<button type="button" id="gafMealImportBtn" class="app-fv-save-btn">Import Ingredients</button>';
+    lHTML += '</div>';
+  }
+  lHTML += '</div>';
+
+  // Tab: Manual Text
+  lHTML += '<div class="gaf-recipe-tab-panel" id="gafTabText" style="display:none">';
+  lHTML += '<textarea id="gafRecipeText" class="app-fv-note-input" rows="4" placeholder="Paste ingredients, one per line:\n2 cups flour\n1 tsp salt\n3 eggs…"></textarea>';
+  lHTML += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">';
+  lHTML += '<select id="gafRecipeSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>';
+  lHTML += '<button type="button" id="gafImportBtn" class="app-fv-save-btn">Import All</button>';
+  lHTML += '</div>';
+  lHTML += '</div>';
 
   left.innerHTML = lHTML;
 
   /* ── RIGHT: Budget, Favorites, Aisle Order, Purchase History ── */
+  var syncedBudget = budget.syncToBudget || false;
   var rHTML = '<h3 class="app-full-col-heading">💵 Budget</h3>';
   rHTML += '<div class="gaf-budget-form">' +
     '<div class="gaf-budget-row"><label>Monthly</label><div style="display:flex;align-items:center;gap:4px">$<input type="number" id="gafMonthlyBudget" class="app-fv-num-input" value="' + (budget.monthly || '') + '" min="0" step="10" placeholder="0" /></div></div>' +
     '<div class="gaf-budget-row"><label>Per trip</label><div style="display:flex;align-items:center;gap:4px">$<input type="number" id="gafTripBudget" class="app-fv-num-input" value="' + (budget.trip || '') + '" min="0" step="10" placeholder="0" /></div></div>' +
+    '<label class="gaf-sync-label"><input type="checkbox" id="gafSyncBudgetToggle"' + (syncedBudget ? ' checked' : '') + ' /> Sync trip budget to Budget App as recurring bill</label>' +
     '<button type="button" id="gafSaveBudgetBtn" class="app-fv-save-btn" style="margin-top:6px">Save Budget</button>' +
   '</div>';
 
@@ -15788,17 +15846,133 @@ function renderGroceriesAppFull(container) {
     });
   });
 
-  /* Budget save */
+  /* Budget save — with optional Budget App sync */
   var saveBudgetBtn = container.querySelector('#gafSaveBudgetBtn');
   if (saveBudgetBtn) saveBudgetBtn.addEventListener('click', function() {
     var mb = parseFloat((container.querySelector('#gafMonthlyBudget') || {}).value) || 0;
     var tb = parseFloat((container.querySelector('#gafTripBudget') || {}).value) || 0;
-    setGroceryBudget({ monthly: mb, trip: tb });
+    var syncToggle = container.querySelector('#gafSyncBudgetToggle');
+    var doSync = syncToggle ? syncToggle.checked : false;
+    setGroceryBudget({ monthly: mb, trip: tb, syncToBudget: doSync });
+    // Sync trip budget to Budget App as a monthly recurring bill
+    if (typeof getPersonalBudget === 'function' && typeof setPersonalBudget === 'function') {
+      var bud = getPersonalBudget();
+      if (!bud.bills) bud.bills = [];
+      var existIdx = bud.bills.findIndex(function(b) { return b._grocerySync === true; });
+      if (doSync && tb > 0) {
+        var billEntry = { name: 'Grocery Budget (per trip)', amount: tb, repeat: 'monthly', _grocerySync: true };
+        if (existIdx !== -1) { bud.bills[existIdx] = billEntry; }
+        else { bud.bills.push(billEntry); }
+      } else if (!doSync && existIdx !== -1) {
+        bud.bills.splice(existIdx, 1);
+      }
+      setPersonalBudget(bud);
+      try { renderBudgetWidget(); } catch(_) {}
+    }
     saveBudgetBtn.textContent = '✓ Saved';
     setTimeout(function() { saveBudgetBtn.textContent = 'Save Budget'; }, 1500);
   });
 
-  /* Recipe import */
+  /* Recipe tab switching */
+  container.querySelectorAll('.gaf-recipe-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      container.querySelectorAll('.gaf-recipe-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      var target = tab.dataset.tab;
+      var panels = { hub: '#gafTabHub', meals: '#gafTabMeals', text: '#gafTabText' };
+      Object.keys(panels).forEach(function(k) {
+        var el = container.querySelector(panels[k]);
+        if (el) el.style.display = k === target ? '' : 'none';
+      });
+    });
+  });
+
+  /* Recipe Hub: show ingredient preview on selection */
+  var hubSel = container.querySelector('#gafHubRecipeSel');
+  var hubPreview = container.querySelector('#gafHubIngredientPreview');
+  if (hubSel) hubSel.addEventListener('change', function() {
+    var ri = parseInt(hubSel.value, 10);
+    var savedRecipesNow = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+    var recipe = savedRecipesNow[ri];
+    if (!recipe || !recipe.ingredients || !recipe.ingredients.length) {
+      if (hubPreview) hubPreview.textContent = recipe ? 'No ingredients listed for this recipe.' : '';
+      return;
+    }
+    if (hubPreview) hubPreview.textContent = recipe.ingredients.slice(0, 5).map(function(ing) {
+      return (ing.qty ? ing.qty + ' ' : '') + (ing.unit ? ing.unit + ' ' : '') + (ing.name || ing);
+    }).join(', ') + (recipe.ingredients.length > 5 ? ', +' + (recipe.ingredients.length - 5) + ' more' : '');
+  });
+
+  /* Recipe Hub: import ingredients */
+  var hubImportBtn = container.querySelector('#gafHubImportBtn');
+  if (hubImportBtn) hubImportBtn.addEventListener('click', function() {
+    var ri = parseInt((hubSel || {}).value, 10);
+    if (isNaN(ri)) return;
+    var savedRecipesNow = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+    var recipe = savedRecipesNow[ri];
+    if (!recipe) return;
+    var sec = (container.querySelector('#gafHubSection') || {}).value || '';
+    var ings = recipe.ingredients || [];
+    if (!ings.length) { if (hubPreview) hubPreview.textContent = 'No ingredients on this recipe.'; return; }
+    var al = getActiveGroceryListObj();
+    var newItems = (al.items || []).slice();
+    ings.forEach(function(ing) {
+      var name = (typeof ing === 'string') ? ing : (ing.name || '');
+      var qty  = (typeof ing === 'object') ? ((ing.qty ? ing.qty + ' ' : '') + (ing.unit || '')).trim() : '';
+      if (!name) return;
+      newItems.push({ id: nextGroceryId(), text: name, qty: qty, price: 0, section: sec, inCart: false, added: getTodayISO() });
+      logGroceryItemAdded(name, sec);
+    });
+    saveActiveListItems(al.id, newItems);
+    hubImportBtn.textContent = '✓ Added ' + ings.length + ' items';
+    setTimeout(function() { renderGroceriesAppFull(container); }, 1200);
+  });
+
+  /* Weekly Meals: show ingredient preview on selection */
+  var mealSel = container.querySelector('#gafMealSel');
+  var mealPreview = container.querySelector('#gafMealIngredientPreview');
+  var _weekMealOptsRef = weekMealOptions; // captured from outer scope
+  if (mealSel) mealSel.addEventListener('change', function() {
+    var wi = parseInt(mealSel.value, 10);
+    var opt = _weekMealOptsRef[wi];
+    if (!opt || !opt.recipeId) { if (mealPreview) mealPreview.textContent = 'No saved recipe linked to this meal.'; return; }
+    var savedRecipesNow = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+    var recipe = savedRecipesNow.find(function(r) { return r.id === opt.recipeId; });
+    if (!recipe || !recipe.ingredients || !recipe.ingredients.length) {
+      if (mealPreview) mealPreview.textContent = recipe ? 'No ingredients on linked recipe.' : 'Linked recipe not found.';
+      return;
+    }
+    if (mealPreview) mealPreview.textContent = recipe.ingredients.slice(0, 5).map(function(ing) {
+      return (ing.qty ? ing.qty + ' ' : '') + (ing.unit ? ing.unit + ' ' : '') + (ing.name || ing);
+    }).join(', ') + (recipe.ingredients.length > 5 ? ', +' + (recipe.ingredients.length - 5) + ' more' : '');
+  });
+
+  /* Weekly Meals: import ingredients from linked recipe */
+  var mealImportBtn = container.querySelector('#gafMealImportBtn');
+  if (mealImportBtn) mealImportBtn.addEventListener('click', function() {
+    var wi = parseInt((mealSel || {}).value, 10);
+    var opt = _weekMealOptsRef[wi];
+    if (!opt) return;
+    var savedRecipesNow = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+    var recipe = opt.recipeId ? savedRecipesNow.find(function(r) { return r.id === opt.recipeId; }) : null;
+    var ings = recipe ? (recipe.ingredients || []) : [];
+    if (!ings.length) { if (mealPreview) mealPreview.textContent = 'No ingredients to import for this meal.'; return; }
+    var sec = (container.querySelector('#gafMealSection') || {}).value || '';
+    var al = getActiveGroceryListObj();
+    var newItems = (al.items || []).slice();
+    ings.forEach(function(ing) {
+      var name = (typeof ing === 'string') ? ing : (ing.name || '');
+      var qty  = (typeof ing === 'object') ? ((ing.qty ? ing.qty + ' ' : '') + (ing.unit || '')).trim() : '';
+      if (!name) return;
+      newItems.push({ id: nextGroceryId(), text: name, qty: qty, price: 0, section: sec, inCart: false, added: getTodayISO() });
+      logGroceryItemAdded(name, sec);
+    });
+    saveActiveListItems(al.id, newItems);
+    mealImportBtn.textContent = '✓ Added ' + ings.length + ' items';
+    setTimeout(function() { renderGroceriesAppFull(container); }, 1200);
+  });
+
+  /* Manual text import */
   var importBtn = container.querySelector('#gafImportBtn');
   if (importBtn) importBtn.addEventListener('click', function() {
     var ta  = container.querySelector('#gafRecipeText');
