@@ -2537,6 +2537,11 @@ main {
   #appWindowModal.fullscreen #appWindowContent .jv-root {
     min-height: 72dvh;
   }
+  /* Hide the "Open in new window" expand button when fullscreen on mobile —
+     iOS cannot open new browser windows from a PWA/WebApp context */
+  #appWindowModal.fullscreen #appWindowExpandBtn {
+    display: none !important;
+  }
 }
 
 /* ── Today Page — right-column widget sections ──────────────────── */
@@ -4160,7 +4165,7 @@ body.child-window-mode #appWindowModal {
   background: var(--ios-bg, #f2f2f7);
 }
 
-/* Make the panel fill the entire viewport with no rounded corners or shadow */
+/* Make the panel fill the entire viewport with no rounded corners, shadow, or padding */
 body.child-window-mode #appWindowPanel {
   max-width: 100% !important;
   width: 100% !important;
@@ -4173,6 +4178,7 @@ body.child-window-mode #appWindowPanel {
   backdrop-filter: none !important;
   background: var(--ios-bg, #f2f2f7) !important;
   animation: none !important;
+  padding: 0 !important;
 }
 
 /* Hide back-to-apps (yellow) and pop-out (green) buttons — not meaningful in child window */
@@ -4205,10 +4211,11 @@ body.child-window-mode #appWindowPanel {
 body.child-window-mode #appWindowContent {
   overflow-x: auto;
   min-width: 0;
+  height: 100dvh;
+  padding-bottom: 0;
 }
 
-/* Keep the app-window header laid out in a single row regardless of width */
+/* Hide the title bar entirely — the app content fills the full popup window with no frame */
 body.child-window-mode .app-window-header {
-  flex-wrap: nowrap;
-  min-width: 0;
+  display: none !important;
 }
