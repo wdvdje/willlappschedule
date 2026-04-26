@@ -4103,7 +4103,8 @@ body.view-week #page-week {
 body.view-week .week-page-controls {
   flex-shrink: 0;
 }
-body.view-week #weekView {
+body.view-week #weekView,
+body.view-week #twoWeekPageView {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -4117,9 +4118,10 @@ body.view-week #weekView {
 @media (min-width: 768px) {
   body.view-week #page-week {
     height: calc(100vh - var(--ios-header-h));
-    padding: 0 8px !important;
+    padding: 0 16px !important;
   }
-  body.view-week #weekView {
+  body.view-week #weekView,
+  body.view-week #twoWeekPageView {
     padding: 0 0 8px;
   }
 }
