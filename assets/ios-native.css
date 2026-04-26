@@ -1059,7 +1059,7 @@ main {
   overscroll-behavior-y: contain;
 }
 
-/* ── 14. Page transition — Liquid Glass spring ────────────────────── */
+/* ── 14. Page transition — Liquid Glass spring (MutationObserver fallback) */
 @keyframes page-enter {
   from { opacity: 0; transform: translateY(10px) scale(0.99); }
   to   { opacity: 1; transform: translateY(0)    scale(1); }
@@ -1067,6 +1067,71 @@ main {
 
 .page:not(.hidden).page-animating {
   animation: page-enter 0.30s var(--ios-spring-soft) both;
+}
+
+/* ── 14b. View Transitions API — GPU-composited page transitions ─── */
+/* Safari 18+ / Chrome 111+. Replaces the MutationObserver approach.  */
+@keyframes vt-page-out {
+  from { opacity: 1; transform: translateY(0)     scale(1);    }
+  to   { opacity: 0; transform: translateY(-6px)  scale(0.99); }
+}
+@keyframes vt-page-in {
+  from { opacity: 0; transform: translateY(10px)  scale(0.99); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+::view-transition-old(root) {
+  animation: vt-page-out 0.22s var(--ios-ease) both;
+}
+::view-transition-new(root) {
+  animation: vt-page-in  0.30s var(--ios-spring-soft) both;
+}
+
+/* Respect the user's motion preference */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+  .page:not(.hidden).page-animating {
+    animation: none;
+  }
+}
+
+/* ── 14c. CSS Scroll Snap — horizontal carousels ─────────────────── */
+/* Applies locked, momentum-based swipe feel matching native iOS.     */
+
+/* Containers */
+.weather-week-grid,
+.droutine-phases,
+.mf-week-grid {
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* Snap targets */
+.weather-day-card {
+  scroll-snap-align: start;
+}
+
+.droutine-phase {
+  scroll-snap-align: start;
+}
+
+.mf-week-grid > * {
+  scroll-snap-align: start;
+}
+
+/* dmeal-week-grid becomes a horizontal scroller only on mobile */
+@media (max-width: 600px) {
+  .dmeal-week-grid {
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+  }
+  .dmeal-week-grid > * {
+    scroll-snap-align: start;
+  }
 }
 
 /* ── 15. Spring card hover effects — Liquid Glass ────────────────── */
@@ -4225,4 +4290,31 @@ body.child-window-mode #appWindowContent {
 /* Hide the title bar entirely — the app content fills the full popup window with no frame */
 body.child-window-mode .app-window-header {
   display: none !important;
+}
+
+/* ── Haptic visual proxy (@media hover: none = touch device) ─────── */
+/* On iOS, navigator.vibrate is absent and AudioContext feedback is    */
+/* subtle.  These :active scale transforms provide a reliable tactile  */
+/* visual cue that mirrors the iOS "spring" press feel.               */
+@media (hover: none) {
+  button:active,
+  a.r-item:active,
+  a.sidebar-item:active,
+  .more-sheet-item:active,
+  .cal-add-type-btn:active,
+  .chore-tpl-item:active,
+  .dv-event-block:active {
+    transform: scale(0.97) !important;
+    transition: transform 0.08s var(--ios-ease) !important;
+  }
+
+  .day:active {
+    transform: scale(0.96) !important;
+    transition: transform 0.08s var(--ios-ease) !important;
+  }
+
+  .bucket-header:active {
+    transform: scale(0.98) !important;
+    transition: transform 0.08s var(--ios-ease) !important;
+  }
 }
