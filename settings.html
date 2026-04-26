@@ -382,6 +382,44 @@
           <button id="icloudImportBtn" class="small-btn">Import from Files / iCloud Drive</button>
         </div>
         <div id="icloudIosStatus" style="margin-top:8px;color:#666;font-size:0.9rem"></div>
+
+        <!-- iOS Shortcuts auto-import -->
+        <details style="margin-top:14px">
+          <summary style="cursor:pointer;font-size:0.9rem;font-weight:600;color:#4a90e2">
+            ⚡ Auto-import via iOS Shortcut
+          </summary>
+          <div style="margin-top:10px;font-size:0.85rem;color:#555;line-height:1.6">
+            <p style="margin:0 0 8px">
+              Set up a Shortcut that automatically reads <code>timescape-data.json</code> from
+              your iCloud Drive and loads it into the app — no manual picking required.
+            </p>
+            <ol style="margin:0 0 10px;padding-left:1.4em">
+              <li>Open the <strong>Shortcuts</strong> app and create a new Shortcut.</li>
+              <li>Add action: <strong>Get File</strong> → choose the file
+                  <code>timescape-data.json</code> from your iCloud Drive
+                  (e.g. <em>iCloud Drive / Shortcuts / timescape-data.json</em>).
+                  Enable <em>"Show file picker"</em> once to locate it, then disable
+                  it so future runs grab it automatically.</li>
+              <li>Add action: <strong>Encode</strong> → set encoding to <strong>Base64</strong>.</li>
+              <li>Add action: <strong>URL</strong> → paste the URL below, then replace
+                  <code>PASTE_BASE64_HERE</code> with the <em>Base64 Encoded</em> variable
+                  from the previous step.</li>
+              <li>Add action: <strong>Open URLs</strong>.</li>
+              <li>Run the Shortcut — the app will open and import your data automatically.</li>
+            </ol>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="icloudShortcutUrl" type="text" readonly
+                     style="flex:1;min-width:0;font-size:0.8rem;padding:5px 8px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;color:#333"
+                     placeholder="Loading URL…" />
+              <button id="icloudCopyShortcutUrl" class="small-btn" style="white-space:nowrap">Copy URL</button>
+            </div>
+            <p style="margin:8px 0 0;color:#888;font-size:0.8rem">
+              💡 Tip: Save the exported file as <code>timescape-data.json</code> in an
+              iCloud Drive folder of your choice and point your Shortcut at that path.
+              Run the Export button above first to create the initial file.
+            </p>
+          </div>
+        </details>
       </div>
 
       <!-- No API available -->
@@ -628,5 +666,42 @@
   </script>
   <!-- iCloud Drive sync via File System Access API -->
   <script src="./icloud-sync.js"></script>
+  <script>
+    /* Wire up iOS Shortcut URL helper */
+    (function () {
+      var urlInput  = document.getElementById('icloudShortcutUrl');
+      var copyBtn   = document.getElementById('icloudCopyShortcutUrl');
+      if (!urlInput) return;
+
+      /* Build the template URL for the iOS Shortcut.
+       * Use the current page's full URL (origin + pathname) as the base so
+       * the Shortcut opens back to whatever page the user is viewing, regardless
+       * of whether it's settings.html, index.html, or a sub-path. */
+      var base = window.location.origin + window.location.pathname;
+      var templateUrl = base + '?import-data=PASTE_BASE64_HERE';
+      urlInput.value = templateUrl;
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(templateUrl).then(function () {
+              copyBtn.textContent = 'Copied!';
+              setTimeout(function () { copyBtn.textContent = 'Copy URL'; }, 2000);
+            }).catch(function () {
+              urlInput.select();
+              document.execCommand('copy');
+              copyBtn.textContent = 'Copied!';
+              setTimeout(function () { copyBtn.textContent = 'Copy URL'; }, 2000);
+            });
+          } else {
+            urlInput.select();
+            document.execCommand('copy');
+            copyBtn.textContent = 'Copied!';
+            setTimeout(function () { copyBtn.textContent = 'Copy URL'; }, 2000);
+          }
+        });
+      }
+    })();
+  </script>
 </body>
 </html>
