@@ -638,6 +638,16 @@ function generateCalendar(){
     if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
     if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
 
+    /* ⊞ Apps badge — shown when any reminder that day has domain:'apps' */
+    const hasAppRems = dayReminders.some(function(r) { return r.domain === 'apps'; });
+    if (hasAppRems) {
+      const appsBadge = document.createElement('span');
+      appsBadge.className = 'cal-apps-badge';
+      appsBadge.title = 'App-sourced reminders';
+      appsBadge.textContent = '⊞';
+      cell.appendChild(appsBadge);
+    }
+
     const emojiRow = cell.querySelector('.emoji-row');
     const count = Math.max(1, indicators.length);
     const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
@@ -952,7 +962,8 @@ function showReminders(day){
       reminderArea.innerHTML = `<div class="reminder-bar"><b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${items.map((r,i)=>{
         const checked = r.done ? 'checked' : '';
         const doneStyle = r.done ? ' style="text-decoration:line-through;opacity:0.7"' : '';
-        return `<li><input type="checkbox" ${checked} onchange="toggleReminderDone(${day},${i},this.checked)"><span${doneStyle}>${r.time?`[${r.time}] `:''}${escapeHTML(r.text)}</span> <span class="item-controls"><button class="small-btn" onclick="editReminder(${day},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button></span></li>`;
+        const appBadge = r.domain === 'apps' ? '<span class="rem-apps-badge" title="App-sourced">⊞</span> ' : '';
+        return `<li><input type="checkbox" ${checked} onchange="toggleReminderDone(${day},${i},this.checked)"><span${doneStyle}>${appBadge}${r.time?`[${r.time}] `:''}${escapeHTML(r.text)}</span> <span class="item-controls"><button class="small-btn" onclick="editReminder(${day},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button></span></li>`;
       }).join('')}</ul></div>`;
     } else {
       reminderArea.innerHTML = '';
@@ -4972,6 +4983,42 @@ function renderInbox(){
   const list=document.getElementById('inboxList');
   const empty=document.getElementById('inboxEmpty');
   if(!list) return;
+
+  /* ── Apps section: surface app-sourced reminders from the reminders store ── */
+  var appsSection = document.getElementById('inboxAppsSection');
+  if (!appsSection) {
+    appsSection = document.createElement('div');
+    appsSection.id = 'inboxAppsSection';
+    list.parentNode.insertBefore(appsSection, list);
+  }
+  var rmap = getReminders();
+  var appRems = [];
+  var today = getTodayISO();
+  Object.keys(rmap).sort().forEach(function(dk) {
+    if (dk < today) return; /* skip past dates */
+    (rmap[dk] || []).forEach(function(r) {
+      if (r.domain === 'apps') appRems.push({ date: dk, rem: r });
+    });
+  });
+  if (appRems.length) {
+    var appsHTML = '<div class="inbox-apps-section"><div class="inbox-apps-heading"><span class="inbox-apps-icon">⊞</span> Apps</div>';
+    appsHTML += '<div class="inbox-apps-list">';
+    appRems.slice(0, 20).forEach(function(item) {
+      var appLabel = item.rem.appSource ? ('<span class="inbox-apps-src-tag">' + escapeHTML(item.rem.appSource) + '</span>') : '';
+      appsHTML += '<div class="inbox-apps-item">' +
+        '<span class="inbox-apps-date">' + escapeHTML(item.date) + '</span>' +
+        (item.rem.time ? '<span class="inbox-apps-time">' + escapeHTML(item.rem.time) + '</span>' : '') +
+        '<span class="inbox-apps-text">' + escapeHTML(item.rem.text || '') + '</span>' +
+        appLabel +
+        '</div>';
+    });
+    if (appRems.length > 20) appsHTML += '<div class="inbox-apps-more">+ ' + (appRems.length - 20) + ' more…</div>';
+    appsHTML += '</div></div>';
+    appsSection.innerHTML = appsHTML;
+  } else {
+    appsSection.innerHTML = '';
+  }
+
   const inbox=getInbox();
   if(!inbox.length){ list.innerHTML=''; if(empty) empty.style.display='block'; return; }
   if(empty) empty.style.display='none';
@@ -8400,7 +8447,8 @@ function registerAppReminders(appId, reminders) {
         text: rem.text,
         time: rem.time || '09:00',
         notify: rem.notify || cfg.leadTime,
-        domain: 'personal',
+        domain: 'apps',
+        appSource: appId,
         bucketId: appId
       });
       count++;
@@ -10464,10 +10512,124 @@ function renderSleepAppFull(container) {
       setReminders(rems);
 
       var statusEl = container.querySelector('#sleepFvRemStatus');
-      if (statusEl) { statusEl.textContent = '\u2713 Reminders saved!'; setTimeout(function(){ statusEl.textContent = ''; }, 2500); }
+      if (statusEl) { statusEl.textContent = '✓ Reminders saved!'; setTimeout(function(){ statusEl.textContent = ''; }, 2500); }
     });
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   PER-APP REMINDER INFRASTRUCTURE
+   Shared helpers used by Gym, Meal, Routine, Hydration, Mood, Journal
+   ══════════════════════════════════════════════════════════════ */
+
+/** Per-app reminder settings (time pickers, intervals, enabled flags). */
+function getAppRemSettings() { return safeParseStorage('personalAppRemSettings', {}); }
+function setAppRemSettings(v) { localStorage.setItem('personalAppRemSettings', JSON.stringify(v)); }
+
+/**
+ * Clear all reminders tagged with the given appSource for the next `days` days
+ * then write the provided entries with domain:'apps'.
+ * Each entry: { date:'YYYY-MM-DD', text, time?, notify? }
+ */
+function _saveAppsSourceRems(appSource, entries, days) {
+  var rems = getReminders();
+  var horizon = days || 30;
+  for (var di = 0; di < horizon; di++) {
+    var d = new Date(); d.setDate(d.getDate() + di);
+    var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    if (rems[dk]) {
+      rems[dk] = rems[dk].filter(function(r) { return r.appSource !== appSource; });
+      if (!rems[dk].length) delete rems[dk];
+    }
+  }
+  (entries || []).forEach(function(e) {
+    if (!e.date || !e.text) return;
+    if (!rems[e.date]) rems[e.date] = [];
+    rems[e.date].push({ text: e.text, time: e.time || '09:00', notify: e.notify || 'at', domain: 'apps', appSource: appSource });
+  });
+  setReminders(rems);
+}
+
+/** Sync gym session reminders for the next 28 days based on saved settings. */
+function _syncGymReminders() {
+  var cfg = (getAppRemSettings().gym) || {};
+  if (!cfg.enabled) { _saveAppsSourceRems('gym', [], 28); return; }
+  var days = cfg.days || [], time = cfg.time || '08:00';
+  var WEEK = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var entries = [];
+  for (var di = 0; di < 28; di++) {
+    var d = new Date(); d.setDate(d.getDate() + di);
+    if (days.indexOf(WEEK[d.getDay()]) === -1) continue;
+    var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    entries.push({ date: dk, text: '🏋️ Gym session at ' + time, time: time, notify: 'at' });
+  }
+  _saveAppsSourceRems('gym', entries, 28);
+}
+window._syncGymReminders = _syncGymReminders;
+
+/** Sync daily routine reminders for the next 30 days based on saved settings. */
+function _syncRoutineReminders() {
+  var cfg = getAppRemSettings().routine || {};
+  var entries = [];
+  for (var di = 0; di < 30; di++) {
+    var d = new Date(); d.setDate(d.getDate() + di);
+    var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    if (cfg.morningEnabled && cfg.morningTime)
+      entries.push({ date: dk, text: '🌅 Start morning routine', time: cfg.morningTime, notify: 'at' });
+    if (cfg.eveningEnabled && cfg.eveningTime)
+      entries.push({ date: dk, text: '🌙 Start evening routine', time: cfg.eveningTime, notify: 'at' });
+  }
+  _saveAppsSourceRems('routine', entries, 30);
+}
+window._syncRoutineReminders = _syncRoutineReminders;
+
+/** Sync periodic hydration reminders (every N hours) for the next 7 days. */
+function _syncHydrationReminders() {
+  var cfg = getAppRemSettings().hydration || {};
+  if (!cfg.enabled) { _saveAppsSourceRems('hydration', [], 7); return; }
+  var intervalH = Math.max(1, cfg.intervalHours || 2);
+  var startH = parseInt((cfg.startTime || '08:00').split(':')[0], 10);
+  var endH   = parseInt((cfg.endTime   || '22:00').split(':')[0], 10);
+  var entries = [];
+  for (var di = 0; di < 7; di++) {
+    var d = new Date(); d.setDate(d.getDate() + di);
+    var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    for (var h = startH; h <= endH; h += intervalH)
+      entries.push({ date: dk, text: '💧 Time to drink water!', time: pad2(h) + ':00', notify: 'at' });
+  }
+  _saveAppsSourceRems('hydration', entries, 7);
+}
+window._syncHydrationReminders = _syncHydrationReminders;
+
+/** Sync daily mood check-in reminder for the next 30 days. */
+function _syncMoodReminders() {
+  var cfg = getAppRemSettings().mood || {};
+  if (!cfg.enabled) { _saveAppsSourceRems('mood', [], 30); return; }
+  var time = cfg.time || '20:00';
+  var entries = [];
+  for (var di = 0; di < 30; di++) {
+    var d = new Date(); d.setDate(d.getDate() + di);
+    var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    entries.push({ date: dk, text: '😊 Daily mood check-in', time: time, notify: 'at' });
+  }
+  _saveAppsSourceRems('mood', entries, 30);
+}
+window._syncMoodReminders = _syncMoodReminders;
+
+/** Sync daily journal writing reminder for the next 30 days. */
+function _syncJournalReminders() {
+  var cfg = getAppRemSettings().journal || {};
+  if (!cfg.enabled) { _saveAppsSourceRems('journal', [], 30); return; }
+  var time = cfg.time || '21:00';
+  var entries = [];
+  for (var di = 0; di < 30; di++) {
+    var d = new Date(); d.setDate(d.getDate() + di);
+    var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    entries.push({ date: dk, text: '📓 Journal writing time', time: time, notify: 'at' });
+  }
+  _saveAppsSourceRems('journal', entries, 30);
+}
+window._syncJournalReminders = _syncJournalReminders;
 
 /* ── Sleep App — Medium View ────────────────────────────────────────── */
 function renderSleepAppMedium(container) {
@@ -10658,6 +10820,36 @@ function renderMoodAppFull(container) {
     if(data.length>90)data=data.slice(0,90);
     setPersonalMood(data);renderMoodAppFull(container);
   });
+
+  /* ── Mood Check-in Reminder ── */
+  var moodCfg = getAppRemSettings().mood || {};
+  var moodRemSection = document.createElement('div');
+  moodRemSection.className = 'app-sleep-reminders-grid';
+  moodRemSection.style.marginTop = '16px';
+  moodRemSection.innerHTML =
+    '<h4 class="app-full-section-heading">🔔 Daily Check-in Reminder</h4>' +
+    '<div class="app-sleep-rem-row">' +
+      '<label class="app-sleep-rem-label">' +
+        '<input type="checkbox" id="moodRemEnabled" class="app-sleep-rem-check"' + (moodCfg.enabled ? ' checked' : '') + '/>' +
+        '😊 Remind me to check in' +
+      '</label>' +
+      '<input type="time" id="moodRemTime" class="app-sleep-rem-time" value="' + escapeHTML(moodCfg.time || '20:00') + '" />' +
+    '</div>' +
+    '<button id="moodRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminder</button>' +
+    '<p id="moodRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
+  container.appendChild(moodRemSection);
+
+  var moodRemSaveBtn = container.querySelector('#moodRemSave');
+  if (moodRemSaveBtn) moodRemSaveBtn.addEventListener('click', function() {
+    var s = getAppRemSettings();
+    var enEl = container.querySelector('#moodRemEnabled');
+    var tiEl = container.querySelector('#moodRemTime');
+    s.mood = { enabled: !!(enEl && enEl.checked), time: tiEl ? tiEl.value : '20:00' };
+    setAppRemSettings(s);
+    try { _syncMoodReminders(); } catch(e) { console.warn('[Mood] _syncMoodReminders:', e); }
+    var st = container.querySelector('#moodRemStatus');
+    if (st) { st.textContent = '✓ Mood reminder saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
+  });
 }
 
 function renderFocusAppFull(container) {
@@ -10752,6 +10944,53 @@ function renderHydrationAppFull(container) {
   var resetBtn=container.querySelector('#hydFvReset');
   if(resetBtn)resetBtn.addEventListener('click',function(){var h=getPersonalHydration();if(!h.log)h.log={};h.log[today]=0;setPersonalHydration(h);renderHydrationAppFull(container);});
   container.querySelectorAll('.app-hyd-day-inp').forEach(function(inp){inp.addEventListener('change',function(){var h=getPersonalHydration();if(!h.goalByDay)h.goalByDay={};h.goalByDay[inp.dataset.day]=parseInt(inp.value,10)||8;setPersonalHydration(h);});});
+
+  /* ── Hydration Periodic Reminders ── */
+  var hydCfg = getAppRemSettings().hydration || {};
+  var hydRemSection = document.createElement('div');
+  hydRemSection.className = 'app-sleep-reminders-grid';
+  hydRemSection.style.marginTop = '16px';
+  hydRemSection.innerHTML =
+    '<h4 class="app-full-section-heading">🔔 Hydration Reminders</h4>' +
+    '<div class="app-sleep-rem-row">' +
+      '<label class="app-sleep-rem-label">' +
+        '<input type="checkbox" id="hydRemEnabled" class="app-sleep-rem-check"' + (hydCfg.enabled ? ' checked' : '') + '/>' +
+        '💧 Remind me to drink water' +
+      '</label>' +
+    '</div>' +
+    '<div class="app-sleep-rem-row">' +
+      '<label class="app-sleep-rem-label" style="min-width:140px">Every</label>' +
+      '<input type="number" id="hydRemInterval" class="app-sleep-rem-time" style="width:60px" min="1" max="12" value="' + (hydCfg.intervalHours || 2) + '" />' +
+      '<span style="font-size:0.82rem;margin-left:4px">hours</span>' +
+    '</div>' +
+    '<div class="app-sleep-rem-row">' +
+      '<label class="app-sleep-rem-label">From</label>' +
+      '<input type="time" id="hydRemStart" class="app-sleep-rem-time" value="' + escapeHTML(hydCfg.startTime || '08:00') + '" />' +
+      '<label class="app-sleep-rem-label" style="margin-left:8px">to</label>' +
+      '<input type="time" id="hydRemEnd" class="app-sleep-rem-time" value="' + escapeHTML(hydCfg.endTime || '22:00') + '" />' +
+    '</div>' +
+    '<button id="hydRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
+    '<p id="hydRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
+  container.appendChild(hydRemSection);
+
+  var hydRemSaveBtn = container.querySelector('#hydRemSave');
+  if (hydRemSaveBtn) hydRemSaveBtn.addEventListener('click', function() {
+    var s = getAppRemSettings();
+    var enEl  = container.querySelector('#hydRemEnabled');
+    var intEl = container.querySelector('#hydRemInterval');
+    var stEl  = container.querySelector('#hydRemStart');
+    var enTimeEl = container.querySelector('#hydRemEnd');
+    s.hydration = {
+      enabled:       !!(enEl && enEl.checked),
+      intervalHours: Math.max(1, parseInt((intEl || {}).value, 10) || 2),
+      startTime:     stEl ? stEl.value : '08:00',
+      endTime:       enTimeEl ? enTimeEl.value : '22:00'
+    };
+    setAppRemSettings(s);
+    try { _syncHydrationReminders(); } catch(e) { console.warn('[Hydration] _syncHydrationReminders:', e); }
+    var st = container.querySelector('#hydRemStatus');
+    if (st) { st.textContent = '✓ Hydration reminders saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
+  });
 }
 
 
@@ -10943,6 +11182,7 @@ function _mfToday(body, container) {
               '<button class="app-fv-save-btn mf-save-btn" data-meal="' + t.key + '">Save</button>' +
               '<button class="app-fv-cancel-btn mf-cancel-btn" data-meal="' + t.key + '">Cancel</button>' +
               '<button class="app-fv-link-btn mf-fav-btn" data-meal="' + t.key + '" title="Save as favourite">⭐ Fav</button>' +
+              (hasMeal ? '<button class="app-fv-link-btn mf-pin-btn" data-meal="' + t.key + '" data-date="' + escapeHTML(selDate) + '" title="Pin meal prep reminder to calendar">📌 Pin</button>' : '') +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -11059,6 +11299,37 @@ function _mfToday(body, container) {
       localStorage.setItem('personalMealFavorites', JSON.stringify(favs));
       btn.textContent = '✅ Saved!';
       setTimeout(function() { btn.textContent = '⭐ Fav'; }, 1500);
+    });
+  });
+  /* Wire: pin meal prep reminder to calendar */
+  body.querySelectorAll('.mf-pin-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var mealKey  = btn.dataset.meal;
+      var mealDate = btn.dataset.date;
+      if (!mealDate) return;
+      var meals = getPersonalMeals();
+      var m = (meals[mealDate] || {})[mealKey] || {};
+      var mealName = m.name || mealKey;
+      var mealTime = m.time || '';
+      var prepTime = mealTime ? (function() {
+        /* 30 min before meal time */
+        var parts = mealTime.split(':');
+        var mins  = parseInt(parts[0], 10) * 60 + (parseInt(parts[1], 10) || 0) - 30;
+        if (mins < 0) mins += 1440;
+        return pad2(Math.floor(mins / 60)) + ':' + pad2(mins % 60);
+      }()) : '08:00';
+      var rems = getReminders();
+      if (!rems[mealDate]) rems[mealDate] = [];
+      rems[mealDate].push({
+        text: '🍽️ Meal prep: ' + mealName,
+        time: prepTime,
+        notify: 'at',
+        domain: 'apps',
+        appSource: 'meal'
+      });
+      setReminders(rems);
+      btn.textContent = '✅ Pinned!';
+      setTimeout(function() { btn.textContent = '📌 Pin'; }, 2000);
     });
   });
   /* Wire: quick-add from favorites */
@@ -11850,9 +12121,49 @@ function renderGymAppFull(container) {
     g.routines[ri].exercises.splice(ei,1);setPersonalGym(g);renderGymAppFull(container);
   });});
   container.querySelectorAll('.app-gym-inp').forEach(function(inp){inp.addEventListener('change',function(){var ri=parseInt(inp.dataset.ri,10),ei=parseInt(inp.dataset.ei,10);var g=getPersonalGym();if(!g.log)g.log={};if(!g.log[today])g.log[today]={};if(!g.log[today][ri])g.log[today][ri]={};if(!g.log[today][ri][ei])g.log[today][ri][ei]={};g.log[today][ri][ei][inp.dataset.field]=parseFloat(inp.value)||0;setPersonalGym(g);});});
-  var saveGym=container.querySelector('#gymFvSave');if(saveGym)saveGym.addEventListener('click',function(){saveGym.textContent='\u2705 Saved!';setTimeout(function(){saveGym.textContent='\ud83d\udcbe Save Today\'s Log';},1500);});
+  var saveGym=container.querySelector('#gymFvSave');if(saveGym)saveGym.addEventListener('click',function(){saveGym.textContent='✅ Saved!';setTimeout(function(){saveGym.textContent='💾 Save Today\'s Log';},1500);});
   var ormCalc=container.querySelector('#ormCalc');if(ormCalc)ormCalc.addEventListener('click',function(){var wt=parseFloat((container.querySelector('#ormWeight')||{}).value)||0;var rp=parseInt((container.querySelector('#ormReps')||{}).value,10)||0;var res=container.querySelector('#ormResult');if(!wt||!rp){if(res)res.textContent='Enter weight and reps.';return;}var orm=(wt*(1+rp/30)).toFixed(1);if(res)res.innerHTML='<strong>'+orm+' kg</strong> estimated 1RM';});
   var bmSave=container.querySelector('#bmSave');if(bmSave)bmSave.addEventListener('click',function(){var wtInp=container.querySelector('#bmWeight'),fatInp=container.querySelector('#bmFat');var bm=safeParseStorage('personalBodyMeasurements',[]);bm=bm.filter(function(m){return m.date!==today;});bm.push({date:today,weight:parseFloat((wtInp||{}).value)||0,fat:parseFloat((fatInp||{}).value)||0});if(bm.length>90)bm=bm.slice(-90);localStorage.setItem('personalBodyMeasurements',JSON.stringify(bm));renderGymAppFull(container);});
+
+  /* ── Gym Reminders ── */
+  var gymCfg = (getAppRemSettings().gym) || {};
+  var WEEK_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var remSection = document.createElement('div');
+  remSection.className = 'app-sleep-reminders-grid';
+  remSection.style.marginTop = '16px';
+  var remHTML = '<h4 class="app-full-section-heading">🔔 Gym Session Reminders</h4>' +
+    '<div class="app-sleep-rem-row">' +
+      '<label class="app-sleep-rem-label">' +
+        '<input type="checkbox" id="gymRemEnabled" class="app-sleep-rem-check"' + (gymCfg.enabled ? ' checked' : '') + '/>' +
+        '🏋️ Enable gym reminders' +
+      '</label>' +
+      '<input type="time" id="gymRemTime" class="app-sleep-rem-time" value="' + escapeHTML(gymCfg.time || '08:00') + '" />' +
+    '</div>' +
+    '<div class="app-sleep-rem-row" style="flex-wrap:wrap;gap:6px">' +
+      '<span style="font-size:0.82rem;font-weight:600;min-width:80px">Workout days:</span>' +
+      WEEK_DAYS.map(function(d) {
+        var checked = (gymCfg.days || []).indexOf(d) !== -1 ? ' checked' : '';
+        return '<label style="display:flex;align-items:center;gap:3px;font-size:0.8rem"><input type="checkbox" class="gym-rem-day app-sleep-rem-check" data-day="' + d + '"' + checked + '/>' + d + '</label>';
+      }).join('') +
+    '</div>' +
+    '<button id="gymRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
+    '<p id="gymRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
+  remSection.innerHTML = remHTML;
+  container.appendChild(remSection);
+
+  var gymRemSave = container.querySelector('#gymRemSave');
+  if (gymRemSave) gymRemSave.addEventListener('click', function() {
+    var enabledEl = container.querySelector('#gymRemEnabled');
+    var timeEl    = container.querySelector('#gymRemTime');
+    var days = [];
+    container.querySelectorAll('.gym-rem-day:checked').forEach(function(cb) { days.push(cb.dataset.day); });
+    var s = getAppRemSettings();
+    s.gym = { enabled: !!(enabledEl && enabledEl.checked), time: timeEl ? timeEl.value : '08:00', days: days };
+    setAppRemSettings(s);
+    try { _syncGymReminders(); } catch(e) { console.warn('[Gym] _syncGymReminders:', e); }
+    var st = container.querySelector('#gymRemStatus');
+    if (st) { st.textContent = '✓ Gym reminders saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
+  });
 }
 
 function renderRoutineAppFull(container) {
@@ -11897,7 +12208,49 @@ function renderRoutineAppFull(container) {
   right.innerHTML=heatHTML;
   layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
   container.querySelectorAll('.app-routine-cb').forEach(function(cb){cb.addEventListener('change',function(){var row=cb.closest('[data-period]');if(!row)return;var period=row.dataset.period,idx=parseInt(row.dataset.idx,10);var l=getPersonalRoutineLog();if(!l[today])l[today]={morning:[],evening:[]};if(!l[today][period])l[today][period]=[];if(cb.checked){if(l[today][period].indexOf(idx)<0)l[today][period].push(idx);}else{l[today][period]=l[today][period].filter(function(i){return i!==idx;});}setPersonalRoutineLog(l);renderRoutineAppFull(container);});});
-  var expBtn=container.querySelector('#routineFvExport');if(expBtn)expBtn.addEventListener('click',function(){try{navigator.clipboard.writeText(exportLines.join('\n'));expBtn.textContent='\u2705 Copied!';setTimeout(function(){expBtn.textContent='\ud83d\udccb Copy routine as text';},2000);}catch(e){alert(exportLines.join('\n'));}});
+  var expBtn=container.querySelector('#routineFvExport');if(expBtn)expBtn.addEventListener('click',function(){try{navigator.clipboard.writeText(exportLines.join('\n'));expBtn.textContent='✅ Copied!';setTimeout(function(){expBtn.textContent='📋 Copy routine as text';},2000);}catch(e){alert(exportLines.join('\n'));}});
+
+  /* ── Routine Reminders ── */
+  var routineCfg = getAppRemSettings().routine || {};
+  var routineRemSection = document.createElement('div');
+  routineRemSection.className = 'app-sleep-reminders-grid';
+  routineRemSection.style.marginTop = '16px';
+  routineRemSection.innerHTML =
+    '<h4 class="app-full-section-heading">🔔 Routine Reminders</h4>' +
+    '<div class="app-sleep-rem-row">' +
+      '<label class="app-sleep-rem-label">' +
+        '<input type="checkbox" id="routineRemMorningEnabled" class="app-sleep-rem-check"' + (routineCfg.morningEnabled ? ' checked' : '') + '/>' +
+        '🌅 Morning routine start' +
+      '</label>' +
+      '<input type="time" id="routineRemMorningTime" class="app-sleep-rem-time" value="' + escapeHTML(routineCfg.morningTime || '07:00') + '" />' +
+    '</div>' +
+    '<div class="app-sleep-rem-row">' +
+      '<label class="app-sleep-rem-label">' +
+        '<input type="checkbox" id="routineRemEveningEnabled" class="app-sleep-rem-check"' + (routineCfg.eveningEnabled ? ' checked' : '') + '/>' +
+        '🌙 Evening routine start' +
+      '</label>' +
+      '<input type="time" id="routineRemEveningTime" class="app-sleep-rem-time" value="' + escapeHTML(routineCfg.eveningTime || '21:00') + '" />' +
+    '</div>' +
+    '<button id="routineRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
+    '<p id="routineRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
+  container.appendChild(routineRemSection);
+
+  var routineRemSaveBtn = container.querySelector('#routineRemSave');
+  if (routineRemSaveBtn) routineRemSaveBtn.addEventListener('click', function() {
+    var s = getAppRemSettings();
+    var morEn = container.querySelector('#routineRemMorningEnabled');
+    var morTi = container.querySelector('#routineRemMorningTime');
+    var eveEn = container.querySelector('#routineRemEveningEnabled');
+    var eveTi = container.querySelector('#routineRemEveningTime');
+    s.routine = {
+      morningEnabled: !!(morEn && morEn.checked), morningTime: morTi ? morTi.value : '07:00',
+      eveningEnabled: !!(eveEn && eveEn.checked), eveningTime: eveTi ? eveTi.value : '21:00'
+    };
+    setAppRemSettings(s);
+    try { _syncRoutineReminders(); } catch(e) { console.warn('[Routine] _syncRoutineReminders:', e); }
+    var st = container.querySelector('#routineRemStatus');
+    if (st) { st.textContent = '✓ Routine reminders saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
+  });
 }
 
 /* ── Budget Full View helpers ─────────────────────────────────────── */
@@ -12895,6 +13248,9 @@ window.registerAppReminders       = registerAppReminders;
 window.syncBudgetNotifications    = syncBudgetNotifications;
 window.getAppNotificationSettings = getAppNotificationSettings;
 window.setAppNotificationSettings = setAppNotificationSettings;
+window.getAppRemSettings          = getAppRemSettings;
+window.setAppRemSettings          = setAppRemSettings;
+window._saveAppsSourceRems        = _saveAppsSourceRems;
 
 /* ══════════════════════════════════════════════════════════════
    JOURNAL APP
@@ -13654,6 +14010,36 @@ function renderJournalAppFull(container) {
 
   /* Initial render */
   rebuild();
+
+  /* ── Journal Writing Reminder ── */
+  var journalCfg = getAppRemSettings().journal || {};
+  var jRemSection = document.createElement('div');
+  jRemSection.className = 'app-sleep-reminders-grid';
+  jRemSection.style.marginTop = '16px';
+  jRemSection.innerHTML =
+    '<h4 class="app-full-section-heading">🔔 Daily Writing Reminder</h4>' +
+    '<div class="app-sleep-rem-row">' +
+      '<label class="app-sleep-rem-label">' +
+        '<input type="checkbox" id="journalRemEnabled" class="app-sleep-rem-check"' + (journalCfg.enabled ? ' checked' : '') + '/>' +
+        '📓 Remind me to write' +
+      '</label>' +
+      '<input type="time" id="journalRemTime" class="app-sleep-rem-time" value="' + escapeHTML(journalCfg.time || '21:00') + '" />' +
+    '</div>' +
+    '<button id="journalRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminder</button>' +
+    '<p id="journalRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
+  container.appendChild(jRemSection);
+
+  var jRemSaveBtn = container.querySelector('#journalRemSave');
+  if (jRemSaveBtn) jRemSaveBtn.addEventListener('click', function() {
+    var s = getAppRemSettings();
+    var enEl = container.querySelector('#journalRemEnabled');
+    var tiEl = container.querySelector('#journalRemTime');
+    s.journal = { enabled: !!(enEl && enEl.checked), time: tiEl ? tiEl.value : '21:00' };
+    setAppRemSettings(s);
+    try { _syncJournalReminders(); } catch(e) { console.warn('[Journal] _syncJournalReminders:', e); }
+    var st = container.querySelector('#journalRemStatus');
+    if (st) { st.textContent = '✓ Journal reminder saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
+  });
 }
 
 window.renderJournalWidget       = renderJournalWidget;

@@ -4004,3 +4004,74 @@ body.dark-mode .budgfv-networth-total { background: #1e2d45; }
 body.dark-mode .app-notif-row { background: #1e2d45; }
 body.dark-mode .app-notif-lead-sel { background: #1a2744; color: #ddd; border-color: #2a2a4a; }
 
+/* ══════════════════════════════════════════════════════════════
+   PER-APP REMINDERS — ⊞ badge, Apps inbox section, daily list badge
+   ══════════════════════════════════════════════════════════════ */
+
+/* ⊞ badge on calendar day cells */
+.cal-apps-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 3px;
+  font-size: 0.62rem;
+  color: var(--apps-domain-color, #ff6b6b);
+  line-height: 1;
+  pointer-events: none;
+  z-index: 2;
+}
+.day { position: relative; } /* ensure badge positions correctly */
+
+/* ⊞ badge inline in reminder list */
+.rem-apps-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: var(--apps-domain-color, #ff6b6b);
+  background: rgba(255,107,107,0.10);
+  border-radius: 4px;
+  padding: 1px 4px;
+  vertical-align: middle;
+  margin-right: 2px;
+}
+
+/* Inbox — Apps section */
+.inbox-apps-section {
+  margin-bottom: 14px;
+}
+.inbox-apps-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--apps-domain-color, #ff6b6b);
+  padding: 6px 0;
+  border-bottom: 2px solid var(--apps-domain-color, #ff6b6b);
+  margin-bottom: 8px;
+}
+.inbox-apps-icon { font-size: 1rem; }
+.inbox-apps-list { display: flex; flex-direction: column; gap: 5px; }
+.inbox-apps-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,107,107,0.06);
+  border-left: 3px solid var(--apps-domain-color, #ff6b6b);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  flex-wrap: wrap;
+}
+.inbox-apps-date { color: var(--ios-text-3, #888); font-size: 0.75rem; min-width: 76px; }
+.inbox-apps-time { color: var(--ios-text-3, #888); font-size: 0.75rem; }
+.inbox-apps-text { flex: 1; }
+.inbox-apps-src-tag {
+  font-size: 0.7rem;
+  background: rgba(255,107,107,0.15);
+  color: var(--apps-domain-color, #ff6b6b);
+  border-radius: 8px;
+  padding: 2px 7px;
+  text-transform: capitalize;
+}
+.inbox-apps-more { font-size: 0.78rem; color: var(--ios-text-3, #888); padding: 4px 6px; }
+body.dark-mode .inbox-apps-item { background: rgba(255,107,107,0.10); }
+
