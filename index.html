@@ -62,6 +62,8 @@
 <body>
   <!-- Dark mode initialized in <head> above; also handled by ios-native.js -->
   <script>try{if(!document.body.classList.contains('dark-mode')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body.classList.add('dark-mode')}catch(e){}</script>
+  <!-- Child window mode: apply class immediately so CSS hides page chrome before render -->
+  <script>try{var _cwp=new URLSearchParams(window.location.search).get('childApp');if(_cwp)document.body.classList.add('child-window-mode')}catch(e){}</script>
   <header id="appHeader">
     <button type="button" class="header-btn" id="headerInboxBtn" aria-label="Inbox">📥<span class="header-btn-label">Inbox</span></button>
     <span id="appHeaderTitle">📅 TimeScape Planner</span>
@@ -1042,6 +1044,9 @@
     <button id="undoBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:12px;padding:4px 10px;cursor:pointer;font-size:0.82rem">Undo</button>
   </div>
 
+  <!-- App notification toast (popup blocked, window closed, etc.) -->
+  <div id="appNotifToast" style="position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 18px;border-radius:24px;z-index:9999;font-size:0.88rem;box-shadow:0 4px 20px rgba(0,0,0,0.25);opacity:0;transition:opacity 0.35s;pointer-events:none;text-align:center;max-width:90vw"></div>
+
   <!-- Keyboard shortcuts panel -->
   <div id="shortcutHints" style="display:none;position:fixed;bottom:90px;right:16px;background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 4px 20px rgba(0,0,0,0.18);z-index:9997;font-size:0.83rem;max-width:240px;text-align:left">
     <b style="display:block;margin-bottom:8px">Keyboard shortcuts</b>
@@ -1446,6 +1451,68 @@
 
     var _currentApp = null;
 
+    // Track child windows opened via pop-out (one per app)
+    var _childWindows = {};
+
+    // Show a brief notification toast (used for popup-blocked and window-closed messages)
+    function _showAppToast(msg, duration) {
+      var toast = document.getElementById('appNotifToast');
+      if (!toast) return;
+      toast.textContent = msg;
+      toast.style.opacity = '1';
+      clearTimeout(toast._hideTimer);
+      toast._hideTimer = setTimeout(function() { toast.style.opacity = '0'; }, duration || 3500);
+    }
+
+    // Re-render the current open app when localStorage changes from another window.
+    // Used by both the parent window and child windows to stay in sync.
+    function _handleStorageSync() {
+      if (!_currentApp) return;
+      var appModal = document.getElementById('appWindowModal');
+      if (!appModal || appModal.classList.contains('hidden')) return;
+      var content = document.getElementById('appWindowContent');
+      var isFullscreen = appModal.classList.contains('fullscreen');
+      if (content) {
+        try { _renderAppContent(_currentApp, content, isFullscreen); } catch(_e) {}
+      }
+    }
+
+    // Open the current app in a child browser window.
+    // If a window for this app is already open, focus it instead.
+    function openChildAppWindow(app) {
+      // Focus existing window if already open
+      if (_childWindows[app] && !_childWindows[app].closed) {
+        try { _childWindows[app].focus(); } catch(e) {}
+        return;
+      }
+
+      // Build URL: strip any existing childApp param, add the new one
+      var baseUrl = window.location.href.split('?')[0].split('#')[0];
+      var url = baseUrl + '?childApp=' + encodeURIComponent(app);
+
+      var win = window.open(url, 'timescape_app_' + app);
+      if (!win || win.closed) {
+        _showAppToast('Pop-up blocked — please allow pop-ups for this site in your browser settings.', 5000);
+        return;
+      }
+
+      _childWindows[app] = win;
+
+      // Return the main window to the apps modal
+      closeAppWindow();
+      openAppsModal();
+
+      // Poll every 500 ms to detect when the child window is closed
+      var watcher = setInterval(function() {
+        if (win.closed) {
+          clearInterval(watcher);
+          delete _childWindows[app];
+          var title = _APP_TITLE_MAP[app] || app;
+          _showAppToast(title + ' window was closed.');
+        }
+      }, 500);
+    }
+
     // Map of full-view render functions (exposed from app.js)
     var _APP_FULL_RENDER_MAP = {
       weather: 'renderWeatherAppFull',
@@ -1553,9 +1620,15 @@
       // Update expand button label to reflect current state
       var expandBtn = document.getElementById('appWindowExpandBtn');
       if (expandBtn) {
-        expandBtn.textContent = openFullscreen ? '⤡' : '⤢';
-        expandBtn.title = openFullscreen ? 'Collapse to medium' : 'Expand to full screen';
-        expandBtn.setAttribute('aria-label', openFullscreen ? 'Collapse app' : 'Expand app to full screen');
+        if (openFullscreen) {
+          expandBtn.innerHTML = '<span class="tl-icon">↗</span>';
+          expandBtn.title = 'Open in new window';
+          expandBtn.setAttribute('aria-label', 'Open app in new window');
+        } else {
+          expandBtn.innerHTML = '<span class="tl-icon">⤢</span>';
+          expandBtn.title = 'Expand to full screen';
+          expandBtn.setAttribute('aria-label', 'Expand app to full screen');
+        }
       }
 
       // Render content
@@ -1778,23 +1851,28 @@
       var appWindowCloseBtn = document.getElementById('appWindowCloseBtn');
       if (appWindowCloseBtn) appWindowCloseBtn.addEventListener('click', closeAppWindow);
 
-      // App window modal: expand/fullscreen toggle
+      // App window modal: expand / pop-out button
+      // • Medium view  → expand to fullscreen
+      // • Fullscreen   → pop out to a child window
       var appWindowExpandBtn = document.getElementById('appWindowExpandBtn');
       if (appWindowExpandBtn) {
         appWindowExpandBtn.addEventListener('click', function() {
           var w = document.getElementById('appWindowModal');
           if (!w) return;
           var isFullscreen = w.classList.contains('fullscreen');
-          var goFullscreen = !isFullscreen;
-          w.classList.toggle('fullscreen', goFullscreen);
-          var expandIcon = appWindowExpandBtn.querySelector('.tl-icon');
-          if (expandIcon) expandIcon.textContent = goFullscreen ? '⤡' : '⤢';
-          appWindowExpandBtn.title = goFullscreen ? 'Collapse to medium' : 'Expand to full screen';
-          appWindowExpandBtn.setAttribute('aria-label', goFullscreen ? 'Collapse app' : 'Expand app to full screen');
-          // Re-render content for the new mode
+          if (isFullscreen) {
+            // Already fullscreen → open in child window
+            if (_currentApp) openChildAppWindow(_currentApp);
+            return;
+          }
+          // Medium → fullscreen
+          w.classList.add('fullscreen');
+          appWindowExpandBtn.innerHTML = '<span class="tl-icon">↗</span>';
+          appWindowExpandBtn.title = 'Open in new window';
+          appWindowExpandBtn.setAttribute('aria-label', 'Open app in new window');
           if (_currentApp) {
             var content = document.getElementById('appWindowContent');
-            if (content) _renderAppContent(_currentApp, content, goFullscreen);
+            if (content) _renderAppContent(_currentApp, content, true);
           }
         });
       }
@@ -2080,6 +2158,46 @@
       // Re-render calendar and day details now that utils.js (expandEvents) is loaded
       try { if (typeof generateCalendar === 'function') generateCalendar(); } catch(_) {}
       try { if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined' && selectedDay) showReminders(selectedDay); } catch(_) {}
+
+      // Real-time localStorage sync: re-render current app when data changes from another window
+      window.addEventListener('storage', _handleStorageSync);
+
+      // Child window mode: detect ?childApp=<app> URL param and launch app standalone
+      (function() {
+        var childApp;
+        try { childApp = new URLSearchParams(window.location.search).get('childApp'); } catch(e) {}
+        if (!childApp) return;
+
+        // Set a descriptive window title
+        document.title = (_APP_TITLE_MAP[childApp] || childApp) + ' — TimeScape';
+
+        // Open the app fullscreen. Retry until the render function is ready (scripts may still be loading).
+        // 12 attempts × 250 ms = up to 3 seconds of grace time.
+        var CHILD_INIT_RETRIES = 12;
+        function tryOpenChildApp(attempts) {
+          var fullFn = _APP_FULL_RENDER_MAP[childApp];
+          if (fullFn && typeof window[fullFn] === 'function') {
+            openAppDetail(childApp, { fullscreen: true });
+          } else if (attempts > 0) {
+            setTimeout(function() { tryOpenChildApp(attempts - 1); }, 250);
+          } else {
+            // Render functions not yet available — open anyway (will show error gracefully)
+            openAppDetail(childApp, { fullscreen: true });
+          }
+        }
+        tryOpenChildApp(CHILD_INIT_RETRIES);
+
+        // Override the close (red) traffic-light button to close the child window.
+        // window.close() works when the window was opened via window.open(); some browsers
+        // may silently ignore it for user-opened tabs, which is safe to disregard.
+        var closeBtn = document.getElementById('appWindowCloseBtn');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function() { try { window.close(); } catch(e) {} });
+        }
+
+        // Real-time sync: re-render when the parent window modifies localStorage
+        window.addEventListener('storage', _handleStorageSync);
+      })();
     });
 
   })();

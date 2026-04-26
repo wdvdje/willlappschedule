@@ -4120,3 +4120,63 @@ body.view-week #weekView {
     padding: 0 0 8px;
   }
 }
+
+/* ======================================================================
+   CHILD WINDOW MODE
+   Applied via body.child-window-mode when opened with ?childApp= param.
+   Hides the full page chrome so the app fills the window like a standalone page.
+   ====================================================================== */
+
+/* Hide all page chrome — header, main content, navigation, overlays */
+body.child-window-mode #appHeader,
+body.child-window-mode main,
+body.child-window-mode .tab-bar-wrapper,
+body.child-window-mode #desktopSidebar,
+body.child-window-mode #syncStatusBar,
+body.child-window-mode #moreSheet,
+body.child-window-mode #searchModal,
+body.child-window-mode #editModal,
+body.child-window-mode #settingsModal,
+body.child-window-mode #appsModal,
+body.child-window-mode #cmdPalette,
+body.child-window-mode #pullRefreshIndicator,
+body.child-window-mode #shortcutHints,
+body.child-window-mode #undoToast {
+  display: none !important;
+}
+
+/* Remove the backdrop overlay — child window has its own OS chrome */
+body.child-window-mode #appWindowOverlay {
+  display: none !important;
+}
+
+/* Remove modal background blur; the window itself provides the background */
+body.child-window-mode #appWindowModal {
+  background: var(--ios-bg, #f2f2f7);
+}
+
+/* Make the panel fill the entire viewport with no rounded corners or shadow */
+body.child-window-mode #appWindowPanel {
+  max-width: 100% !important;
+  width: 100% !important;
+  max-height: 100dvh !important;
+  height: 100dvh !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: var(--ios-bg, #f2f2f7) !important;
+  animation: none !important;
+}
+
+/* Hide back-to-apps (yellow) and pop-out (green) buttons — not meaningful in child window */
+body.child-window-mode #appWindowBackBtn,
+body.child-window-mode #appWindowExpandBtn {
+  visibility: hidden !important;
+}
+
+/* Hide the pin toggle — pinning is managed from the main window */
+body.child-window-mode .app-window-pin-label {
+  display: none !important;
+}
