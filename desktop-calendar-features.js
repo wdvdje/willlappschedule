@@ -1373,9 +1373,11 @@
 
     /* Wrap calendar + views in a flex layout */
     var calEl = document.getElementById('calendar');
-    var weekView = document.getElementById('weekView');
-    var twoWeekView = document.getElementById('twoWeekView');
-    var yearView = document.getElementById('yearView');
+    /* Only include weekView/twoWeekView/yearView if they are already inside page-calendar.
+       #weekView lives in #page-week and must not be relocated here. */
+    var weekView = calPage.querySelector('#weekView');
+    var twoWeekView = calPage.querySelector('#twoWeekView');
+    var yearView = calPage.querySelector('#yearView');
     if (!calEl) return;
 
     var layout = document.createElement('div');
@@ -2361,8 +2363,10 @@
       tw.id = 'twoWeekView';
       tw.style.display = 'none';
       tw.setAttribute('aria-label', '2-week view');
-      var weekView = document.getElementById('weekView');
-      if (weekView) weekView.insertAdjacentElement('afterend', tw);
+      /* Only anchor to a #weekView that is inside the calendar page; #weekView in
+         #page-week must not be used as an insertion point here. */
+      var calWeekView = calPage.querySelector('#weekView');
+      if (calWeekView) calWeekView.insertAdjacentElement('afterend', tw);
       else calPage.appendChild(tw);
     }
 
