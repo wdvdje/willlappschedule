@@ -4180,7 +4180,8 @@ body.child-window-mode #appWindowExpandBtn {
 }
 
 /* Hide the traffic-light buttons — the OS window already has close/minimise/maximise */
-body.child-window-mode .traffic-lights {
+body.child-window-mode .traffic-lights,
+body.child-window-mode #appWindowCloseBtn {
   display: none !important;
 }
 

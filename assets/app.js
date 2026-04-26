@@ -7714,12 +7714,15 @@ function syncRoutineTimesFromSleep() {
     (routines.evening || []).forEach(function() { eveningDur += DEFAULT_STEP_DURATION; });
   }
 
+  /* Fall back to global targets for days that don't have an explicit per-day schedule */
+  var defaultWake    = sleep.targetWake    || '07:00';
+  var defaultBedtime = sleep.targetBedtime || '22:30';
+
   DAYS.forEach(function(day) {
-    var sched = sleep.schedule[day];
-    if (!sched) return;
+    var sched = sleep.schedule[day] || { wake: defaultWake, bedtime: defaultBedtime };
     routines.sleepScheduleTimes[day] = {
-      morningStart: sched.wake || '07:00',
-      eveningEnd: sched.bedtime || '22:30'
+      morningStart: sched.wake || defaultWake,
+      eveningEnd: sched.bedtime || defaultBedtime
     };
     /* Compute morning end: wake time plus total morning routine duration */
     if (sched.wake && morningDur > 0) {
