@@ -700,14 +700,14 @@ function generateCalendar(){
     cell.dataset.day = day;
 
     if (isCurMonth && day === today.getDate()) cell.classList.add('today');
-    cell.style.backgroundColor = (dow===0||dow===6) ? theme.weekend : theme.weekday;
+    if (dow === 0 || dow === 6) cell.classList.add('weekend');
 
     const h = getHoliday(mmdd, selectedYear);
     const dayEvents = events.filter(e=>normalizeDate(e.date)===ymd);
     const dayTasks = getTasks().filter(t=> normalizeDate(t.date)===ymd );
     const dayReminders = reminders[ymd] || [];
 
-    cell.innerHTML = `<div class="day-number">${day}</div><div class="emoji-row" aria-hidden="true"></div>`;
+    cell.innerHTML = `<div class="day-number"><span class="day-num-circle">${day}</span></div><div class="emoji-row" aria-hidden="true"></div>`;
 
     if (h) cell.title = h.name;
     else if (dayEvents.length) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
