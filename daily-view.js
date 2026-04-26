@@ -138,8 +138,8 @@
         });
       }
 
-      /* Apply per-day overrides from bedtime manager if sync is enabled */
-      if (dateStr && r.sleepScheduleTimes && r.syncEnabled) {
+      /* Apply per-day overrides from bedtime manager whenever schedule data is available */
+      if (dateStr && r.sleepScheduleTimes) {
         var d = new Date(dateStr + 'T12:00:00');
         var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
         var dayTimes = r.sleepScheduleTimes[dayName];
@@ -164,8 +164,21 @@
                 }
               }
             }
-            if (phase.id === 'evening' && dayTimes.eveningStart) {
-              phase.startTime = dayTimes.eveningStart;
+            if (phase.id === 'evening') {
+              if (dayTimes.eveningStart) {
+                phase.startTime = dayTimes.eveningStart;
+              } else if (dayTimes.eveningEnd) {
+                /* Compute start: bedtime minus total evening step durations */
+                var DEFAULT_STEP_DUR_E = 10;
+                var totalDurE = (phase.steps || []).reduce(function(sum, step) {
+                  return sum + (parseInt(step.duration, 10) || DEFAULT_STEP_DUR_E);
+                }, 0);
+                var endME = toMinutes(dayTimes.eveningEnd, null);
+                if (endME !== null) {
+                  var startME = ((endME - (totalDurE > 0 ? totalDurE : 0)) + 1440) % 1440;
+                  phase.startTime = formatTime(startME);
+                }
+              }
               if (dayTimes.eveningEnd) phase.endTime = dayTimes.eveningEnd;
             }
           });
@@ -294,7 +307,14 @@
       var s = toMinutes(phase.startTime, null);
       if (s === null) return;
       var eMin = phase.endTime ? toMinutes(phase.endTime, null) : null;
-      if (eMin === null) eMin = s + ROUTINE_DEFAULT_DURATION;
+      if (eMin === null) {
+        /* Compute duration from step list; fall back to ROUTINE_DEFAULT_DURATION */
+        var DEFAULT_STEP_DUR_FB = 10;
+        var phaseDur = (phase.steps || []).reduce(function(sum, step) {
+          return sum + (parseInt(step.duration, 10) || DEFAULT_STEP_DUR_FB);
+        }, 0);
+        eMin = s + (phaseDur > 0 ? phaseDur : ROUTINE_DEFAULT_DURATION);
+      }
       if (eMin <= s) eMin += 1440;
       items.push({
         kind: 'routine',
