@@ -953,12 +953,13 @@
       card.appendChild(stepList);
 
       var importBtn = document.createElement('button');
+      importBtn.className = 'btn-primary';
       importBtn.style.cssText =
-        'margin-top:10px;background:#4a90e2;color:#fff;border:none;' +
+        'margin-top:10px;border:none;' +
         'border-radius:20px;padding:6px 18px;font-size:0.82rem;cursor:pointer;transition:background 0.2s';
       importBtn.textContent = '⬇ Import as New Phase';
-      importBtn.addEventListener('mouseenter', function () { importBtn.style.background = '#2568c3'; });
-      importBtn.addEventListener('mouseleave', function () { importBtn.style.background = '#4a90e2'; });
+      importBtn.addEventListener('mouseenter', function () { importBtn.style.background = 'var(--ios-accent-dk,#0062cc)'; });
+      importBtn.addEventListener('mouseleave', function () { importBtn.style.background = ''; });
       importBtn.addEventListener('click', function () {
         var ps = getPhases();
         ps.push({
@@ -1487,7 +1488,8 @@
     cancelBtn.addEventListener('click', function () { overlay.remove(); });
 
     var saveBtn = document.createElement('button');
-    saveBtn.style.cssText = 'background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-weight:600';
+    saveBtn.className = 'btn-primary';
+    saveBtn.style.cssText = 'border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-weight:600';
     saveBtn.textContent = 'Save';
     saveBtn.addEventListener('click', function () {
       var ps = getPhases();
@@ -1627,7 +1629,8 @@
     cancelBtn.addEventListener('click', function () { overlay.remove(); });
 
     var saveBtn = document.createElement('button');
-    saveBtn.style.cssText = 'background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-weight:600';
+    saveBtn.className = 'btn-primary';
+    saveBtn.style.cssText = 'border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-weight:600';
     saveBtn.textContent = 'Save';
     saveBtn.addEventListener('click', function () {
       var selected = checkboxes.filter(function (x) { return x.cb.checked; }).map(function (x) { return x.dow; });
@@ -2246,9 +2249,9 @@
   // ---------------------------------------------------------------------------
   function buildMealViewAllBtn() {
     var btn = document.createElement('button');
-    btn.className = 'dmeal-view-all-btn';
+    btn.className = 'dmeal-view-all-btn btn-primary';
     btn.textContent = '📋 View All Items';
-    btn.style.cssText = 'margin-top:8px;background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.82rem;cursor:pointer;width:100%';
+    btn.style.cssText = 'margin-top:8px;border:none;border-radius:8px;padding:6px 14px;font-size:0.82rem;cursor:pointer;width:100%';
     btn.addEventListener('click', function () {
       openMealBucketModal();
     });
@@ -2581,8 +2584,9 @@
 
       /* Start Routine button */
       var startBtn = document.createElement('button');
+      startBtn.className = 'btn-primary';
       startBtn.style.cssText =
-        'margin-top:8px;width:100%;background:#4a90e2;color:#fff;border:none;' +
+        'margin-top:8px;width:100%;border:none;' +
         'border-radius:18px;padding:7px 0;font-size:0.82rem;font-weight:600;cursor:pointer;' +
         'transition:background 0.2s;';
       startBtn.textContent = '▶ Start Focus Mode';

@@ -204,10 +204,10 @@
       'body.dark-mode .dcf-weather-badge { background:rgba(30,45,69,0.85);color:#aad; }',
       '.dcf-layer-bar { display:flex;gap:5px;flex-wrap:wrap;align-items:center;max-width:100%;margin:0 auto 6px;padding:0 4px;box-sizing:border-box; }',
       '.dcf-layer-btn { padding:3px 10px;border-radius:16px;border:1.5px solid #ddd;background:#fff;cursor:pointer;font-size:0.78rem;user-select:none;transition:all 0.12s; }',
-      '.dcf-layer-btn.active { background:#4a90e2;color:#fff;border-color:#4a90e2; }',
-      '.dcf-layer-btn:hover:not(.active) { border-color:#4a90e2; }',
+      '.dcf-layer-btn.active { background:var(--ios-accent,#4a90e2);color:#fff;border-color:var(--ios-accent,#4a90e2); }',
+      '.dcf-layer-btn:hover:not(.active) { border-color:var(--ios-accent,#4a90e2); }',
       'body.dark-mode .dcf-layer-btn { background:#1e2d45;color:#ccc;border-color:#2a2a4a; }',
-      'body.dark-mode .dcf-layer-btn.active { background:#4a90e2;color:#fff; }',
+      'body.dark-mode .dcf-layer-btn.active { background:var(--ios-accent,#4a90e2);color:#fff; }',
       '.dcf-year-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;padding:10px 4px;max-width:100%;margin:0 auto; }',
       '.dcf-year-month { background:#fff;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.07);padding:8px 10px; }',
       'body.dark-mode .dcf-year-month { background:#16213e; }',
@@ -297,7 +297,7 @@
       'body.dark-mode .dcf-suggest-result { background:#1a3020;color:#8fcd8f;border-color:#27ae60; }',
       '.dcf-goto-row { display:flex;align-items:center;gap:6px; }',
       '.dcf-goto-input { width:140px !important;padding:5px 8px !important;border-radius:8px !important;font-size:0.82rem !important;margin:0 !important; }',
-      '.dcf-goto-btn { padding:5px 10px;border-radius:8px;background:#4a90e2;color:#fff;border:none;cursor:pointer;font-size:0.82rem; }'
+      '.dcf-goto-btn { padding:5px 10px;border-radius:8px;background:var(--ios-accent,#4a90e2);color:#fff;border:none;cursor:pointer;font-size:0.82rem; }'
     ].join('\n');
     document.head.appendChild(style);
   })();
@@ -1199,7 +1199,7 @@
     stackLegend.id = 'dcfStackLegend';
     stackLegend.className = 'dcf-stack-legend';
     stackLegend.innerHTML =
-      '<span><span class="dcf-legend-dot" style="background:#4a90e2"></span>Events</span>' +
+      '<span><span class="dcf-legend-dot" style="background:var(--ios-accent,#4a90e2)"></span>Events</span>' +
       '<span><span class="dcf-legend-dot" style="background:#27ae60"></span>Tasks</span>' +
       '<span><span class="dcf-legend-dot" style="background:#e67e22"></span>Reminders</span>' +
       '<span><span class="dcf-legend-dot" style="background:#f39c12;width:12px;height:2px;border-radius:1px"></span>Wk Avg</span>';

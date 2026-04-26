@@ -55,7 +55,7 @@
       </div>
       <small style="color:#888;font-size:0.8rem">Used to estimate travel time in event buffer tooltips</small>
       <div style="display:flex;gap:8px;margin-top:8px">
-        <button id="saveProfileBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save profile</button>
+        <button id="saveProfileBtn" class="small-btn btn-primary">Save profile</button>
         <button id="clearProfileBtn" class="small-btn">Clear</button>
       </div>
 
@@ -98,7 +98,7 @@
       </div>
 
       <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
-        <button id="saveABBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save</button>
+        <button id="saveABBtn" class="small-btn btn-primary">Save</button>
         <button id="clearABBtn" class="small-btn">Clear</button>
         <span id="abStatus" style="font-size:0.9rem;color:#27ae60;margin-left:6px"></span>
       </div>
@@ -112,7 +112,7 @@
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
         <input id="offDayDate" type="date" style="flex:1" />
         <input id="offDayLabel" type="text" placeholder="Label (optional)" style="flex:1" />
-        <button id="addOffDayBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+        <button id="addOffDayBtn" class="small-btn btn-primary">Add</button>
       </div>
       <ul id="offDaysList" style="list-style:none;padding:0;margin:8px 0;"></ul>
     </section>
@@ -126,7 +126,7 @@
         <select id="dayStartHour" style="width:110px"></select>
         <label style="font-weight:600">End</label>
         <select id="dayEndHour" style="width:110px"></select>
-        <button id="saveActiveHoursBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save</button>
+        <button id="saveActiveHoursBtn" class="small-btn btn-primary">Save</button>
         <button id="resetActiveHoursBtn" class="small-btn">Reset</button>
       </div>
       <div id="activeHoursStatus" style="margin-top:6px;color:#666;font-size:0.9rem"></div>
@@ -138,7 +138,7 @@
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
         <input id="newCategoryName" type="text" placeholder="Category name" style="flex:1" />
         <input id="newCategoryColor" type="color" value="#ffd54f" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
-        <button id="addCategoryBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+        <button id="addCategoryBtn" class="small-btn btn-primary">Add</button>
       </div>
       <div id="categoriesList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
     </section>
@@ -170,63 +170,68 @@
         </div>
       </div>
       <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
-        <button id="saveDomainColorsBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save colors</button>
+        <button id="saveDomainColorsBtn" class="small-btn btn-primary">Save colors</button>
         <button id="resetDomainColorsBtn" class="small-btn">Reset to defaults</button>
         <span id="domainColorStatus" style="font-size:0.9rem;color:#27ae60;margin-left:8px"></span>
       </div>
     </section>
 
-    <!-- Push notifications settings -->
-    <section id="pushSettings" style="margin-top:18px">
-      <h3 style="text-align:center">🔔 Push Notifications</h3>
+    <!-- Notifications group -->
+    <section id="notificationsSection" style="margin-top:18px;border:1px solid #eee;border-radius:10px;padding:12px 14px">
+      <h3 style="text-align:center;margin:0 0 12px">🔔 Notifications</h3>
 
-      <!-- iOS install prompt -->
-      <div id="iosInstallGuide" class="ios-push-prompt" style="display:none">
-        <div class="ios-push-prompt-icon">📲</div>
-        <div class="ios-push-prompt-text">
-          <b>Add to Home Screen for notifications</b>
-          <small>On iOS, open this page in Safari, tap the Share button (⬆), then choose <strong>Add to Home Screen</strong>. Launch from there to enable push notifications.</small>
+      <!-- Push notifications settings -->
+      <section id="pushSettings" style="margin-top:0;padding-top:8px;border-top:1px solid #f0f0f0">
+        <h4 style="text-align:center;margin:0 0 8px;font-size:0.95rem">Push Notifications</h4>
+
+        <!-- iOS install prompt -->
+        <div id="iosInstallGuide" class="ios-push-prompt" style="display:none">
+          <div class="ios-push-prompt-icon">📲</div>
+          <div class="ios-push-prompt-text">
+            <b>Add to Home Screen for notifications</b>
+            <small>On iOS, open this page in Safari, tap the Share button (⬆), then choose <strong>Add to Home Screen</strong>. Launch from there to enable push notifications.</small>
+          </div>
         </div>
-      </div>
 
-      <!-- Permission status prompt -->
-      <div id="iosPermPrompt" class="ios-push-prompt" style="display:none">
-        <div class="ios-push-prompt-icon">🔔</div>
-        <div class="ios-push-prompt-text">
-          <b>Notifications not yet enabled</b>
-          <small>Allow notifications to receive reminders and event alerts even when the app is in the background.</small>
+        <!-- Permission status prompt -->
+        <div id="iosPermPrompt" class="ios-push-prompt" style="display:none">
+          <div class="ios-push-prompt-icon">🔔</div>
+          <div class="ios-push-prompt-text">
+            <b>Notifications not yet enabled</b>
+            <small>Allow notifications to receive reminders and event alerts even when the app is in the background.</small>
+          </div>
+          <button id="requestPermBtn" class="ios-push-prompt-btn">Allow</button>
         </div>
-        <button id="requestPermBtn" class="ios-push-prompt-btn">Allow</button>
-      </div>
 
-      <label for="pushVapidKey" style="display:block;font-weight:600;margin-top:12px">VAPID Public Key (base64)</label>
-      <input id="pushVapidKey" type="text" placeholder="BEl... (optional for testing)" />
+        <label for="pushVapidKey" style="display:block;font-weight:600;margin-top:12px">VAPID Public Key (base64)</label>
+        <input id="pushVapidKey" type="text" placeholder="BEl... (optional for testing)" />
 
-      <label for="pushServerUrl" style="display:block;font-weight:600;margin-top:8px">Push server URL (optional)</label>
-      <input id="pushServerUrl" type="text" placeholder="https://example.com/save-subscription" />
+        <label for="pushServerUrl" style="display:block;font-weight:600;margin-top:8px">Push server URL (optional)</label>
+        <input id="pushServerUrl" type="text" placeholder="https://example.com/save-subscription" />
 
-      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-        <button id="subscribePushBtn" class="small-btn" style="background:#4a90e2;color:#fff">Subscribe</button>
-        <button id="unsubscribePushBtn" class="small-btn">Unsubscribe</button>
-        <div id="pushStatus" style="margin-left:8px;color:#666">Checking…</div>
-      </div>
-      <div style="margin-top:8px;color:#666;font-size:0.9rem" id="notifTipText">Tip: supply a public VAPID key if you use a push server that requires VAPID. On iOS 16.4+, the app must be installed to the Home Screen.</div>
-      <div id="triggerApiStatus" style="margin-top:6px;font-size:0.85rem;color:#27ae60;display:none">✅ Scheduled Notifications supported — reminders will fire even when the app is closed.</div>
-    </section>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <button id="subscribePushBtn" class="small-btn btn-primary">Subscribe</button>
+          <button id="unsubscribePushBtn" class="small-btn">Unsubscribe</button>
+          <div id="pushStatus" style="margin-left:8px;color:#666">Checking…</div>
+        </div>
+        <div style="margin-top:8px;color:#666;font-size:0.9rem" id="notifTipText">Tip: supply a public VAPID key if you use a push server that requires VAPID. On iOS 16.4+, the app must be installed to the Home Screen.</div>
+        <div id="triggerApiStatus" style="margin-top:6px;font-size:0.85rem;color:#27ae60;display:none">✅ Scheduled Notifications supported — reminders will fire even when the app is closed.</div>
+      </section>
 
-    <!-- App Notifications settings -->
-    <section id="appNotifSettings" style="margin-top:18px">
-      <h3 style="text-align:center">📱 App Notifications</h3>
-      <p style="font-size:0.88rem;color:#666;margin:4px 0 10px">
-        Control which apps can generate reminders that appear in your calendar and reminders view.
-        Use the lead time selector to get notified ahead of time.
-      </p>
-      <div class="app-notif-list" id="appNotifList">
-        <!-- Populated by script below -->
-      </div>
-      <div style="margin-top:10px;font-size:0.82rem;color:#888">
-        Changes take effect immediately. Reminders are rebuilt on next app open.
-      </div>
+      <!-- App Notifications settings -->
+      <section id="appNotifSettings" style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
+        <h4 style="text-align:center;margin:0 0 8px;font-size:0.95rem">App Notifications</h4>
+        <p style="font-size:0.88rem;color:#666;margin:4px 0 10px">
+          Control which apps can generate reminders that appear in your calendar and reminders view.
+          Use the lead time selector to get notified ahead of time.
+        </p>
+        <div class="app-notif-list" id="appNotifList">
+          <!-- Populated by script below -->
+        </div>
+        <div style="margin-top:10px;font-size:0.82rem;color:#888">
+          Changes take effect immediately. Reminders are rebuilt on next app open.
+        </div>
+      </section>
     </section>
     <script>
     (function () {
@@ -340,7 +345,7 @@
     <section id="dataBackupSettings" style="margin-top:18px">
       <h3>Data Backup</h3>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-        <button id="exportDataBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export JSON</button>
+        <button id="exportDataBtn" class="small-btn btn-primary">Export JSON</button>
         <select id="dataImportMode" style="width:180px">
           <option value="overwrite">Import mode: Overwrite</option>
           <option value="merge">Import mode: Merge</option>
@@ -361,7 +366,7 @@
           Connect an iCloud Drive folder once. Your data will sync automatically in the background every time it changes.
         </p>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-          <button id="icloudConnectBtn" class="small-btn" style="background:#4a90e2;color:#fff">Connect iCloud Drive Folder</button>
+          <button id="icloudConnectBtn" class="small-btn btn-primary">Connect iCloud Drive Folder</button>
           <button id="icloudDisconnectBtn" class="small-btn">Disconnect</button>
         </div>
         <div id="icloudMacStatus" style="margin-top:8px;color:#666;font-size:0.9rem">No folder connected.</div>
@@ -378,7 +383,7 @@
           Export your data as a JSON file to save to iCloud Drive via the Files app, or import a previously saved file.
         </p>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-          <button id="icloudExportBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export to Files / iCloud Drive</button>
+          <button id="icloudExportBtn" class="small-btn btn-primary">Export to Files / iCloud Drive</button>
           <button id="icloudImportBtn" class="small-btn">Import from Files / iCloud Drive</button>
         </div>
         <div id="icloudIosStatus" style="margin-top:8px;color:#666;font-size:0.9rem"></div>
@@ -432,32 +437,6 @@
     </section>
 
   </main>
-
-  <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-    <a href="#personal" class="r-item" data-view="personal"><span>👤</span><span class="r-label">Personal</span></a>
-    <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
-    <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
-    <a href="#home" class="r-item" data-view="home"><span>🏡</span><span class="r-label">Home</span></a>
-    <a href="#work" class="r-item" data-view="work"><span>💼</span><span class="r-label">Work</span></a>
-  </nav>
-
-  <!-- REPLACED: Always navigate to a cache-busted index.html so the latest build loads -->
-  <script>
-    (function () {
-      const items = document.querySelectorAll('.bottom-ribbon .r-item');
-      if (!items || !items.length) return;
-      items.forEach(a => {
-        const view = a.dataset.view || (a.getAttribute('href') || '').replace('#','') || 'calendar';
-        // set href to cache-busted target (fallback)
-        a.setAttribute('href', 'index.html?_=' + Date.now() + '#' + view);
-        a.addEventListener('click', (e) => {
-          e.preventDefault();
-          // always load fresh index with the requested view
-          location.href = 'index.html?_=' + Date.now() + '#' + view;
-        });
-      });
-    })();
-  </script>
 
   <script src="./assets/app.js"></script>
   <script src="./events-view.js"></script>
