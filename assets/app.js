@@ -1019,6 +1019,7 @@ function addReminder(e){
   generateCalendar();
   showReminders(selectedDay);
   renderReminderPageList();
+  _maybeRefreshWeekView();
 }
 
 /* delete/edit reminders */
@@ -1032,6 +1033,7 @@ function deleteReminder(day,index){
   setReminders(r);
   showReminders(day); generateCalendar();
   renderReminderPageList();
+  _maybeRefreshWeekView();
 }
 function editReminder(day,index){
   const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
@@ -1226,11 +1228,11 @@ function addTask(e){
   const priority = document.getElementById('taskPriority') ? document.getElementById('taskPriority').value : '2';
   const tasks = getTasks(); tasks.push({id:generateTaskId(),title:text,category,done:false,date,time,priority}); setTasks(tasks);
   if (textEl) textEl.value=''; if (document.getElementById('taskDate')) document.getElementById('taskDate').value=''; if (document.getElementById('taskTime')) document.getElementById('taskTime').value='';
-  loadTasks();
+  loadTasks(); _maybeRefreshWeekView();
 }
 
 /* task edit/delete */
-function deleteTask(i){ if(!confirm('Delete this task?')) return; const tasks=getTasks(); tasks.splice(i,1); setTasks(tasks); loadTasks(); }
+function deleteTask(i){ if(!confirm('Delete this task?')) return; const tasks=getTasks(); tasks.splice(i,1); setTasks(tasks); loadTasks(); _maybeRefreshWeekView(); }
 function editTask(i){
   const tasks=getTasks(); const t=tasks[i]; if(!t) return;
   document.getElementById('editKind').value='task';
@@ -1589,11 +1591,11 @@ function addEvent(e){
   var advSpecListEl = document.getElementById('eventAdvSpecList');
   if (advSpecListEl) advSpecListEl.innerHTML = '';
   syncRepeatUI('event');
-  renderEvents(); generateCalendar();
+  renderEvents(); generateCalendar(); _maybeRefreshWeekView();
 }
 
 /* delete/edit events */
-function deleteEvent(id){ if(!confirm('Delete this event?')) return; let evs=getEvents(); evs = evs.filter(e=>e.id!==id); setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
+function deleteEvent(id){ if(!confirm('Delete this event?')) return; let evs=getEvents(); evs = evs.filter(e=>e.id!==id); setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); _maybeRefreshWeekView(); }
 function editEvent(id, occurrenceDate){
   const evs = getEvents(); const idx = evs.findIndex(e=>e.id===id); if (idx===-1) return;
   const e = evs[idx];
@@ -1697,10 +1699,10 @@ function saveEditHandler(e){
       const excCatEl = document.getElementById('editCategory');
       if (excCatEl) exc.category = excCatEl.value || 'event';
       evs[idx].repeatExceptions[occDate] = exc;
-      setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
+      setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); _maybeRefreshWeekView();
       pushUndo({ label: 'Edit to occurrence of "' + evs[idx].title + '" undone.', undo: function() {
         const cur = getEvents(); const ci = cur.findIndex(function(x){ return x.id === before.id; });
-        if (ci !== -1) { cur[ci] = before; setEvents(cur); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
+        if (ci !== -1) { cur[ci] = before; setEvents(cur); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); _maybeRefreshWeekView(); }
       }});
       closeEditModal();
       return;
@@ -1748,10 +1750,10 @@ function saveEditHandler(e){
     var editAdvSpecs = readAdvancedSpecs('editAdvSpecList');
     if (editAdvSpecs.length) evs[idx].advancedSpecs = editAdvSpecs;
     else delete evs[idx].advancedSpecs;
-    setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
+    setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); _maybeRefreshWeekView();
     pushUndo({ label: 'Edit to event "' + text + '" undone.', undo: function() {
       const cur = getEvents(); const ci = cur.findIndex(function(x){ return x.id === before.id; });
-      if (ci !== -1) { cur[ci] = before; setEvents(cur); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
+      if (ci !== -1) { cur[ci] = before; setEvents(cur); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); _maybeRefreshWeekView(); }
     }});
     closeEditModal();
     return;
@@ -1766,10 +1768,10 @@ function saveEditHandler(e){
       if (bvalT) tasks[idx].bucketId = parseInt(bvalT, 10);
       else delete tasks[idx].bucketId;
     }
-    setTasks(tasks); loadTasks();
+    setTasks(tasks); loadTasks(); _maybeRefreshWeekView();
     pushUndo({ label: 'Edit to task "' + text + '" undone.', undo: function() {
       const cur = getTasks(); const ci = cur.findIndex(function(t){ return t.id === beforeTask.id; });
-      if (ci !== -1) { cur[ci] = beforeTask; setTasks(cur); loadTasks(); }
+      if (ci !== -1) { cur[ci] = beforeTask; setTasks(cur); loadTasks(); _maybeRefreshWeekView(); }
     }});
   } else if (kind==='reminder'){
     const origKey = document.getElementById('editReminderKey').value;
@@ -1790,7 +1792,7 @@ function saveEditHandler(e){
     const parts = newDate.split('-');
     if (parts.length===3){ selectedYear = parseInt(parts[0],10); selectedMonth = parseInt(parts[1],10)-1; selectedDay = parseInt(parts[2],10); }
     generateCalendar(); showReminders(selectedDay);
-    renderReminderPageList();
+    renderReminderPageList(); _maybeRefreshWeekView();
     pushUndo({ label: 'Edit to reminder "' + text + '" undone.', undo: function() {
       const cur = getReminders();
       /* Remove the edited version */
@@ -1801,7 +1803,7 @@ function saveEditHandler(e){
       setReminders(cur);
       const bp = beforeKey.split('-');
       if (bp.length===3){ selectedYear=parseInt(bp[0],10); selectedMonth=parseInt(bp[1],10)-1; selectedDay=parseInt(bp[2],10); }
-      generateCalendar(); showReminders(selectedDay);
+      generateCalendar(); showReminders(selectedDay); _maybeRefreshWeekView();
     }});
   }
   closeEditModal();
@@ -2837,6 +2839,7 @@ function showView(view, updateHash = true){
   else if (view === 'jobs'){ try{ renderJobs(); }catch(e){ console.warn(e); } }
   else if (view === 'inbox'){ try{ renderInbox(); updateInboxBadge(); }catch(e){ console.warn(e); } }
   else if (view === 'personal' || view === 'home' || view === 'work'){ try{ renderDomainPage(view); }catch(e){ console.warn(e); } if(view==='work'){ try{ renderWorkEarnings(); }catch(e){ console.warn(e); } } }
+  else if (view === 'week'){ try{ renderWeekView(); }catch(e){ console.warn(e); } }
   if (updateHash){ const newHash = '#'+view; if (location.hash !== newHash) location.hash = newHash; }
   try { window.dispatchEvent(new CustomEvent('view:show', { detail: { view: view } })); } catch(_) {}
 }
@@ -2922,6 +2925,13 @@ window.editReminder = editReminder;
 window.deleteReminder = deleteReminder;
 window.editTask = editTask;
 window.showView = showView;
+
+/* Refresh the week timeline only when it is currently the active page */
+function _maybeRefreshWeekView() {
+  if ((location.hash || '').replace('#', '') === 'week') {
+    try { renderWeekView(); } catch(_) {}
+  }
+}
 
 /* startup after DOM ready */
 document.addEventListener('DOMContentLoaded', function(){
