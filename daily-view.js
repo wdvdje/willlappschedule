@@ -147,9 +147,25 @@
           phases.forEach(function(phase) {
             if (phase.id === 'morning' && dayTimes.morningStart) {
               phase.startTime = dayTimes.morningStart;
+              /* Use stored morningEnd; fall back to computing from step durations */
+              if (dayTimes.morningEnd) {
+                phase.endTime = dayTimes.morningEnd;
+              } else {
+                var DEFAULT_STEP_DUR = 10;
+                var totalDur = (phase.steps || []).reduce(function(sum, step) {
+                  return sum + (parseInt(step.duration, 10) || DEFAULT_STEP_DUR);
+                }, 0);
+                if (totalDur > 0) {
+                  var startM = toMinutes(dayTimes.morningStart, null);
+                  if (startM !== null) {
+                    phase.endTime = formatTime((startM + totalDur) % 1440);
+                  }
+                }
+              }
             }
             if (phase.id === 'evening' && dayTimes.eveningStart) {
               phase.startTime = dayTimes.eveningStart;
+              if (dayTimes.eveningEnd) phase.endTime = dayTimes.eveningEnd;
             }
           });
         }
@@ -276,12 +292,15 @@
     phases.forEach(function(phase) {
       var s = toMinutes(phase.startTime, null);
       if (s === null) return;
+      var eMin = phase.endTime ? toMinutes(phase.endTime, null) : null;
+      if (eMin === null) eMin = s + ROUTINE_DEFAULT_DURATION;
+      if (eMin <= s) eMin += 1440;
       items.push({
         kind: 'routine',
-        title: 'Start ' + (phase.name || 'Routine'),
+        title: (phase.name || 'Routine'),
         emoji: (phase.emoji || '📋').trim(),
         startMin: s,
-        endMin: s + ROUTINE_DEFAULT_DURATION,
+        endMin: eMin,
         hasTimes: true,
         color: domainColors.personal,
         raw: phase

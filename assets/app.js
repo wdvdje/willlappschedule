@@ -4016,8 +4016,14 @@ function renderWeekView() {
         var dayTimes = r.sleepScheduleTimes[dayName];
         if (dayTimes) {
           phases.forEach(function(phase) {
-            if (phase.id === 'morning' && dayTimes.morningStart) phase.startTime = dayTimes.morningStart;
-            if (phase.id === 'evening' && dayTimes.eveningStart) phase.startTime = dayTimes.eveningStart;
+            if (phase.id === 'morning' && dayTimes.morningStart) {
+              phase.startTime = dayTimes.morningStart;
+              if (dayTimes.morningEnd) phase.endTime = dayTimes.morningEnd;
+            }
+            if (phase.id === 'evening' && dayTimes.eveningStart) {
+              phase.startTime = dayTimes.eveningStart;
+              if (dayTimes.eveningEnd) phase.endTime = dayTimes.eveningEnd;
+            }
           });
         }
       }
@@ -4064,9 +4070,12 @@ function renderWeekView() {
     wvGetRoutinePhases(dateStr).forEach(function(phase) {
       var s = wvTimeToMin(phase.startTime);
       if (s === null) return;
-      items.push({ kind: 'routine', title: 'Start ' + (phase.name || 'Routine'),
+      var e = phase.endTime ? wvTimeToMin(phase.endTime) : null;
+      if (e === null) e = s + 15;
+      if (e <= s) e += 1440;
+      items.push({ kind: 'routine', title: (phase.name || 'Routine'),
         emoji: (phase.emoji || '📋').trim(),
-        startMin: s, endMin: s + 15, hasTimes: true, isAllDay: false,
+        startMin: s, endMin: e, hasTimes: true, isAllDay: false,
         color: domainColors.personal || '#9b59b6', raw: phase });
     });
     return items;
@@ -7577,6 +7586,13 @@ function syncRoutineTimesFromSleep() {
       morningStart: sched.wake || '07:00',
       eveningEnd: sched.bedtime || '22:30'
     };
+    /* Compute morning end: wake time plus total morning routine duration */
+    if (sched.wake && morningDur > 0) {
+      var wakeMin = timeToMinutes(sched.wake);
+      var mEnd = wakeMin + morningDur;
+      if (mEnd >= 1440) mEnd -= 1440;
+      routines.sleepScheduleTimes[day].morningEnd = pad2(Math.floor(mEnd / 60)) + ':' + pad2(mEnd % 60);
+    }
     /* Compute evening start: bedtime minus total evening routine duration */
     if (sched.bedtime && eveningDur > 0) {
       var bedMin = timeToMinutes(sched.bedtime);
