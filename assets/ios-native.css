@@ -60,9 +60,9 @@
   --ios-spring:        linear;
   --ios-spring-soft:   linear;
   --ios-ease:          linear;
-  --ios-fast:          0.001ms;
-  --ios-normal:        0.001ms;
-  --ios-slow:          0.001ms;
+  --ios-fast:          0.001s;
+  --ios-normal:        0.001s;
+  --ios-slow:          0.001s;
 
   /* iPad breakpoint: show sidebar from 768 px (iPad mini portrait) */
   --ios-sidebar-w:     185px;

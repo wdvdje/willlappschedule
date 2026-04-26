@@ -5,6 +5,8 @@
 (function () {
   const SW_PATH = './sw.js';
   const LS_KEY = 'pushSubscription';
+  // Minimum interval for the Periodic Background Sync re-arm check (15 minutes)
+  const REMINDER_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
   // helpers
   function el(id){ return document.getElementById(id); }
@@ -157,7 +159,7 @@
             .then(function (status) {
               if (status.state === 'granted') {
                 return reg.periodicSync.register('reminder-check', {
-                  minInterval: 15 * 60 * 1000
+                  minInterval: REMINDER_CHECK_INTERVAL_MS
                 });
               }
             })

@@ -95,8 +95,9 @@
         /* Sentinel released externally (e.g. OS minimised the app) */
         _wakeLock = null;
       });
-    }).catch(function () {
-      /* Wake Lock denied or not supported — silently continue */
+    }).catch(function (err) {
+      /* Wake Lock denied or not supported — continue without it */
+      console.debug('routineFocus: wake lock unavailable', err && err.message);
     });
   }
 
