@@ -8629,28 +8629,70 @@ function getPersonalClothes() {
   return safeParseStorage('personalClothes', {
     laundry: { lastDone: '', intervalDays: 7, reminderEnabled: false },
     outfits: [],
-    wishlist: []
+    wishlist: [],
+    weeklyOutfitPlan: {} /* { weekISO: 'YYYY-Www', days: { Mon: outfitId, Tue: outfitId, … } } */
   });
 }
 function setPersonalClothes(data) { localStorage.setItem('personalClothes', JSON.stringify(data)); }
 
-function _clothesWeatherRec() {
-  var COLD_F = 60, WARM_F = 75; /* Fahrenheit thresholds for clothing recommendation */
-  var COLD_C = 15, WARM_C = 24; /* Celsius equivalents */
-  var today = getTodayISO();
-  if (!_dashWeatherCache || !_dashWeatherCache[today]) return null;
-  var w = _dashWeatherCache[today];
+/* Return ISO week string "YYYY-Www" for a given Date (or today) */
+function _getISOWeekStr(date) {
+  var d = date ? new Date(date) : new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  var yearStart = new Date(d.getFullYear(), 0, 1);
+  var week = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  return d.getFullYear() + '-W' + (week < 10 ? '0' : '') + week;
+}
+
+/* Return clothing recommendation for a single day from _dashWeatherCache */
+function _clothesWeatherRecForDay(isoDate) {
+  var COLD_F = 60, WARM_F = 75;
+  var COLD_C = 15, WARM_C = 24;
+  if (!_dashWeatherCache || !_dashWeatherCache[isoDate]) return null;
+  var w = _dashWeatherCache[isoDate];
   var high = w.high;
   var isFahrenheit = (_dashWeatherUnit === '°F');
   var threshold_cold = isFahrenheit ? COLD_F : COLD_C;
   var threshold_warm = isFahrenheit ? WARM_F : WARM_C;
   if (high < threshold_cold) {
-    return { emoji: '🧥', text: 'Long sleeves & jacket recommended (' + high + _dashWeatherUnit + ')' };
+    return { emoji: '🧥', text: 'Jacket (' + high + _dashWeatherUnit + ')' };
   } else if (high <= threshold_warm) {
+    return { emoji: '👕', text: 'Light layers (' + high + _dashWeatherUnit + ')' };
+  } else {
+    return { emoji: '☀️', text: 'Short sleeves (' + high + _dashWeatherUnit + ')' };
+  }
+}
+
+/* Return clothing recommendation for today (backwards-compat) */
+function _clothesWeatherRec() {
+  var rec = _clothesWeatherRecForDay(getTodayISO());
+  if (!rec) return null;
+  // Use the longer description for the widget banner
+  var COLD_F = 60, WARM_F = 75, COLD_C = 15, WARM_C = 24;
+  var w = _dashWeatherCache[getTodayISO()];
+  var high = w.high;
+  var isFahrenheit = (_dashWeatherUnit === '°F');
+  if (high < (isFahrenheit ? COLD_F : COLD_C)) {
+    return { emoji: '🧥', text: 'Long sleeves & jacket recommended (' + high + _dashWeatherUnit + ')' };
+  } else if (high <= (isFahrenheit ? WARM_F : WARM_C)) {
     return { emoji: '👕', text: 'Light layers recommended (' + high + _dashWeatherUnit + ')' };
   } else {
     return { emoji: '☀️', text: 'Short sleeves — it\'s warm! (' + high + _dashWeatherUnit + ')' };
   }
+}
+
+/* Return array of { iso, dayName, rec } for the next 7 days */
+function _clothesWeather7Days() {
+  var days = [];
+  var DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for (var di = 0; di < 7; di++) {
+    var d = new Date(); d.setDate(d.getDate() + di);
+    var iso = d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+    var label = di === 0 ? 'Today' : di === 1 ? 'Tomorrow' : DAY_NAMES[d.getDay()];
+    days.push({ iso: iso, dayName: label, date: d.getMonth()+1 + '/' + d.getDate(), rec: _clothesWeatherRecForDay(iso) });
+  }
+  return days;
 }
 
 function _clothesLaundryDaysAgo(lastDone) {
@@ -8669,13 +8711,36 @@ function renderClothesWidget() {
   var today = getTodayISO();
 
   var card = buildPWCard('clothesCard', '👗', 'Clothes', function(body) {
-    /* ── Weather recommendation ── */
-    var rec = _clothesWeatherRec();
-    if (rec) {
-      var recEl = document.createElement('div');
-      recEl.className = 'clothes-weather-rec';
-      recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
-      body.appendChild(recEl);
+    /* ── 7-day weather outfit strip ── */
+    var weatherDays = _clothesWeather7Days();
+    var hasWeather = weatherDays.some(function(d) { return d.rec; });
+    if (hasWeather) {
+      var weatherTitle = document.createElement('div');
+      weatherTitle.className = 'clothes-section-title';
+      weatherTitle.textContent = '🌤️ 7-Day Outfit Guide';
+      body.appendChild(weatherTitle);
+
+      var strip = document.createElement('div');
+      strip.className = 'clothes-weather-7day-strip';
+      weatherDays.forEach(function(d) {
+        var cell = document.createElement('div');
+        cell.className = 'clothes-w7-cell' + (d.iso === today ? ' today' : '');
+        cell.innerHTML =
+          '<div class="clothes-w7-dayname">' + escapeHTML(d.dayName) + '</div>' +
+          '<div class="clothes-w7-emoji">' + (d.rec ? d.rec.emoji : '—') + '</div>' +
+          '<div class="clothes-w7-rec">' + (d.rec ? escapeHTML(d.rec.text) : 'No data') + '</div>';
+        strip.appendChild(cell);
+      });
+      body.appendChild(strip);
+    } else {
+      /* Fallback to today-only banner if no 7-day data yet */
+      var rec = _clothesWeatherRec();
+      if (rec) {
+        var recEl = document.createElement('div');
+        recEl.className = 'clothes-weather-rec';
+        recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
+        body.appendChild(recEl);
+      }
     }
 
     /* ── Laundry tracker ── */
@@ -8767,13 +8832,36 @@ function renderClothesAppFull(container) {
   var clothes = getPersonalClothes();
   var today = getTodayISO();
 
-  /* ── Weather recommendation header ── */
-  var rec = _clothesWeatherRec();
-  if (rec) {
-    var recEl = document.createElement('div');
-    recEl.className = 'clothes-weather-rec clothes-weather-rec-full';
-    recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
-    container.appendChild(recEl);
+  /* ── 7-day weather outfit strip ── */
+  var weatherDays = _clothesWeather7Days();
+  var hasWeather = weatherDays.some(function(d) { return d.rec; });
+  if (hasWeather) {
+    var weatherHeader = document.createElement('h3');
+    weatherHeader.className = 'app-full-col-heading';
+    weatherHeader.textContent = '🌤️ 7-Day Outfit Guide';
+    container.appendChild(weatherHeader);
+
+    var strip = document.createElement('div');
+    strip.className = 'clothes-weather-7day-strip clothes-weather-7day-strip-full';
+    weatherDays.forEach(function(d) {
+      var cell = document.createElement('div');
+      cell.className = 'clothes-w7-cell' + (d.iso === today ? ' today' : '');
+      cell.innerHTML =
+        '<div class="clothes-w7-dayname">' + escapeHTML(d.dayName) + '</div>' +
+        '<div class="clothes-w7-date">' + escapeHTML(d.date) + '</div>' +
+        '<div class="clothes-w7-emoji">' + (d.rec ? d.rec.emoji : '—') + '</div>' +
+        '<div class="clothes-w7-rec">' + (d.rec ? escapeHTML(d.rec.text) : 'No data') + '</div>';
+      strip.appendChild(cell);
+    });
+    container.appendChild(strip);
+  } else {
+    var rec = _clothesWeatherRec();
+    if (rec) {
+      var recEl = document.createElement('div');
+      recEl.className = 'clothes-weather-rec clothes-weather-rec-full';
+      recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
+      container.appendChild(recEl);
+    }
   }
 
   var layout = document.createElement('div');
@@ -8851,9 +8939,79 @@ function renderClothesAppFull(container) {
   rHTML += '</div>';
   right.innerHTML = rHTML;
 
+  /* ── Weekly Outfit Planner ── */
+  var currentWeekISO = _getISOWeekStr();
+  var weekPlan = clothes.weeklyOutfitPlan || {};
+  // Reset plan if it belongs to a different week
+  var planWeekISO = weekPlan.weekISO;
+  var planDays = (planWeekISO === currentWeekISO) ? (weekPlan.days || {}) : {};
+
+  var outfits = clothes.outfits || [];
+  var DAY_NAMES_FULL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  var plannerSection = document.createElement('div');
+  plannerSection.className = 'clothes-weekly-planner';
+  var plannerTitle = document.createElement('h3');
+  plannerTitle.className = 'app-full-col-heading';
+  plannerTitle.textContent = '📅 Weekly Outfit Planner';
+  plannerSection.appendChild(plannerTitle);
+
+  if (!outfits.length) {
+    var noOutfitsMsg = document.createElement('p');
+    noOutfitsMsg.style.cssText = 'font-size:0.82rem;color:var(--ios-text-3)';
+    noOutfitsMsg.textContent = 'Save some outfits above to start planning your week.';
+    plannerSection.appendChild(noOutfitsMsg);
+  } else {
+    var grid = document.createElement('div');
+    grid.className = 'clothes-plan-grid';
+    DAY_NAMES_FULL.forEach(function(dayName) {
+      var cell = document.createElement('div');
+      cell.className = 'clothes-plan-cell';
+      var label = document.createElement('div');
+      label.className = 'clothes-plan-day';
+      label.textContent = dayName;
+      var sel = document.createElement('select');
+      sel.className = 'clothes-plan-sel app-fv-select';
+      sel.dataset.day = dayName;
+      var noneOpt = document.createElement('option');
+      noneOpt.value = '';
+      noneOpt.textContent = '— None —';
+      sel.appendChild(noneOpt);
+      outfits.forEach(function(o) {
+        var opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = o.name;
+        if (planDays[dayName] === o.id) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      cell.appendChild(label);
+      cell.appendChild(sel);
+      grid.appendChild(cell);
+    });
+    plannerSection.appendChild(grid);
+
+    var planSaveBtn = document.createElement('button');
+    planSaveBtn.className = 'app-fv-save-btn';
+    planSaveBtn.style.marginTop = '10px';
+    planSaveBtn.textContent = 'Save Weekly Plan';
+    planSaveBtn.addEventListener('click', function() {
+      var newDays = {};
+      plannerSection.querySelectorAll('.clothes-plan-sel').forEach(function(s) {
+        if (s.value) newDays[s.dataset.day] = s.value;
+      });
+      var c = getPersonalClothes();
+      c.weeklyOutfitPlan = { weekISO: currentWeekISO, days: newDays };
+      setPersonalClothes(c);
+      planSaveBtn.textContent = '✓ Saved';
+      setTimeout(function() { planSaveBtn.textContent = 'Save Weekly Plan'; }, 1500);
+    });
+    plannerSection.appendChild(planSaveBtn);
+  }
+
   layout.appendChild(left);
   layout.appendChild(right);
   container.appendChild(layout);
+  container.appendChild(plannerSection);
 
   /* Wire laundry done button */
   var laundryDoneBtn = container.querySelector('#clfLaundryDoneBtn');
@@ -14857,7 +15015,14 @@ function renderChoresAppMedium(container) {
   });
   var todayTasks = allTasks.filter(function(t) { return t.date === today; });
   var doneTasks  = todayTasks.filter(function(t) { return t.done; });
-  var pct = todayTasks.length ? Math.round(doneTasks.length / todayTasks.length * 100) : 0;
+
+  // Include synced home bucket items in today's count
+  var syncedToday = getSyncedHomeChoreItems().filter(function(it) { return it.date === today; });
+  var syncedDoneItems = syncedToday.filter(function(it) { return it.done; });
+
+  var totalToday = todayTasks.length + syncedToday.length;
+  var totalDone  = doneTasks.length + syncedDoneItems.length;
+  var pct = totalToday ? Math.round(totalDone / totalToday * 100) : 0;
   var circumference = 113.1;
   var offset = circumference - (pct / 100) * circumference;
   var ringColor = pct === 100 ? '#27ae60' : '#4a90e2';
@@ -14879,7 +15044,7 @@ function renderChoresAppMedium(container) {
       '<span class="ring-label">Done</span>' +
     '</div>' +
     '<div class="ca-med-stat-pills">' +
-      '<div class="home-stat-pill"><span class="home-stat-num done">' + doneTasks.length + '/' + todayTasks.length + '</span><span class="home-stat-label">Today</span></div>' +
+      '<div class="home-stat-pill"><span class="home-stat-num done">' + totalDone + '/' + totalToday + '</span><span class="home-stat-label">Today</span></div>' +
       '<div class="home-stat-pill"><span class="home-stat-num overdue">' + allTasks.filter(function(t){ return !t.done && t.date && t.date < today; }).length + '</span><span class="home-stat-label">Overdue</span></div>' +
     '</div>';
   wrap.appendChild(statsRow);
@@ -14892,12 +15057,13 @@ function renderChoresAppMedium(container) {
 
   var ul = document.createElement('ul');
   ul.className = 'ca-med-list';
-  if (!todayTasks.length) {
+  if (!totalToday) {
     var li = document.createElement('li');
     li.className = 'ca-med-empty';
     li.textContent = 'No chores scheduled for today.';
     ul.appendChild(li);
   } else {
+    // Regular home tasks
     todayTasks.forEach(function(t) {
       var li = document.createElement('li');
       li.className = 'ca-med-item' + (t.done ? ' done' : '');
@@ -14922,6 +15088,55 @@ function renderChoresAppMedium(container) {
         (t.energy ? '<span class="energy-badge ' + t.energy + '">' + (_ENERGY_LABELS[t.energy] || t.energy) + '</span>' : '');
       li.innerHTML = innerHTML;
       li.insertBefore(cb, li.firstChild);
+      ul.appendChild(li);
+    });
+
+    // Synced home bucket items
+    var homeBuckets = getBuckets('home');
+    syncedToday.forEach(function(it) {
+      var li = document.createElement('li');
+      li.className = 'ca-med-item' + (it.done ? ' done' : '');
+      var bucketObj = homeBuckets.find(function(b) { return b.id === it.bucketId; });
+      if (it.type === 'task') {
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!it.done;
+        cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0';
+        cb.addEventListener('change', function() {
+          markSyncedItemDone('task', it.id, cb.checked);
+          renderChoresAppMedium(container);
+        });
+        li.innerHTML =
+          '<span class="ca-med-emoji">' + it.emoji + '</span>' +
+          '<span class="ca-med-title">' + escapeHTML(it.title) + '</span>' +
+          (bucketObj ? '<span style="font-size:0.68rem;color:var(--ios-text-3)">[' + escapeHTML(bucketObj.name) + ']</span>' : '') +
+          (it.energy ? '<span class="energy-badge ' + it.energy + '">' + (_ENERGY_LABELS[it.energy] || it.energy) + '</span>' : '') +
+          '<span style="font-size:0.68rem;color:var(--ios-accent);margin-left:auto">🔗</span>';
+        li.insertBefore(cb, li.firstChild);
+      } else if (it.type === 'reminder') {
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = !!it.done;
+        cb.title = 'Mark as read';
+        cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0';
+        cb.addEventListener('change', function() {
+          markSyncedItemDone('reminder', it.id, cb.checked);
+          renderChoresAppMedium(container);
+        });
+        li.innerHTML =
+          '<span class="ca-med-emoji">' + it.emoji + '</span>' +
+          '<span class="ca-med-title">' + escapeHTML(it.title) + '</span>' +
+          (bucketObj ? '<span style="font-size:0.68rem;color:var(--ios-text-3)">[' + escapeHTML(bucketObj.name) + ']</span>' : '') +
+          '<span style="font-size:0.68rem;color:var(--ios-accent);margin-left:auto">🔗</span>';
+        li.insertBefore(cb, li.firstChild);
+      } else {
+        // Event — done when time passed
+        li.innerHTML =
+          '<span class="ca-med-emoji">' + it.emoji + '</span>' +
+          '<span class="ca-med-title">' + escapeHTML(it.title) + '</span>' +
+          (bucketObj ? '<span style="font-size:0.68rem;color:var(--ios-text-3)">[' + escapeHTML(bucketObj.name) + ']</span>' : '') +
+          '<span style="font-size:0.68rem;color:' + (it.done ? '#27ae60' : 'var(--ios-accent)') + ';margin-left:auto">' + (it.done ? '✓ Past' : '📅') + '</span>';
+      }
       ul.appendChild(li);
     });
   }
@@ -14962,6 +15177,68 @@ function renderChoresAppMedium(container) {
 }
 
 /* ── Chores App — Full View ───────────────────────────────────────── */
+function getChoreSyncedBuckets() { return safeParseStorage('choreSyncedBuckets', []); }
+function setChoreSyncedBuckets(v) { try { localStorage.setItem('choreSyncedBuckets', JSON.stringify(v)); } catch(_) {} }
+
+/* Return all home-bucket items (tasks + reminders + events) whose bucketId is in the synced list.
+   Returns an array of { type:'task'|'reminder'|'event', id, bucketId, title, emoji, energy, date, done } */
+function getSyncedHomeChoreItems() {
+  var synced = getChoreSyncedBuckets();
+  if (!synced.length) return [];
+  var today = getTodayISO();
+  var items = [];
+
+  // Tasks
+  getTasks().forEach(function(t) {
+    if (synced.indexOf(t.bucketId) !== -1 && getDomainOfItem(t) === 'home') {
+      items.push({ type: 'task', id: t.id, bucketId: t.bucketId, title: t.title || '', emoji: t.emoji || '📋', energy: t.energy || 'low', date: t.date || '', done: !!t.done });
+    }
+  });
+
+  // Events — "done" when time has passed
+  getEvents().forEach(function(ev) {
+    if (synced.indexOf(ev.bucketId) !== -1 && getDomainOfItem(ev) === 'home') {
+      var eventDate = ev.date || '';
+      var isDone = eventDate && eventDate < today;
+      items.push({ type: 'event', id: ev.id, bucketId: ev.bucketId, title: ev.title || ev.name || '', emoji: ev.emoji || '📅', energy: ev.energy || 'low', date: eventDate, done: isDone });
+    }
+  });
+
+  // Reminders
+  var remMap = getReminders();
+  Object.keys(remMap).forEach(function(dk) {
+    (remMap[dk] || []).forEach(function(r) {
+      if (synced.indexOf(r.bucketId) !== -1 && getDomainOfItem(r) === 'home') {
+        items.push({ type: 'reminder', id: r.id, bucketId: r.bucketId, title: r.text || r.title || '', emoji: r.emoji || '🔔', energy: r.energy || 'low', date: dk, done: !!r.done });
+      }
+    });
+  });
+
+  return items;
+}
+
+/* Mark a synced item done and propagate across the PWA */
+function markSyncedItemDone(type, id, done) {
+  if (type === 'task') {
+    var tasks = getTasks();
+    var idx = tasks.findIndex(function(t) { return String(t.id) === String(id); });
+    if (idx !== -1) { tasks[idx].done = done; setTasks(tasks); }
+    try { renderHomeDashboard(); } catch(_) {}
+    try { renderBucketPage('home'); } catch(_) {}
+  } else if (type === 'reminder') {
+    var remMap = getReminders();
+    var updated = false;
+    Object.keys(remMap).forEach(function(dk) {
+      (remMap[dk] || []).forEach(function(r) {
+        if (String(r.id) === String(id)) { r.done = done; updated = true; }
+      });
+    });
+    if (updated) setReminders(remMap);
+    try { if (selectedDay) showReminders(selectedDay); } catch(_) {}
+  }
+  // Events are time-based; no manual marking needed
+}
+
 function renderChoresAppFull(container) {
   container.innerHTML = '';
   var today = getTodayISO();
@@ -14976,34 +15253,10 @@ function renderChoresAppFull(container) {
   var left  = document.createElement('div'); left.className  = 'app-full-col';
   var right = document.createElement('div'); right.className = 'app-full-col';
 
-  /* ── LEFT: Members, Points Config, Today's Assignments ── */
-  var lHTML = '<h3 class="app-full-col-heading">👥 Household Members</h3>';
-  lHTML += '<div class="ca-members-list">';
-  if (members.length) {
-    members.forEach(function(m, mi) {
-      var mc = _safeCSSColor(m.color);
-      lHTML += '<div class="ca-member-row" style="border-left:4px solid ' + mc + '">' +
-        '<span class="ca-member-name">' + escapeHTML(m.name) + '</span>' +
-        '<button type="button" class="ca-del-member-btn app-fv-cancel-btn" data-mi="' + mi + '" style="padding:2px 8px;font-size:0.78rem;border:1px solid #e74c3c;color:#e74c3c">✕ Remove</button>' +
-      '</div>';
-    });
-  } else {
-    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No members yet. Add one below.</p>';
-  }
-  lHTML += '</div>';
-  lHTML += '<div class="ca-add-member-form">' +
-    '<input type="text" id="caNewMemberName" class="app-fv-text-input" placeholder="Member name…" maxlength="30" />' +
-    '<div id="caColorPicker" class="ca-color-picker">' +
-    _MEMBER_COLORS.map(function(c) {
-      var sc = _safeCSSColor(c);
-      return '<button type="button" class="ca-color-swatch" data-color="' + sc + '" style="background:' + sc + '" title="' + sc + '"></button>';
-    }).join('') +
-    '</div>' +
-    '<button type="button" id="caAddMemberBtn" class="app-fv-save-btn" style="margin-top:6px">+ Add Member</button>' +
-  '</div>';
+  /* ── LEFT: Points Config, Home Bucket Sync, Today's Assignments ── */
 
   /* Points config */
-  lHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">⭐ Points Per Chore</h3>';
+  var lHTML = '<h3 class="app-full-col-heading">⭐ Points Per Chore</h3>';
   lHTML += '<div class="ca-pts-config">';
   ['low','medium','high'].forEach(function(lvl) {
     lHTML += '<div class="ca-pts-row">' +
@@ -15015,10 +15268,29 @@ function renderChoresAppFull(container) {
   lHTML += '<button type="button" id="caSavePtsBtn" class="app-fv-save-btn" style="margin-top:8px">Save Points</button>';
   lHTML += '</div>';
 
-  /* Today's assignments */
+  /* Home bucket sync */
+  var syncedBuckets = getChoreSyncedBuckets();
+  var homeBuckets   = getBuckets('home');
+  lHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">🔗 Sync Home Buckets</h3>';
+  lHTML += '<p style="font-size:0.78rem;color:var(--ios-text-3);margin:0 0 8px">Check buckets to include their items as chores in Today\'s tracker, points, and history.</p>';
+  if (!homeBuckets.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No Home buckets yet. Add buckets from the Home page.</p>';
+  } else {
+    lHTML += '<div class="ca-sync-list">';
+    homeBuckets.forEach(function(b) {
+      var checked = syncedBuckets.indexOf(b.id) !== -1;
+      lHTML += '<label class="ca-sync-row"><input type="checkbox" class="ca-sync-cb" data-bucketid="' + escapeHTML(String(b.id)) + '"' + (checked ? ' checked' : '') + ' />' +
+        '<span>' + escapeHTML((b.emoji || '📂') + ' ' + b.name) + '</span></label>';
+    });
+    lHTML += '</div>';
+    lHTML += '<button type="button" id="caSaveSyncBtn" class="app-fv-save-btn" style="margin-top:8px">Save Sync</button>';
+  }
+
+  /* Today's assignments (combined tasks + synced items) */
   var todayTasks = allTasks.filter(function(t) { return t.date === today; });
+  var syncedItems = getSyncedHomeChoreItems().filter(function(it) { return it.date === today; });
   lHTML += '<h3 class="app-full-col-heading" style="margin-top:18px">📋 Today\'s Assignments</h3>';
-  if (!todayTasks.length) {
+  if (!todayTasks.length && !syncedItems.length) {
     lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No chores scheduled today.</p>';
   } else {
     lHTML += '<div class="ca-assignment-list">';
@@ -15033,7 +15305,19 @@ function renderChoresAppFull(container) {
         '</select>' +
       '</div>';
     });
-    lHTML += '</div><button type="button" id="caSaveAssignBtn" class="app-fv-save-btn" style="margin-top:8px">Save Assignments</button>';
+    syncedItems.forEach(function(it) {
+      var bucketObj = homeBuckets.find(function(b) { return b.id === it.bucketId; });
+      lHTML += '<div class="ca-assign-row ca-assign-synced">' +
+        '<span class="ca-assign-task">' + it.emoji + ' ' + escapeHTML(it.title) +
+          (bucketObj ? ' <span style="font-size:0.72rem;color:var(--ios-text-3)">[' + escapeHTML(bucketObj.name) + ']</span>' : '') +
+        '</span>' +
+        '<span style="font-size:0.72rem;color:var(--ios-accent);margin-left:auto">🔗 Synced</span>' +
+      '</div>';
+    });
+    lHTML += '</div>';
+    if (todayTasks.length) {
+      lHTML += '<button type="button" id="caSaveAssignBtn" class="app-fv-save-btn" style="margin-top:8px">Save Assignments</button>';
+    }
   }
 
   left.innerHTML = lHTML;
@@ -15121,39 +15405,7 @@ function renderChoresAppFull(container) {
   layout.appendChild(right);
   container.appendChild(layout);
 
-  /* Wire member management */
-  var _selectedMemberColor = _MEMBER_COLORS[0];
-  container.querySelectorAll('.ca-color-swatch').forEach(function(sw) {
-    sw.addEventListener('click', function() {
-      _selectedMemberColor = sw.dataset.color;
-      container.querySelectorAll('.ca-color-swatch').forEach(function(s) { s.classList.remove('selected'); });
-      sw.classList.add('selected');
-    });
-  });
-  var firstSwatch = container.querySelector('.ca-color-swatch');
-  if (firstSwatch) firstSwatch.classList.add('selected');
-
-  var addMemberBtn = container.querySelector('#caAddMemberBtn');
-  if (addMemberBtn) addMemberBtn.addEventListener('click', function() {
-    var nameInp = container.querySelector('#caNewMemberName');
-    var name = nameInp ? nameInp.value.trim() : '';
-    if (!name) { if (nameInp) nameInp.focus(); return; }
-    var mems = getHouseholdMembers();
-    mems.push({ id: generateMemberId(), name: name, color: _selectedMemberColor });
-    setHouseholdMembers(mems);
-    renderChoresAppFull(container);
-  });
-
-  container.querySelectorAll('.ca-del-member-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var mi = parseInt(btn.dataset.mi, 10);
-      var mems = getHouseholdMembers();
-      mems.splice(mi, 1);
-      setHouseholdMembers(mems);
-      renderChoresAppFull(container);
-    });
-  });
-
+  /* Wire points config save */
   var savePtsBtn = container.querySelector('#caSavePtsBtn');
   if (savePtsBtn) savePtsBtn.addEventListener('click', function() {
     var cfg = {};
@@ -15165,6 +15417,27 @@ function renderChoresAppFull(container) {
     setTimeout(function() { savePtsBtn.textContent = 'Save Points'; }, 1500);
   });
 
+  /* Wire home bucket sync save */
+  var saveSyncBtn = container.querySelector('#caSaveSyncBtn');
+  if (saveSyncBtn) saveSyncBtn.addEventListener('click', function() {
+    var selected = [];
+    container.querySelectorAll('.ca-sync-cb').forEach(function(cb) {
+      if (cb.checked) {
+        var bid = cb.dataset.bucketid;
+        // bucket IDs may be numbers
+        var parsed = isNaN(bid) ? bid : parseInt(bid, 10);
+        selected.push(parsed);
+      }
+    });
+    setChoreSyncedBuckets(selected);
+    saveSyncBtn.textContent = '✓ Saved';
+    setTimeout(function() {
+      saveSyncBtn.textContent = 'Save Sync';
+      renderChoresAppFull(container);
+    }, 1000);
+  });
+
+  /* Wire assignment save */
   var saveAssignBtn = container.querySelector('#caSaveAssignBtn');
   if (saveAssignBtn) saveAssignBtn.addEventListener('click', function() {
     var tasks = getTasks();
@@ -15447,23 +15720,81 @@ function renderGroceriesAppFull(container) {
   }
   lHTML += '</div>';
 
-  /* Recipe import */
+  /* Recipe import — tabbed: Recipes Hub | Weekly Meals | Manual Text */
+  var savedRecipes = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+  var weekMeals    = (typeof getPersonalMeals   === 'function') ? getPersonalMeals()   : {};
+  var weekDays     = (typeof getMealWeekDays     === 'function') ? getMealWeekDays()     : [];
+  // Flatten this week's planned meals that have a name
+  var weekMealOptions = [];
+  weekDays.forEach(function(wd) {
+    var dayMeals = weekMeals[wd.iso] || {};
+    ['breakfast','lunch','dinner','snacks'].forEach(function(slot) {
+      var m = dayMeals[slot];
+      if (m && m.name) weekMealOptions.push({ label: wd.dayName + ' ' + slot + ' — ' + m.name, recipeId: m.recipeId || '' });
+    });
+  });
+
   lHTML += '<h4 class="app-full-section-heading">📄 Recipe Import</h4>';
-  lHTML += '<div class="gaf-recipe-import">' +
-    '<textarea id="gafRecipeText" class="app-fv-note-input" rows="4" placeholder="Paste ingredients, one per line:\n2 cups flour\n1 tsp salt\n3 eggs…"></textarea>' +
-    '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">' +
-    '<select id="gafRecipeSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>' +
-    '<button type="button" id="gafImportBtn" class="app-fv-save-btn">Import All</button>' +
-    '</div>' +
+  lHTML += '<div class="gaf-recipe-tabs">' +
+    '<button type="button" class="gaf-recipe-tab active" data-tab="hub">📖 Recipe Hub</button>' +
+    '<button type="button" class="gaf-recipe-tab" data-tab="meals">🍽️ Weekly Meals</button>' +
+    '<button type="button" class="gaf-recipe-tab" data-tab="text">✏️ Manual Text</button>' +
   '</div>';
+
+  // Tab: Recipes Hub
+  lHTML += '<div class="gaf-recipe-tab-panel" id="gafTabHub">';
+  if (!savedRecipes.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No saved recipes yet. Add recipes in the Meal Planner → Recipes Hub.</p>';
+  } else {
+    lHTML += '<select id="gafHubRecipeSel" class="app-fv-select" style="width:100%;margin-bottom:6px"><option value="">— Pick a recipe —</option>';
+    savedRecipes.forEach(function(r, ri) {
+      lHTML += '<option value="' + ri + '">' + escapeHTML((r.emoji || '🍽️') + ' ' + (r.name || '')) + '</option>';
+    });
+    lHTML += '</select>';
+    lHTML += '<div id="gafHubIngredientPreview" style="font-size:0.8rem;color:var(--ios-text-3);min-height:24px"></div>';
+    lHTML += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">';
+    lHTML += '<select id="gafHubSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>';
+    lHTML += '<button type="button" id="gafHubImportBtn" class="app-fv-save-btn">Import Ingredients</button>';
+    lHTML += '</div>';
+  }
+  lHTML += '</div>';
+
+  // Tab: Weekly Meals
+  lHTML += '<div class="gaf-recipe-tab-panel" id="gafTabMeals" style="display:none">';
+  if (!weekMealOptions.length) {
+    lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No meals planned this week. Add meals in the Meal Planner.</p>';
+  } else {
+    lHTML += '<select id="gafMealSel" class="app-fv-select" style="width:100%;margin-bottom:6px"><option value="">— Pick a planned meal —</option>';
+    weekMealOptions.forEach(function(opt, wi) {
+      lHTML += '<option value="' + wi + '">' + escapeHTML(opt.label) + '</option>';
+    });
+    lHTML += '</select>';
+    lHTML += '<div id="gafMealIngredientPreview" style="font-size:0.8rem;color:var(--ios-text-3);min-height:24px"></div>';
+    lHTML += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">';
+    lHTML += '<select id="gafMealSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>';
+    lHTML += '<button type="button" id="gafMealImportBtn" class="app-fv-save-btn">Import Ingredients</button>';
+    lHTML += '</div>';
+  }
+  lHTML += '</div>';
+
+  // Tab: Manual Text
+  lHTML += '<div class="gaf-recipe-tab-panel" id="gafTabText" style="display:none">';
+  lHTML += '<textarea id="gafRecipeText" class="app-fv-note-input" rows="4" placeholder="Paste ingredients, one per line:\n2 cups flour\n1 tsp salt\n3 eggs…"></textarea>';
+  lHTML += '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">';
+  lHTML += '<select id="gafRecipeSection" class="app-fv-select"><option value="">Section…</option>' + _secOpts + '</select>';
+  lHTML += '<button type="button" id="gafImportBtn" class="app-fv-save-btn">Import All</button>';
+  lHTML += '</div>';
+  lHTML += '</div>';
 
   left.innerHTML = lHTML;
 
   /* ── RIGHT: Budget, Favorites, Aisle Order, Purchase History ── */
+  var syncedBudget = budget.syncToBudget || false;
   var rHTML = '<h3 class="app-full-col-heading">💵 Budget</h3>';
   rHTML += '<div class="gaf-budget-form">' +
     '<div class="gaf-budget-row"><label>Monthly</label><div style="display:flex;align-items:center;gap:4px">$<input type="number" id="gafMonthlyBudget" class="app-fv-num-input" value="' + (budget.monthly || '') + '" min="0" step="10" placeholder="0" /></div></div>' +
     '<div class="gaf-budget-row"><label>Per trip</label><div style="display:flex;align-items:center;gap:4px">$<input type="number" id="gafTripBudget" class="app-fv-num-input" value="' + (budget.trip || '') + '" min="0" step="10" placeholder="0" /></div></div>' +
+    '<label class="gaf-sync-label"><input type="checkbox" id="gafSyncBudgetToggle"' + (syncedBudget ? ' checked' : '') + ' /> Sync trip budget to Budget App as recurring bill</label>' +
     '<button type="button" id="gafSaveBudgetBtn" class="app-fv-save-btn" style="margin-top:6px">Save Budget</button>' +
   '</div>';
 
@@ -15673,17 +16004,133 @@ function renderGroceriesAppFull(container) {
     });
   });
 
-  /* Budget save */
+  /* Budget save — with optional Budget App sync */
   var saveBudgetBtn = container.querySelector('#gafSaveBudgetBtn');
   if (saveBudgetBtn) saveBudgetBtn.addEventListener('click', function() {
     var mb = parseFloat((container.querySelector('#gafMonthlyBudget') || {}).value) || 0;
     var tb = parseFloat((container.querySelector('#gafTripBudget') || {}).value) || 0;
-    setGroceryBudget({ monthly: mb, trip: tb });
+    var syncToggle = container.querySelector('#gafSyncBudgetToggle');
+    var doSync = syncToggle ? syncToggle.checked : false;
+    setGroceryBudget({ monthly: mb, trip: tb, syncToBudget: doSync });
+    // Sync trip budget to Budget App as a monthly recurring bill
+    if (typeof getPersonalBudget === 'function' && typeof setPersonalBudget === 'function') {
+      var bud = getPersonalBudget();
+      if (!bud.bills) bud.bills = [];
+      var existIdx = bud.bills.findIndex(function(b) { return b._grocerySync === true; });
+      if (doSync && tb > 0) {
+        var billEntry = { name: 'Grocery Budget (per trip)', amount: tb, repeat: 'monthly', _grocerySync: true };
+        if (existIdx !== -1) { bud.bills[existIdx] = billEntry; }
+        else { bud.bills.push(billEntry); }
+      } else if (!doSync && existIdx !== -1) {
+        bud.bills.splice(existIdx, 1);
+      }
+      setPersonalBudget(bud);
+      try { renderBudgetWidget(); } catch(e) { /* Non-fatal: budget widget may not be rendered in current view */ }
+    }
     saveBudgetBtn.textContent = '✓ Saved';
     setTimeout(function() { saveBudgetBtn.textContent = 'Save Budget'; }, 1500);
   });
 
-  /* Recipe import */
+  /* Recipe tab switching */
+  container.querySelectorAll('.gaf-recipe-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      container.querySelectorAll('.gaf-recipe-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      var target = tab.dataset.tab;
+      var panels = { hub: '#gafTabHub', meals: '#gafTabMeals', text: '#gafTabText' };
+      Object.keys(panels).forEach(function(k) {
+        var el = container.querySelector(panels[k]);
+        if (el) el.style.display = k === target ? '' : 'none';
+      });
+    });
+  });
+
+  /* Recipe Hub: show ingredient preview on selection */
+  var hubSel = container.querySelector('#gafHubRecipeSel');
+  var hubPreview = container.querySelector('#gafHubIngredientPreview');
+  if (hubSel) hubSel.addEventListener('change', function() {
+    var ri = parseInt(hubSel.value, 10);
+    var savedRecipesNow = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+    var recipe = savedRecipesNow[ri];
+    if (!recipe || !recipe.ingredients || !recipe.ingredients.length) {
+      if (hubPreview) hubPreview.textContent = recipe ? 'No ingredients listed for this recipe.' : '';
+      return;
+    }
+    if (hubPreview) hubPreview.textContent = recipe.ingredients.slice(0, 5).map(function(ing) {
+      return (ing.qty ? ing.qty + ' ' : '') + (ing.unit ? ing.unit + ' ' : '') + (ing.name || ing);
+    }).join(', ') + (recipe.ingredients.length > 5 ? ', +' + (recipe.ingredients.length - 5) + ' more' : '');
+  });
+
+  /* Recipe Hub: import ingredients */
+  var hubImportBtn = container.querySelector('#gafHubImportBtn');
+  if (hubImportBtn) hubImportBtn.addEventListener('click', function() {
+    var ri = parseInt((hubSel || {}).value, 10);
+    if (isNaN(ri)) return;
+    var savedRecipesNow = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+    var recipe = savedRecipesNow[ri];
+    if (!recipe) return;
+    var sec = (container.querySelector('#gafHubSection') || {}).value || '';
+    var ings = recipe.ingredients || [];
+    if (!ings.length) { if (hubPreview) hubPreview.textContent = 'No ingredients on this recipe.'; return; }
+    var al = getActiveGroceryListObj();
+    var newItems = (al.items || []).slice();
+    ings.forEach(function(ing) {
+      var name = (typeof ing === 'string') ? ing : (ing.name || '');
+      var qty  = (typeof ing === 'object') ? ((ing.qty ? ing.qty + ' ' : '') + (ing.unit || '')).trim() : '';
+      if (!name) return;
+      newItems.push({ id: nextGroceryId(), text: name, qty: qty, price: 0, section: sec, inCart: false, added: getTodayISO() });
+      logGroceryItemAdded(name, sec);
+    });
+    saveActiveListItems(al.id, newItems);
+    hubImportBtn.textContent = '✓ Added ' + ings.length + ' items';
+    setTimeout(function() { renderGroceriesAppFull(container); }, 1200);
+  });
+
+  /* Weekly Meals: show ingredient preview on selection */
+  var mealSel = container.querySelector('#gafMealSel');
+  var mealPreview = container.querySelector('#gafMealIngredientPreview');
+  var _weekMealOptsRef = weekMealOptions; // captured from outer scope
+  if (mealSel) mealSel.addEventListener('change', function() {
+    var wi = parseInt(mealSel.value, 10);
+    var opt = _weekMealOptsRef[wi];
+    if (!opt || !opt.recipeId) { if (mealPreview) mealPreview.textContent = 'No saved recipe linked to this meal.'; return; }
+    var savedRecipesNow = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+    var recipe = savedRecipesNow.find(function(r) { return r.id === opt.recipeId; });
+    if (!recipe || !recipe.ingredients || !recipe.ingredients.length) {
+      if (mealPreview) mealPreview.textContent = recipe ? 'No ingredients on linked recipe.' : 'Linked recipe not found.';
+      return;
+    }
+    if (mealPreview) mealPreview.textContent = recipe.ingredients.slice(0, 5).map(function(ing) {
+      return (ing.qty ? ing.qty + ' ' : '') + (ing.unit ? ing.unit + ' ' : '') + (ing.name || ing);
+    }).join(', ') + (recipe.ingredients.length > 5 ? ', +' + (recipe.ingredients.length - 5) + ' more' : '');
+  });
+
+  /* Weekly Meals: import ingredients from linked recipe */
+  var mealImportBtn = container.querySelector('#gafMealImportBtn');
+  if (mealImportBtn) mealImportBtn.addEventListener('click', function() {
+    var wi = parseInt((mealSel || {}).value, 10);
+    var opt = _weekMealOptsRef[wi];
+    if (!opt) return;
+    var savedRecipesNow = (typeof getPersonalRecipes === 'function') ? getPersonalRecipes() : [];
+    var recipe = opt.recipeId ? savedRecipesNow.find(function(r) { return r.id === opt.recipeId; }) : null;
+    var ings = recipe ? (recipe.ingredients || []) : [];
+    if (!ings.length) { if (mealPreview) mealPreview.textContent = 'No ingredients to import for this meal.'; return; }
+    var sec = (container.querySelector('#gafMealSection') || {}).value || '';
+    var al = getActiveGroceryListObj();
+    var newItems = (al.items || []).slice();
+    ings.forEach(function(ing) {
+      var name = (typeof ing === 'string') ? ing : (ing.name || '');
+      var qty  = (typeof ing === 'object') ? ((ing.qty ? ing.qty + ' ' : '') + (ing.unit || '')).trim() : '';
+      if (!name) return;
+      newItems.push({ id: nextGroceryId(), text: name, qty: qty, price: 0, section: sec, inCart: false, added: getTodayISO() });
+      logGroceryItemAdded(name, sec);
+    });
+    saveActiveListItems(al.id, newItems);
+    mealImportBtn.textContent = '✓ Added ' + ings.length + ' items';
+    setTimeout(function() { renderGroceriesAppFull(container); }, 1200);
+  });
+
+  /* Manual text import */
   var importBtn = container.querySelector('#gafImportBtn');
   if (importBtn) importBtn.addEventListener('click', function() {
     var ta  = container.querySelector('#gafRecipeText');

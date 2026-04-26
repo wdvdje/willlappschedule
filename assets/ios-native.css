@@ -3668,6 +3668,21 @@ body.dark-mode .dmeal-macro-goals-panel { background: #1e2d50; }
 .ca-pts-config { display: flex; flex-direction: column; gap: 6px; }
 .ca-pts-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
 
+/* Home bucket sync list */
+.ca-sync-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
+.ca-sync-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--ios-surface, #fff);
+  border: 1px solid var(--ios-border, #e0e0e0);
+  cursor: pointer;
+}
+.ca-sync-row:hover { background: var(--ios-fill-quaternary, #f5f8ff); }
+
 /* Assignments */
 .ca-assignment-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 4px; }
 .ca-assign-row {
@@ -3678,6 +3693,7 @@ body.dark-mode .dmeal-macro-goals-panel { background: #1e2d50; }
   font-size: 0.84rem;
 }
 .ca-assign-task { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ca-assign-synced { opacity: 0.85; font-style: italic; }
 
 /* 30-day heatmap */
 .ca-heatmap {
@@ -3848,6 +3864,38 @@ body.dark-mode .ca-med-add-btn:hover { background: #1e3a6e; }
 
 /* Recipe import */
 .gaf-recipe-import { margin-bottom: 4px; }
+
+/* Recipe import tabs */
+.gaf-recipe-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.gaf-recipe-tab {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  border: 1px solid var(--ios-border, #e0e0e0);
+  border-radius: 8px;
+  background: var(--ios-surface, #fff);
+  color: var(--ios-text, #1c1c1e);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.gaf-recipe-tab.active {
+  background: var(--ios-accent, #4a90e2);
+  color: #fff;
+  border-color: var(--ios-accent, #4a90e2);
+}
+.gaf-recipe-tab-panel { margin-bottom: 4px; }
+.gaf-sync-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--ios-text-2, #636366);
+  cursor: pointer;
+}
 
 /* Budget form */
 .gaf-budget-form { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
@@ -4321,6 +4369,25 @@ body.child-window-mode #appWindowContent {
 /* Hide the title bar entirely — the app content fills the full popup window with no frame */
 body.child-window-mode .app-window-header {
   display: none !important;
+}
+
+/* ── Child-window direct-render root ──────────────────────────────── */
+/* The app is rendered into #childAppRoot, which fills the entire OS   */
+/* window viewport without any modal wrapper.                          */
+#childAppRoot {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--ios-bg, #f2f2f7);
+  color: var(--ios-text, #1c1c1e);
+  padding: 16px 20px calc(24px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+/* Let full two-column layouts breathe in child windows */
+#childAppRoot .app-full-two-col {
+  gap: 24px;
 }
 
 /* ── Haptic visual proxy (@media hover: none = touch device) ─────── */

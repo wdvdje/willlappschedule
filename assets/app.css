@@ -1825,7 +1825,7 @@ body.dark-mode .weather-day-desc { color: var(--ios-text-3); }
 
 .steps-toggle-btn { font-size:0.75rem; background:none; border:none; color:var(--ios-accent); cursor:pointer; padding:0; margin-top:3px; text-decoration:underline; }
 
-.chore-tpl-modal { position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:center; justify-content:center; z-index:9999; }
+.chore-tpl-modal { position:fixed; inset:0; background:rgba(0,0,0,0.35); align-items:center; justify-content:center; z-index:10030; }
 
 .chore-tpl-modal:not(.hidden) { display:flex; }
 
@@ -2131,6 +2131,71 @@ body.dark-mode .weather-day-desc { color: var(--ios-text-3); }
 .clothes-weather-rec { display:flex; align-items:center; gap:8px; background:linear-gradient(135deg,#e8f4ff,#f0f8ff); border:1px solid #c8e0f5; border-radius:10px; padding:10px 14px; margin-bottom:10px; font-size:0.88rem; color:#2c6a9a; font-weight:500; }
 .clothes-weather-rec-full { margin-bottom:14px; font-size:0.95rem; padding:12px 16px; }
 .clothes-rec-emoji { font-size:1.4rem; flex-shrink:0; }
+
+/* 7-day weather strip */
+.clothes-weather-7day-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 10px;
+  overflow-x: auto;
+}
+.clothes-weather-7day-strip-full { margin-bottom: 18px; }
+.clothes-w7-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: #f5f9ff;
+  border: 1px solid #d6e8f7;
+  border-radius: 8px;
+  padding: 6px 2px;
+  font-size: 0.72rem;
+  text-align: center;
+  min-width: 44px;
+}
+.clothes-w7-cell.today {
+  background: linear-gradient(135deg,#e0efff,#f0f8ff);
+  border-color: var(--ios-accent, #4a90e2);
+  font-weight: 600;
+}
+.clothes-w7-dayname { font-weight: 600; font-size: 0.75rem; }
+.clothes-w7-date { color: #888; font-size: 0.68rem; }
+.clothes-w7-emoji { font-size: 1.15rem; margin: 2px 0; }
+.clothes-w7-rec { color: #557; font-size: 0.68rem; line-height: 1.2; }
+
+/* Weekly outfit planner */
+.clothes-weekly-planner { margin-top: 20px; }
+.clothes-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.clothes-plan-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+.clothes-plan-day {
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--ios-text-2, #636366);
+  text-align: center;
+}
+.clothes-plan-sel {
+  width: 100%;
+  font-size: 0.72rem;
+  padding: 4px 2px;
+  border-radius: 6px;
+  border: 1px solid var(--ios-border, #e0e0e0);
+  background: var(--ios-surface, #fff);
+  color: var(--ios-text, #1c1c1e);
+  text-align: center;
+  cursor: pointer;
+}
+
 .clothes-section-title { font-weight:600; font-size:0.83rem; color:#666; margin:10px 0 4px; }
 .clothes-empty { font-size:0.8rem; color:#aaa; padding:4px 0; }
 .clothes-laundry-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:7px 0; border-bottom:1px solid #f0f0f0; margin-bottom:8px; font-size:0.85rem; }
