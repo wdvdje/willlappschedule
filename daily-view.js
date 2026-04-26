@@ -412,6 +412,211 @@
     return items;
   }
 
+  // ── Session geocode/route cache (persists across re-renders) ──
+  window._dvGeoCache = window._dvGeoCache || {};
+
+  // Geocode an address string, returning Promise<{lat,lng}|null>
+  function dvGeocodeAddress(address) {
+    if (!address) return Promise.resolve(null);
+    var key = address.trim().toLowerCase();
+    if (key in window._dvGeoCache) return Promise.resolve(window._dvGeoCache[key]);
+    if (typeof inboxGeocodeAddress === 'function') {
+      return inboxGeocodeAddress(address).then(function(r) {
+        window._dvGeoCache[key] = r; return r;
+      });
+    }
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(address);
+    return fetch(url, { headers: { 'Accept': 'application/json', 'User-Agent': 'TimeScapePlanner/1.0' } })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(results) {
+        if (!results || !results.length) { window._dvGeoCache[key] = null; return null; }
+        var res = { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+        if (!isFinite(res.lat) || !isFinite(res.lng)) { window._dvGeoCache[key] = null; return null; }
+        window._dvGeoCache[key] = res; return res;
+      }).catch(function() { window._dvGeoCache[key] = null; return null; });
+  }
+
+  // Fetch driving minutes between two coordinate pairs via OSRM
+  function dvGetDrivingMinutes(fromLat, fromLng, toLat, toLng) {
+    var url = 'https://router.project-osrm.org/route/v1/driving/' +
+      fromLng + ',' + fromLat + ';' + toLng + ',' + toLat + '?overview=false';
+    return fetch(url, { headers: { 'Accept': 'application/json' } })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (!data || !data.routes || !data.routes.length) return null;
+        return Math.ceil(data.routes[0].duration / 60);
+      }).catch(function() { return null; });
+  }
+
+  // ── Buffer tooltip helpers ──
+  function dvEnsureBufTip() {
+    var tip = document.getElementById('dvBufTooltip');
+    if (!tip) {
+      tip = document.createElement('div');
+      tip.id = 'dvBufTooltip';
+      tip.className = 'wv-hover-tooltip';
+      document.body.appendChild(tip);
+    }
+    return tip;
+  }
+
+  function dvMoveBufTip(mouseEvt) {
+    var tip = document.getElementById('dvBufTooltip');
+    if (!tip) return;
+    var x = mouseEvt.clientX + 14, y = mouseEvt.clientY - 8;
+    var tw = tip.offsetWidth || 220, th = tip.offsetHeight || 80;
+    if (x + tw > window.innerWidth  - 8) x = mouseEvt.clientX - tw - 14;
+    if (y + th > window.innerHeight - 8) y = window.innerHeight - th - 8;
+    tip.style.left = x + 'px';
+    tip.style.top  = y + 'px';
+  }
+
+  function dvHideBufferTooltip() {
+    var tip = document.getElementById('dvBufTooltip');
+    if (tip) tip.classList.remove('wv-hover-tooltip--visible');
+  }
+
+  // Build and update buffer tooltip; fetches travel time if location data is available
+  function dvBuildBufferTooltip(tipEl, isPre, item, bufStartMin, bufEndMin, evStartMin, evEndMin) {
+    var eventTitle   = escapeHTML(item.title || 'Event');
+    var bufStartStr  = formatTime(bufStartMin);
+    var bufEndStr    = formatTime(bufEndMin);
+    var evStartStr   = formatTime(evStartMin);
+    var evEndStr     = formatTime(evEndMin);
+    var bufferMins   = isPre ? (item.preBuffer || 0) : (item.postBuffer || 0);
+
+    function staticHtml(driveMins, warning) {
+      var leaveStr  = isPre  ? bufStartStr : evEndStr;
+      var arriveStr = isPre  ? evStartStr  : bufEndStr;
+      var icon      = isPre  ? '🚗' : '🏁';
+      var label     = isPre  ? 'Pre-event buffer' : 'Post-event buffer';
+      var driveNote = driveMins !== null
+        ? driveMins + ' min drive · <em>est., no live traffic</em>'
+        : bufferMins + ' min buffer';
+      var warnNote  = warning
+        ? '<br><span style="color:#e67e22;font-size:0.74rem">⚠️ Buffer (' + bufferMins + 'm) may be too short for ' + driveMins + 'm drive</span>'
+        : '';
+      return '<strong>' + icon + ' ' + label + '</strong>' +
+        '<br><span class="wv-tip-time">Leave <b>' + leaveStr + '</b> · Arrive <b>' + arriveStr + '</b></span>' +
+        '<br><span class="wv-tip-kind">' + driveNote + '</span>' +
+        warnNote +
+        '<br><span class="wv-tip-kind">' + eventTitle + '</span>';
+    }
+
+    tipEl.innerHTML = staticHtml(null, false);
+
+    // Try travel time if event has a location and user has a home address
+    var eventLocation = item.raw && item.raw.location;
+    var profile       = typeof readUserProfile === 'function' ? readUserProfile() : null;
+    var homeAddr      = profile && profile.home && profile.home.address;
+    if (!eventLocation || !homeAddr) return;
+
+    tipEl.innerHTML += '<br><span class="wv-tip-kind">⏳ Calculating route…</span>';
+
+    var homeCoords$ = (profile.home.lat && profile.home.lng)
+      ? Promise.resolve({ lat: profile.home.lat, lng: profile.home.lng })
+      : dvGeocodeAddress(homeAddr);
+    var destCoords$ = dvGeocodeAddress(eventLocation);
+
+    Promise.all([homeCoords$, destCoords$]).then(function(coords) {
+      var homeC = coords[0], destC = coords[1];
+      if (!homeC || !destC) { tipEl.innerHTML = staticHtml(null, false); return; }
+      var fromC = isPre ? homeC : destC;
+      var toC   = isPre ? destC : homeC;
+      return dvGetDrivingMinutes(fromC.lat, fromC.lng, toC.lat, toC.lng).then(function(mins) {
+        if (!tipEl.isConnected) return; // tooltip was removed while fetching
+        if (mins === null) { tipEl.innerHTML = staticHtml(null, false); return; }
+        // Compute recommended leave time
+        var leaveMin = isPre ? evStartMin - mins : evEndMin;
+        var arriveMin = isPre ? evStartMin : evEndMin + mins;
+        var leaveStr  = formatTime((leaveMin  + 1440) % 1440);
+        var arriveStr = formatTime((arriveMin + 1440) % 1440);
+        var icon      = isPre ? '🚗' : '🏁';
+        var label     = isPre ? 'Pre-event buffer' : 'Post-event buffer';
+        var tooShort  = mins > bufferMins;
+        var html = '<strong>' + icon + ' ' + label + '</strong>' +
+          '<br><span class="wv-tip-time">Leave <b>' + leaveStr + '</b> · Arrive <b>' + arriveStr + '</b></span>' +
+          '<br><span class="wv-tip-kind">' + mins + ' min drive · <em>est., no live traffic</em></span>' +
+          (tooShort ? '<br><span style="color:#e67e22;font-size:0.74rem">⚠️ Buffer (' + bufferMins + 'm) may be too short for ' + mins + 'm drive</span>' : '') +
+          '<br><span class="wv-tip-kind">' + eventTitle + '</span>';
+        tipEl.innerHTML = html;
+      });
+    }).catch(function() { tipEl.innerHTML = staticHtml(null, false); });
+  }
+
+  // ── Add-item picker for daily-view half-hour slots ──
+  function dvShowAddPicker(mouseEvt, dateStr, timeStr, endTimeStr) {
+    var existing = document.getElementById('dvAddPicker');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+    var picker = document.createElement('div');
+    picker.id = 'dvAddPicker';
+
+    [{ label: '📌 Event', kind: 'event' }, { label: '✅ Task', kind: 'task' }, { label: '🔔 Reminder', kind: 'reminder' }].forEach(function(pi) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'wv-add-picker-btn';
+      btn.textContent = pi.label;
+      (function(k) {
+        btn.addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          if (picker.parentNode) picker.parentNode.removeChild(picker);
+          dvOpenNewItem(k, dateStr, timeStr, endTimeStr);
+        });
+      })(pi.kind);
+      picker.appendChild(btn);
+    });
+
+    document.body.appendChild(picker);
+    var x = mouseEvt.clientX + 8, y = mouseEvt.clientY + 8;
+    var pw = picker.offsetWidth || 160, ph = picker.offsetHeight || 120;
+    if (x + pw > window.innerWidth  - 8) x = mouseEvt.clientX - pw - 8;
+    if (y + ph > window.innerHeight - 8) y = mouseEvt.clientY - ph - 8;
+    picker.style.left = x + 'px';
+    picker.style.top  = y + 'px';
+
+    function dismissPicker(ev) {
+      if (!picker.contains(ev.target)) {
+        if (picker.parentNode) picker.parentNode.removeChild(picker);
+        document.removeEventListener('click', dismissPicker, true);
+      }
+    }
+    setTimeout(function() { document.addEventListener('click', dismissPicker, true); }, 0);
+  }
+
+  function dvOpenNewItem(kind, dateStr, timeStr, endTimeStr) {
+    var setV = function(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; };
+    if (kind === 'event') {
+      if (window.appUtils && typeof window.appUtils.openEditModalFill === 'function') {
+        window.appUtils.openEditModalFill({ date: dateStr, startTime: timeStr, endTime: endTimeStr, time: timeStr });
+      }
+      return;
+    }
+    // task / reminder: fill fields manually then show modal
+    setV('editKind', kind);
+    setV('editEventId', '');
+    setV('editTaskIndex', '');
+    setV('editReminderKey', '');
+    setV('editReminderIndex', '');
+    setV('editOccurrenceDate', '');
+    setV('editText', '');
+    setV('editDate', dateStr);
+    setV('editTime', timeStr);
+    setV('editEndTime', '');
+    if (kind === 'task') { setV('editCategory', 'work'); setV('editPriority', '2'); }
+    var bRow = document.getElementById('editBucketRow');
+    if (bRow) bRow.style.display = 'none';
+    if (typeof showModalFieldsFor === 'function') showModalFieldsFor(kind);
+    var heading = document.getElementById('editModalHeading');
+    if (heading) heading.textContent = kind === 'task' ? 'Add Task' : 'Add Reminder';
+    if (window.appUtils && typeof window.appUtils.showEditModal === 'function') {
+      window.appUtils.showEditModal();
+    } else {
+      var modal = document.getElementById('editModal');
+      if (modal) { modal.classList.remove('hidden'); modal.style.display = 'flex'; }
+    }
+  }
+
   // ── Render the full daily view ──
   function renderDailyView(dateStr) {
     try {
@@ -496,45 +701,57 @@
       body.style.position = 'relative';
       body.style.height = (hours.length * HOUR_HEIGHT) + 'px';
 
-      // Create hour slots and labels
-      hours.forEach(function(h, idx) {
-        // gutter label
+      // Build busy-slot set so we omit "+" overlays on occupied half-hours
+      var busySlots = new Set();
+      visibleItems.forEach(function(item) {
+        if (!item.hasTimes) return;
+        var effStart = item.startMin - (item.preBuffer  || 0);
+        var effEnd   = item.endMin   + (item.postBuffer || 0);
+        for (var s = Math.floor(effStart / 30); s <= Math.ceil(effEnd / 30) - 1; s++) { busySlots.add(s); }
+      });
+
+      // Create hour slots and labels — two 30-min slots per hour (matches week view)
+      hours.forEach(function(h) {
+        // gutter label (one per hour, 60 px tall)
         var lbl = document.createElement('div');
         lbl.className = 'dv-gutter-label';
         lbl.textContent = formatHourLabel(h);
         gutter.appendChild(lbl);
 
-        // hour slot in body (background row)
-        var slot = document.createElement('div');
-        slot.className = 'dv-hour-slot';
-        slot.dataset.hour = h;
+        // :00 slot (hour boundary — solid divider) and :30 slot (dashed divider)
+        [0, 30].forEach(function(minOffset) {
+          var slotStartMin = h * 60 + minOffset;
+          var absSlotIdx   = Math.floor(slotStartMin / 30); // 0-based from midnight
+          var isHourBound  = minOffset === 0;
 
-        // Inline add-event button (desktop only, shown on hover via CSS)
-        // h is a forEach callback parameter, so it is already properly closed over.
-        var addBtn = document.createElement('button');
-        addBtn.type = 'button';
-        addBtn.className = 'dv-add-btn';
-        addBtn.title = 'Add event at ' + formatHourLabel(h);
-        addBtn.textContent = '+';
-        addBtn.addEventListener('click', function(e) {
-          e.stopPropagation();
-          var timeStr    = pad2(h) + ':00';
-          var endTimeStr = pad2((h + 1) % 24) + ':00';
-          if (window.appUtils && typeof window.appUtils.openEditModalFill === 'function') {
-            window.appUtils.openEditModalFill({ date: dateStr, startTime: timeStr, endTime: endTimeStr, time: timeStr });
+          var slot = document.createElement('div');
+          slot.className = 'dv-hour-slot' + (isHourBound ? ' dv-hour-boundary' : ' dv-half-hour-slot');
+          slot.dataset.hour = h;
+          slot.dataset.min  = minOffset;
+
+          // Add-item overlay (desktop only via CSS; hidden on mobile)
+          if (!busySlots.has(absSlotIdx)) {
+            var slotTimeStr = pad2(h) + ':' + pad2(minOffset);
+            var endSlotMin  = slotStartMin + 30;
+            var slotEndStr  = pad2(Math.floor(endSlotMin / 60) % 24) + ':' + pad2(endSlotMin % 60);
+            var addSlot = document.createElement('div');
+            addSlot.className = 'dv-add-slot';
+            addSlot.title = 'Add item at ' + slotTimeStr;
+            var plusSpan = document.createElement('span');
+            plusSpan.className = 'dv-add-slot-plus';
+            plusSpan.textContent = '+';
+            addSlot.appendChild(plusSpan);
+            (function(ts, es) {
+              addSlot.addEventListener('click', function(ev) {
+                ev.stopPropagation();
+                dvShowAddPicker(ev, dateStr, ts, es);
+              });
+            })(slotTimeStr, slotEndStr);
+            slot.appendChild(addSlot);
           }
+
+          body.appendChild(slot);
         });
-        slot.appendChild(addBtn);
-
-        body.appendChild(slot);
-
-        // half-hour dashed line
-        if (idx < hours.length) {
-          var halfLine = document.createElement('div');
-          halfLine.className = 'dv-half-line';
-          halfLine.style.top = (idx * HOUR_HEIGHT + HOUR_HEIGHT / 2) + 'px';
-          body.appendChild(halfLine);
-        }
       });
 
       // Event column overlay
@@ -662,8 +879,27 @@
               preBuf.style.height = preHeightPx + 'px';
               preBuf.style.left = leftPct + '%';
               preBuf.style.width = (colWidth - 1) + '%';
-              preBuf.title = item.preBuffer + ' min travel/prep before ' + escapeHTML(item.title);
+              preBuf.style.pointerEvents = 'auto';
+              preBuf.style.cursor = 'default';
               preBuf.innerHTML = '<span class="dv-buffer-label">🚗 ' + item.preBuffer + 'm</span>';
+              (function(bufItem, bufStartM, bufEndM, evStartM, evEndM) {
+                preBuf.addEventListener('mouseenter', function(ev) {
+                  var tip = dvEnsureBufTip();
+                  dvBuildBufferTooltip(tip, true, bufItem, bufStartM, bufEndM, evStartM, evEndM);
+                  dvMoveBufTip(ev);
+                  tip.classList.add('wv-hover-tooltip--visible');
+                });
+                preBuf.addEventListener('mousemove', dvMoveBufTip);
+                preBuf.addEventListener('mouseleave', dvHideBufferTooltip);
+                // Mobile: tap to show brief toast
+                preBuf.addEventListener('touchstart', function() {
+                  var tip = dvEnsureBufTip();
+                  dvBuildBufferTooltip(tip, true, bufItem, bufStartM, bufEndM, evStartM, evEndM);
+                  tip.classList.add('wv-hover-tooltip--visible', 'dv-buf-toast-mode');
+                  clearTimeout(tip._dvHideTimer);
+                  tip._dvHideTimer = setTimeout(function() { tip.classList.remove('wv-hover-tooltip--visible', 'dv-buf-toast-mode'); }, 3000);
+                }, { passive: true });
+              })(item, preStart, preEnd, item.startMin, item.endMin);
               eventCol.appendChild(preBuf);
             }
           }
@@ -683,8 +919,27 @@
               postBuf.style.height = postHeightPx + 'px';
               postBuf.style.left = leftPct + '%';
               postBuf.style.width = (colWidth - 1) + '%';
-              postBuf.title = item.postBuffer + ' min wind-down after ' + escapeHTML(item.title);
+              postBuf.style.pointerEvents = 'auto';
+              postBuf.style.cursor = 'default';
               postBuf.innerHTML = '<span class="dv-buffer-label">' + item.postBuffer + 'm</span>';
+              (function(bufItem, bufStartM, bufEndM, evStartM, evEndM) {
+                postBuf.addEventListener('mouseenter', function(ev) {
+                  var tip = dvEnsureBufTip();
+                  dvBuildBufferTooltip(tip, false, bufItem, bufStartM, bufEndM, evStartM, evEndM);
+                  dvMoveBufTip(ev);
+                  tip.classList.add('wv-hover-tooltip--visible');
+                });
+                postBuf.addEventListener('mousemove', dvMoveBufTip);
+                postBuf.addEventListener('mouseleave', dvHideBufferTooltip);
+                // Mobile: tap to show brief toast
+                postBuf.addEventListener('touchstart', function() {
+                  var tip = dvEnsureBufTip();
+                  dvBuildBufferTooltip(tip, false, bufItem, bufStartM, bufEndM, evStartM, evEndM);
+                  tip.classList.add('wv-hover-tooltip--visible', 'dv-buf-toast-mode');
+                  clearTimeout(tip._dvHideTimer);
+                  tip._dvHideTimer = setTimeout(function() { tip.classList.remove('wv-hover-tooltip--visible', 'dv-buf-toast-mode'); }, 3000);
+                }, { passive: true });
+              })(item, postStart, postEnd, item.startMin, item.endMin);
               eventCol.appendChild(postBuf);
             }
           }

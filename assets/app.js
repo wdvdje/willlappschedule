@@ -4110,7 +4110,90 @@ function renderWeekView() {
     if (_wvTip) _wvTip.classList.remove('wv-hover-tooltip--visible');
   }
 
-  /* ── Item-type picker for half-hour add-item slots ── */
+  /* ── Buffer-block hover tooltip for week view ── */
+  function wvBuildBufferTooltip(tipEl, isPre, item, bufStartMin, bufEndMin, evStartMin, evEndMin) {
+    var eventTitle  = item.title ? escapeHTML(item.title) : 'Event';
+    var bufferMins  = isPre ? (item.preBuffer || 0) : (item.postBuffer || 0);
+    var bufStartStr = pad2(Math.floor(bufStartMin / 60)) + ':' + pad2(bufStartMin % 60);
+    var bufEndStr   = pad2(Math.floor(bufEndMin   / 60)) + ':' + pad2(bufEndMin   % 60);
+    var evStartStr  = pad2(Math.floor(evStartMin  / 60)) + ':' + pad2(evStartMin  % 60);
+    var evEndStr    = pad2(Math.floor(evEndMin    / 60)) + ':' + pad2(evEndMin    % 60);
+
+    function staticHtml(driveMins, tooShort) {
+      var leaveStr  = isPre ? bufStartStr : evEndStr;
+      var arriveStr = isPre ? evStartStr  : bufEndStr;
+      var icon      = isPre ? '🚗' : '🏁';
+      var label     = isPre ? 'Pre-event buffer' : 'Post-event buffer';
+      var driveNote = driveMins !== null
+        ? driveMins + ' min drive · <em>est., no live traffic</em>'
+        : bufferMins + ' min buffer';
+      var warnNote = tooShort
+        ? '<br><span style="color:#e67e22;font-size:0.74rem">⚠️ Buffer (' + bufferMins + 'm) may be too short for ' + driveMins + 'm drive</span>'
+        : '';
+      return '<strong>' + icon + ' ' + label + '</strong>' +
+        '<br><span class="wv-tip-time">Leave <b>' + leaveStr + '</b> · Arrive <b>' + arriveStr + '</b></span>' +
+        '<br><span class="wv-tip-kind">' + driveNote + '</span>' +
+        warnNote +
+        '<br><span class="wv-tip-kind">' + eventTitle + '</span>';
+    }
+
+    tipEl.innerHTML = staticHtml(null, false);
+    tipEl.style.borderLeftColor = item.color || '#999';
+
+    var eventLocation = item.raw && item.raw.location;
+    var profile       = typeof readUserProfile === 'function' ? readUserProfile() : null;
+    var homeAddr      = profile && profile.home && profile.home.address;
+    if (!eventLocation || !homeAddr) return;
+
+    tipEl.innerHTML += '<br><span class="wv-tip-kind">⏳ Calculating route…</span>';
+
+    window._dvGeoCache = window._dvGeoCache || {};
+    function wvGeocode(addr) {
+      var key = addr.trim().toLowerCase();
+      if (key in window._dvGeoCache) return Promise.resolve(window._dvGeoCache[key]);
+      if (typeof inboxGeocodeAddress === 'function') {
+        return inboxGeocodeAddress(addr).then(function(r) { window._dvGeoCache[key] = r; return r; });
+      }
+      return Promise.resolve(null);
+    }
+
+    var homeCoords$ = (profile.home.lat && profile.home.lng)
+      ? Promise.resolve({ lat: profile.home.lat, lng: profile.home.lng })
+      : wvGeocode(homeAddr);
+    var destCoords$ = wvGeocode(eventLocation);
+
+    Promise.all([homeCoords$, destCoords$]).then(function(coords) {
+      var homeC = coords[0], destC = coords[1];
+      if (!homeC || !destC) { tipEl.innerHTML = staticHtml(null, false); return; }
+      var fromC = isPre ? homeC : destC;
+      var toC   = isPre ? destC : homeC;
+      var url = 'https://router.project-osrm.org/route/v1/driving/' +
+        fromC.lng + ',' + fromC.lat + ';' + toC.lng + ',' + toC.lat + '?overview=false';
+      return fetch(url, { headers: { 'Accept': 'application/json' } })
+        .then(function(r) { return r.ok ? r.json() : null; })
+        .then(function(data) {
+          if (!tipEl.isConnected) return;
+          var mins = (data && data.routes && data.routes.length) ? Math.ceil(data.routes[0].duration / 60) : null;
+          if (mins === null) { tipEl.innerHTML = staticHtml(null, false); return; }
+          var leaveMin  = isPre ? evStartMin - mins : evEndMin;
+          var arriveMin = isPre ? evStartMin : evEndMin + mins;
+          var normLeave  = (leaveMin  + 1440) % 1440;
+          var normArrive = (arriveMin + 1440) % 1440;
+          var lStr = pad2(Math.floor(normLeave  / 60)) + ':' + pad2(normLeave  % 60);
+          var aStr = pad2(Math.floor(normArrive / 60)) + ':' + pad2(normArrive % 60);
+          var tooShort = mins > bufferMins;
+          var icon = isPre ? '🚗' : '🏁';
+          var label = isPre ? 'Pre-event buffer' : 'Post-event buffer';
+          tipEl.innerHTML = '<strong>' + icon + ' ' + label + '</strong>' +
+            '<br><span class="wv-tip-time">Leave <b>' + lStr + '</b> · Arrive <b>' + aStr + '</b></span>' +
+            '<br><span class="wv-tip-kind">' + mins + ' min drive · <em>est., no live traffic</em></span>' +
+            (tooShort ? '<br><span style="color:#e67e22;font-size:0.74rem">⚠️ Buffer (' + bufferMins + 'm) may be too short for ' + mins + 'm drive</span>' : '') +
+            '<br><span class="wv-tip-kind">' + eventTitle + '</span>';
+        }).catch(function() { tipEl.innerHTML = staticHtml(null, false); });
+    }).catch(function() { tipEl.innerHTML = staticHtml(null, false); });
+  }
+
+
   function wvShowAddPicker(mouseEvt, dateStr, timeStr, endTimeStr) {
     /* Remove any existing picker */
     var existing = document.getElementById('wvAddPicker');
@@ -4663,8 +4746,18 @@ function renderWeekView() {
               preBuf.style.height = preHeightPx + 'px';
               preBuf.style.left = leftPct + '%';
               preBuf.style.width = (colW - 1) + '%';
-              preBuf.title = item.preBuffer + ' min travel/prep before ' + escapeHTML(item.title);
+              preBuf.style.pointerEvents = 'auto';
+              preBuf.style.cursor = 'default';
               preBuf.innerHTML = '<span class="dv-buffer-label">🚗 ' + item.preBuffer + 'm</span>';
+              (function(bufItem, bufSM, bufEM, evSM, evEM) {
+                preBuf.addEventListener('mouseenter', function(ev) {
+                  wvBuildBufferTooltip(_wvTip, true, bufItem, bufSM, bufEM, evSM, evEM);
+                  wvMoveTooltip(ev);
+                  _wvTip.classList.add('wv-hover-tooltip--visible');
+                });
+                preBuf.addEventListener('mousemove', wvMoveTooltip);
+                preBuf.addEventListener('mouseleave', wvHideTooltip);
+              })(item, preStart, preEnd, startMin, endMin);
               col.appendChild(preBuf);
             }
           }
@@ -4684,8 +4777,18 @@ function renderWeekView() {
               postBuf.style.height = postHeightPx + 'px';
               postBuf.style.left = leftPct + '%';
               postBuf.style.width = (colW - 1) + '%';
-              postBuf.title = item.postBuffer + ' min wind-down after ' + escapeHTML(item.title);
+              postBuf.style.pointerEvents = 'auto';
+              postBuf.style.cursor = 'default';
               postBuf.innerHTML = '<span class="dv-buffer-label">' + item.postBuffer + 'm</span>';
+              (function(bufItem, bufSM, bufEM, evSM, evEM) {
+                postBuf.addEventListener('mouseenter', function(ev) {
+                  wvBuildBufferTooltip(_wvTip, false, bufItem, bufSM, bufEM, evSM, evEM);
+                  wvMoveTooltip(ev);
+                  _wvTip.classList.add('wv-hover-tooltip--visible');
+                });
+                postBuf.addEventListener('mousemove', wvMoveTooltip);
+                postBuf.addEventListener('mouseleave', wvHideTooltip);
+              })(item, postStart, postEnd, startMin, endMin);
               col.appendChild(postBuf);
             }
           }
