@@ -426,6 +426,49 @@
     });
   }
 
+  /* ── iOS Shortcut URL-parameter import ──
+   *
+   * An iOS Shortcut can read timescape-data.json from iCloud Drive, base64-encode
+   * its contents, and open the app at:
+   *   https://<app-url>?import-data=<base64>
+   *
+   * On load this function checks for that parameter, decodes the payload,
+   * applies it as an overwrite, then strips the parameter from the URL so
+   * a reload does not re-apply stale data.
+   */
+
+  function checkURLImport() {
+    var search = window.location.search;
+    if (!search) return;
+    var params = new URLSearchParams(search);
+    var encoded = params.get('import-data');
+    if (!encoded) return;
+
+    /* Strip the parameter immediately so a reload won't re-apply it */
+    params.delete('import-data');
+    var newSearch = params.toString();
+    var newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+    try { window.history.replaceState(null, '', newUrl); } catch (_) {}
+
+    try {
+      var json = atob(encoded);
+      var parsed = JSON.parse(json);
+      _applyParsed(parsed);
+      var statusEl = el('icloudIosStatus') || el('icloudMacStatus');
+      if (statusEl) {
+        statusEl.textContent = '✅ Imported from iCloud Shortcut at ' + new Date().toLocaleTimeString();
+        statusEl.style.color = '#27ae60';
+      }
+    } catch (e) {
+      console.warn('iCloud Sync: checkURLImport failed to decode/apply data', e);
+      var statusEl = el('icloudIosStatus') || el('icloudMacStatus');
+      if (statusEl) {
+        statusEl.textContent = '⚠️ Shortcut import failed: ' + (e && e.message ? e.message : 'invalid data');
+        statusEl.style.color = '#b00020';
+      }
+    }
+  }
+
   /* ── Auto-read on load ── */
 
   function autoReadOnLoad() {
@@ -502,6 +545,7 @@
     _patchSetters();
     wireUI();
     updateStatusUI();
+    checkURLImport();
     autoReadOnLoad();
   }
 
@@ -520,7 +564,8 @@
     exportFile:       exportFile,
     importFile:       importFile,
     scheduleWrite:    scheduleWrite,
-    updateStatusUI:   updateStatusUI
+    updateStatusUI:   updateStatusUI,
+    checkURLImport:   checkURLImport
   };
 
 }());
