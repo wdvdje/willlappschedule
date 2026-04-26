@@ -13420,6 +13420,14 @@ function _budgetFvOverview(body, container) {
   });
 }
 
+/** Map a bill reminder lead time value to a human-readable label. */
+function _billLeadTimeLabel(v) {
+  if (v === 'at')  return 'on due date';
+  if (v === '3d')  return '3 days before';
+  if (v === '1w')  return '1 week before';
+  return '1 day before';
+}
+
 /** Build the Manage tab: full CRUD for categories, bills, pay periods, one-time expenses. */
 function _budgetFvManage(body, container) {
   var budget = getPersonalBudget();
@@ -13466,7 +13474,7 @@ function _budgetFvManage(body, container) {
             (bill.category ? escapeHTML(bill.category) + ' · ' : '') +
             (bill.dueDate ? '📅 ' + escapeHTML(bill.dueDate) + ' · ' : '') +
             escapeHTML(bill.repeat || 'monthly') +
-            (bill.reminder ? ' · 🔔 ' + (bill.leadTime === 'at' ? 'on due date' : bill.leadTime === '3d' ? '3 days before' : bill.leadTime === '1w' ? '1 week before' : '1 day before') : '') +
+            (bill.reminder ? ' · 🔔 ' + _billLeadTimeLabel(bill.leadTime) : '') +
           '</div>' +
         '</div>' +
         '<span class="budgfv-bill-amt">$' + parseFloat(bill.amount || 0).toFixed(2) + '/mo</span>' +
@@ -13624,8 +13632,7 @@ function _budgetFvManage(body, container) {
         '</label>' +
         '<select id="bfvEditLeadTime" title="Reminder lead time">' +
           ['at','1d','3d','1w'].map(function(v) {
-            var label = v === 'at' ? 'On due date' : v === '1d' ? '1 day before' : v === '3d' ? '3 days before' : '1 week before';
-            return '<option value="' + v + '"' + (v === (bill.leadTime || '1d') ? ' selected' : '') + '>' + label + '</option>';
+            return '<option value="' + v + '"' + (v === (bill.leadTime || '1d') ? ' selected' : '') + '>' + _billLeadTimeLabel(v).charAt(0).toUpperCase() + _billLeadTimeLabel(v).slice(1) + '</option>';
           }).join('') +
         '</select>' +
         '<button class="app-fv-save-btn bfvEditSave" data-bi="' + bi + '">Save</button>' +
@@ -13641,7 +13648,7 @@ function _budgetFvManage(body, container) {
           category: form.querySelector('#bfvEditCat').value,
           repeat: form.querySelector('#bfvEditRepeat').value,
           reminder: !!(form.querySelector('#bfvEditReminder') && form.querySelector('#bfvEditReminder').checked),
-          leadTime: form.querySelector('#bfvEditLeadTime') ? form.querySelector('#bfvEditLeadTime').value : '1d'
+          leadTime: (form.querySelector('#bfvEditReminder') && form.querySelector('#bfvEditReminder').checked && form.querySelector('#bfvEditLeadTime')) ? form.querySelector('#bfvEditLeadTime').value : null
         };
         setPersonalBudget(b2);
         try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
@@ -13682,7 +13689,7 @@ function _budgetFvManage(body, container) {
       category: catEl ? catEl.value : '',
       repeat: repeatEl ? repeatEl.value : 'monthly',
       reminder: !!(reminderEl && reminderEl.checked),
-      leadTime: (leadTimeEl && reminderEl && reminderEl.checked) ? leadTimeEl.value : '1d'
+      leadTime: (reminderEl && reminderEl.checked && leadTimeEl) ? leadTimeEl.value : null
     });
     setPersonalBudget(b);
     try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
