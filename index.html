@@ -1872,8 +1872,9 @@
           if (!w) return;
           var isFullscreen = w.classList.contains('fullscreen');
           if (isFullscreen) {
-            // Already fullscreen → open in child window
-            if (_currentApp) openChildAppWindow(_currentApp);
+            // Already fullscreen → open in child window (desktop only; iOS cannot open new windows)
+            var _isMobileUA = /iP(hone|ad|od)/.test(navigator.userAgent) || window.innerWidth <= 767;
+            if (!_isMobileUA && _currentApp) openChildAppWindow(_currentApp);
             return;
           }
           // Medium → fullscreen
