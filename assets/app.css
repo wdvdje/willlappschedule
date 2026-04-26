@@ -339,7 +339,7 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
   box-sizing: border-box;
   border-radius: 4px;
   overflow: hidden;
-  pointer-events: auto; /* enable hover tooltip; events (z-index:5) still capture first */
+  pointer-events: auto; /* enable hover tooltip; event blocks (z-index:5) sit above buffers (z-index:3) */
   cursor: default;
   z-index: 3;
   background: repeating-linear-gradient(

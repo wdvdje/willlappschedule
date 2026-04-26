@@ -4177,8 +4177,10 @@ function renderWeekView() {
           if (mins === null) { tipEl.innerHTML = staticHtml(null, false); return; }
           var leaveMin  = isPre ? evStartMin - mins : evEndMin;
           var arriveMin = isPre ? evStartMin : evEndMin + mins;
-          var lStr = pad2(Math.floor(((leaveMin  + 1440) % 1440) / 60)) + ':' + pad2(((leaveMin  + 1440) % 1440) % 60);
-          var aStr = pad2(Math.floor(((arriveMin + 1440) % 1440) / 60)) + ':' + pad2(((arriveMin + 1440) % 1440) % 60);
+          var normLeave  = (leaveMin  + 1440) % 1440;
+          var normArrive = (arriveMin + 1440) % 1440;
+          var lStr = pad2(Math.floor(normLeave  / 60)) + ':' + pad2(normLeave  % 60);
+          var aStr = pad2(Math.floor(normArrive / 60)) + ':' + pad2(normArrive % 60);
           var tooShort = mins > bufferMins;
           var icon = isPre ? '🚗' : '🏁';
           var label = isPre ? 'Pre-event buffer' : 'Post-event buffer';
