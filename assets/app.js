@@ -10496,8 +10496,9 @@ function renderSleepAppFull(container) {
         if (!rems[dateKey].length) delete rems[dateKey];
       };
       /* Schedule for each of the next 7 days */
+      var _sleepBase = new Date();
       for (var di = 0; di < 7; di++) {
-        var dt = new Date(); dt.setDate(dt.getDate() + di);
+        var dt = new Date(_sleepBase.getFullYear(), _sleepBase.getMonth(), _sleepBase.getDate() + di);
         var dk = dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate());
         removeAppSleepRems(dk);
         if (bedEnabled) {
@@ -10534,8 +10535,9 @@ function setAppRemSettings(v) { localStorage.setItem('personalAppRemSettings', J
 function _saveAppsSourceRems(appSource, entries, days) {
   var rems = getReminders();
   var horizon = days || 30;
+  var _base = new Date();
   for (var di = 0; di < horizon; di++) {
-    var d = new Date(); d.setDate(d.getDate() + di);
+    var d = new Date(_base.getFullYear(), _base.getMonth(), _base.getDate() + di);
     var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
     if (rems[dk]) {
       rems[dk] = rems[dk].filter(function(r) { return r.appSource !== appSource; });
@@ -10557,8 +10559,9 @@ function _syncGymReminders() {
   var days = cfg.days || [], time = cfg.time || '08:00';
   var WEEK = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   var entries = [];
+  var _base = new Date();
   for (var di = 0; di < 28; di++) {
-    var d = new Date(); d.setDate(d.getDate() + di);
+    var d = new Date(_base.getFullYear(), _base.getMonth(), _base.getDate() + di);
     if (days.indexOf(WEEK[d.getDay()]) === -1) continue;
     var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
     entries.push({ date: dk, text: '🏋️ Gym session at ' + time, time: time, notify: 'at' });
@@ -10571,8 +10574,9 @@ window._syncGymReminders = _syncGymReminders;
 function _syncRoutineReminders() {
   var cfg = getAppRemSettings().routine || {};
   var entries = [];
+  var _base = new Date();
   for (var di = 0; di < 30; di++) {
-    var d = new Date(); d.setDate(d.getDate() + di);
+    var d = new Date(_base.getFullYear(), _base.getMonth(), _base.getDate() + di);
     var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
     if (cfg.morningEnabled && cfg.morningTime)
       entries.push({ date: dk, text: '🌅 Start morning routine', time: cfg.morningTime, notify: 'at' });
@@ -10591,8 +10595,9 @@ function _syncHydrationReminders() {
   var startH = parseInt((cfg.startTime || '08:00').split(':')[0], 10);
   var endH   = parseInt((cfg.endTime   || '22:00').split(':')[0], 10);
   var entries = [];
+  var _base = new Date();
   for (var di = 0; di < 7; di++) {
-    var d = new Date(); d.setDate(d.getDate() + di);
+    var d = new Date(_base.getFullYear(), _base.getMonth(), _base.getDate() + di);
     var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
     for (var h = startH; h <= endH; h += intervalH)
       entries.push({ date: dk, text: '💧 Time to drink water!', time: pad2(h) + ':00', notify: 'at' });
@@ -10607,8 +10612,9 @@ function _syncMoodReminders() {
   if (!cfg.enabled) { _saveAppsSourceRems('mood', [], 30); return; }
   var time = cfg.time || '20:00';
   var entries = [];
+  var _base = new Date();
   for (var di = 0; di < 30; di++) {
-    var d = new Date(); d.setDate(d.getDate() + di);
+    var d = new Date(_base.getFullYear(), _base.getMonth(), _base.getDate() + di);
     var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
     entries.push({ date: dk, text: '😊 Daily mood check-in', time: time, notify: 'at' });
   }
@@ -10622,8 +10628,9 @@ function _syncJournalReminders() {
   if (!cfg.enabled) { _saveAppsSourceRems('journal', [], 30); return; }
   var time = cfg.time || '21:00';
   var entries = [];
+  var _base = new Date();
   for (var di = 0; di < 30; di++) {
-    var d = new Date(); d.setDate(d.getDate() + di);
+    var d = new Date(_base.getFullYear(), _base.getMonth(), _base.getDate() + di);
     var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
     entries.push({ date: dk, text: '📓 Journal writing time', time: time, notify: 'at' });
   }
@@ -11311,13 +11318,13 @@ function _mfToday(body, container) {
       var m = (meals[mealDate] || {})[mealKey] || {};
       var mealName = m.name || mealKey;
       var mealTime = m.time || '';
-      var prepTime = mealTime ? (function() {
-        /* 30 min before meal time */
+      var prepTime = '08:00';
+      if (mealTime) {
         var parts = mealTime.split(':');
-        var mins  = parseInt(parts[0], 10) * 60 + (parseInt(parts[1], 10) || 0) - 30;
-        if (mins < 0) mins += 1440;
-        return pad2(Math.floor(mins / 60)) + ':' + pad2(mins % 60);
-      }()) : '08:00';
+        var mealMins = parseInt(parts[0], 10) * 60 + (parseInt(parts[1], 10) || 0) - 30;
+        if (mealMins < 0) mealMins += 1440;
+        prepTime = pad2(Math.floor(mealMins / 60)) + ':' + pad2(mealMins % 60);
+      }
       var rems = getReminders();
       if (!rems[mealDate]) rems[mealDate] = [];
       rems[mealDate].push({

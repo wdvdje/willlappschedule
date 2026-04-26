@@ -4019,7 +4019,9 @@ body.dark-mode .app-notif-lead-sel { background: #1a2744; color: #ddd; border-co
   pointer-events: none;
   z-index: 2;
 }
-.day { position: relative; } /* ensure badge positions correctly */
+/* Calendar day cells already use position:relative for selected/hover states;
+   this reinforces it so the .cal-apps-badge absolute positioning works correctly */
+#calendar .day { position: relative; }
 
 /* ⊞ badge inline in reminder list */
 .rem-apps-badge {
