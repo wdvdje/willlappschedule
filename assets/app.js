@@ -964,16 +964,30 @@ function showReminders(day){
 
   const reminderArea = document.getElementById('reminderBar');
   if (reminderArea){
+    const allTasks = getTasks();
+    const dayTasks = allTasks.filter(function(t){ return normalizeDate(t.date) === key; });
+
+    let barHtml = '';
+
+    if (dayTasks.length){
+      barHtml += `<div class="reminder-bar" style="background:#e8f5e9;border-left:4px solid #27ae60;color:#1a6b3a"><b>✅ Tasks for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${dayTasks.map(function(t){
+        const taskIdx = allTasks.indexOf(t);
+        const checked = t.done ? 'checked' : '';
+        const doneStyle = t.done ? ' style="text-decoration:line-through;opacity:0.7"' : '';
+        return `<li><input type="checkbox" ${checked} onchange="toggleTaskBannerDone(${JSON.stringify(t.id)},this.checked)"><span${doneStyle}>${t.time?`[${t.time}] `:''}${escapeHTML(t.title||t.text||'')}</span> <span class="item-controls"><button class="small-btn" onclick="editTask(${taskIdx})">Edit</button></span></li>`;
+      }).join('')}</ul></div>`;
+    }
+
     if (items.length){
-      reminderArea.innerHTML = `<div class="reminder-bar"><b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${items.map((r,i)=>{
+      barHtml += `<div class="reminder-bar"><b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${items.map((r,i)=>{
         const checked = r.done ? 'checked' : '';
         const doneStyle = r.done ? ' style="text-decoration:line-through;opacity:0.7"' : '';
         const appBadge = r.domain === 'apps' ? '<span class="rem-apps-badge" title="App-sourced">⊞</span> ' : '';
         return `<li><input type="checkbox" ${checked} onchange="toggleReminderDone(${day},${i},this.checked)"><span${doneStyle}>${appBadge}${r.time?`[${r.time}] `:''}${escapeHTML(r.text)}</span> <span class="item-controls"><button class="small-btn" onclick="editReminder(${day},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button></span></li>`;
       }).join('')}</ul></div>`;
-    } else {
-      reminderArea.innerHTML = '';
     }
+
+    reminderArea.innerHTML = barHtml;
   }
 
   updateDayProgress(day);
@@ -1071,6 +1085,17 @@ function toggleReminderDone(day, index, done){
   showReminders(day);
   updateCompletionRing();
   renderReminderPageList();
+}
+function toggleTaskBannerDone(taskId, done){
+  const tasks = getTasks();
+  const idx = tasks.findIndex(function(t){ return String(t.id) === String(taskId); });
+  if (idx === -1) return;
+  tasks[idx].done = !!done;
+  setTasks(tasks);
+  if (done) haptic.complete();
+  showReminders(selectedDay);
+  updateCompletionRing();
+  try { loadTasks(); } catch(_) {}
 }
 
 /* Render all reminders (across all dates) on the Reminders page */
