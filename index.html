@@ -1047,10 +1047,12 @@
           </div>
           <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
             <div style="flex:1"><label for="editPreBuffer">Pre-buffer</label>
-              <select id="editPreBuffer"><option value="0">None</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option></select>
+              <select id="editPreBuffer"><option value="0">None</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option><option value="custom">Custom…</option></select>
+              <input type="number" id="editPreBufferCustom" min="1" max="240" placeholder="min" style="display:none;width:70px;margin-top:4px" />
             </div>
             <div style="width:140px"><label for="editPostBuffer">Post-buffer</label>
-              <select id="editPostBuffer"><option value="0">None</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option></select>
+              <select id="editPostBuffer"><option value="0">None</option><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option><option value="custom">Custom…</option></select>
+              <input type="number" id="editPostBufferCustom" min="1" max="240" placeholder="min" style="display:none;width:70px;margin-top:4px" />
             </div>
           </div>
         </div>
