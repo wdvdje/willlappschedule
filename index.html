@@ -901,14 +901,16 @@
     <div id="appWindowPanel">
       <div class="sheet-handle"></div>
       <div class="app-window-header">
-        <button id="appWindowCloseBtn" class="app-window-close-btn" aria-label="Close app">✕</button>
-        <button id="appWindowBackBtn" aria-label="Back to Apps">← Apps</button>
+        <div class="traffic-lights">
+          <button id="appWindowCloseBtn" class="tl-btn tl-red" aria-label="Close app"><span class="tl-icon">✕</span></button>
+          <button id="appWindowBackBtn" class="tl-btn tl-yellow" aria-label="Back to Apps"><span class="tl-icon">−</span></button>
+          <button id="appWindowExpandBtn" class="tl-btn tl-green" title="Expand to full screen" aria-label="Expand app to full screen"><span class="tl-icon">⤢</span></button>
+        </div>
         <h2 id="appWindowTitle"></h2>
         <label class="app-window-pin-label" title="Show this app on the Today page">
           <input type="checkbox" id="appWindowPinToggle" style="width:auto;margin:0" />
           <span>Pin</span>
         </label>
-        <button id="appWindowExpandBtn" class="app-window-expand-btn" title="Expand to full screen" aria-label="Expand app to full screen">⤢</button>
       </div>
       <div id="appWindowContent">
         <!-- Widget panes rendered here when an app is launched -->
@@ -1782,7 +1784,8 @@
           var isFullscreen = w.classList.contains('fullscreen');
           var goFullscreen = !isFullscreen;
           w.classList.toggle('fullscreen', goFullscreen);
-          appWindowExpandBtn.textContent = goFullscreen ? '⤡' : '⤢';
+          var expandIcon = appWindowExpandBtn.querySelector('.tl-icon');
+          if (expandIcon) expandIcon.textContent = goFullscreen ? '⤡' : '⤢';
           appWindowExpandBtn.title = goFullscreen ? 'Collapse to medium' : 'Expand to full screen';
           appWindowExpandBtn.setAttribute('aria-label', goFullscreen ? 'Collapse app' : 'Expand app to full screen');
           // Re-render content for the new mode
