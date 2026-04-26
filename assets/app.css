@@ -233,11 +233,17 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
   border-left: 1px solid #e8e8e8;
 }
 .dv-hour-slot {
-  height: 60px;
+  height: 30px;
   box-sizing: border-box;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px dashed #ebebeb;
+  position: relative;
 }
 .dv-hour-slot:last-child { border-bottom: none; }
+/* Full-hour boundary slots get a stronger solid line at the bottom */
+.dv-hour-boundary {
+  border-bottom: 1px solid #e0e0e0;
+}
+/* Keep .dv-half-line harmless in case any other view still creates it */
 .dv-half-line {
   position: absolute;
   left: 0;
@@ -412,34 +418,35 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
   }
 }
 
-/* ===== Inline add-event button on hour slots ===== */
+/* ===== Inline add-item overlay on half-hour slots ===== */
 .dv-hour-slot { position: relative; }
-.dv-add-btn {
-  display: none; /* desktop only */
+.dv-add-slot {
+  display: none; /* hidden on mobile; enabled via media query below */
   position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--ios-accent);
-  color: #fff;
-  border: none;
-  font-size: 1rem;
-  line-height: 1;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
   cursor: pointer;
+  background: rgba(180, 240, 180, 0.25);
+  border: 2px solid rgba(40, 200, 80, 0.5);
+  box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity var(--ios-fast);
-  z-index: 4;
-  padding: 0;
+  z-index: 3;
+  pointer-events: none; /* keeps pointer-events off until display:flex is active on desktop */
+}
+.dv-add-slot-plus {
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: rgba(30, 160, 50, 0.55);
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
 }
 @media (min-width: 768px) {
-  .dv-add-btn { display: flex; }
+  .dv-add-slot { display: flex; pointer-events: auto; }
 }
-.dv-hour-slot:hover .dv-add-btn { opacity: 1; }
+.dv-hour-slot:hover .dv-add-slot { opacity: 1; }
 
 /* ===== Now-line time label ===== */
 .dv-now-label {
@@ -3450,4 +3457,34 @@ body.dark-mode .mf-ext-recipe-card { border-color: var(--ios-border); }
   font-size: 0.74rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+/* ── Week-view add-item type picker ──────────────────────────── */
+#wvAddPicker {
+  position: fixed;
+  z-index: 10001;
+  background: var(--ios-surface, #fff);
+  border: 1px solid var(--ios-border, #e5e5ea);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.16);
+  padding: 6px;
+  min-width: 148px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.wv-add-picker-btn {
+  background: none;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 14px;
+  text-align: left;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--ios-text, #1c1c1e);
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+.wv-add-picker-btn:hover {
+  background: var(--ios-bg-2, #f2f2f7);
 }
