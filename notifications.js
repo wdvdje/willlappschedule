@@ -318,6 +318,18 @@
     });
     // also re-evaluate when view changes (in case user sets offsets)
     window.addEventListener('view:show', rescheduleAll);
+
+    // ── Periodic Background Sync message from SW ──
+    // When the browser fires a periodicsync event the SW sends this message
+    // to all active clients so they re-arm any notifications that may have
+    // been evicted from memory while the app was in the background.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (ev) => {
+        if (ev && ev.data && ev.data.type === 'periodicsync:reminders') {
+          rescheduleAll();
+        }
+      });
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

@@ -80,6 +80,42 @@
   var _timerSec  = 0;   // countdown remaining in seconds
   var _timerInterval = null;
   var _phases    = [];
+  var _wakeLock  = null; // Screen Wake Lock sentinel
+
+  // ---------------------------------------------------------------------------
+  // Screen Wake Lock — keeps the screen on while a routine timer is running.
+  // Requires Permissions-Policy: wake-lock=* (no server config needed for PWA).
+  // ---------------------------------------------------------------------------
+  function acquireWakeLock() {
+    if (!('wakeLock' in navigator)) return;
+    if (_wakeLock) return; // already held
+    navigator.wakeLock.request('screen').then(function (sentinel) {
+      _wakeLock = sentinel;
+      sentinel.addEventListener('release', function () {
+        /* Sentinel released externally (e.g. OS minimised the app) */
+        _wakeLock = null;
+      });
+    }).catch(function (err) {
+      /* Wake Lock denied or not supported — continue without it */
+      console.debug('routineFocus: wake lock unavailable', err && err.message);
+    });
+  }
+
+  function releaseWakeLock() {
+    if (!_wakeLock) return;
+    _wakeLock.release().catch(function () {});
+    _wakeLock = null;
+  }
+
+  /* Re-acquire the lock when the page becomes visible again (e.g. returning
+   * from a brief lock screen) if a timer is still running. */
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') {
+      releaseWakeLock();
+    } else if (document.visibilityState === 'visible' && _timerInterval) {
+      acquireWakeLock();
+    }
+  });
 
   // ---------------------------------------------------------------------------
   // Audio cue (simple beep via Web Audio API)
@@ -428,6 +464,7 @@
 
   function startTimerTick() {
     stopTimer();
+    acquireWakeLock();
     _timerInterval = setInterval(function () {
       if (_timerSec > 0) {
         _timerSec--;
@@ -443,6 +480,7 @@
 
   function stopTimer() {
     if (_timerInterval) { clearInterval(_timerInterval); _timerInterval = null; }
+    releaseWakeLock();
   }
 
   function startTimerForCurrentStep() {

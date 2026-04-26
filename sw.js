@@ -1,5 +1,5 @@
 /* Service worker: offline shell caching + push notifications */
-const CACHE_VERSION = 'ts-cache-v8';
+const CACHE_VERSION = 'ts-cache-v9';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,11 @@ const CORE_ASSETS = [
   './assets/icon-180.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
+  './assets/shortcuts/shortcut-today.png',
+  './assets/shortcuts/shortcut-calendar.png',
+  './assets/shortcuts/shortcut-tasks.png',
+  './assets/shortcuts/shortcut-inbox.png',
+  './assets/shortcuts/shortcut-reminders.png',
   './assets/app.css',
   './assets/app.js',
   './utils.js',
@@ -171,6 +176,33 @@ self.addEventListener('notificationclick', (event) => {
         if (client.url === target && 'focus' in client) return client.focus();
       }
       if (self.clients.openWindow) return self.clients.openWindow(target);
+    })
+  );
+});
+
+// ── Background Sync: iCloud data sync retry ──────────────────────────────
+// Registered by icloud-sync.js when a write attempt fails because the
+// device is offline.  When connectivity is restored the browser fires this
+// event and we message every active client to re-attempt the sync.
+// Supported on iOS 16+ standalone; silently ignored on older browsers.
+self.addEventListener('sync', (event) => {
+  if (event.tag !== 'icloud-sync') return;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage({ type: 'bg-sync:icloud' }));
+    })
+  );
+});
+
+// ── Periodic Background Sync: re-arm scheduled notifications ─────────────
+// Registered by push.js with a 15-minute minimum interval.
+// On each tick we message every active client to call rescheduleAll().
+// Available on iOS 16.4+ PWA standalone; silently ignored elsewhere.
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag !== 'reminder-check') return;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage({ type: 'periodicsync:reminders' }));
     })
   );
 });
