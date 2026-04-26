@@ -4075,7 +4075,7 @@ function renderWeekView() {
           }
         });
       }
-      if (dateStr && r.sleepScheduleTimes) {
+      if (dateStr && r.sleepScheduleTimes && r.syncEnabled) {
         var d = new Date(dateStr + 'T12:00:00');
         var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
         var dayTimes = r.sleepScheduleTimes[dayName];
@@ -7590,8 +7590,8 @@ function renderSleepTracker() {
         s.schedule[day].bedtime = bedInput.value;
         s.schedule[day].wake = wakeInput.value;
         setPersonalSleep(s);
-        /* Update routine phase times to match */
-        syncRoutineTimesFromSleep();
+        /* Update routine phase times to match (only when sync is enabled) */
+        if (getPersonalRoutines().syncEnabled) syncRoutineTimesFromSleep();
       }
       bedInput.addEventListener('change', onScheduleChange);
       wakeInput.addEventListener('change', onScheduleChange);
@@ -8088,11 +8088,49 @@ function renderRoutineChecklist() {
     info.textContent = 'Build consistent morning & evening routines. Checked items reset each day.';
     body.appendChild(info);
 
+    /* ── Sleep sync toggle ── */
+    var syncRow = document.createElement('div');
+    syncRow.className = 'routine-sync-row';
+    var syncLabel = document.createElement('label');
+    syncLabel.className = 'routine-sync-label';
+    var syncCb = document.createElement('input');
+    syncCb.type = 'checkbox';
+    syncCb.id = 'routineSleepSyncToggle';
+    syncCb.checked = !!routines.syncEnabled;
+    syncCb.addEventListener('change', function() {
+      var r = getPersonalRoutines();
+      r.syncEnabled = syncCb.checked;
+      setPersonalRoutines(r);
+      if (r.syncEnabled) syncRoutineTimesFromSleep();
+      renderRoutineChecklist();
+    });
+    syncLabel.appendChild(syncCb);
+    syncLabel.appendChild(document.createTextNode(' Sync times with Sleep Schedule'));
+    syncRow.appendChild(syncLabel);
+    body.appendChild(syncRow);
+
+    /* Resolved times for today when sync is on */
+    var todayDayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+    var syncTimes = (routines.syncEnabled && routines.sleepScheduleTimes)
+      ? (routines.sleepScheduleTimes[todayDayName] || null)
+      : null;
+
     ['morning', 'evening'].forEach(function(period) {
       var emoji = period === 'morning' ? '🌅' : '🌙';
       var label = document.createElement('div');
       label.className = 'routine-section-label';
-      label.textContent = emoji + ' ' + period.charAt(0).toUpperCase() + period.slice(1) + ' Routine';
+      var labelText = emoji + ' ' + period.charAt(0).toUpperCase() + period.slice(1) + ' Routine';
+      if (syncTimes) {
+        if (period === 'morning' && syncTimes.morningStart) {
+          var endPart = syncTimes.morningEnd ? ' – ' + syncTimes.morningEnd : '';
+          labelText += ' · ' + syncTimes.morningStart + endPart;
+        }
+        if (period === 'evening' && syncTimes.eveningStart) {
+          var eEndPart = syncTimes.eveningEnd ? ' – ' + syncTimes.eveningEnd : '';
+          labelText += ' · ' + syncTimes.eveningStart + eEndPart;
+        }
+      }
+      label.textContent = labelText;
       body.appendChild(label);
 
       var items = routines[period] || [];
@@ -8271,6 +8309,321 @@ function renderHydrationTracker() {
 
   section.appendChild(card);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   4c-2. CLOTHES APP
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalClothes() {
+  return safeParseStorage('personalClothes', {
+    laundry: { lastDone: '', intervalDays: 7, reminderEnabled: false },
+    outfits: [],
+    wishlist: []
+  });
+}
+function setPersonalClothes(data) { localStorage.setItem('personalClothes', JSON.stringify(data)); }
+
+function _clothesWeatherRec() {
+  var COLD_F = 60, WARM_F = 75; /* Fahrenheit thresholds for clothing recommendation */
+  var COLD_C = 15, WARM_C = 24; /* Celsius equivalents */
+  var today = getTodayISO();
+  if (!_dashWeatherCache || !_dashWeatherCache[today]) return null;
+  var w = _dashWeatherCache[today];
+  var high = w.high;
+  var isFahrenheit = (_dashWeatherUnit === '°F');
+  var threshold_cold = isFahrenheit ? COLD_F : COLD_C;
+  var threshold_warm = isFahrenheit ? WARM_F : WARM_C;
+  if (high < threshold_cold) {
+    return { emoji: '🧥', text: 'Long sleeves & jacket recommended (' + high + _dashWeatherUnit + ')' };
+  } else if (high <= threshold_warm) {
+    return { emoji: '👕', text: 'Light layers recommended (' + high + _dashWeatherUnit + ')' };
+  } else {
+    return { emoji: '☀️', text: 'Short sleeves — it\'s warm! (' + high + _dashWeatherUnit + ')' };
+  }
+}
+
+function _clothesLaundryDaysAgo(lastDone) {
+  if (!lastDone) return null;
+  var now = new Date(getTodayISO());
+  var last = new Date(lastDone);
+  return Math.floor((now - last) / 86400000);
+}
+
+function renderClothesWidget() {
+  var section = document.getElementById('personalClothesSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var clothes = getPersonalClothes();
+  var today = getTodayISO();
+
+  var card = buildPWCard('clothesCard', '👗', 'Clothes', function(body) {
+    /* ── Weather recommendation ── */
+    var rec = _clothesWeatherRec();
+    if (rec) {
+      var recEl = document.createElement('div');
+      recEl.className = 'clothes-weather-rec';
+      recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
+      body.appendChild(recEl);
+    }
+
+    /* ── Laundry tracker ── */
+    var laundry = clothes.laundry || {};
+    var daysAgo = _clothesLaundryDaysAgo(laundry.lastDone);
+    var interval = laundry.intervalDays || 7;
+    var isOverdue = daysAgo !== null && daysAgo >= interval;
+
+    var laundryRow = document.createElement('div');
+    laundryRow.className = 'clothes-laundry-row' + (isOverdue ? ' overdue' : '');
+    laundryRow.innerHTML =
+      '<span class="clothes-laundry-label">🧺 Laundry</span>' +
+      '<span class="clothes-laundry-status">' +
+        (daysAgo === null ? 'Never logged' : (isOverdue ? '⚠️ ' : '') + daysAgo + ' day' + (daysAgo !== 1 ? 's' : '') + ' ago') +
+      '</span>' +
+      '<button class="clothes-laundry-btn" id="clothesLaundryDoneBtn">Done today</button>';
+    body.appendChild(laundryRow);
+
+    var laundryBtn = body.querySelector('#clothesLaundryDoneBtn');
+    if (laundryBtn) laundryBtn.addEventListener('click', function() {
+      var c = getPersonalClothes();
+      c.laundry.lastDone = today;
+      setPersonalClothes(c);
+      renderClothesWidget();
+    });
+
+    /* ── Outfits (compact list) ── */
+    var outfits = clothes.outfits || [];
+    var outfitTitle = document.createElement('div');
+    outfitTitle.className = 'clothes-section-title';
+    outfitTitle.textContent = '👔 Saved Outfits (' + outfits.length + ')';
+    body.appendChild(outfitTitle);
+
+    if (outfits.length === 0) {
+      var noOutfit = document.createElement('div');
+      noOutfit.className = 'clothes-empty';
+      noOutfit.textContent = 'No outfits saved yet.';
+      body.appendChild(noOutfit);
+    } else {
+      outfits.slice(0, 3).forEach(function(o) {
+        var row = document.createElement('div');
+        row.className = 'clothes-outfit-row';
+        row.innerHTML = '<span class="clothes-outfit-name">' + escapeHTML(o.name) + '</span>' +
+          (o.tags ? '<span class="clothes-outfit-tags">' + escapeHTML(o.tags) + '</span>' : '');
+        body.appendChild(row);
+      });
+      if (outfits.length > 3) {
+        var moreEl = document.createElement('div');
+        moreEl.className = 'clothes-empty';
+        moreEl.textContent = '+ ' + (outfits.length - 3) + ' more — open full view';
+        body.appendChild(moreEl);
+      }
+    }
+
+    /* ── Wishlist (compact) ── */
+    var wishlist = clothes.wishlist || [];
+    var wishTitle = document.createElement('div');
+    wishTitle.className = 'clothes-section-title';
+    wishTitle.textContent = '🛍️ Wishlist (' + wishlist.length + ')';
+    body.appendChild(wishTitle);
+
+    if (wishlist.length === 0) {
+      var noWish = document.createElement('div');
+      noWish.className = 'clothes-empty';
+      noWish.textContent = 'No items saved yet.';
+      body.appendChild(noWish);
+    } else {
+      wishlist.slice(0, 3).forEach(function(item) {
+        var row = document.createElement('div');
+        row.className = 'clothes-wish-row';
+        row.innerHTML = '<a class="clothes-wish-link" href="' + escapeHTML(item.url || '#') + '" target="_blank" rel="noopener">' + escapeHTML(item.name) + '</a>' +
+          (item.price ? '<span class="clothes-wish-price">$' + escapeHTML(item.price) + '</span>' : '');
+        body.appendChild(row);
+      });
+      if (wishlist.length > 3) {
+        var moreWish = document.createElement('div');
+        moreWish.className = 'clothes-empty';
+        moreWish.textContent = '+ ' + (wishlist.length - 3) + ' more — open full view';
+        body.appendChild(moreWish);
+      }
+    }
+  }, 'pw_clothes');
+
+  section.appendChild(card);
+}
+
+function renderClothesAppFull(container) {
+  container.innerHTML = '';
+  var clothes = getPersonalClothes();
+  var today = getTodayISO();
+
+  /* ── Weather recommendation header ── */
+  var rec = _clothesWeatherRec();
+  if (rec) {
+    var recEl = document.createElement('div');
+    recEl.className = 'clothes-weather-rec clothes-weather-rec-full';
+    recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
+    container.appendChild(recEl);
+  }
+
+  var layout = document.createElement('div');
+  layout.className = 'app-full-two-col';
+  var left  = document.createElement('div'); left.className  = 'app-full-col';
+  var right = document.createElement('div'); right.className = 'app-full-col';
+
+  /* ════════════════ LEFT: Laundry + Outfits ════════════════ */
+
+  /* Laundry tracker */
+  var laundry = clothes.laundry || {};
+  var daysAgo = _clothesLaundryDaysAgo(laundry.lastDone);
+  var interval = laundry.intervalDays || 7;
+  var isOverdue = daysAgo !== null && daysAgo >= interval;
+
+  var lHTML = '<h3 class="app-full-col-heading">🧺 Laundry Tracker</h3>';
+  lHTML += '<div class="clothes-laundry-status-block' + (isOverdue ? ' overdue' : '') + '">';
+  lHTML += '<div class="clothes-laundry-status-line">' +
+    (daysAgo === null ? 'No laundry logged yet.' : (isOverdue ? '⚠️ Overdue! ' : '✅ ') + 'Last done: ' + escapeHTML(laundry.lastDone || '') + ' (' + daysAgo + ' day' + (daysAgo !== 1 ? 's' : '') + ' ago)') +
+    '</div>';
+  lHTML += '<button class="clothes-laundry-btn" id="clfLaundryDoneBtn">✓ Did laundry today</button>';
+  lHTML += '<div class="clothes-laundry-settings">' +
+    '<label class="clothes-setting-label">Remind every <input type="number" id="clfInterval" class="clothes-interval-input" value="' + escapeHTML(String(interval)) + '" min="1" max="60" /> days</label>' +
+    '<label class="clothes-setting-label clothes-setting-check"><input type="checkbox" id="clfReminderEnabled"' + (laundry.reminderEnabled ? ' checked' : '') + ' /> Enable reminder</label>' +
+    '<button class="clothes-save-btn" id="clfSaveInterval">Save</button>' +
+  '</div>';
+  lHTML += '</div>';
+
+  /* Outfits */
+  var outfits = clothes.outfits || [];
+  lHTML += '<h3 class="app-full-col-heading clothes-outfits-heading">👔 Saved Outfits</h3>';
+  lHTML += '<div class="clothes-add-row">' +
+    '<input type="text" id="clfOutfitName" placeholder="Outfit name…" class="clothes-text-input" />' +
+    '<input type="text" id="clfOutfitTags" placeholder="Tags (e.g. casual, work)" class="clothes-text-input" />' +
+    '<input type="url" id="clfOutfitImg" placeholder="Image URL (optional)" class="clothes-text-input" />' +
+    '<button class="clothes-add-btn" id="clfOutfitAdd">＋ Add</button>' +
+  '</div>';
+  lHTML += '<div id="clfOutfitList" class="clothes-list">';
+  if (!outfits.length) { lHTML += '<div class="clothes-empty">No outfits yet.</div>'; }
+  outfits.forEach(function(o, idx) {
+    lHTML += '<div class="clothes-outfit-card">' +
+      (o.imageUrl ? '<img src="' + escapeHTML(o.imageUrl) + '" class="clothes-outfit-img" alt="" />' : '') +
+      '<div class="clothes-outfit-info"><strong>' + escapeHTML(o.name) + '</strong>' +
+      (o.description ? '<div class="clothes-outfit-desc">' + escapeHTML(o.description) + '</div>' : '') +
+      (o.tags ? '<div class="clothes-outfit-tags">' + escapeHTML(o.tags) + '</div>' : '') +
+      '</div>' +
+      '<button class="clothes-del-btn" data-type="outfit" data-idx="' + idx + '">✕</button>' +
+    '</div>';
+  });
+  lHTML += '</div>';
+  left.innerHTML = lHTML;
+
+  /* ════════════════ RIGHT: Wishlist ════════════════ */
+  var wishlist = clothes.wishlist || [];
+  var rHTML = '<h3 class="app-full-col-heading">🛍️ Clothing Wishlist</h3>';
+  rHTML += '<div class="clothes-add-row">' +
+    '<input type="text" id="clfWishName" placeholder="Item name…" class="clothes-text-input" />' +
+    '<input type="url" id="clfWishUrl" placeholder="Link (URL)" class="clothes-text-input" />' +
+    '<input type="text" id="clfWishPrice" placeholder="Price (optional)" class="clothes-text-input" style="max-width:90px" />' +
+    '<input type="text" id="clfWishNotes" placeholder="Notes (optional)" class="clothes-text-input" />' +
+    '<button class="clothes-add-btn" id="clfWishAdd">＋ Add</button>' +
+  '</div>';
+  rHTML += '<div id="clfWishList" class="clothes-list">';
+  if (!wishlist.length) { rHTML += '<div class="clothes-empty">No wishlist items yet.</div>'; }
+  wishlist.forEach(function(item, idx) {
+    rHTML += '<div class="clothes-wish-card">' +
+      '<div class="clothes-wish-main">' +
+        '<a class="clothes-wish-link" href="' + escapeHTML(item.url || '#') + '" target="_blank" rel="noopener">' + escapeHTML(item.name) + '</a>' +
+        (item.price ? '<span class="clothes-wish-price">$' + escapeHTML(item.price) + '</span>' : '') +
+      '</div>' +
+      (item.notes ? '<div class="clothes-wish-notes">' + escapeHTML(item.notes) + '</div>' : '') +
+      '<button class="clothes-del-btn" data-type="wish" data-idx="' + idx + '">✕</button>' +
+    '</div>';
+  });
+  rHTML += '</div>';
+  right.innerHTML = rHTML;
+
+  layout.appendChild(left);
+  layout.appendChild(right);
+  container.appendChild(layout);
+
+  /* Wire laundry done button */
+  var laundryDoneBtn = container.querySelector('#clfLaundryDoneBtn');
+  if (laundryDoneBtn) laundryDoneBtn.addEventListener('click', function() {
+    var c = getPersonalClothes();
+    c.laundry.lastDone = today;
+    setPersonalClothes(c);
+    renderClothesAppFull(container);
+  });
+
+  /* Wire laundry settings save */
+  var saveIntBtn = container.querySelector('#clfSaveInterval');
+  if (saveIntBtn) saveIntBtn.addEventListener('click', function() {
+    var c = getPersonalClothes();
+    var iv = parseInt((container.querySelector('#clfInterval') || {}).value, 10) || 7;
+    var remEn = !!(container.querySelector('#clfReminderEnabled') || {}).checked;
+    c.laundry.intervalDays = iv;
+    c.laundry.reminderEnabled = remEn;
+    setPersonalClothes(c);
+    saveIntBtn.textContent = '✓ Saved';
+    setTimeout(function() { saveIntBtn.textContent = 'Save'; }, 1500);
+  });
+
+  /* Wire outfit add */
+  var outfitAddBtn = container.querySelector('#clfOutfitAdd');
+  if (outfitAddBtn) outfitAddBtn.addEventListener('click', function() {
+    var nameEl  = container.querySelector('#clfOutfitName');
+    var tagsEl  = container.querySelector('#clfOutfitTags');
+    var imgEl   = container.querySelector('#clfOutfitImg');
+    var name = nameEl ? nameEl.value.trim() : '';
+    if (!name) { if (nameEl) nameEl.focus(); return; }
+    var c = getPersonalClothes();
+    c.outfits.push({
+      id: Date.now() + '_' + Math.floor(Math.random() * 1e6),
+      name: name,
+      tags: tagsEl ? tagsEl.value.trim() : '',
+      imageUrl: imgEl ? imgEl.value.trim() : '',
+      createdAt: today
+    });
+    setPersonalClothes(c);
+    renderClothesAppFull(container);
+  });
+
+  /* Wire wishlist add */
+  var wishAddBtn = container.querySelector('#clfWishAdd');
+  if (wishAddBtn) wishAddBtn.addEventListener('click', function() {
+    var nameEl  = container.querySelector('#clfWishName');
+    var urlEl   = container.querySelector('#clfWishUrl');
+    var priceEl = container.querySelector('#clfWishPrice');
+    var notesEl = container.querySelector('#clfWishNotes');
+    var name = nameEl ? nameEl.value.trim() : '';
+    if (!name) { if (nameEl) nameEl.focus(); return; }
+    var c = getPersonalClothes();
+    c.wishlist.push({
+      id: Date.now() + '_' + Math.floor(Math.random() * 1e6),
+      name: name,
+      url: urlEl ? urlEl.value.trim() : '',
+      price: priceEl ? priceEl.value.trim() : '',
+      notes: notesEl ? notesEl.value.trim() : '',
+      addedAt: today
+    });
+    setPersonalClothes(c);
+    renderClothesAppFull(container);
+  });
+
+  /* Wire delete buttons */
+  container.querySelectorAll('.clothes-del-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var type = btn.dataset.type;
+      var idx  = parseInt(btn.dataset.idx, 10);
+      var c = getPersonalClothes();
+      if (type === 'outfit') c.outfits.splice(idx, 1);
+      if (type === 'wish')   c.wishlist.splice(idx, 1);
+      setPersonalClothes(c);
+      renderClothesAppFull(container);
+    });
+  });
+}
+
+window.renderClothesWidget  = renderClothesWidget;
+window.renderClothesAppFull = renderClothesAppFull;
 
 /* ══════════════════════════════════════════════════════════════
    4d. MOOD / ENERGY CHECK-IN
@@ -9301,6 +9654,7 @@ function renderPersonalWidgets() {
   try { renderSleepTracker(); } catch(e) { console.warn('renderSleepTracker failed', e); }
   try { renderGymPlanner(); } catch(e) { console.warn('renderGymPlanner failed', e); }
   try { renderMoodCheckin(); } catch(e) { console.warn('renderMoodCheckin failed', e); }
+  try { renderClothesWidget(); } catch(e) { console.warn('renderClothesWidget failed', e); }
 }
 
 /* ----- Calendar Cross-Domain Summary ----- */
