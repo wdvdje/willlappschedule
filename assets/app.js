@@ -1687,7 +1687,27 @@ function saveEditHandler(e){
 
   if (kind === 'event'){
     const id = parseInt(document.getElementById('editEventId').value,10);
-    const evs = getEvents(); const idx = evs.findIndex(x=>x.id===id); if (idx===-1){ closeEditModal(); return; }
+    const evs = getEvents(); const idx = evs.findIndex(x=>x.id===id);
+    if (idx===-1){
+      /* ── Create a new event ── */
+      if (!text || !date) { alert('Event needs a title and date'); return; }
+      let repeatPayload;
+      try { repeatPayload = readRepeatPayload('edit', date); } catch(err) { alert(err && err.message ? err.message : 'Invalid recurrence settings'); return; }
+      const newId = evs.length ? Math.max.apply(null, evs.map(function(e){return e.id;})) + 1 : 1;
+      const newEv = Object.assign({
+        id: newId, title: text, date: date, time: time, startTime: time, endTime: endTime,
+        location: document.getElementById('editLocation') ? document.getElementById('editLocation').value.trim() : '',
+        emoji: document.getElementById('editEmoji') ? document.getElementById('editEmoji').value.trim() : '',
+        category: (document.getElementById('editCategory') ? document.getElementById('editCategory').value : 'event') || 'event',
+        preBuffer: parseBufferMinutes(document.getElementById('editPreBuffer') ? document.getElementById('editPreBuffer').value : 0),
+        postBuffer: parseBufferMinutes(document.getElementById('editPostBuffer') ? document.getElementById('editPostBuffer').value : 0)
+      }, repeatPayload);
+      const newEvAdvSpecs = readAdvancedSpecs('editAdvSpecList');
+      if (newEvAdvSpecs.length) newEv.advancedSpecs = newEvAdvSpecs;
+      evs.push(newEv);
+      setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); _maybeRefreshWeekView();
+      closeEditModal(); refreshVisibleDomainPages(); return;
+    }
 
     // Handle single-occurrence edit: save as exception rather than modifying base event
     const occEl = document.getElementById('editOccurrenceDate');
@@ -1765,7 +1785,22 @@ function saveEditHandler(e){
     return;
   } else if (kind==='task'){
     const idx = parseInt(document.getElementById('editTaskIndex').value,10);
-    const tasks = getTasks(); if (!tasks[idx]) { closeEditModal(); return; }
+    const tasks = getTasks();
+    if (!tasks[idx]) {
+      /* ── Create a new task ── */
+      if (!text) { alert('Task needs a title'); return; }
+      const newTask = {
+        id: generateTaskId(), title: text, date: date, time: time,
+        category: document.getElementById('editCategory') ? document.getElementById('editCategory').value || 'work' : 'work',
+        priority: document.getElementById('editPriority') ? document.getElementById('editPriority').value || '2' : '2',
+        done: false
+      };
+      const editBucketElTNew = document.getElementById('editBucket');
+      if (editBucketElTNew && editBucketElTNew.value) newTask.bucketId = parseInt(editBucketElTNew.value, 10);
+      tasks.push(newTask);
+      setTasks(tasks); loadTasks(); _maybeRefreshWeekView();
+      closeEditModal(); refreshVisibleDomainPages(); return;
+    }
     const beforeTask = Object.assign({}, tasks[idx]);
     tasks[idx].title = text; tasks[idx].date = date; tasks[idx].time = time; tasks[idx].category = document.getElementById('editCategory').value; tasks[idx].priority = document.getElementById('editPriority').value;
     const editBucketElT = document.getElementById('editBucket');
@@ -1782,7 +1817,25 @@ function saveEditHandler(e){
   } else if (kind==='reminder'){
     const origKey = document.getElementById('editReminderKey').value;
     const ridx = parseInt(document.getElementById('editReminderIndex').value,10);
-    const r = getReminders(); const arr = r[origKey] || []; const item = arr[ridx]; if (!item){ closeEditModal(); return; }
+    const r = getReminders(); const arr = r[origKey] || []; const item = arr[ridx];
+    if (!item){
+      /* ── Create a new reminder ── */
+      if (!text) { alert('Reminder needs text'); return; }
+      const remDate = date || origKey;
+      if (!remDate) { alert('Reminder needs a date'); return; }
+      if (!r[remDate]) r[remDate] = [];
+      const newR = {text: text, time: time};
+      const editItemDomainElNew = document.getElementById('editItemDomain');
+      if (editItemDomainElNew && editItemDomainElNew.value) newR.domain = editItemDomainElNew.value;
+      const editBucketElRNew = document.getElementById('editBucket');
+      if (editBucketElRNew && editBucketElRNew.value) newR.bucketId = parseInt(editBucketElRNew.value, 10);
+      r[remDate].push(newR);
+      setReminders(r);
+      const rParts = remDate.split('-');
+      if (rParts.length===3){ selectedYear = parseInt(rParts[0],10); selectedMonth = parseInt(rParts[1],10)-1; selectedDay = parseInt(rParts[2],10); }
+      generateCalendar(); showReminders(selectedDay); renderReminderPageList(); _maybeRefreshWeekView();
+      closeEditModal(); refreshVisibleDomainPages(); return;
+    }
     const beforeReminder = Object.assign({}, item);
     const beforeKey = origKey;
     const newDate = date || origKey;
@@ -4057,7 +4110,129 @@ function renderWeekView() {
     if (_wvTip) _wvTip.classList.remove('wv-hover-tooltip--visible');
   }
 
-  /* ── Load routine phases with per-day sleep-schedule overrides (mirrors daily-view.js loadRoutinePhases) ── */
+  /* ── Item-type picker for half-hour add-item slots ── */
+  function wvShowAddPicker(mouseEvt, dateStr, timeStr, endTimeStr) {
+    /* Remove any existing picker */
+    var existing = document.getElementById('wvAddPicker');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+
+    var picker = document.createElement('div');
+    picker.id = 'wvAddPicker';
+
+    var pickerItems = [
+      { label: '📌 Event',    kind: 'event'    },
+      { label: '✅ Task',     kind: 'task'     },
+      { label: '🔔 Reminder', kind: 'reminder' }
+    ];
+    pickerItems.forEach(function(pi) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'wv-add-picker-btn';
+      btn.textContent = pi.label;
+      (function(k) {
+        btn.addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          if (picker.parentNode) picker.parentNode.removeChild(picker);
+          if (k === 'event')    wvOpenNewEvent(dateStr, timeStr, endTimeStr);
+          else if (k === 'task') wvOpenNewTask(dateStr, timeStr);
+          else                   wvOpenNewReminder(dateStr, timeStr);
+        });
+      })(pi.kind);
+      picker.appendChild(btn);
+    });
+
+    document.body.appendChild(picker);
+
+    /* Position near cursor, keeping inside viewport */
+    var x = mouseEvt.clientX + 8, y = mouseEvt.clientY + 8;
+    var pw = picker.offsetWidth || 160, ph = picker.offsetHeight || 120;
+    if (x + pw > window.innerWidth  - 8) x = mouseEvt.clientX - pw - 8;
+    if (y + ph > window.innerHeight - 8) y = mouseEvt.clientY - ph - 8;
+    picker.style.left = x + 'px';
+    picker.style.top  = y + 'px';
+
+    /* Dismiss when clicking outside */
+    function dismissPicker(ev) {
+      if (!picker.contains(ev.target)) {
+        if (picker.parentNode) picker.parentNode.removeChild(picker);
+        document.removeEventListener('click', dismissPicker, true);
+      }
+    }
+    setTimeout(function() { document.addEventListener('click', dismissPicker, true); }, 0);
+  }
+
+  function wvSetV(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; }
+
+  function wvOpenNewEvent(dateStr, timeStr, endTimeStr) {
+    wvSetV('editKind', 'event');
+    wvSetV('editEventId', '');
+    wvSetV('editTaskIndex', '');
+    wvSetV('editReminderKey', '');
+    wvSetV('editReminderIndex', '');
+    wvSetV('editOccurrenceDate', '');
+    wvSetV('editText', '');
+    wvSetV('editDate', dateStr);
+    wvSetV('editTime', timeStr);
+    wvSetV('editEndTime', endTimeStr);
+    wvSetV('editEndDate', '');
+    wvSetV('editLocation', '');
+    wvSetV('editEmoji', '');
+    wvSetV('editRepeat', 'none');
+    wvSetV('editRepeatUntil', '');
+    wvSetV('editRepeatInterval', '1');
+    wvSetV('editRepeatUnit', 'days');
+    wvSetV('editABWeek', 'a');
+    wvSetV('editPreBuffer', '0');
+    wvSetV('editPostBuffer', '0');
+    var repSection = document.getElementById('editRepeatSection');
+    if (repSection) repSection.style.display = '';
+    var advSection = document.getElementById('editAdvancedSpecs');
+    if (advSection) advSection.style.display = '';
+    var bRow = document.getElementById('editBucketRow');
+    if (bRow) bRow.style.display = 'none';
+    try { if (typeof populateAdvancedSpecs === 'function') populateAdvancedSpecs('editAdvSpecList', []); } catch(_) {}
+    try { var rep = document.getElementById('editRepeat'); if (rep) rep.dispatchEvent(new Event('change')); } catch(_) {}
+    if (typeof showModalFieldsFor === 'function') showModalFieldsFor('event');
+    if (typeof openEditModal    === 'function') openEditModal('Add Event');
+  }
+
+  function wvOpenNewTask(dateStr, timeStr) {
+    wvSetV('editKind', 'task');
+    wvSetV('editEventId', '');
+    wvSetV('editTaskIndex', '');
+    wvSetV('editReminderKey', '');
+    wvSetV('editReminderIndex', '');
+    wvSetV('editOccurrenceDate', '');
+    wvSetV('editText', '');
+    wvSetV('editDate', dateStr);
+    wvSetV('editTime', timeStr);
+    wvSetV('editEndTime', '');
+    wvSetV('editCategory', 'work');
+    wvSetV('editPriority', '2');
+    var bRow = document.getElementById('editBucketRow');
+    if (bRow) bRow.style.display = 'none';
+    if (typeof showModalFieldsFor === 'function') showModalFieldsFor('task');
+    if (typeof openEditModal    === 'function') openEditModal('Add Task');
+  }
+
+  function wvOpenNewReminder(dateStr, timeStr) {
+    wvSetV('editKind', 'reminder');
+    wvSetV('editEventId', '');
+    wvSetV('editTaskIndex', '');
+    wvSetV('editReminderKey', '');
+    wvSetV('editReminderIndex', '');
+    wvSetV('editOccurrenceDate', '');
+    wvSetV('editText', '');
+    wvSetV('editDate', dateStr);
+    wvSetV('editTime', timeStr);
+    wvSetV('editEndTime', '');
+    var bRow = document.getElementById('editBucketRow');
+    if (bRow) bRow.style.display = 'none';
+    if (typeof showModalFieldsFor === 'function') showModalFieldsFor('reminder');
+    if (typeof openEditModal    === 'function') openEditModal('Add Reminder');
+  }
+
+
   function wvGetRoutinePhases(dateStr) {
     try {
       var r = safeParseStorage('personalRoutines', {});
@@ -4215,6 +4390,19 @@ function renderWeekView() {
   var maxCount  = Math.max(1, Math.max.apply(null, dayCounts));
   dayTimed.forEach(wvLayoutColumns);
 
+  /* ── Busy half-hour slot sets per day (including buffer times) ── */
+  var busySlots = dayTimed.map(function(items) {
+    var busy = new Set();
+    items.forEach(function(item) {
+      var effStart = item.startMin - (item.preBuffer  || 0);
+      var effEnd   = item.endMin   + (item.postBuffer || 0);
+      var firstS   = Math.floor(effStart / 30);
+      var lastS    = Math.ceil(effEnd / 30) - 1;
+      for (var s = firstS; s <= lastS; s++) { busy.add(s); }
+    });
+    return busy;
+  });
+
   /* ── Build DOM ── */
   container.innerHTML = '';
   var outer = document.createElement('div');
@@ -4354,51 +4542,45 @@ function renderWeekView() {
       var col = document.createElement('div');
       col.className = 'wv-day-col' + (isToday ? ' wv-today-col' : '') + (isWknd ? ' wv-weekend-col' : '');
 
-      /* ── Hour slots (background grid) ── */
-      for (var _hi = RANGE_START; _hi < RANGE_END; _hi++) {
-        (function(hour) {
+      /* ── Half-hour slots (background grid) ── */
+      var HALF_SLOTS = (RANGE_END - RANGE_START) * 2;
+      for (var _si = 0; _si < HALF_SLOTS; _si++) {
+        (function(slotIdx) {
+          var slotStartMin  = RANGE_START * 60 + slotIdx * 30;
+          var slotHour      = Math.floor(slotStartMin / 60);
+          var slotMins      = slotStartMin % 60;
+          var absSlotIdx    = Math.floor(slotStartMin / 30); // 0-indexed from midnight
+          var isHourBoundary = slotMins === 0; // top of the hour → stronger divider below
+
           var slot = document.createElement('div');
-          slot.className = 'dv-hour-slot';
+          slot.className = 'dv-hour-slot' + (isHourBoundary ? ' dv-hour-boundary' : ' dv-half-hour-slot');
 
-          /* "+" add-event button (shown on desktop hover via CSS) */
-          var addBtn = document.createElement('button');
-          addBtn.type      = 'button';
-          addBtn.className = 'dv-add-btn';
-          addBtn.title     = 'Add event at ' + pad2(hour) + ':00';
-          addBtn.textContent = '+';
-          (function(hr, ymdD) {
-            addBtn.addEventListener('click', function(ev) {
-              ev.stopPropagation();
-              var t1 = pad2(hr) + ':00', t2 = pad2((hr + 1) % 24) + ':00';
-              if (window.appUtils && typeof window.appUtils.openEditModalFill === 'function') {
-                window.appUtils.openEditModalFill({ date: ymdD, startTime: t1, endTime: t2, time: t1 });
-              } else {
-                /* Fallback: populate and open the edit modal directly */
-                var modal = document.getElementById('editModal');
-                if (modal) {
-                  ['editKind','editEventId','editTaskIndex','editReminderKey','editReminderIndex'].forEach(function(id) {
-                    var el = document.getElementById(id);
-                    if (el) el.value = (id === 'editKind' ? 'event' : '');
-                  });
-                  var setV = function(id, v) { var el2 = document.getElementById(id); if (el2) el2.value = v || ''; };
-                  setV('editDate', ymdD);
-                  setV('editTime', t1);
-                  modal.style.display = 'flex';
-                }
-              }
-            });
-          })(hour, ymd);
+          /* Add-item overlay (only for unoccupied slots; shown on desktop hover via CSS) */
+          if (!busySlots[dayIdx].has(absSlotIdx)) {
+            var slotTimeStr = pad2(slotHour) + ':' + pad2(slotMins);
+            var endSlotMin  = slotStartMin + 30;
+            var slotEndStr  = pad2(Math.floor(endSlotMin / 60) % 24) + ':' + pad2(endSlotMin % 60);
 
-          slot.appendChild(addBtn);
+            var addSlot = document.createElement('div');
+            addSlot.className = 'dv-add-slot';
+            addSlot.title = 'Add item at ' + slotTimeStr;
+            var plusSpan = document.createElement('span');
+            plusSpan.className = 'dv-add-slot-plus';
+            plusSpan.textContent = '+';
+            addSlot.appendChild(plusSpan);
 
-          /* Half-hour dashed divider (absolutely positioned within the day column) */
-          var halfLine = document.createElement('div');
-          halfLine.className = 'dv-half-line';
-          halfLine.style.top = ((hour - RANGE_START) * HOUR_HEIGHT + HOUR_HEIGHT / 2) + 'px';
+            (function(ts, es, ymdD) {
+              addSlot.addEventListener('click', function(ev) {
+                ev.stopPropagation();
+                wvShowAddPicker(ev, ymdD, ts, es);
+              });
+            })(slotTimeStr, slotEndStr, ymd);
+
+            slot.appendChild(addSlot);
+          }
 
           col.appendChild(slot);
-          col.appendChild(halfLine);
-        })(_hi);
+        })(_si);
       }
 
       /* ── Timed event / task / reminder blocks ── */
