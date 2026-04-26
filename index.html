@@ -1067,7 +1067,7 @@
         <a href="#home"     class="more-sheet-item" data-view="home">    <span class="more-sheet-icon">🏡</span><span class="more-sheet-label">Home</span></a>
         <a href="#work"     class="more-sheet-item" data-view="work">    <span class="more-sheet-icon">💼</span><span class="more-sheet-label">Work</span></a>
         <a href="#inbox"    class="more-sheet-item" data-view="inbox">   <span class="more-sheet-icon">📥</span><span class="more-sheet-label">Inbox</span></a>
-        <a href="#reminders" class="more-sheet-item" data-view="reminders"><span class="more-sheet-icon">🔔</span><span class="more-sheet-label">Reminders</span></a>
+        <a href="#reminders" class="more-sheet-item" data-view="reminders" aria-label="View Reminders"><span class="more-sheet-icon">🔔</span><span class="more-sheet-label">Reminders</span></a>
         <a href="#events"   class="more-sheet-item" data-view="events">  <span class="more-sheet-icon">📅</span><span class="more-sheet-label">Events</span></a>
         <button type="button" id="moreSheetJournalBtn" class="more-sheet-item" aria-label="Open Journal"><span class="more-sheet-icon">📓</span><span class="more-sheet-label">Journal</span></button>
         <button type="button" id="moreSheetAppsBtn" class="more-sheet-item" aria-label="Open Apps"><span class="more-sheet-icon">⊞</span><span class="more-sheet-label">Apps</span></button>
@@ -1231,16 +1231,30 @@
     const _moreViews = new Set(['personal','home','work','inbox','events','settings','reminders']);
 
     // SPA navigation helpers
+
+    // Returns the current week's start Date, using selectedYear/Month/Day if set.
+    // Falls back to the Sunday-based week of today if getWeekStart is not yet loaded.
+    function _getWeekStartDate() {
+      if (typeof getWeekStart === 'function') {
+        return getWeekStart(
+          window.selectedYear  || new Date().getFullYear(),
+          window.selectedMonth != null ? window.selectedMonth : new Date().getMonth(),
+          window.selectedDay   || 1
+        );
+      }
+      // Fallback: Sunday-anchored week (locale-neutral; Sunday = getDay() 0)
+      var d = new Date();
+      d.setDate(d.getDate() - d.getDay());
+      return d;
+    }
+
     function _updateWeekPageLabel() {
       try {
-        var ws = (typeof getWeekStart === 'function')
-          ? getWeekStart(window.selectedYear || new Date().getFullYear(), window.selectedMonth != null ? window.selectedMonth : new Date().getMonth(), window.selectedDay || 1)
-          : (function(){ var d = new Date(); d.setDate(d.getDate() - d.getDay()); return d; })();
+        var ws = _getWeekStartDate();
         var we = new Date(ws); we.setDate(ws.getDate() + 6);
-        var label = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][ws.getMonth()] +
-          ' ' + ws.getDate() + ' – ' +
-          ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][we.getMonth()] +
-          ' ' + we.getDate() + ', ' + we.getFullYear();
+        var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var label = MONTHS[ws.getMonth()] + ' ' + ws.getDate() + ' \u2013 ' +
+          MONTHS[we.getMonth()] + ' ' + we.getDate() + ', ' + we.getFullYear();
         var lbl = document.getElementById('weekPageLabel');
         if (lbl) lbl.textContent = label;
       } catch(_) {}
@@ -1994,9 +2008,7 @@
 
       function _navWeek(delta) {
         try {
-          var ws = (typeof getWeekStart === 'function')
-            ? getWeekStart(window.selectedYear || new Date().getFullYear(), window.selectedMonth != null ? window.selectedMonth : new Date().getMonth(), window.selectedDay || 1)
-            : (function(){ var d = new Date(); d.setDate(d.getDate() - d.getDay()); return d; })();
+          var ws = _getWeekStartDate();
           ws.setDate(ws.getDate() + delta);
           window.selectedYear  = ws.getFullYear();
           window.selectedMonth = ws.getMonth();

@@ -10340,13 +10340,14 @@ function renderSleepAppFull(container) {
   lHTML+='<div class="app-sleep-alarm-box"><strong>\ud83d\udca1 Ideal bedtimes for '+todaySched.wake+' wake:</strong><div class="app-sleep-cycle-pills">'+cyclePills+'</div></div>';
 
   /* ── Reminders section ── */
-  var sleepRems = sleep.reminders || { bedtimeEnabled: false, bedtimeTime: todaySched.bedtime || '22:00', bedtimeOffset: '30m', wakeEnabled: false, wakeTime: todaySched.wake || '07:00' };
-  lHTML += '<h4 class="app-full-section-heading">\ud83d\udd14 Sleep Reminders</h4>' +
+  var DEFAULT_SLEEP_REMINDERS = { bedtimeEnabled: false, bedtimeTime: todaySched.bedtime || '22:00', bedtimeOffset: '30m', wakeEnabled: false, wakeTime: todaySched.wake || '07:00' };
+  var sleepRems = sleep.reminders ? Object.assign({}, DEFAULT_SLEEP_REMINDERS, sleep.reminders) : DEFAULT_SLEEP_REMINDERS;
+  lHTML += '<h4 class="app-full-section-heading">🔔 Sleep Reminders</h4>' +
     '<div class="app-sleep-reminders-grid">' +
       '<div class="app-sleep-rem-row">' +
         '<label class="app-sleep-rem-label">' +
           '<input type="checkbox" id="sleepFvBedReminderEnabled" class="app-sleep-rem-check"' + (sleepRems.bedtimeEnabled ? ' checked' : '') + ' />' +
-          '\ud83c\udf19 Bedtime reminder' +
+          '🌙 Bedtime reminder' +
         '</label>' +
         '<input type="time" id="sleepFvBedReminderTime" class="app-sleep-rem-time" value="' + escapeHTML(sleepRems.bedtimeTime || '22:00') + '" />' +
         '<select id="sleepFvBedReminderOffset" class="app-sleep-rem-select">' +
@@ -10359,7 +10360,7 @@ function renderSleepAppFull(container) {
       '<div class="app-sleep-rem-row">' +
         '<label class="app-sleep-rem-label">' +
           '<input type="checkbox" id="sleepFvWakeReminderEnabled" class="app-sleep-rem-check"' + (sleepRems.wakeEnabled ? ' checked' : '') + ' />' +
-          '\u2600\ufe0f Wake-up reminder' +
+          '☀️ Wake-up reminder' +
         '</label>' +
         '<input type="time" id="sleepFvWakeReminderTime" class="app-sleep-rem-time" value="' + escapeHTML(sleepRems.wakeTime || '07:00') + '" />' +
       '</div>' +
@@ -10453,11 +10454,11 @@ function renderSleepAppFull(container) {
         removeAppSleepRems(dk);
         if (bedEnabled) {
           if (!rems[dk]) rems[dk] = [];
-          rems[dk].push({ text: '\ud83c\udf19 Bedtime reminder', time: bedTime, notify: bedOffset, domain: 'apps', appSource: 'sleep' });
+          rems[dk].push({ text: '🌙 Bedtime reminder', time: bedTime, notify: bedOffset, domain: 'apps', appSource: 'sleep' });
         }
         if (wakeEnabled) {
           if (!rems[dk]) rems[dk] = [];
-          rems[dk].push({ text: '\u2600\ufe0f Wake-up reminder', time: wakeTime, notify: 'at', domain: 'apps', appSource: 'sleep' });
+          rems[dk].push({ text: '☀️ Wake-up reminder', time: wakeTime, notify: 'at', domain: 'apps', appSource: 'sleep' });
         }
       }
       setReminders(rems);
