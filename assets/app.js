@@ -9436,23 +9436,26 @@ function syncBudgetNotifications() {
   var cfg = getAppNotifConfig('budget');
   var reminders = [];
 
-  // 1. Upcoming bill due dates (next 3 occurrences per bill)
+  // 1. Upcoming bill due dates (next 3 occurrences per bill, only when reminder is enabled)
   bills.forEach(function(bill) {
     if (!bill.dueDate) return;
+    if (!bill.reminder) return;
+    var billLeadTime = bill.leadTime || cfg.leadTime;
     _billNextOccurrences(bill, 3).forEach(function(dt) {
       var iso = dt.toISOString().slice(0, 10);
       reminders.push({
         date: iso,
         text: '📋 Bill due: ' + bill.name + ' ($' + parseFloat(bill.amount || 0).toFixed(2) + ')',
         time: '09:00',
-        notify: cfg.leadTime
+        notify: billLeadTime
       });
     });
   });
 
-  // 2. Paycheck incoming (next 3 pay dates per pay period)
+  // 2. Paycheck incoming (next 3 pay dates per pay period, only when reminder is enabled)
   payPeriods.forEach(function(pp) {
     if (!pp.startDate) return;
+    if (!pp.reminder) return;
     var next = calcNextPayDate(pp.startDate, pp.type);
     for (var i = 0; i < 3; i++) {
       var iso = next.toISOString().slice(0, 10);
@@ -13463,6 +13466,7 @@ function _budgetFvManage(body, container) {
             (bill.category ? escapeHTML(bill.category) + ' · ' : '') +
             (bill.dueDate ? '📅 ' + escapeHTML(bill.dueDate) + ' · ' : '') +
             escapeHTML(bill.repeat || 'monthly') +
+            (bill.reminder ? ' · 🔔 ' + (bill.leadTime === 'at' ? 'on due date' : bill.leadTime === '3d' ? '3 days before' : bill.leadTime === '1w' ? '1 week before' : '1 day before') : '') +
           '</div>' +
         '</div>' +
         '<span class="budgfv-bill-amt">$' + parseFloat(bill.amount || 0).toFixed(2) + '/mo</span>' +
@@ -13485,6 +13489,15 @@ function _budgetFvManage(body, container) {
       '<option value="biweekly">Biweekly</option><option value="quarterly">Quarterly</option>' +
       '<option value="yearly">Yearly</option>' +
     '</select>' +
+    '<label style="font-size:0.78rem;white-space:nowrap;display:inline-flex;align-items:center;gap:3px" title="Enable calendar reminder">' +
+      '<input type="checkbox" id="bfvBillReminder"/> 🔔' +
+    '</label>' +
+    '<select id="bfvBillLeadTime" title="Reminder lead time">' +
+      '<option value="at">On due date</option>' +
+      '<option value="1d" selected>1 day before</option>' +
+      '<option value="3d">3 days before</option>' +
+      '<option value="1w">1 week before</option>' +
+    '</select>' +
     '<button id="bfvAddBillBtn" class="app-fv-save-btn">＋ Add</button>' +
     '</div>';
 
@@ -13502,7 +13515,7 @@ function _budgetFvManage(body, container) {
       rHTML += '<div class="budgfv-bill-row" data-pi="' + pi + '">' +
         '<div class="budgfv-bill-info">' +
           '<div class="budgfv-bill-name">' + escapeHTML(pp.type || 'monthly') + (pp.jobName ? ' — ' + escapeHTML(pp.jobName) : '') + '</div>' +
-          '<div class="budgfv-bill-meta">Started ' + escapeHTML(pp.startDate || '') + (nextISO ? ' · Next: ' + escapeHTML(nextISO) : '') + '</div>' +
+          '<div class="budgfv-bill-meta">Started ' + escapeHTML(pp.startDate || '') + (nextISO ? ' · Next: ' + escapeHTML(nextISO) : '') + (pp.reminder ? ' · 🔔 payday' : '') + '</div>' +
         '</div>' +
         '<span class="budgfv-bill-amt" style="color:var(--ios-success,#27ae60)">+$' + parseFloat(pp.amount || 0).toFixed(2) + '</span>' +
         '<div class="budgfv-bill-actions">' +
@@ -13520,6 +13533,9 @@ function _budgetFvManage(body, container) {
     '<input type="date" id="bfvPPStart" title="First pay date"/>' +
     '<input type="number" id="bfvPPAmt" placeholder="Amount" min="0" step="0.01" style="width:80px"/>' +
     '<select id="bfvPPJob">' + jobOpts + '</select>' +
+    '<label style="font-size:0.78rem;white-space:nowrap;display:inline-flex;align-items:center;gap:3px" title="Show payday on calendar">' +
+      '<input type="checkbox" id="bfvPPReminder"/> 🔔' +
+    '</label>' +
     '<button id="bfvAddPPBtn" class="app-fv-save-btn">＋ Add</button>' +
     '</div>';
 
@@ -13603,6 +13619,15 @@ function _budgetFvManage(body, container) {
             return '<option value="' + r + '"' + (r === (bill.repeat || 'monthly') ? ' selected' : '') + '>' + r.charAt(0).toUpperCase() + r.slice(1) + '</option>';
           }).join('') +
         '</select>' +
+        '<label style="font-size:0.78rem;white-space:nowrap;display:inline-flex;align-items:center;gap:3px" title="Enable calendar reminder">' +
+          '<input type="checkbox" id="bfvEditReminder"' + (bill.reminder ? ' checked' : '') + '/> 🔔' +
+        '</label>' +
+        '<select id="bfvEditLeadTime" title="Reminder lead time">' +
+          ['at','1d','3d','1w'].map(function(v) {
+            var label = v === 'at' ? 'On due date' : v === '1d' ? '1 day before' : v === '3d' ? '3 days before' : '1 week before';
+            return '<option value="' + v + '"' + (v === (bill.leadTime || '1d') ? ' selected' : '') + '>' + label + '</option>';
+          }).join('') +
+        '</select>' +
         '<button class="app-fv-save-btn bfvEditSave" data-bi="' + bi + '">Save</button>' +
         '<button class="app-fv-cancel-btn bfvEditCancel">Cancel</button>';
       row.insertAdjacentElement('afterend', form);
@@ -13614,7 +13639,9 @@ function _budgetFvManage(body, container) {
           amount: parseFloat(form.querySelector('#bfvEditAmt').value) || 0,
           dueDate: form.querySelector('#bfvEditDate').value,
           category: form.querySelector('#bfvEditCat').value,
-          repeat: form.querySelector('#bfvEditRepeat').value
+          repeat: form.querySelector('#bfvEditRepeat').value,
+          reminder: !!(form.querySelector('#bfvEditReminder') && form.querySelector('#bfvEditReminder').checked),
+          leadTime: form.querySelector('#bfvEditLeadTime') ? form.querySelector('#bfvEditLeadTime').value : '1d'
         };
         setPersonalBudget(b2);
         try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
@@ -13641,6 +13668,8 @@ function _budgetFvManage(body, container) {
     var catEl    = body.querySelector('#bfvBillCat');
     var repeatEl = body.querySelector('#bfvBillRepeat');
     var emojiEl  = body.querySelector('#bfvBillEmoji');
+    var reminderEl  = body.querySelector('#bfvBillReminder');
+    var leadTimeEl  = body.querySelector('#bfvBillLeadTime');
     var name = nameEl ? nameEl.value.trim() : '';
     if (!name) return;
     var b = getPersonalBudget();
@@ -13651,7 +13680,9 @@ function _budgetFvManage(body, container) {
       amount: parseFloat((amtEl || {}).value) || 0,
       dueDate: dateEl ? dateEl.value : '',
       category: catEl ? catEl.value : '',
-      repeat: repeatEl ? repeatEl.value : 'monthly'
+      repeat: repeatEl ? repeatEl.value : 'monthly',
+      reminder: !!(reminderEl && reminderEl.checked),
+      leadTime: (leadTimeEl && reminderEl && reminderEl.checked) ? leadTimeEl.value : '1d'
     });
     setPersonalBudget(b);
     try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
@@ -13673,13 +13704,15 @@ function _budgetFvManage(body, container) {
     var startEl = body.querySelector('#bfvPPStart');
     var amtEl   = body.querySelector('#bfvPPAmt');
     var jobEl   = body.querySelector('#bfvPPJob');
+    var ppReminderEl = body.querySelector('#bfvPPReminder');
     var b = getPersonalBudget();
     if (!b.payPeriods) b.payPeriods = [];
     b.payPeriods.push({
       type: typeEl ? typeEl.value : 'biweekly',
       startDate: startEl ? startEl.value : '',
       amount: parseFloat((amtEl || {}).value) || 0,
-      jobName: jobEl ? jobEl.value : ''
+      jobName: jobEl ? jobEl.value : '',
+      reminder: !!(ppReminderEl && ppReminderEl.checked)
     });
     setPersonalBudget(b);
     try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }

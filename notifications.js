@@ -1,6 +1,6 @@
 (function () {
   // offsets in minutes
-  const OFFSETS = { none: null, at: 0, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '2h': 120, '1d': 1440 };
+  const OFFSETS = { none: null, at: 0, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '2h': 120, '1d': 1440, '3d': 4320, '1w': 10080 };
   const timers = new Map(); // key -> timeout id
 
   function el(id){ return document.getElementById(id); }
