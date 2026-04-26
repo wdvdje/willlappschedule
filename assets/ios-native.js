@@ -103,9 +103,12 @@
     if (typeof _orig !== 'function') return false;
 
     window.showView = function (view, updateHash) {
-      document.startViewTransition(function () {
+      var transition = document.startViewTransition(function () {
         _orig.call(window, view, updateHash);
       });
+      // Suppress rejections caused by rapid navigation interrupting a running transition
+      transition.ready.catch(function () {});
+      transition.finished.catch(function () {});
     };
 
     return true;
