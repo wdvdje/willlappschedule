@@ -772,10 +772,12 @@
 
   function patchWeekView() {
     if (_weekViewPatched || typeof window.renderWeekView !== 'function') return;
+    /* The new renderWeekView is already a full timeline – no wrapping needed */
+    if (window._weekViewIsTimeline) { _weekViewPatched = true; return; }
     _weekViewPatched = true;
     var orig = window.renderWeekView;
     window.renderWeekView = function () {
-      if (!_weekTimelineMode) { orig.apply(this, arguments); applyWeekViewRecurIcons(); return; }
+      if (!_weekTimelineMode) { orig.apply(this, arguments); return; }
       renderWeekTimeline();
     };
     window.renderWeekView._dcfPatched = true;
