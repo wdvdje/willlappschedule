@@ -2839,8 +2839,30 @@ function attachPageListeners(){
   try{
     const prev = document.getElementById('prevBtn');
     const next = document.getElementById('nextBtn');
-    if (prev) prev.addEventListener('click', ()=>{ selectedMonth--; if (selectedMonth<0){ selectedMonth=11; selectedYear--; } generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay); });
-    if (next) next.addEventListener('click', ()=>{ selectedMonth++; if (selectedMonth>11){ selectedMonth=0; selectedYear++; } generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay); });
+    if (prev) prev.addEventListener('click', ()=>{
+      if (currentCalView === 'week') {
+        /* Retreat one week in week-view mode */
+        var wb = getWeekStart(selectedYear, selectedMonth, selectedDay || 1);
+        wb.setDate(wb.getDate() - 7);
+        selectedYear = wb.getFullYear(); selectedMonth = wb.getMonth(); selectedDay = wb.getDate();
+        renderWeekView();
+      } else {
+        selectedMonth--; if (selectedMonth<0){ selectedMonth=11; selectedYear--; }
+        generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay);
+      }
+    });
+    if (next) next.addEventListener('click', ()=>{
+      if (currentCalView === 'week') {
+        /* Advance one week in week-view mode */
+        var wb = getWeekStart(selectedYear, selectedMonth, selectedDay || 1);
+        wb.setDate(wb.getDate() + 7);
+        selectedYear = wb.getFullYear(); selectedMonth = wb.getMonth(); selectedDay = wb.getDate();
+        renderWeekView();
+      } else {
+        selectedMonth++; if (selectedMonth>11){ selectedMonth=0; selectedYear++; }
+        generateCalendar(); selectedDay = Math.min(selectedDay||1, new Date(selectedYear,selectedMonth+1,0).getDate()); showReminders(selectedDay);
+      }
+    });
 
     const reminderForm = document.getElementById('reminderForm');
     if (reminderForm) reminderForm.addEventListener('submit', addReminder);
@@ -3906,94 +3928,429 @@ function getWeekStart(year, month, day){
   return d;
 }
 
-function renderWeekView(){
-  const container = document.getElementById('weekView');
+/* ── Week-view "now" timer – cleared on each render ── */
+window._wvNowTimer = null;
+
+/**
+ * renderWeekView()
+ * Renders the calendar week view as a vertical timeline that matches the daily
+ * view style: a time-gutter with hour labels on the left, seven day columns
+ * each containing hour-slot backgrounds and absolutely-positioned event/task/
+ * reminder blocks. Also renders a sticky header row with busy-meter bars, an
+ * all-day events strip, a current-time now-line in today's column, "+" add
+ * buttons on each hour slot, and swipe-left/right week navigation on mobile.
+ */
+function renderWeekView() {
+  /* Signal to desktop-calendar-features.js that this is already a full timeline */
+  window._weekViewIsTimeline = true;
+
+  /* Clear any running now-line timer from a previous render */
+  if (window._wvNowTimer) { clearInterval(window._wvNowTimer); window._wvNowTimer = null; }
+
+  var container = document.getElementById('weekView');
   if (!container) return;
-  const ws = getWeekStart(selectedYear, selectedMonth, selectedDay || 1);
-  const today = new Date();
-  const todayStr = today.getFullYear()+'-'+pad2(today.getMonth()+1)+'-'+pad2(today.getDate());
-  const we = new Date(ws); we.setDate(ws.getDate()+6);
-  const weekStartISO = ws.getFullYear()+'-'+pad2(ws.getMonth()+1)+'-'+pad2(ws.getDate());
-  const weekEndISO   = we.getFullYear()+'-'+pad2(we.getMonth()+1)+'-'+pad2(we.getDate());
-  const allEvents = getExpandedEvents(weekStartISO, weekEndISO);
-  const allTasks = getTasks();
-  const allReminders = getReminders();
 
-  const isDesk = window.matchMedia && window.matchMedia('(min-width: 901px)').matches;
+  /* ── Week bounds ── */
+  var ws = getWeekStart(selectedYear, selectedMonth, selectedDay || 1);
+  var today = new Date();
+  var todayStr = today.getFullYear() + '-' + pad2(today.getMonth() + 1) + '-' + pad2(today.getDate());
+  var we = new Date(ws); we.setDate(ws.getDate() + 6);
+  var weekStartISO = ws.getFullYear() + '-' + pad2(ws.getMonth() + 1) + '-' + pad2(ws.getDate());
+  var weekEndISO   = we.getFullYear()  + '-' + pad2(we.getMonth()  + 1) + '-' + pad2(we.getDate());
 
-  function buildCol(i) {
-    const d = new Date(ws); d.setDate(ws.getDate()+i);
-    const ymd = d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
-    const isToday = ymd === todayStr;
-    const isSelected = d.getFullYear()===selectedYear && d.getMonth()===selectedMonth && d.getDate()===(selectedDay||0);
-    const theme = themes[d.getMonth()] || themes[0];
-    const isWknd = d.getDay()===0||d.getDay()===6;
+  /* ── Load data ── */
+  var allEvents    = getExpandedEvents(weekStartISO, weekEndISO);
+  var allTasks     = getTasks();
+  var allReminders = getReminders();
+  var domainColors = getDomainColors();
 
-    const col = document.createElement('div');
-    col.className = 'week-col';
-    col.style.background = isWknd ? theme.weekend : theme.weekday;
-    col.style.borderRadius = '8px'; col.style.padding = '4px';
+  /* ── Layout constants ── */
+  var HOUR_HEIGHT        = 60;   // px per hour – matches dv-gutter-label / dv-hour-slot height
+  var RANGE_START        = 0;    // first visible hour (0 = midnight)
+  var RANGE_END          = 24;   // last visible hour (exclusive)
+  var WV_MAX_LAY_PASSES  = 10;   // max overlap-layout iterations (mirrors daily-view.js MAX_LAYOUT_PASSES)
+  var totalMinutes = (RANGE_END - RANGE_START) * 60;
+  var totalPx      = (RANGE_END - RANGE_START) * HOUR_HEIGHT;
 
-    const hdr = document.createElement('div');
-    hdr.className = 'week-col-header'+(isToday?' today':'')+(isSelected?' selected':'');
-    hdr.textContent = weekdayNames[d.getDay()]+' '+d.getDate();
-    hdr.style.cursor = 'pointer';
-    (function(dd){ hdr.addEventListener('click', () => {
-      selectedYear=dd.getFullYear(); selectedMonth=dd.getMonth(); selectedDay=dd.getDate();
-      renderWeekView(); showReminders(selectedDay);
-    }); })(d);
-    col.appendChild(hdr);
-
-    allEvents.filter(e=>normalizeDate(e.date)===ymd).forEach(ev=>{
-      const chip=document.createElement('div'); chip.className='week-chip event';
-      chip.style.borderLeftColor=CAT_COLORS[ev.category||'event']||'#4a90e2';
-      chip.textContent=(ev.emoji||'')+' '+(ev.time?ev.time+' ':'')+( ev.title||'');
-      chip.title=ev.title||'';
-      (function(evCopy){ chip.addEventListener('click',e=>{ e.stopPropagation(); editEvent(evCopy.id, evCopy.occurrenceDate); }); })(ev);
-      col.appendChild(chip);
-    });
-    allTasks.filter(t=>normalizeDate(t.date)===ymd).forEach(t=>{
-      const chip=document.createElement('div'); chip.className='week-chip task';
-      chip.textContent='\u2705 '+(t.title||t.text||'');
-      col.appendChild(chip);
-    });
-    const rems=allReminders[ymd]||[];
-    if(rems.length){ const chip=document.createElement('div'); chip.className='week-chip reminder'; chip.textContent='\uD83D\uDD14 '+rems.length+' reminder'+(rems.length>1?'s':''); col.appendChild(chip); }
-
-    return col;
+  /* ── ISO string for each day of the week ── */
+  var dayDates = [];
+  for (var _di = 0; _di < 7; _di++) {
+    var _dd = new Date(ws); _dd.setDate(ws.getDate() + _di);
+    dayDates.push(_dd.getFullYear() + '-' + pad2(_dd.getMonth() + 1) + '-' + pad2(_dd.getDate()));
   }
 
-  container.innerHTML='';
-
-  if (isDesk) {
-    /* Desktop: 4 days on first row (left), 3 days on second row (right) */
-    const wrapper = document.createElement('div');
-    wrapper.className = 'week-grid-wrapper';
-    const row1 = document.createElement('div');
-    row1.className = 'week-row-split week-row-first';
-    const row2 = document.createElement('div');
-    row2.className = 'week-row-split week-row-second';
-    for (let i = 0; i < 7; i++) {
-      const col = buildCol(i);
-      if (i < 4) row1.appendChild(col);
-      else row2.appendChild(col);
-    }
-    wrapper.appendChild(row1);
-    wrapper.appendChild(row2);
-    container.appendChild(wrapper);
-  } else {
-    /* Mobile: original 7-column grid */
-    const grid = document.createElement('div');
-    grid.className = 'week-grid';
-    for (let i = 0; i < 7; i++) {
-      grid.appendChild(buildCol(i));
-    }
-    container.appendChild(grid);
+  /* ── Helpers ── */
+  function wvTimeToMin(t) {
+    if (!t) return null;
+    var m = t.match(/(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+  }
+  function wvLightenBg(hex, alpha) {
+    if (!hex || hex[0] !== '#') return 'rgba(74,144,226,' + (alpha || 0.15) + ')';
+    var r = parseInt(hex.substr(1, 2), 16), g = parseInt(hex.substr(3, 2), 16), b = parseInt(hex.substr(5, 2), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + (alpha || 0.15) + ')';
   }
 
-  const ws2=new Date(ws); ws2.setDate(ws2.getDate()+6);
-  const ml=document.getElementById('monthLabel');
-  if(ml) ml.textContent=monthNames[ws.getMonth()]+' '+ws.getDate()+' \u2013 '+monthNames[ws2.getMonth()]+' '+ws2.getDate()+', '+ws2.getFullYear();
+  /* ── Collect scheduled items for one day ── */
+  function wvGetDayItems(dateStr) {
+    var items = [];
+    /* Events */
+    allEvents.filter(function(e) { return normalizeDate(e.date) === dateStr; }).forEach(function(ev) {
+      var s = wvTimeToMin(ev.startTime || ev.time);
+      var e = wvTimeToMin(ev.endTime);
+      var isAllDay = (s === null);
+      if (isAllDay) { s = 9 * 60; }
+      if (e === null || e <= s) { e = s + 60; }
+      var domain = getDomainOfItem(ev);
+      items.push({ kind: 'event', title: ev.title || 'Event', emoji: (ev.emoji || '').trim(),
+        startMin: s, endMin: e, hasTimes: !isAllDay, isAllDay: isAllDay,
+        color: domainColors[domain] || domainColors.personal || '#9b59b6', raw: ev });
+    });
+    /* Tasks */
+    allTasks.filter(function(t) { return normalizeDate(t.date) === dateStr; }).forEach(function(t) {
+      var s = wvTimeToMin(t.time);
+      var isAllDay = (s === null);
+      if (isAllDay) { s = 9 * 60; }
+      items.push({ kind: 'task', title: t.title || t.text || 'Task', emoji: (t.emoji || '').trim(),
+        startMin: s, endMin: s + 30, hasTimes: !isAllDay, isAllDay: isAllDay,
+        color: '#27ae60', raw: t });
+    });
+    /* Reminders */
+    var rems = allReminders[dateStr] || [];
+    rems.forEach(function(r) {
+      var s = wvTimeToMin(r.time);
+      var isAllDay = (s === null);
+      if (isAllDay) { s = 9 * 60; }
+      items.push({ kind: 'reminder', title: r.text || r.title || 'Reminder', emoji: (r.emoji || '').trim(),
+        startMin: s, endMin: s + 15, hasTimes: !isAllDay, isAllDay: isAllDay,
+        color: '#e67e22', raw: r });
+    });
+    return items;
+  }
+
+  /* ── Column-overlap layout (mirrors daily-view.js layoutColumns) ── */
+  function wvLayoutColumns(items) {
+    items.sort(function(a, b) {
+      return a.startMin !== b.startMin ? a.startMin - b.startMin : (b.endMin - b.startMin) - (a.endMin - a.startMin);
+    });
+    var cols = [];
+    items.forEach(function(item) {
+      var placed = false;
+      for (var c = 0; c < cols.length; c++) {
+        if (cols[c][cols[c].length - 1].endMin <= item.startMin) { cols[c].push(item); item._col = c; placed = true; break; }
+      }
+      if (!placed) { item._col = cols.length; cols.push([item]); }
+    });
+    items.forEach(function(item) {
+      var max = item._col;
+      items.forEach(function(o) { if (o.startMin < item.endMin && o.endMin > item.startMin && o._col > max) max = o._col; });
+      item._totalCols = max + 1;
+    });
+    var changed = true, passes = 0;
+    while (changed && passes < WV_MAX_LAY_PASSES) {
+      changed = false; passes++;
+      items.forEach(function(item) {
+        items.forEach(function(o) {
+          if (o.startMin < item.endMin && o.endMin > item.startMin) {
+            var m = Math.max(item._totalCols, o._totalCols);
+            if (item._totalCols !== m) { item._totalCols = m; changed = true; }
+            if (o._totalCols !== m) { o._totalCols = m; changed = true; }
+          }
+        });
+      });
+    }
+    return items;
+  }
+
+  /* ── Gather all items, split into timed vs all-day ── */
+  var dayItems  = dayDates.map(wvGetDayItems);
+  var dayTimed  = dayItems.map(function(its) { return its.filter(function(it) { return !it.isAllDay; }); });
+  var dayAllDay = dayItems.map(function(its) { return its.filter(function(it) { return  it.isAllDay; }); });
+  var dayCounts = dayItems.map(function(its) { return its.length; });
+  var maxCount  = Math.max(1, Math.max.apply(null, dayCounts));
+  dayTimed.forEach(wvLayoutColumns);
+
+  /* ── Build DOM ── */
+  container.innerHTML = '';
+  var outer = document.createElement('div');
+  outer.className = 'wv-outer';
+
+  /* ─── Sticky header row ─── */
+  var stickyHdr = document.createElement('div');
+  stickyHdr.className = 'wv-sticky-header';
+  var hdrGrid = document.createElement('div');
+  hdrGrid.className = 'wv-header-grid';
+
+  /* Gutter corner cell */
+  var corner = document.createElement('div');
+  corner.className = 'wv-gutter-corner';
+  hdrGrid.appendChild(corner);
+
+  for (var _ci = 0; _ci < 7; _ci++) {
+    (function(dayIdx) {
+      var d = new Date(ws); d.setDate(ws.getDate() + dayIdx);
+      var ymd = dayDates[dayIdx];
+      var isToday = ymd === todayStr;
+      var isWknd  = d.getDay() === 0 || d.getDay() === 6;
+
+      var hdr = document.createElement('div');
+      hdr.className = 'wv-col-header' + (isToday ? ' wv-today-hdr' : '') + (isWknd ? ' wv-weekend-hdr' : '');
+
+      var nameEl = document.createElement('div');
+      nameEl.className = 'wv-col-day-name';
+      nameEl.textContent = ['Su','Mo','Tu','We','Th','Fr','Sa'][d.getDay()];
+
+      var numEl = document.createElement('div');
+      numEl.className = 'wv-col-date-num' + (isToday ? ' wv-today-num' : '');
+      numEl.textContent = d.getDate();
+
+      var busyWrap = document.createElement('div');
+      busyWrap.className = 'wv-busy-wrap';
+      var busyBar = document.createElement('div');
+      busyBar.className = 'wv-busy-bar';
+      if (dayCounts[dayIdx] > 0) busyBar.style.width = Math.round(dayCounts[dayIdx] / maxCount * 100) + '%';
+      busyWrap.appendChild(busyBar);
+
+      hdr.appendChild(nameEl);
+      hdr.appendChild(numEl);
+      hdr.appendChild(busyWrap);
+
+      /* Click → select this day and update the month calendar */
+      (function(dayD) {
+        hdr.addEventListener('click', function() {
+          selectedYear  = dayD.getFullYear();
+          selectedMonth = dayD.getMonth();
+          selectedDay   = dayD.getDate();
+          renderWeekView();
+          if (typeof showReminders === 'function') showReminders(selectedDay);
+        });
+      })(d);
+
+      hdrGrid.appendChild(hdr);
+    })(_ci);
+  }
+
+  stickyHdr.appendChild(hdrGrid);
+  outer.appendChild(stickyHdr);
+
+  /* ─── All-day events row ─── */
+  var allDayRow  = document.createElement('div');
+  allDayRow.className = 'wv-allday-row';
+  var allDayGrid = document.createElement('div');
+  allDayGrid.className = 'wv-allday-grid';
+
+  var allDayLbl = document.createElement('div');
+  allDayLbl.className = 'wv-allday-label';
+  allDayLbl.textContent = 'all day';
+  allDayGrid.appendChild(allDayLbl);
+
+  for (var _ali = 0; _ali < 7; _ali++) {
+    (function(dayIdx) {
+      var cell = document.createElement('div');
+      cell.className = 'wv-allday-cell';
+      dayAllDay[dayIdx].forEach(function(item) {
+        var chip = document.createElement('div');
+        chip.className = 'wv-allday-chip';
+        chip.style.borderLeftColor = item.color;
+        chip.style.background = wvLightenBg(item.color, 0.12);
+        var emoji = item.emoji || (item.kind === 'task' ? '✅' : item.kind === 'reminder' ? '🔔' : '');
+        chip.textContent = (emoji ? emoji + '\u00a0' : '') + item.title;
+        chip.title = item.title;
+        (function(it) {
+          chip.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (it.kind === 'event' && typeof editEvent === 'function') editEvent(it.raw._baseId || it.raw.id, it.raw.occurrenceDate);
+          });
+        })(item);
+        cell.appendChild(chip);
+      });
+      allDayGrid.appendChild(cell);
+    })(_ali);
+  }
+
+  allDayRow.appendChild(allDayGrid);
+  outer.appendChild(allDayRow);
+
+  /* ─── Scrollable timed body ─── */
+  var scrollBody = document.createElement('div');
+  scrollBody.className = 'wv-scroll-body';
+
+  var bodyGrid = document.createElement('div');
+  bodyGrid.className = 'wv-body-grid';
+
+  /* Time-gutter column (hour labels) */
+  var gutterCol = document.createElement('div');
+  gutterCol.className = 'wv-gutter-col';
+  for (var _h = RANGE_START; _h < RANGE_END; _h++) {
+    var _lbl = document.createElement('div');
+    _lbl.className = 'dv-gutter-label';
+    _lbl.textContent = pad2(_h) + ':00';
+    gutterCol.appendChild(_lbl);
+  }
+  bodyGrid.appendChild(gutterCol);
+
+  /* Seven day columns */
+  for (var _di2 = 0; _di2 < 7; _di2++) {
+    (function(dayIdx) {
+      var ymd = dayDates[dayIdx];
+      var d = new Date(ws); d.setDate(ws.getDate() + dayIdx);
+      var isToday = ymd === todayStr;
+      var isWknd  = d.getDay() === 0 || d.getDay() === 6;
+
+      var col = document.createElement('div');
+      col.className = 'wv-day-col' + (isToday ? ' wv-today-col' : '') + (isWknd ? ' wv-weekend-col' : '');
+
+      /* ── Hour slots (background grid) ── */
+      for (var _hi = RANGE_START; _hi < RANGE_END; _hi++) {
+        (function(hour) {
+          var slot = document.createElement('div');
+          slot.className = 'dv-hour-slot';
+
+          /* "+" add-event button (shown on desktop hover via CSS) */
+          var addBtn = document.createElement('button');
+          addBtn.type      = 'button';
+          addBtn.className = 'dv-add-btn';
+          addBtn.title     = 'Add event at ' + pad2(hour) + ':00';
+          addBtn.textContent = '+';
+          (function(hr, ymdD) {
+            addBtn.addEventListener('click', function(ev) {
+              ev.stopPropagation();
+              var t1 = pad2(hr) + ':00', t2 = pad2((hr + 1) % 24) + ':00';
+              if (window.appUtils && typeof window.appUtils.openEditModalFill === 'function') {
+                window.appUtils.openEditModalFill({ date: ymdD, startTime: t1, endTime: t2, time: t1 });
+              } else {
+                /* Fallback: populate and open the edit modal directly */
+                var modal = document.getElementById('editModal');
+                if (modal) {
+                  ['editKind','editEventId','editTaskIndex','editReminderKey','editReminderIndex'].forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.value = (id === 'editKind' ? 'event' : '');
+                  });
+                  var setV = function(id, v) { var el2 = document.getElementById(id); if (el2) el2.value = v || ''; };
+                  setV('editDate', ymdD);
+                  setV('editTime', t1);
+                  modal.style.display = 'flex';
+                }
+              }
+            });
+          })(hour, ymd);
+
+          slot.appendChild(addBtn);
+
+          /* Half-hour dashed divider (absolutely positioned within the day column) */
+          var halfLine = document.createElement('div');
+          halfLine.className = 'dv-half-line';
+          halfLine.style.top = ((hour - RANGE_START) * HOUR_HEIGHT + HOUR_HEIGHT / 2) + 'px';
+
+          col.appendChild(slot);
+          col.appendChild(halfLine);
+        })(_hi);
+      }
+
+      /* ── Timed event / task / reminder blocks ── */
+      dayTimed[dayIdx].forEach(function(item) {
+        var startMin = Math.max(item.startMin, RANGE_START * 60);
+        var endMin   = Math.min(item.endMin > item.startMin ? item.endMin : item.endMin + 1440, RANGE_END * 60);
+        var topPx    = ((startMin - RANGE_START * 60) / totalMinutes) * totalPx;
+        var heightPx = Math.max(20, ((endMin - startMin) / totalMinutes) * totalPx);
+        var colW     = 100 / (item._totalCols || 1);
+        var leftPct  = (item._col || 0) * colW;
+
+        var block = document.createElement('button');
+        block.type = 'button';
+        block.className = 'dv-event-block';
+        block.style.top              = topPx + 'px';
+        block.style.height           = heightPx + 'px';
+        block.style.left             = leftPct + '%';
+        block.style.width            = (colW - 1) + '%';
+        block.style.right            = 'auto';
+        block.style.background       = wvLightenBg(item.color, 0.18);
+        block.style.borderLeftColor  = item.color;
+        block.title = item.title;
+
+        var emoji     = item.emoji || (item.kind === 'reminder' ? '🔔' : item.kind === 'task' ? '✅' : '');
+        var timeLabel = item.hasTimes
+          ? (pad2(Math.floor(item.startMin / 60)) + ':' + pad2(item.startMin % 60))
+          : '';
+
+        var html = '';
+        if (emoji) html += '<span class="dv-ev-emoji">' + emoji + '</span>';
+        html += '<span class="dv-ev-title">' + escapeHTML(item.title) + '</span>';
+        if (timeLabel) html += '<br><span class="dv-ev-time">' + escapeHTML(timeLabel) + '</span>';
+        block.innerHTML = html;
+
+        (function(it) {
+          block.addEventListener('click', function(ev) {
+            ev.stopPropagation();
+            if (it.kind === 'event' && typeof editEvent === 'function') {
+              editEvent(it.raw._baseId || it.raw.id, it.raw.occurrenceDate);
+            }
+          });
+        })(item);
+
+        col.appendChild(block);
+      });
+
+      /* ── Current-time "now" line (today's column only) ── */
+      if (isToday) {
+        var now = new Date();
+        var nowMin = now.getHours() * 60 + now.getMinutes();
+        if (nowMin >= RANGE_START * 60 && nowMin < RANGE_END * 60) {
+          var nowLine = document.createElement('div');
+          nowLine.className = 'wv-now-line';
+          nowLine.style.top = ((nowMin - RANGE_START * 60) / totalMinutes * totalPx) + 'px';
+          var nowDot = document.createElement('div');
+          nowDot.className = 'dv-now-dot';
+          nowLine.appendChild(nowDot);
+          col.appendChild(nowLine);
+
+          /* Update position every minute */
+          window._wvNowTimer = setInterval(function() {
+            if (!nowLine.parentNode) { clearInterval(window._wvNowTimer); window._wvNowTimer = null; return; }
+            var n = new Date(); var nm = n.getHours() * 60 + n.getMinutes();
+            nowLine.style.top = ((nm - RANGE_START * 60) / totalMinutes * totalPx) + 'px';
+          }, 60000);
+        }
+      }
+
+      bodyGrid.appendChild(col);
+    })(_di2);
+  }
+
+  scrollBody.appendChild(bodyGrid);
+  outer.appendChild(scrollBody);
+  container.appendChild(outer);
+
+  /* ─── Swipe left/right to navigate weeks (mobile) ─── */
+  (function() {
+    var tx = 0, ty = 0, sw = false;
+    outer.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; sw = true; }
+    }, { passive: true });
+    outer.addEventListener('touchend', function(e) {
+      if (!sw) return; sw = false;
+      var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        var base = getWeekStart(selectedYear, selectedMonth, selectedDay || 1);
+        base.setDate(base.getDate() + (dx < 0 ? 7 : -7));
+        selectedYear = base.getFullYear(); selectedMonth = base.getMonth(); selectedDay = base.getDate();
+        renderWeekView();
+      }
+    }, { passive: true });
+  })();
+
+  /* ─── Update month/week label in the calendar-controls bar ─── */
+  var ws2 = new Date(ws); ws2.setDate(ws.getDate() + 6);
+  var ml = document.getElementById('monthLabel');
+  if (ml) ml.textContent = monthNames[ws.getMonth()] + ' ' + ws.getDate() + ' \u2013 ' + monthNames[ws2.getMonth()] + ' ' + ws2.getDate() + ', ' + ws2.getFullYear();
+
+  /* ─── Auto-scroll: current hour when viewing this week, else 7 AM ─── */
+  setTimeout(function() {
+    var isThisWeek = dayDates.indexOf(todayStr) !== -1;
+    var targetHr   = isThisWeek ? Math.max(0, new Date().getHours() - 1) : 7;
+    scrollBody.scrollTop = targetHr * HOUR_HEIGHT;
+  }, 16);
 }
 
 function wireViewToggle(){
