@@ -638,8 +638,8 @@
   /* ══════════════════════════════════════════════════════
      7. TWO-WEEK VIEW
   ══════════════════════════════════════════════════════ */
-  function render2WeekView() {
-    var container = document.getElementById('twoWeekView');
+  function render2WeekView(targetContainer) {
+    var container = targetContainer || document.getElementById('twoWeekView');
     if (!container) return;
     var today = new Date();
     var startDate = new Date(selYear(), selMonth(), window.selectedDay || today.getDate());
@@ -682,7 +682,7 @@
           window.selectedYear = dd.getFullYear();
           window.selectedMonth = dd.getMonth();
           window.selectedDay = dd.getDate();
-          render2WeekView();
+          render2WeekView(container);
           try { showReminders(dd.getDate()); } catch (_) {}
         });
       })(d);
@@ -763,6 +763,7 @@
     container.appendChild(wrap);
     animateView(container);
   }
+  window.renderTwoWeekView = render2WeekView;
 
   /* ══════════════════════════════════════════════════════
      3. TIME-BLOCK WEEK VIEW  (proportional duration blocks)
