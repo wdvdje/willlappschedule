@@ -169,14 +169,14 @@
                 phase.startTime = dayTimes.eveningStart;
               } else if (dayTimes.eveningEnd) {
                 /* Compute start: bedtime minus total evening step durations */
-                var DEFAULT_STEP_DUR_E = 10;
-                var totalDurE = (phase.steps || []).reduce(function(sum, step) {
-                  return sum + (parseInt(step.duration, 10) || DEFAULT_STEP_DUR_E);
+                var DEFAULT_EVENING_STEP_DURATION = 10;
+                var eveningTotalDur = (phase.steps || []).reduce(function(sum, step) {
+                  return sum + (parseInt(step.duration, 10) || DEFAULT_EVENING_STEP_DURATION);
                 }, 0);
-                var endME = toMinutes(dayTimes.eveningEnd, null);
-                if (endME !== null) {
-                  var startME = ((endME - (totalDurE > 0 ? totalDurE : 0)) + 1440) % 1440;
-                  phase.startTime = formatTime(startME);
+                var eveningEndM = toMinutes(dayTimes.eveningEnd, null);
+                if (eveningEndM !== null) {
+                  var eveningStartM = ((eveningEndM - (eveningTotalDur > 0 ? eveningTotalDur : 0)) + 1440) % 1440;
+                  phase.startTime = formatTime(eveningStartM);
                 }
               }
               if (dayTimes.eveningEnd) phase.endTime = dayTimes.eveningEnd;
@@ -309,11 +309,11 @@
       var eMin = phase.endTime ? toMinutes(phase.endTime, null) : null;
       if (eMin === null) {
         /* Compute duration from step list; fall back to ROUTINE_DEFAULT_DURATION */
-        var DEFAULT_STEP_DUR_FB = 10;
-        var phaseDur = (phase.steps || []).reduce(function(sum, step) {
-          return sum + (parseInt(step.duration, 10) || DEFAULT_STEP_DUR_FB);
+        var DEFAULT_STEP_DURATION = 10;
+        var phaseDuration = (phase.steps || []).reduce(function(sum, step) {
+          return sum + (parseInt(step.duration, 10) || DEFAULT_STEP_DURATION);
         }, 0);
-        eMin = s + (phaseDur > 0 ? phaseDur : ROUTINE_DEFAULT_DURATION);
+        eMin = s + (phaseDuration > 0 ? phaseDuration : ROUTINE_DEFAULT_DURATION);
       }
       if (eMin <= s) eMin += 1440;
       items.push({

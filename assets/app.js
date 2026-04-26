@@ -4080,17 +4080,18 @@ function renderWeekView() {
         var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
         var dayTimes = r.sleepScheduleTimes[dayName];
         if (dayTimes) {
+          var wvFmtMin = function(m) { var h = Math.floor(m / 60), mn = m % 60; return (h < 10 ? '0' : '') + h + ':' + (mn < 10 ? '0' : '') + mn; };
           phases.forEach(function(phase) {
-            var DEFAULT_STEP_DUR = 10;
+            var DEFAULT_STEP_DURATION = 10;
             if (phase.id === 'morning' && dayTimes.morningStart) {
               phase.startTime = dayTimes.morningStart;
               if (dayTimes.morningEnd) {
                 phase.endTime = dayTimes.morningEnd;
               } else {
-                var totalDur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || DEFAULT_STEP_DUR); }, 0);
-                if (totalDur > 0) {
-                  var startM = wvTimeToMin(dayTimes.morningStart);
-                  if (startM !== null) phase.endTime = (function(m) { return (m < 10 ? '0' : '') + Math.floor(m / 60) + ':' + (m % 60 < 10 ? '0' : '') + (m % 60); })((startM + totalDur) % 1440);
+                var morningDur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || DEFAULT_STEP_DURATION); }, 0);
+                if (morningDur > 0) {
+                  var morningStartM = wvTimeToMin(dayTimes.morningStart);
+                  if (morningStartM !== null) phase.endTime = wvFmtMin((morningStartM + morningDur) % 1440);
                 }
               }
             }
@@ -4098,11 +4099,11 @@ function renderWeekView() {
               if (dayTimes.eveningStart) {
                 phase.startTime = dayTimes.eveningStart;
               } else if (dayTimes.eveningEnd) {
-                var totalDurE = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || DEFAULT_STEP_DUR); }, 0);
-                var endME = wvTimeToMin(dayTimes.eveningEnd);
-                if (endME !== null) {
-                  var startME = ((endME - (totalDurE > 0 ? totalDurE : 0)) + 1440) % 1440;
-                  phase.startTime = (function(m) { return (m < 10 ? '0' : '') + Math.floor(m / 60) + ':' + (m % 60 < 10 ? '0' : '') + (m % 60); })(startME);
+                var eveningDur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || DEFAULT_STEP_DURATION); }, 0);
+                var eveningEndM = wvTimeToMin(dayTimes.eveningEnd);
+                if (eveningEndM !== null) {
+                  var eveningStartM = ((eveningEndM - (eveningDur > 0 ? eveningDur : 0)) + 1440) % 1440;
+                  phase.startTime = wvFmtMin(eveningStartM);
                 }
               }
               if (dayTimes.eveningEnd) phase.endTime = dayTimes.eveningEnd;
@@ -4159,9 +4160,9 @@ function renderWeekView() {
       if (s === null) return;
       var e = phase.endTime ? wvTimeToMin(phase.endTime) : null;
       if (e === null) {
-        var DEFAULT_STEP_DUR_FB = 10;
-        var phaseDurFb = (phase.steps || []).reduce(function(sum, st) { return sum + (parseInt(st.duration, 10) || DEFAULT_STEP_DUR_FB); }, 0);
-        e = s + (phaseDurFb > 0 ? phaseDurFb : 15);
+        var DEFAULT_STEP_DURATION = 10;
+        var phaseDuration = (phase.steps || []).reduce(function(sum, st) { return sum + (parseInt(st.duration, 10) || DEFAULT_STEP_DURATION); }, 0);
+        e = s + (phaseDuration > 0 ? phaseDuration : 15);
       }
       if (e <= s) e += 1440;
       items.push({ kind: 'routine', title: (phase.name || 'Routine'),
