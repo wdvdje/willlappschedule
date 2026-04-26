@@ -1,5 +1,5 @@
 /* Service worker: offline shell caching + push notifications */
-const CACHE_VERSION = 'ts-cache-v6';
+const CACHE_VERSION = 'ts-cache-v7';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -9,6 +9,7 @@ const CORE_ASSETS = [
   './reminders.html',
   './settings.html',
   './manifest.json',
+  './assets/icon.svg',
   './assets/app.css',
   './assets/app.js',
   './utils.js',
