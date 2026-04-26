@@ -660,9 +660,6 @@ body.scroll-edge-top-off.scroll-edge-bottom-off main {
   #todayMainCol #selectedDateArea > #dayTopBars {
     grid-column: 1 / -1;
   }
-  #todayMainCol #selectedDateArea > .dashboard {
-    grid-column: 1 / -1;
-  }
   #todayMainCol #selectedDateArea > #dvDaySummaryRow {
     grid-column: 1 / -1;
   }
@@ -1884,7 +1881,7 @@ main {
     column-gap: 20px;
     max-width: 1140px;
     margin: 0 auto;
-    padding: 0 12px;
+    padding: 16px 12px 0;
     box-sizing: border-box;
     align-items: stretch;
     height: calc(100vh - var(--ios-header-h) - 24px);
@@ -1949,6 +1946,16 @@ main {
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--ios-text);
+}
+
+/* Dashboard section inside the right (dashboard) column */
+#todayAppsCol .today-col-dashboard {
+  max-width: 100% !important;
+  margin: 0 0 14px !important;
+  padding: 0 !important;
+  text-align: center;
+  border-bottom: 1px solid var(--ios-border-glass);
+  padding-bottom: 12px !important;
 }
 
 .today-apps-open-btn {
@@ -4123,7 +4130,7 @@ body.view-week #twoWeekPageView {
 @media (min-width: 768px) {
   body.view-week #page-week {
     height: calc(100vh - var(--ios-header-h));
-    padding: 0 16px !important;
+    padding: 10px 20px 0 !important;
   }
   body.view-week #weekView,
   body.view-week #twoWeekPageView {
