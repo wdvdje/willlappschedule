@@ -3505,3 +3505,15 @@ body.dark-mode .mf-ext-recipe-card { border-color: var(--ios-border); }
 .wv-add-picker-btn:hover {
   background: var(--ios-bg-2, #f2f2f7);
 }
+
+/* ── @supports backdrop-filter fallback ─────────────────────────────────
+   Ensures glass card backgrounds are opaque when backdrop-filter is
+   unavailable (same strategy as ios-native.css).
+   ─────────────────────────────────────────────────────────────────────── */
+@supports not (backdrop-filter: blur(1px)) {
+  .mds-card {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background: var(--ios-glass-card, #fff);
+  }
+}

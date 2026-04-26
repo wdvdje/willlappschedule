@@ -1,5 +1,5 @@
 /* Service worker: offline shell caching + push notifications */
-const CACHE_VERSION = 'ts-cache-v8';
+const CACHE_VERSION = 'ts-cache-v9';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -13,6 +13,11 @@ const CORE_ASSETS = [
   './assets/icon-180.png',
   './assets/icon-192.png',
   './assets/icon-512.png',
+  './assets/shortcuts/shortcut-today.png',
+  './assets/shortcuts/shortcut-calendar.png',
+  './assets/shortcuts/shortcut-tasks.png',
+  './assets/shortcuts/shortcut-inbox.png',
+  './assets/shortcuts/shortcut-reminders.png',
   './assets/app.css',
   './assets/app.js',
   './utils.js',

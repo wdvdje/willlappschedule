@@ -56,12 +56,13 @@
   --ios-r-xl:          32px;
 
   /* Spring physics — iOS 26 feels more elastic and alive */
-  --ios-spring:        cubic-bezier(0.34,1.56,0.64,1);
-  --ios-spring-soft:   cubic-bezier(0.22,1.0,0.36,1);
-  --ios-ease:          cubic-bezier(0.25,1,0.5,1);
-  --ios-fast:          0.18s;
-  --ios-normal:        0.34s;
-  --ios-slow:          0.50s;
+  /* Default (reduced-motion): instant so no motion fires unless user is OK with it */
+  --ios-spring:        linear;
+  --ios-spring-soft:   linear;
+  --ios-ease:          linear;
+  --ios-fast:          0.001ms;
+  --ios-normal:        0.001ms;
+  --ios-slow:          0.001ms;
 
   /* iPad breakpoint: show sidebar from 768 px (iPad mini portrait) */
   --ios-sidebar-w:     185px;
@@ -69,6 +70,18 @@
   --ios-sidebar-breakpoint: 768px;
   --ios-tab-h:         calc(62px + env(safe-area-inset-bottom,0px));
   --ios-header-h:      calc(54px + env(safe-area-inset-top,0px));
+}
+
+/* ── 1b. Restore full spring physics for users who are OK with motion ── */
+@media (prefers-reduced-motion: no-preference) {
+  :root {
+    --ios-spring:        cubic-bezier(0.34,1.56,0.64,1);
+    --ios-spring-soft:   cubic-bezier(0.22,1.0,0.36,1);
+    --ios-ease:          cubic-bezier(0.25,1,0.5,1);
+    --ios-fast:          0.18s;
+    --ios-normal:        0.34s;
+    --ios-slow:          0.50s;
+  }
 }
 
 /* ── 2. Dark-mode tokens (system preference) ───────────────────── */
@@ -1783,6 +1796,24 @@ main {
     .section-header {
       animation: none;
     }
+  }
+}
+
+/* ── content-visibility: auto — skip off-screen list rendering ───────────
+   Tells the browser it may skip paint + layout for list items that are
+   fully outside the viewport.  contain-intrinsic-size gives the browser
+   a reasonable estimated height so the scrollbar stays accurate.
+   The `auto` keyword in contain-intrinsic-size (Chrome 112+) remembers
+   the actual rendered size after first paint, preventing layout jank.
+   ─────────────────────────────────────────────────────────────────────── */
+@supports (content-visibility: auto) {
+  .task-item,
+  li.task-item,
+  .reminder-item,
+  li.reminder-item,
+  .event-item {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 64px;
   }
 }
 
@@ -4316,5 +4347,53 @@ body.child-window-mode .app-window-header {
   .bucket-header:active {
     transform: scale(0.98) !important;
     transition: transform 0.08s var(--ios-ease) !important;
+  }
+}
+
+/* ── @supports backdrop-filter fallback ─────────────────────────────────
+   When the browser does not support backdrop-filter (e.g. old Chromium
+   without the flag, some Linux browsers), swap the semi-transparent glass
+   backgrounds for fully-opaque equivalents so the UI remains readable.
+   This block is intentionally broad: it targets every selector that relies
+   on --ios-glass / --ios-glass-card / --ios-glass-vibrant and replaces the
+   translucent fill with the matching opaque surface token.
+   ─────────────────────────────────────────────────────────────────────── */
+@supports not (backdrop-filter: blur(1px)) {
+  :root {
+    /* Override glass variables with fully-opaque fallbacks */
+    --ios-glass:         rgba(242,242,247,1);
+    --ios-glass-card:    rgba(255,255,255,1);
+    --ios-glass-vibrant: rgba(255,255,255,1);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ios-glass:         rgba(28,28,30,1);
+      --ios-glass-card:    rgba(44,44,46,1);
+      --ios-glass-vibrant: rgba(58,58,60,1);
+    }
+  }
+
+  body.dark-mode {
+    --ios-glass:         rgba(28,28,30,1);
+    --ios-glass-card:    rgba(44,44,46,1);
+    --ios-glass-vibrant: rgba(58,58,60,1);
+  }
+
+  /* Remove the now-useless blur declarations to avoid any compositor cost */
+  header,
+  .ios-tab-bar,
+  .ios-sidebar,
+  .more-sheet-panel,
+  .ios-modal-sheet,
+  .app-modal-overlay,
+  .app-window-modal,
+  .app-window-panel,
+  .ios-context-menu,
+  .ios-sheet,
+  .ios-popover,
+  .ios-toast {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
   }
 }
