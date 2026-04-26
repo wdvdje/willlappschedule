@@ -4075,18 +4075,37 @@ function renderWeekView() {
           }
         });
       }
-      if (dateStr && r.sleepScheduleTimes && r.syncEnabled) {
+      if (dateStr && r.sleepScheduleTimes) {
         var d = new Date(dateStr + 'T12:00:00');
         var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
         var dayTimes = r.sleepScheduleTimes[dayName];
         if (dayTimes) {
+          var wvFmtMin = function(m) { var h = Math.floor(m / 60), mn = m % 60; return (h < 10 ? '0' : '') + h + ':' + (mn < 10 ? '0' : '') + mn; };
           phases.forEach(function(phase) {
+            var DEFAULT_STEP_DURATION = 10;
             if (phase.id === 'morning' && dayTimes.morningStart) {
               phase.startTime = dayTimes.morningStart;
-              if (dayTimes.morningEnd) phase.endTime = dayTimes.morningEnd;
+              if (dayTimes.morningEnd) {
+                phase.endTime = dayTimes.morningEnd;
+              } else {
+                var morningDur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || DEFAULT_STEP_DURATION); }, 0);
+                if (morningDur > 0) {
+                  var morningStartM = wvTimeToMin(dayTimes.morningStart);
+                  if (morningStartM !== null) phase.endTime = wvFmtMin((morningStartM + morningDur) % 1440);
+                }
+              }
             }
-            if (phase.id === 'evening' && dayTimes.eveningStart) {
-              phase.startTime = dayTimes.eveningStart;
+            if (phase.id === 'evening') {
+              if (dayTimes.eveningStart) {
+                phase.startTime = dayTimes.eveningStart;
+              } else if (dayTimes.eveningEnd) {
+                var eveningDur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || DEFAULT_STEP_DURATION); }, 0);
+                var eveningEndM = wvTimeToMin(dayTimes.eveningEnd);
+                if (eveningEndM !== null) {
+                  var eveningStartM = ((eveningEndM - (eveningDur > 0 ? eveningDur : 0)) + 1440) % 1440;
+                  phase.startTime = wvFmtMin(eveningStartM);
+                }
+              }
               if (dayTimes.eveningEnd) phase.endTime = dayTimes.eveningEnd;
             }
           });
@@ -4140,7 +4159,11 @@ function renderWeekView() {
       var s = wvTimeToMin(phase.startTime);
       if (s === null) return;
       var e = phase.endTime ? wvTimeToMin(phase.endTime) : null;
-      if (e === null) e = s + 15;
+      if (e === null) {
+        var DEFAULT_STEP_DURATION = 10;
+        var phaseDuration = (phase.steps || []).reduce(function(sum, st) { return sum + (parseInt(st.duration, 10) || DEFAULT_STEP_DURATION); }, 0);
+        e = s + (phaseDuration > 0 ? phaseDuration : 15);
+      }
       if (e <= s) e += 1440;
       items.push({ kind: 'routine', title: (phase.name || 'Routine'),
         emoji: (phase.emoji || '📋').trim(),
@@ -7590,8 +7613,8 @@ function renderSleepTracker() {
         s.schedule[day].bedtime = bedInput.value;
         s.schedule[day].wake = wakeInput.value;
         setPersonalSleep(s);
-        /* Update routine phase times to match (only when sync is enabled) */
-        if (getPersonalRoutines().syncEnabled) syncRoutineTimesFromSleep();
+        /* Always keep routine phase time cache in sync with sleep schedule */
+        syncRoutineTimesFromSleep();
       }
       bedInput.addEventListener('change', onScheduleChange);
       wakeInput.addEventListener('change', onScheduleChange);
