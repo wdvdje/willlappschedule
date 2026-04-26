@@ -339,7 +339,8 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
   box-sizing: border-box;
   border-radius: 4px;
   overflow: hidden;
-  pointer-events: none;
+  pointer-events: auto; /* enable hover tooltip; events (z-index:5) still capture first */
+  cursor: default;
   z-index: 3;
   background: repeating-linear-gradient(
     -45deg,
@@ -361,6 +362,7 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
   text-overflow: ellipsis;
   padding: 0 4px;
   letter-spacing: 0.02em;
+  pointer-events: none; /* label itself doesn't intercept; parent block does */
 }
 
 /* compact on small screens */
@@ -371,6 +373,21 @@ body { padding-bottom: calc(90px + env(safe-area-inset-bottom, 0)); }
   .day-nav-title { font-size: 0.92rem; }
   .dv-now-line { left: -6px; }
   .dv-buffer-label { font-size: 0.6rem; }
+}
+
+/* Mobile buffer toast: tooltip repositions to bottom-center on touch screens */
+@media (max-width: 767px) {
+  #dvBufTooltip.dv-buf-toast-mode {
+    position: fixed !important;
+    bottom: 80px !important;
+    top: auto !important;
+    left: 50% !important;
+    max-width: 80vw;
+    text-align: center;
+  }
+  #dvBufTooltip.dv-buf-toast-mode.wv-hover-tooltip--visible {
+    transform: translateX(-50%) !important; /* override translateY(0) from visible state */
+  }
 }
 
 /* ===== Day nav – item count chip ===== */
@@ -3460,7 +3477,7 @@ body.dark-mode .mf-ext-recipe-card { border-color: var(--ios-border); }
 }
 
 /* ── Week-view add-item type picker ──────────────────────────── */
-#wvAddPicker {
+#wvAddPicker, #dvAddPicker {
   position: fixed;
   z-index: 10001;
   background: var(--ios-surface, #fff);
