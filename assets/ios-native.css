@@ -1059,7 +1059,7 @@ main {
   overscroll-behavior-y: contain;
 }
 
-/* ── 14. Page transition — Liquid Glass spring ────────────────────── */
+/* ── 14. Page transition — Liquid Glass spring (MutationObserver fallback) */
 @keyframes page-enter {
   from { opacity: 0; transform: translateY(10px) scale(0.99); }
   to   { opacity: 1; transform: translateY(0)    scale(1); }
@@ -1067,6 +1067,71 @@ main {
 
 .page:not(.hidden).page-animating {
   animation: page-enter 0.30s var(--ios-spring-soft) both;
+}
+
+/* ── 14b. View Transitions API — GPU-composited page transitions ─── */
+/* Safari 18+ / Chrome 111+. Replaces the MutationObserver approach.  */
+@keyframes vt-page-out {
+  from { opacity: 1; transform: translateY(0)     scale(1);    }
+  to   { opacity: 0; transform: translateY(-6px)  scale(0.99); }
+}
+@keyframes vt-page-in {
+  from { opacity: 0; transform: translateY(10px)  scale(0.99); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+::view-transition-old(root) {
+  animation: vt-page-out 0.22s var(--ios-ease) both;
+}
+::view-transition-new(root) {
+  animation: vt-page-in  0.30s var(--ios-spring-soft) both;
+}
+
+/* Respect the user's motion preference */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+  .page:not(.hidden).page-animating {
+    animation: none;
+  }
+}
+
+/* ── 14c. CSS Scroll Snap — horizontal carousels ─────────────────── */
+/* Applies locked, momentum-based swipe feel matching native iOS.     */
+
+/* Containers */
+.weather-week-grid,
+.droutine-phases,
+.mf-week-grid {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+/* Snap targets */
+.weather-day-card {
+  scroll-snap-align: start;
+}
+
+.droutine-phase {
+  scroll-snap-align: start;
+}
+
+.mf-week-grid > * {
+  scroll-snap-align: start;
+}
+
+/* dmeal-week-grid becomes a horizontal scroller only on mobile */
+@media (max-width: 600px) {
+  .dmeal-week-grid {
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+  }
+  .dmeal-week-grid > * {
+    scroll-snap-align: start;
+  }
 }
 
 /* ── 15. Spring card hover effects — Liquid Glass ────────────────── */

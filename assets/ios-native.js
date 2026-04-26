@@ -57,6 +57,7 @@
   /* ──────────────────────────────────────────────────────────
      3.  Page transition animations (MutationObserver approach)
      Works without touching the existing router.
+     Used only when the View Transitions API is unavailable (§3b).
      ────────────────────────────────────────────────────────── */
   function _initPageTransitions() {
     var pages = document.querySelectorAll('.page');
@@ -86,6 +87,28 @@
     pages.forEach(function (p) {
       observer.observe(p, { attributes: true, attributeFilter: ['class'] });
     });
+  }
+
+  /* ──────────────────────────────────────────────────────────
+     3b. View Transitions API — GPU-composited page transitions
+     Safari 18+ / Chrome 111+.  Falls back to §3 when unavailable.
+     Monkey-patches window.showView so the existing SPA router
+     automatically benefits with no other code changes required.
+     Returns true when VT is wired up (§3 is then skipped).
+     ────────────────────────────────────────────────────────── */
+  function _initViewTransitions() {
+    if (!document.startViewTransition) return false;
+
+    var _orig = window.showView;
+    if (typeof _orig !== 'function') return false;
+
+    window.showView = function (view, updateHash) {
+      document.startViewTransition(function () {
+        _orig.call(window, view, updateHash);
+      });
+    };
+
+    return true;
   }
 
   /* ──────────────────────────────────────────────────────────
@@ -958,7 +981,9 @@
      15. Wire everything up after DOM is ready
      ────────────────────────────────────────────────────────── */
   function _init() {
-    _initPageTransitions();
+    // §3b: View Transitions API; §3 MutationObserver is the fallback
+    var vtActive = _initViewTransitions();
+    if (!vtActive) _initPageTransitions();
     _initSidebar();
     _initBottomSheets();
     _initPullToRefresh();
