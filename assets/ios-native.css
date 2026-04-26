@@ -4077,3 +4077,64 @@ body.dark-mode .app-notif-lead-sel { background: #1a2744; color: #ddd; border-co
 .inbox-apps-more { font-size: 0.78rem; color: var(--ios-text-3, #888); padding: 4px 6px; }
 body.dark-mode .inbox-apps-item { background: rgba(255,107,107,0.10); }
 
+
+/* ── Locked-scroll views ────────────────────────────────────────────
+   When .view-today or .view-week is on <body>, the page itself is
+   locked; scrolling happens only inside the individual columns/frames.
+   ─────────────────────────────────────────────────────────────────── */
+
+/* Today page: lock outer scroll on tablet/desktop where the two-column
+   frame is already sized to the viewport.  Mobile keeps normal scroll. */
+@media (min-width: 768px) {
+  body.view-today {
+    overflow: hidden;
+  }
+  body.view-today main {
+    overflow: hidden;
+    padding-bottom: 0 !important;
+  }
+}
+
+/* Week page: lock outer scroll on all screen sizes; the controls bar
+   is pinned and #weekView scrolls internally. */
+body.view-week {
+  overflow: hidden;
+}
+body.view-week main {
+  overflow: hidden;
+  padding-bottom: 0 !important;
+}
+body.view-week #page-week {
+  display: flex !important;
+  flex-direction: column;
+  /* Viewport minus sticky header and fixed tab bar */
+  height: calc(100vh - var(--ios-header-h) - var(--ios-tab-h));
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+body.view-week .week-page-controls {
+  flex-shrink: 0;
+}
+body.view-week #weekView {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 12px 8px;
+  box-sizing: border-box;
+  margin: 0 !important;
+}
+/* Tablet/desktop: no bottom tab bar, reclaim that space */
+@media (min-width: 768px) {
+  body.view-week #page-week {
+    height: calc(100vh - var(--ios-header-h));
+    padding: 0 8px !important;
+  }
+  body.view-week #weekView {
+    padding: 0 0 8px;
+  }
+}

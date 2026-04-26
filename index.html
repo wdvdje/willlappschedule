@@ -1269,6 +1269,9 @@
       document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
       const el = document.querySelector('#page-' + view);
       if (el) el.classList.remove('hidden');
+      // Lock body scroll for views that use internal column scrolling
+      document.body.classList.remove('view-today', 'view-week');
+      if (view === 'today' || view === 'week') document.body.classList.add('view-' + view);
       // Update active state on tab bar anchor items (excludes #moreTabBtn)
       document.querySelectorAll(_RIBBON_SEL).forEach(a => {
         a.classList.toggle('active', a.dataset.view === view);
