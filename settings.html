@@ -401,11 +401,14 @@
                   Enable <em>"Show file picker"</em> once to locate it, then disable
                   it so future runs grab it automatically.</li>
               <li>Add action: <strong>Encode</strong> → set encoding to <strong>Base64</strong>.</li>
-              <li>Add action: <strong>URL</strong> → paste the URL below, then replace
-                  <code>PASTE_BASE64_HERE</code> with the <em>Base64 Encoded</em> variable
-                  from the previous step.</li>
+              <li>Add action: <strong>Copy to Clipboard</strong> — this copies the Base64
+                  output from the previous step to your clipboard.</li>
+              <li>Add action: <strong>URL</strong> → paste the URL below exactly as-is
+                  (do <em>not</em> modify it — the data travels via clipboard, not the URL).</li>
               <li>Add action: <strong>Open URLs</strong>.</li>
-              <li>Run the Shortcut — the app will open and import your data automatically.</li>
+              <li>Run the Shortcut — the app will open, read the clipboard, and import
+                  your data automatically. Tap <strong>Allow</strong> if asked for
+                  clipboard permission.</li>
             </ol>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <input id="icloudShortcutUrl" type="text" readonly
@@ -678,7 +681,7 @@
        * the Shortcut opens back to whatever page the user is viewing, regardless
        * of whether it's settings.html, index.html, or a sub-path. */
       var base = window.location.origin + window.location.pathname;
-      var templateUrl = base + '?import-data=PASTE_BASE64_HERE';
+      var templateUrl = base + '?import-data=clipboard';
       urlInput.value = templateUrl;
 
       if (copyBtn) {

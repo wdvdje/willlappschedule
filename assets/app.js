@@ -9232,10 +9232,10 @@ function wireSiriShortcuts() {
   importSection.innerHTML =
     '<h4 style="margin:0 0 6px;font-size:0.95rem">📲 Import JSON via iOS Shortcut</h4>' +
     '<p style="margin:0 0 8px;font-size:0.85rem;color:#555;line-height:1.5">' +
-      'Create an iOS Shortcut that reads a JSON file and opens this URL to import data automatically:' +
+      'Create an iOS Shortcut that reads a JSON file, copies the data to your clipboard, and opens this URL to import automatically:' +
     '</p>' +
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
-      '<code id="importShortcutUrl" style="flex:1;font-size:0.78rem;color:#333;background:#e8eaf0;padding:4px 8px;border-radius:4px;word-break:break-all">' + base + '?importData=BASE64_ENCODED_JSON</code>' +
+      '<code id="importShortcutUrl" style="flex:1;font-size:0.78rem;color:#333;background:#e8eaf0;padding:4px 8px;border-radius:4px;word-break:break-all">' + base + '?importData=clipboard</code>' +
       '<button id="copyImportUrl" class="small-btn" style="flex-shrink:0;font-size:0.75rem">📋 Copy</button>' +
     '</div>' +
     '<details style="margin-top:6px">' +
@@ -9245,16 +9245,17 @@ function wireSiriShortcuts() {
         '<li>Create a new shortcut</li>' +
         '<li>Add <strong>"Get File"</strong> action — set to pick a <code>.json</code> file</li>' +
         '<li>Add <strong>"Base64 Encode"</strong> action on the file contents</li>' +
-        '<li>Add <strong>"Text"</strong> action that combines: <code>' + base + '?importData=</code> with the Base64 output from the previous step</li>' +
-        '<li>Add <strong>"Open URLs"</strong> action with the Text as input</li>' +
-        '<li>Run the shortcut — your data will be imported automatically!</li>' +
+        '<li>Add <strong>"Copy to Clipboard"</strong> action with the Base64 output from the previous step</li>' +
+        '<li>Add <strong>"URL"</strong> action — paste the URL above exactly as-is (data travels via clipboard, not the URL)</li>' +
+        '<li>Add <strong>"Open URLs"</strong> action</li>' +
+        '<li>Run the shortcut — tap <strong>Allow</strong> if asked for clipboard permission, and your data will be imported automatically!</li>' +
       '</ol>' +
     '</details>';
   container.appendChild(importSection);
 
   var copyImportBtn = document.getElementById('copyImportUrl');
   if (copyImportBtn) {
-    copyImportBtn.addEventListener('click', function() { copyToClipboard(base + '?importData=BASE64_ENCODED_JSON', copyImportBtn); });
+    copyImportBtn.addEventListener('click', function() { copyToClipboard(base + '?importData=clipboard', copyImportBtn); });
   }
 }
 
@@ -9263,6 +9264,45 @@ function handleUrlImport() {
   var params = new URLSearchParams(window.location.search);
   var importB64 = params.get('importData');
   if (!importB64) return;
+
+  function cleanUrl() {
+    if (window.history && window.history.replaceState) {
+      var url = window.location.origin + window.location.pathname + (window.location.hash || '#today');
+      window.history.replaceState({}, '', url);
+    }
+  }
+
+  /* Clipboard-based import: the iOS Shortcut copies the base64 JSON to the
+   * clipboard and opens the app with ?importData=clipboard to avoid the
+   * "URI too long" error that occurs when large payloads are embedded in the URL.
+   * The URL is cleaned up immediately so a page reload does not re-trigger the import. */
+  if (importB64 === 'clipboard') {
+    cleanUrl();
+    if (!navigator.clipboard || typeof navigator.clipboard.readText !== 'function') {
+      alert('Clipboard API not available in this browser. Please use the manual file import instead.');
+      return;
+    }
+    navigator.clipboard.readText().then(function(text) {
+      try {
+        var jsonStr = atob(text.trim());
+        var parsed = JSON.parse(jsonStr);
+        var importData = parseImportPayload(parsed);
+        var stats = applyImportData(importData, 'merge');
+        if (stats) {
+          var summary = summarizeImportResult(stats);
+          console.info('URL import summary:', summary);
+          showUndoToast('📲 Data imported successfully!');
+        }
+      } catch (err) {
+        console.warn('Clipboard import failed', err);
+        alert('Import failed: ' + (err && err.message ? err.message : err));
+      }
+    }).catch(function(err) {
+      console.warn('Clipboard read failed', err);
+      alert('Could not read clipboard: ' + (err && err.message ? err.message : 'permission denied'));
+    });
+    return;
+  }
 
   try {
     var jsonStr = atob(importB64);
@@ -9279,11 +9319,8 @@ function handleUrlImport() {
     alert('Import failed: ' + (err && err.message ? err.message : err));
   }
 
-  /* Clean up the URL to remove the import parameter */
-  if (window.history && window.history.replaceState) {
-    var cleanUrl = window.location.origin + window.location.pathname + (window.location.hash || '#today');
-    window.history.replaceState({}, '', cleanUrl);
-  }
+  /* Clean up the URL after processing to remove the import parameter */
+  cleanUrl();
 }
 
 /* ----- First-run onboarding / Empty states ----- */
