@@ -104,35 +104,6 @@
         <!-- existing top bars (holidays/events summary) -->
         <div id="dayTopBars"></div>
 
-      <section class="dashboard">
-        <h2 id="dashboardHeading">📊 Dashboard</h2>
-        <p id="summaryStats"></p>
-        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:8px;justify-content:center">
-          <!-- Ring 1: today's completion -->
-          <div class="progress-ring-wrap" id="completionRingWrap" title="Completion">
-            <svg viewBox="0 0 44 44">
-              <circle class="ring-bg" cx="22" cy="22" r="18"/>
-              <circle class="ring-fg" id="completionRingFg" cx="22" cy="22" r="18"
-                      stroke="#4a90e2" stroke-dasharray="113.1" stroke-dashoffset="113.1"
-                      transform="rotate(-90 22 22)"/>
-              <text class="ring-pct" id="completionRingPct" x="22" y="22">0%</text>
-            </svg>
-            <span class="ring-label">Completed</span>
-          </div>
-          <!-- Ring 2: day elapsed -->
-          <div class="progress-ring-wrap" id="dayElapsedRingWrap" title="Day elapsed">
-            <svg viewBox="0 0 44 44">
-              <circle class="ring-bg" cx="22" cy="22" r="18"/>
-              <circle class="ring-fg" id="dayElapsedRingFg" cx="22" cy="22" r="18"
-                      stroke="#e67e22" stroke-dasharray="113.1" stroke-dashoffset="113.1"
-                      transform="rotate(-90 22 22)"/>
-              <text class="ring-pct" id="dayElapsedRingPct" x="22" y="22">0%</text>
-            </svg>
-            <span class="ring-label">Day Elapsed</span>
-          </div>
-        </div>
-      </section>
-
         <!-- Day summary chips + hourly grid -->
         <div id="dvDaySummaryRow" class="dv-day-summary-row" style="display:none"></div>
 
@@ -146,6 +117,35 @@
       </div><!-- end todayMainCol -->
       <div id="todayAppsCol">
         <div class="today-apps-col-inner">
+          <!-- Dashboard: User heading + progress rings -->
+          <section class="dashboard today-col-dashboard">
+            <h2 id="dashboardHeading">📊 Dashboard</h2>
+            <p id="summaryStats"></p>
+            <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:8px;justify-content:center">
+              <!-- Ring 1: today's completion -->
+              <div class="progress-ring-wrap" id="completionRingWrap" title="Completion">
+                <svg viewBox="0 0 44 44">
+                  <circle class="ring-bg" cx="22" cy="22" r="18"/>
+                  <circle class="ring-fg" id="completionRingFg" cx="22" cy="22" r="18"
+                          stroke="#4a90e2" stroke-dasharray="113.1" stroke-dashoffset="113.1"
+                          transform="rotate(-90 22 22)"/>
+                  <text class="ring-pct" id="completionRingPct" x="22" y="22">0%</text>
+                </svg>
+                <span class="ring-label">Completed</span>
+              </div>
+              <!-- Ring 2: day elapsed -->
+              <div class="progress-ring-wrap" id="dayElapsedRingWrap" title="Day elapsed">
+                <svg viewBox="0 0 44 44">
+                  <circle class="ring-bg" cx="22" cy="22" r="18"/>
+                  <circle class="ring-fg" id="dayElapsedRingFg" cx="22" cy="22" r="18"
+                          stroke="#e67e22" stroke-dasharray="113.1" stroke-dashoffset="113.1"
+                          transform="rotate(-90 22 22)"/>
+                  <text class="ring-pct" id="dayElapsedRingPct" x="22" y="22">0%</text>
+                </svg>
+                <span class="ring-label">Day Elapsed</span>
+              </div>
+            </div>
+          </section>
           <!-- Pinned Apps -->
           <div class="today-apps-col-header">
             <h3 class="today-apps-col-heading">Pinned Apps</h3>
