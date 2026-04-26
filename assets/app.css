@@ -3402,6 +3402,7 @@ body.dark-mode .jv-editor-body blockquote { background: var(--ios-surface-2); co
 
 /* ── Mobile back buttons ── */
 .jv-mobile-only { display: none; }
+.desktop-only { display: block; }
 .jv-mobile-back {
   background: none;
   border: none;
@@ -3434,6 +3435,7 @@ body.dark-mode .jv-editor-body blockquote { background: var(--ios-surface-2); co
   .jv-root[data-panel="list"]    .jv-list-panel  { display: flex; flex-direction: column; }
   .jv-root[data-panel="editor"]  .jv-editor-panel { display: flex; }
   .jv-mobile-only { display: block !important; }
+  .desktop-only { display: none !important; }
 }
 
 /* ── Dark mode ── */
