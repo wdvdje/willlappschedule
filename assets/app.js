@@ -1374,6 +1374,51 @@ function parseBufferMinutes(value){
   return Number.isFinite(n) ? n : 0;
 }
 
+var _BUFFER_STD = [0, 5, 10, 15, 20, 25, 30];
+
+/* Build <option> HTML for a buffer select, including "Custom…" */
+function _buildBufferOptions(val) {
+  var v = parseInt(val, 10) || 0;
+  var isCustom = _BUFFER_STD.indexOf(v) === -1 && v > 0;
+  var opts = '<option value="0"' + (v === 0 ? ' selected' : '') + '>None</option>';
+  _BUFFER_STD.slice(1).forEach(function(n) {
+    opts += '<option value="' + n + '"' + (v === n ? ' selected' : '') + '>' + n + ' min</option>';
+  });
+  opts += '<option value="custom"' + (isCustom ? ' selected' : '') + '>Custom\u2026</option>';
+  return opts;
+}
+
+/* Read buffer value from a select+custom-input pair */
+function getBufferValue(selectEl, customEl) {
+  if (!selectEl) return 0;
+  if (selectEl.value === 'custom') {
+    return (customEl ? parseInt(customEl.value, 10) : 0) || 0;
+  }
+  return parseInt(selectEl.value, 10) || 0;
+}
+
+/* Set buffer select+custom-input pair to a given value */
+function setBufferValue(selectEl, customEl, value) {
+  if (!selectEl) return;
+  var v = parseInt(value, 10) || 0;
+  if (_BUFFER_STD.indexOf(v) !== -1) {
+    selectEl.value = String(v);
+    if (customEl) customEl.style.display = 'none';
+  } else {
+    selectEl.value = 'custom';
+    if (customEl) { customEl.value = String(v); customEl.style.display = 'inline-block'; }
+  }
+}
+
+/* Wire show/hide of a custom buffer input when its select changes */
+function _wireBufferCustomToggle(selectEl, customEl) {
+  if (!selectEl || !customEl) return;
+  selectEl.addEventListener('change', function() {
+    customEl.style.display = selectEl.value === 'custom' ? 'inline-block' : 'none';
+    if (selectEl.value === 'custom') customEl.focus();
+  });
+}
+
 function syncRepeatUI(prefix){
   const repeatEl = document.getElementById(prefix + 'Repeat');
   const customRow = document.getElementById(prefix + 'RepeatCustomRow');
@@ -1443,8 +1488,10 @@ function buildAdvSpecRow(spec) {
     '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
       '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">Start time</label><input type="time" class="advSpec-time" value="' + (spec.time || '') + '" style="width:100%"></div>' +
       '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">End time</label><input type="time" class="advSpec-endTime" value="' + (spec.endTime || '') + '" style="width:100%"></div>' +
-      '<div style="min-width:100px"><label style="font-size:0.85em">Pre-buffer</label><select class="advSpec-preBuffer" style="width:100%"><option value="0"' + ((spec.preBuffer || 0) === 0 ? ' selected' : '') + '>None</option><option value="5"' + (parseInt(spec.preBuffer,10) === 5 ? ' selected' : '') + '>5 min</option><option value="10"' + (parseInt(spec.preBuffer,10) === 10 ? ' selected' : '') + '>10 min</option><option value="15"' + (parseInt(spec.preBuffer,10) === 15 ? ' selected' : '') + '>15 min</option><option value="20"' + (parseInt(spec.preBuffer,10) === 20 ? ' selected' : '') + '>20 min</option><option value="25"' + (parseInt(spec.preBuffer,10) === 25 ? ' selected' : '') + '>25 min</option><option value="30"' + (parseInt(spec.preBuffer,10) === 30 ? ' selected' : '') + '>30 min</option></select></div>' +
-      '<div style="min-width:100px"><label style="font-size:0.85em">Post-buffer</label><select class="advSpec-postBuffer" style="width:100%"><option value="0"' + ((spec.postBuffer || 0) === 0 ? ' selected' : '') + '>None</option><option value="5"' + (parseInt(spec.postBuffer,10) === 5 ? ' selected' : '') + '>5 min</option><option value="10"' + (parseInt(spec.postBuffer,10) === 10 ? ' selected' : '') + '>10 min</option><option value="15"' + (parseInt(spec.postBuffer,10) === 15 ? ' selected' : '') + '>15 min</option><option value="20"' + (parseInt(spec.postBuffer,10) === 20 ? ' selected' : '') + '>20 min</option><option value="25"' + (parseInt(spec.postBuffer,10) === 25 ? ' selected' : '') + '>25 min</option><option value="30"' + (parseInt(spec.postBuffer,10) === 30 ? ' selected' : '') + '>30 min</option></select></div>' +
+      '<div style="min-width:100px"><label style="font-size:0.85em">Pre-buffer</label><select class="advSpec-preBuffer" style="width:100%">' + _buildBufferOptions(spec.preBuffer) + '</select>' +
+      '<input type="number" class="advSpec-preBufferCustom" min="1" max="240" placeholder="min" style="display:' + (_BUFFER_STD.indexOf(parseInt(spec.preBuffer,10)||0) === -1 && (parseInt(spec.preBuffer,10)||0) > 0 ? 'block' : 'none') + ';width:100%;margin-top:2px" value="' + (parseInt(spec.preBuffer,10)||0) + '"></div>' +
+      '<div style="min-width:100px"><label style="font-size:0.85em">Post-buffer</label><select class="advSpec-postBuffer" style="width:100%">' + _buildBufferOptions(spec.postBuffer) + '</select>' +
+      '<input type="number" class="advSpec-postBufferCustom" min="1" max="240" placeholder="min" style="display:' + (_BUFFER_STD.indexOf(parseInt(spec.postBuffer,10)||0) === -1 && (parseInt(spec.postBuffer,10)||0) > 0 ? 'block' : 'none') + ';width:100%;margin-top:2px" value="' + (parseInt(spec.postBuffer,10)||0) + '"></div>' +
     '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">' +
       '<label style="min-width:60px;margin:0;font-size:0.85em">Repeat</label>' +
@@ -1490,6 +1537,10 @@ function buildAdvSpecRow(spec) {
     if (ar) ar.style.display = mode === 'weekday_ab' ? 'flex' : 'none';
   });
 
+  // Wire custom buffer inputs
+  _wireBufferCustomToggle(div.querySelector('.advSpec-preBuffer'), div.querySelector('.advSpec-preBufferCustom'));
+  _wireBufferCustomToggle(div.querySelector('.advSpec-postBuffer'), div.querySelector('.advSpec-postBufferCustom'));
+
   // Wire remove button
   div.querySelector('.adv-spec-remove').addEventListener('click', function() {
     div.remove();
@@ -1512,8 +1563,8 @@ function readAdvancedSpecs(containerId) {
     var spec = { time: time, endTime: endTime, repeat: repeat, repeatUntil: repeatUntil };
     var preEl = row.querySelector('.advSpec-preBuffer');
     var postEl = row.querySelector('.advSpec-postBuffer');
-    spec.preBuffer = preEl ? (parseInt(preEl.value, 10) || 0) : 0;
-    spec.postBuffer = postEl ? (parseInt(postEl.value, 10) || 0) : 0;
+    spec.preBuffer = preEl ? getBufferValue(preEl, row.querySelector('.advSpec-preBufferCustom')) : 0;
+    spec.postBuffer = postEl ? getBufferValue(postEl, row.querySelector('.advSpec-postBufferCustom')) : 0;
     if (repeat === 'custom') {
       var n = parseInt(row.querySelector('.advSpec-repeatInterval').value, 10);
       spec.repeatInterval = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1;
@@ -1653,8 +1704,8 @@ function editEvent(id, occurrenceDate){
   document.getElementById('editLocation').value = eff.location || '';
   document.getElementById('editEmoji').value = eff.emoji || '';
   if (document.getElementById('editCategory')) document.getElementById('editCategory').value = eff.category || 'event';
-  document.getElementById('editPreBuffer').value = parseBufferMinutes(eff.preBuffer || 0);
-  document.getElementById('editPostBuffer').value = parseBufferMinutes(eff.postBuffer || 0);
+  setBufferValue(document.getElementById('editPreBuffer'), document.getElementById('editPreBufferCustom'), eff.preBuffer || 0);
+  setBufferValue(document.getElementById('editPostBuffer'), document.getElementById('editPostBufferCustom'), eff.postBuffer || 0);
 
   // Store the occurrence date (empty string = editing all)
   const occEl = document.getElementById('editOccurrenceDate');
@@ -1724,8 +1775,8 @@ function saveEditHandler(e){
         location: document.getElementById('editLocation') ? document.getElementById('editLocation').value.trim() : '',
         emoji: document.getElementById('editEmoji') ? document.getElementById('editEmoji').value.trim() : '',
         category: (document.getElementById('editCategory') ? document.getElementById('editCategory').value : 'event') || 'event',
-        preBuffer: parseBufferMinutes(document.getElementById('editPreBuffer') ? document.getElementById('editPreBuffer').value : 0),
-        postBuffer: parseBufferMinutes(document.getElementById('editPostBuffer') ? document.getElementById('editPostBuffer').value : 0)
+        preBuffer: getBufferValue(document.getElementById('editPreBuffer'), document.getElementById('editPreBufferCustom')),
+        postBuffer: getBufferValue(document.getElementById('editPostBuffer'), document.getElementById('editPostBufferCustom'))
       }, repeatPayload);
       const newEvAdvSpecs = readAdvancedSpecs('editAdvSpecList');
       if (newEvAdvSpecs.length) newEv.advancedSpecs = newEvAdvSpecs;
@@ -1744,8 +1795,8 @@ function saveEditHandler(e){
         title: text, time: time, startTime: time, endTime: endTime,
         location: document.getElementById('editLocation').value.trim(),
         emoji: document.getElementById('editEmoji').value.trim(),
-        preBuffer: parseBufferMinutes(document.getElementById('editPreBuffer').value),
-        postBuffer: parseBufferMinutes(document.getElementById('editPostBuffer').value)
+        preBuffer: getBufferValue(document.getElementById('editPreBuffer'), document.getElementById('editPreBufferCustom')),
+        postBuffer: getBufferValue(document.getElementById('editPostBuffer'), document.getElementById('editPostBufferCustom'))
       };
       const excCatEl = document.getElementById('editCategory');
       if (excCatEl) exc.category = excCatEl.value || 'event';
@@ -1772,8 +1823,8 @@ function saveEditHandler(e){
     var editCatEl = document.getElementById('editCategory');
     if (editCatEl) evs[idx].category = editCatEl.value || 'event';
     evs[idx].endDate = normalizeDate(document.getElementById('editEndDate') ? document.getElementById('editEndDate').value : '') || '';
-    evs[idx].preBuffer = parseBufferMinutes(document.getElementById('editPreBuffer').value);
-    evs[idx].postBuffer = parseBufferMinutes(document.getElementById('editPostBuffer').value);
+    evs[idx].preBuffer = getBufferValue(document.getElementById('editPreBuffer'), document.getElementById('editPreBufferCustom'));
+    evs[idx].postBuffer = getBufferValue(document.getElementById('editPostBuffer'), document.getElementById('editPostBufferCustom'));
     evs[idx].repeat = repeatPayload.repeat;
     evs[idx].repeatUntil = repeatPayload.repeatUntil || '';
     if (repeatPayload.repeat === 'custom') {
@@ -3007,6 +3058,8 @@ window.editEvent = editEvent;
 window.deleteEvent = deleteEvent;
 window.editReminder = editReminder;
 window.deleteReminder = deleteReminder;
+window.toggleReminderDone = toggleReminderDone;
+window.toggleTaskBannerDone = toggleTaskBannerDone;
 window.editTask = editTask;
 window.showView = showView;
 
@@ -3038,6 +3091,11 @@ document.addEventListener('DOMContentLoaded', function(){
     try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }
     try{ wireRepeatControls(); }catch(e){ console.warn('wireRepeatControls failed', e); }
     try{ wireAdvancedSpecButtons(); }catch(e){ console.warn('wireAdvancedSpecButtons failed', e); }
+    // Wire custom buffer inputs for edit modal
+    try{
+      _wireBufferCustomToggle(document.getElementById('editPreBuffer'), document.getElementById('editPreBufferCustom'));
+      _wireBufferCustomToggle(document.getElementById('editPostBuffer'), document.getElementById('editPostBufferCustom'));
+    }catch(e){ console.warn('wireBufferCustomToggle failed', e); }
 
     // dayPartSelect removed – full 24h scrollable view is now used
   }catch(err){
@@ -5884,8 +5942,8 @@ function applyDomainColorCSS() {
     '.event-preview[data-domain="home"]{--domain-color:' + c.home + ';--domain-bg:' + hexToRgba(c.home, 0.10) + '}',
     '.event-preview[data-domain="personal"]{--domain-color:' + c.personal + ';--domain-bg:' + hexToRgba(c.personal, 0.10) + '}',
     '.event-preview[data-domain="holiday"]{--domain-color:' + c.holiday + ';--domain-bg:' + hexToRgba(c.holiday, 0.10) + '}',
-    '.event-preview.reminder{--domain-color:' + c.personal + ';--domain-bg:' + hexToRgba(c.personal, 0.10) + '}',
-    '.event-preview.task{--domain-color:' + c.home + ';--domain-bg:' + hexToRgba(c.home, 0.10) + '}'
+    '.event-preview.reminder:not([data-domain="apps"]){--domain-color:' + c.personal + ';--domain-bg:' + hexToRgba(c.personal, 0.10) + '}',
+    '.event-preview.task:not([data-domain="apps"]){--domain-color:' + c.home + ';--domain-bg:' + hexToRgba(c.home, 0.10) + '}'
   ].join('\n');
   let el = document.getElementById('domainColorStyle');
   if (!el) { el = document.createElement('style'); el.id = 'domainColorStyle'; document.head.appendChild(el); }
@@ -7612,7 +7670,10 @@ function getPersonalMeals() {
   if (!data[today]) data[today] = { breakfast: { name: '', calories: 0, time: '' }, lunch: { name: '', calories: 0, time: '' }, dinner: { name: '', calories: 0, time: '' }, snacks: { name: '', calories: 0, time: '' } };
   return data;
 }
-function setPersonalMeals(data) { localStorage.setItem('personalMeals', JSON.stringify(data)); }
+function setPersonalMeals(data) {
+  localStorage.setItem('personalMeals', JSON.stringify(data));
+  if (typeof syncMealReminders === 'function') try { syncMealReminders(); } catch(e) { console.warn('syncMealReminders failed:', e); }
+}
 function getCalorieGoal() { return parseInt(localStorage.getItem('personalCalorieGoal') || '2000', 10); }
 function setCalorieGoal(v) { localStorage.setItem('personalCalorieGoal', String(v)); }
 
@@ -11486,6 +11547,32 @@ function _saveAppsSourceRems(appSource, entries, days) {
   });
   setReminders(rems);
 }
+
+/**
+ * Sync meal-time reminders: for any meal with a non-empty name and time across all dates,
+ * create an apps-domain reminder so it shows up in the calendar and reminders list.
+ */
+function syncMealReminders() {
+  var allMeals = safeParseStorage('personalMeals', {});
+  var SLOTS = { breakfast: '🍳 Breakfast', lunch: '🥗 Lunch', dinner: '🍽️ Dinner', snacks: '🍎 Snack' };
+  var entries = [];
+  Object.keys(allMeals).forEach(function(dateKey) {
+    var day = allMeals[dateKey];
+    if (!day || typeof day !== 'object') return;
+    Object.keys(SLOTS).forEach(function(slot) {
+      var m = day[slot];
+      if (!m || !m.name || !m.name.trim() || !m.time) return;
+      entries.push({
+        date: dateKey,
+        text: SLOTS[slot] + ': ' + m.name.trim(),
+        time: m.time,
+        notify: 'at'
+      });
+    });
+  });
+  _saveAppsSourceRems('meal', entries, 90);
+}
+window.syncMealReminders = syncMealReminders;
 
 /** Sync gym session reminders for the next 28 days based on saved settings. */
 function _syncGymReminders() {

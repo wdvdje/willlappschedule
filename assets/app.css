@@ -42,8 +42,9 @@ input[type="text"],input[type="date"],input[type="time"],select{padding:8px;bord
 .quick-add-btn{background:var(--ios-accent);color:#fff;border:none;border-radius:24px;padding:10px 16px;cursor:pointer;font-size:0.93rem;white-space:nowrap;flex-shrink:0;transition:background var(--ios-fast) var(--ios-ease)}
 
 /* indicators */
-.event-preview.reminder { color: var(--ios-amber); }
-.event-preview.task { color: green; }
+.event-preview.reminder:not([data-domain="apps"]) { color: var(--ios-amber); }
+.event-preview.task:not([data-domain="apps"]) { color: green; }
+.event-preview[data-domain="apps"] { color: var(--domain-color, #ff6b6b); }
 .reminder-dot { display:none; }
 
 /* places suggestion dropdown */
@@ -902,8 +903,8 @@ kbd { display:inline-block; background:#f0f0f0; border:1px solid var(--ios-borde
     max-width: 80px;
   }
   .event-preview .ep-emoji { flex-shrink: 0; }
-  .event-preview.reminder { --domain-color: var(--ios-amber); --domain-bg: rgba(230,126,34,0.10); }
-  .event-preview.task { --domain-color: var(--ios-success); --domain-bg: rgba(39,174,96,0.10); display: none; }
+  .event-preview.reminder:not([data-domain="apps"]) { --domain-color: var(--ios-amber); --domain-bg: rgba(230,126,34,0.10); }
+  .event-preview.task:not([data-domain="apps"]) { --domain-color: var(--ios-success); --domain-bg: rgba(39,174,96,0.10); display: none; }
   .event-block { white-space: normal; overflow: visible; text-overflow: clip; }
   #undoToast { bottom: 80px; }
   #shortcutHints { bottom: 80px; }
