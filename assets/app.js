@@ -7954,9 +7954,13 @@ function _billNextOccurrences(bill, n) {
   if (isNaN(base.getTime())) return [];
 
   var next = new Date(base);
-  // Advance to a future occurrence
+  // Advance to the next future occurrence.
+  // Max iterations: monthly repeat over 50 years = 600; weekly = 2600 but we cap at weekly/52*50=2600.
+  // Use frequency-aware limit so we don't stop early for long-dormant bills.
+  var freqPerYear = repeat === 'weekly' ? 52 : repeat === 'biweekly' ? 26 : repeat === 'quarterly' ? 4 : repeat === 'yearly' ? 1 : 12;
+  var maxIter = freqPerYear * 60; // up to 60 years of back-catch-up
   var safety = 0;
-  while (next < now && safety++ < 600) {
+  while (next < now && safety++ < maxIter) {
     if (repeat === 'weekly')        next.setDate(next.getDate() + 7);
     else if (repeat === 'biweekly') next.setDate(next.getDate() + 14);
     else if (repeat === 'quarterly')next.setMonth(next.getMonth() + 3);
@@ -11514,7 +11518,7 @@ function _budgetFvOverview(body, container) {
       if (!goals[gi]) return;
       goals[gi].current = parseFloat((inp || {}).value) || 0;
       localStorage.setItem('personalSavingsGoals', JSON.stringify(goals));
-      try { syncBudgetNotifications(); } catch (_) {}
+      try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
       renderBudgetAppFull(container);
     });
   });
@@ -11744,7 +11748,7 @@ function _budgetFvManage(body, container) {
           repeat: form.querySelector('#bfvEditRepeat').value
         };
         setPersonalBudget(b2);
-        try { syncBudgetNotifications(); } catch (_) {}
+        try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
         renderBudgetAppFull(container);
       });
       form.querySelector('.bfvEditCancel').addEventListener('click', function() { form.remove(); });
@@ -11755,7 +11759,7 @@ function _budgetFvManage(body, container) {
     btn.addEventListener('click', function() {
       var bi = parseInt(btn.dataset.bi, 10);
       var b = getPersonalBudget(); b.bills.splice(bi, 1); setPersonalBudget(b);
-      try { syncBudgetNotifications(); } catch (_) {}
+      try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
       renderBudgetAppFull(container);
     });
   });
@@ -11781,7 +11785,7 @@ function _budgetFvManage(body, container) {
       repeat: repeatEl ? repeatEl.value : 'monthly'
     });
     setPersonalBudget(b);
-    try { syncBudgetNotifications(); } catch (_) {}
+    try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
     renderBudgetAppFull(container);
   });
 
@@ -11790,7 +11794,7 @@ function _budgetFvManage(body, container) {
     btn.addEventListener('click', function() {
       var pi = parseInt(btn.dataset.pi, 10);
       var b = getPersonalBudget(); b.payPeriods.splice(pi, 1); setPersonalBudget(b);
-      try { syncBudgetNotifications(); } catch (_) {}
+      try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
       renderBudgetAppFull(container);
     });
   });
@@ -11809,7 +11813,7 @@ function _budgetFvManage(body, container) {
       jobName: jobEl ? jobEl.value : ''
     });
     setPersonalBudget(b);
-    try { syncBudgetNotifications(); } catch (_) {}
+    try { syncBudgetNotifications(); } catch (e) { console.warn("[Budget] syncBudgetNotifications:", e); }
     renderBudgetAppFull(container);
   });
 
@@ -12061,10 +12065,18 @@ function _budgetFvDebt(body, container) {
       var balance = parseFloat(debt.balance || 0);
       var minPmt  = parseFloat(debt.minPayment || 0);
       var rate    = parseFloat(debt.rate || 0);
-      // Simple payoff estimate (months to pay off at min payment)
-      var payoffMonths = (minPmt > 0 && rate > 0)
-        ? Math.ceil(Math.log(minPmt / (minPmt - balance * (rate / 1200))) / Math.log(1 + rate / 1200))
-        : (minPmt > 0 ? Math.ceil(balance / minPmt) : null);
+      // Simple payoff estimate (months to pay off at min payment).
+      // Guard against cases where the minimum payment doesn't cover monthly interest,
+      // which would make the logarithm argument ≤ 0 (debt never paid off at this rate).
+      var monthlyInterest = balance * (rate / 1200);
+      var payoffMonths;
+      if (minPmt > 0 && rate > 0 && minPmt > monthlyInterest) {
+        payoffMonths = Math.ceil(Math.log(minPmt / (minPmt - monthlyInterest)) / Math.log(1 + rate / 1200));
+      } else if (minPmt > 0 && rate === 0) {
+        payoffMonths = Math.ceil(balance / minPmt);
+      } else {
+        payoffMonths = null; // payment doesn't cover interest — never paid off
+      }
       var payoffStr = payoffMonths && isFinite(payoffMonths) && payoffMonths > 0
         ? (payoffMonths >= 12
           ? Math.floor(payoffMonths / 12) + 'y ' + (payoffMonths % 12) + 'mo'

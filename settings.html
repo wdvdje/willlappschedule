@@ -286,12 +286,12 @@
           settings[appId].enabled = e.target.checked;
           // Trigger budget notification sync if the budget toggle changed
           if (appId === 'budget' && window.syncBudgetNotifications) {
-            try { window.syncBudgetNotifications(); } catch(_) {}
+            try { window.syncBudgetNotifications(); } catch(e) { console.warn("[AppNotif] syncBudgetNotifications failed:", e); }
           }
         } else if (e.target.classList.contains('app-notif-lead-sel')) {
           settings[appId].leadTime = e.target.value;
           if (appId === 'budget' && window.syncBudgetNotifications) {
-            try { window.syncBudgetNotifications(); } catch(_) {}
+            try { window.syncBudgetNotifications(); } catch(e) { console.warn("[AppNotif] syncBudgetNotifications failed:", e); }
           }
         }
         saveSettings(settings);
