@@ -89,16 +89,22 @@
     var vibrated = false;
     try {
       if (navigator.vibrate) {
-        navigator.vibrate(pattern || [10]);
-        vibrated = true;
+        // navigator.vibrate returns true only if the device supports it and
+        // the call was accepted; false means it's present but non-functional
+        // (e.g., some iOS builds expose the property but never act on it).
+        vibrated = navigator.vibrate(pattern || [10]) === true;
       }
     } catch (_) {}
 
-    // iOS: navigator.vibrate is undefined — use audio micro-click instead
+    // iOS: vibrate absent or returned false — use audio micro-click instead
     if (!vibrated) {
       _audioTick(freq || 800, duration || 0.012, gain || 0.04);
     }
   }
+
+  // success pattern: [10, 40, 10] — first pulse at t=0, second at t=50ms (10+40).
+  // The second audio tick is offset by 50ms to mirror the double-pulse feel.
+  var _SUCCESS_SECOND_TICK_MS = 50; // 10ms on + 40ms gap
 
   // Semantic haptic helpers (mirrors iOS UIImpactFeedbackGenerator patterns)
   var haptics = {
@@ -106,7 +112,7 @@
     medium:  function () { haptic([14],                   440, 0.014, 0.07); },
     heavy:   function () { haptic([22],                   200, 0.022, 0.12); },
     success: function () { haptic([10, 40, 10],           600, 0.010, 0.05);
-                           setTimeout(function () { _audioTick(900, 0.008, 0.04); }, 55); },
+                           setTimeout(function () { _audioTick(900, 0.008, 0.04); }, _SUCCESS_SECOND_TICK_MS); },
     warning: function () { haptic([20, 30, 20],           300, 0.020, 0.09); },
     error:   function () { haptic([30, 20, 30, 20, 30],  180, 0.030, 0.14); },
     select:  function () { haptic([6],                    1000, 0.006, 0.03); },
