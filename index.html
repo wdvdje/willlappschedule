@@ -1704,6 +1704,10 @@
 
       // Set pin toggle state
       var pinToggle = document.getElementById('appWindowPinToggle');
+      // Apps that surface pin in their full-screen Settings tab don't need it in the header
+      var _APPS_WITH_SETTINGS_PIN = ['routine', 'sleep', 'mood', 'focus', 'hydration', 'gym', 'clothes', 'jobs', 'journal'];
+      var pinLabel = document.querySelector('.app-window-pin-label');
+      if (pinLabel) pinLabel.style.display = _APPS_WITH_SETTINGS_PIN.indexOf(app) >= 0 ? 'none' : '';
       if (pinToggle) {
         var pinned = {};
         try { pinned = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}

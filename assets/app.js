@@ -8568,28 +8568,7 @@ function renderRoutineChecklist() {
     info.textContent = 'Build consistent morning & evening routines. Checked items reset each day.';
     body.appendChild(info);
 
-    /* ── Sleep sync toggle ── */
-    var syncRow = document.createElement('div');
-    syncRow.className = 'routine-sync-row';
-    var syncLabel = document.createElement('label');
-    syncLabel.className = 'routine-sync-label';
-    var syncCb = document.createElement('input');
-    syncCb.type = 'checkbox';
-    syncCb.id = 'routineSleepSyncToggle';
-    syncCb.checked = !!routines.syncEnabled;
-    syncCb.addEventListener('change', function() {
-      var r = getPersonalRoutines();
-      r.syncEnabled = syncCb.checked;
-      setPersonalRoutines(r);
-      if (r.syncEnabled) syncRoutineTimesFromSleep();
-      renderRoutineChecklist();
-    });
-    syncLabel.appendChild(syncCb);
-    syncLabel.appendChild(document.createTextNode(' Sync times with Sleep Schedule'));
-    syncRow.appendChild(syncLabel);
-    body.appendChild(syncRow);
-
-    /* Resolved times for today when sync is on */
+    /* Resolved times for today when sync is on (toggle moved to full-screen Settings tab) */
     var todayDayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
     var syncTimes = (routines.syncEnabled && routines.sleepScheduleTimes)
       ? (routines.sleepScheduleTimes[todayDayName] || null)
@@ -11649,18 +11628,33 @@ function _syncGymReminders() {
 }
 window._syncGymReminders = _syncGymReminders;
 
-/** Sync daily routine reminders for the next 30 days based on saved settings. */
+/** Sync daily routine reminders for the next 30 days based on saved settings.
+ *  When Sleep Schedule sync is enabled the per-day synced start times are used
+ *  instead of the manually-entered fallback times. */
 function _syncRoutineReminders() {
   var cfg = getAppRemSettings().routine || {};
+  var routines = getPersonalRoutines();
+  var syncEnabled = !!routines.syncEnabled;
+  var sleepTimes  = routines.sleepScheduleTimes || {};
+  var DAYS_ABBR   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   var entries = [];
   var _base = new Date();
   for (var di = 0; di < 30; di++) {
     var d = new Date(_base.getFullYear(), _base.getMonth(), _base.getDate() + di);
     var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
-    if (cfg.morningEnabled && cfg.morningTime)
-      entries.push({ date: dk, text: '🌅 Start morning routine', time: cfg.morningTime, notify: 'at' });
-    if (cfg.eveningEnabled && cfg.eveningTime)
-      entries.push({ date: dk, text: '🌙 Start evening routine', time: cfg.eveningTime, notify: 'at' });
+    var dayName = DAYS_ABBR[d.getDay()];
+    // Start with the user's manually-saved fallback times
+    var morningTime = cfg.morningTime || '07:00';
+    var eveningTime = cfg.eveningTime || '21:00';
+    // Override with sleep-synced times when the feature is on
+    if (syncEnabled && sleepTimes[dayName]) {
+      if (sleepTimes[dayName].morningStart) morningTime = sleepTimes[dayName].morningStart;
+      if (sleepTimes[dayName].eveningStart) eveningTime = sleepTimes[dayName].eveningStart;
+    }
+    if (cfg.morningEnabled)
+      entries.push({ date: dk, text: '🌅 Start morning routine', time: morningTime, notify: 'at' });
+    if (cfg.eveningEnabled)
+      entries.push({ date: dk, text: '🌙 Start evening routine', time: eveningTime, notify: 'at' });
   }
   _saveAppsSourceRems('routine', entries, 30);
 }
@@ -13670,80 +13664,491 @@ function renderGymAppFull(container) {
   }
 }
 
-function renderRoutineAppFull(container) {
-  var tab = container._routineTab || 'morning';
-  container._routineTab = tab;
-  var TABS = [
-    { key: 'morning', label: '\ud83c\udf05 Morning' },
-    { key: 'evening', label: '\ud83c\udf19 Evening' },
-    { key: 'history', label: '\ud83d\udcc5 History' },
-    { key: 'settings',label: '\u2699\ufe0f Settings' }
-  ];
-  var body = _fvBuildTabs(container, TABS, tab, function(k) {
-    container._routineTab = k;
-    renderRoutineAppFull(container);
-  });
 
-  var routines = getPersonalRoutines(), today = getTodayISO(), log = getPersonalRoutineLog();
-  if (!log[today]) log[today] = { morning: [], evening: [] };
-  var todayLog = log[today];
+/* ── Daily Routines Full View helpers ─────────────────────────────── */
 
-  function buildPeriod(period, emoji) {
-    var items = routines[period] || [], checked = todayLog[period] || [];
-    var done = checked.length, total = items.length, pct = total > 0 ? Math.round(done / total * 100) : 0;
-    var h = '<h3 class="app-full-col-heading">' + emoji + ' ' + period.charAt(0).toUpperCase() + period.slice(1) + ' Routine</h3>';
-    h += '<p style="font-size:0.82rem;color:var(--ios-text-3);margin:0 0 6px">' + done + ' / ' + total + ' steps completed</p>';
-    if (total) h += '<div class="app-routine-pbar"><div style="width:' + pct + '%;background:' + (pct === 100 ? '#27ae60' : 'var(--ios-accent)') + ';height:5px;border-radius:3px"></div></div>';
-    items.forEach(function(item, idx) {
-      var isDone = checked.indexOf(idx) >= 0;
-      h += '<div class="app-routine-item' + (isDone ? ' done' : '') + '" data-period="' + period + '" data-idx="' + idx + '">' +
-        '<input type="checkbox" class="app-routine-cb"' + (isDone ? ' checked' : '') + '/>' +
-        '<span>' + escapeHTML(typeof item === 'string' ? item : (item.text || item.name || '')) + '</span></div>';
-    });
-    if (!total) h += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No steps yet.</p>';
-    return h;
+/**
+ * Normalise a routine step value (string or object) into a full step object.
+ */
+function _routineNormaliseStep(item) {
+  if (typeof item === 'string') return { text: item, duration: 0, notes: '', subtasks: [] };
+  return Object.assign({ duration: 0, notes: '', subtasks: [] }, item);
+}
+
+/**
+ * Render an editable routine-period tab (morning / evening or a custom phase).
+ * @param {Element} body        - the mf-tab-body element to render into
+ * @param {string}  periodKey   - storage key: 'morning', 'evening', or a custom phase id
+ * @param {string}  emoji       - emoji for the heading
+ * @param {string}  phaseTitle  - human-readable phase name
+ * @param {Element} container   - the app window content container (for re-render)
+ * @param {boolean} isCustom    - true when the period lives in routines.customPhases
+ */
+function _buildRoutinePeriodFull(body, periodKey, emoji, phaseTitle, container, isCustom) {
+  var routines = getPersonalRoutines();
+  var today    = getTodayISO();
+  var log      = getPersonalRoutineLog();
+  if (!log[today]) log[today] = {};
+
+  // Helper: read the item array for this period
+  function getItems() {
+    if (isCustom) {
+      var ph = (getPersonalRoutines().customPhases || []).find(function(p) { return p.id === periodKey; });
+      return (ph ? ph.items || [] : []).map(_routineNormaliseStep);
+    }
+    return (getPersonalRoutines()[periodKey] || []).map(_routineNormaliseStep);
   }
 
-  if (tab === 'morning') {
-    body.innerHTML = buildPeriod('morning', '\ud83c\udf05');
-    body.querySelectorAll('.app-routine-cb').forEach(function(cb) {
-      cb.addEventListener('change', function() {
-        var row = cb.closest('[data-period]'); if (!row) return;
-        var period = row.dataset.period, idx = parseInt(row.dataset.idx, 10);
+  // Helper: save the item array back
+  function saveItems(items) {
+    var r = getPersonalRoutines();
+    if (isCustom) {
+      var phases = r.customPhases || [];
+      var pi = phases.findIndex(function(p) { return p.id === periodKey; });
+      if (pi >= 0) phases[pi].items = items;
+      r.customPhases = phases;
+    } else {
+      r[periodKey] = items;
+    }
+    setPersonalRoutines(r);
+  }
+
+  var items   = getItems();
+  var checked = log[today][periodKey] || [];
+  var subsLog = log[today][periodKey + '_subs'] || {};
+
+  var done  = checked.filter(function(i) { return i < items.length; }).length;
+  var total = items.length;
+  var pct   = total > 0 ? Math.round(done / total * 100) : 0;
+
+  // ── Heading + progress ──────────────────────────────────────────────
+  var heading = document.createElement('h3');
+  heading.className = 'app-full-col-heading';
+  heading.textContent = emoji + ' ' + phaseTitle + ' Routine';
+  body.appendChild(heading);
+
+  var prog = document.createElement('p');
+  prog.style.cssText = 'font-size:0.82rem;color:var(--ios-text-3);margin:0 0 6px';
+  prog.textContent = done + ' / ' + total + ' steps completed';
+  body.appendChild(prog);
+
+  if (total) {
+    var pbarWrap = document.createElement('div');
+    pbarWrap.className = 'app-routine-pbar';
+    var pbarFill = document.createElement('div');
+    pbarFill.style.cssText = 'width:' + pct + '%;background:' + (pct === 100 ? '#27ae60' : 'var(--ios-accent)') + ';height:5px;border-radius:3px';
+    pbarWrap.appendChild(pbarFill);
+    body.appendChild(pbarWrap);
+  }
+
+  // ── Step list ───────────────────────────────────────────────────────
+  var stepList = document.createElement('div');
+  stepList.className = 'app-routine-step-list';
+  stepList.style.cssText = 'margin-top:8px;';
+
+  items.forEach(function(item, idx) {
+    var isDone   = checked.indexOf(idx) >= 0;
+    var doneSubs = subsLog[String(idx)] || [];
+
+    // ── Step row ──────────────────────────────────────────────────────
+    var stepRow = document.createElement('div');
+    stepRow.className = 'app-routine-fv-step' + (isDone ? ' done' : '');
+    stepRow.style.cssText = 'display:flex;align-items:center;gap:6px;padding:4px 0;';
+
+    // Checkbox
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.className = 'app-routine-cb';
+    cb.checked = isDone;
+    cb.addEventListener('change', function() {
+      var l = getPersonalRoutineLog();
+      if (!l[today]) l[today] = {};
+      if (!l[today][periodKey]) l[today][periodKey] = [];
+      if (cb.checked) { if (l[today][periodKey].indexOf(idx) < 0) l[today][periodKey].push(idx); }
+      else { l[today][periodKey] = l[today][periodKey].filter(function(i) { return i !== idx; }); }
+      setPersonalRoutineLog(l);
+      renderRoutineAppFull(container);
+    });
+    stepRow.appendChild(cb);
+
+    // Step text (click-to-edit inline)
+    var textSpan = document.createElement('span');
+    textSpan.className = 'app-routine-fv-text';
+    textSpan.textContent = item.text || '';
+    textSpan.title = 'Click to edit';
+    textSpan.style.cssText = 'flex:1;cursor:pointer;' + (isDone ? 'text-decoration:line-through;color:var(--ios-text-3);' : '');
+    textSpan.addEventListener('click', function() {
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.value = item.text || '';
+      input.style.cssText = 'flex:1;padding:2px 4px;font-size:inherit;border:1px solid var(--ios-accent);border-radius:4px;width:100%;';
+      textSpan.replaceWith(input);
+      input.focus(); input.select();
+      function saveEdit() {
+        var newText = input.value.trim();
+        if (newText) {
+          var curItems = getItems();
+          if (curItems[idx]) { curItems[idx].text = newText; saveItems(curItems); }
+        }
+        renderRoutineAppFull(container);
+      }
+      input.addEventListener('blur', saveEdit);
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+        if (e.key === 'Escape') { renderRoutineAppFull(container); }
+      });
+    });
+    stepRow.appendChild(textSpan);
+
+    // Duration input (minutes)
+    var durInput = document.createElement('input');
+    durInput.type = 'number';
+    durInput.min = '0'; durInput.max = '999';
+    durInput.value = item.duration || 0;
+    durInput.title = 'Minutes';
+    durInput.style.cssText = 'width:40px;padding:2px 3px;font-size:0.78rem;text-align:center;border:1px solid var(--ios-border,#ddd);border-radius:4px;flex-shrink:0;';
+    durInput.addEventListener('change', function() {
+      var curItems = getItems();
+      if (curItems[idx] !== undefined) {
+        curItems[idx].duration = Math.max(0, parseInt(durInput.value, 10) || 0);
+        saveItems(curItems);
+      }
+    });
+    var durLabel = document.createElement('span');
+    durLabel.textContent = 'm';
+    durLabel.style.cssText = 'font-size:0.7rem;color:var(--ios-text-3);flex-shrink:0;';
+    stepRow.appendChild(durInput);
+    stepRow.appendChild(durLabel);
+
+    // Delete step button
+    var delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.className = 'routine-del-btn';
+    delBtn.style.cssText = 'flex-shrink:0;';
+    delBtn.addEventListener('click', function() {
+      var curItems = getItems();
+      curItems.splice(idx, 1);
+      saveItems(curItems);
+      var l = getPersonalRoutineLog();
+      if (l[today]) {
+        if (l[today][periodKey]) {
+          l[today][periodKey] = l[today][periodKey]
+            .filter(function(i) { return i !== idx; })
+            .map(function(i) { return i > idx ? i - 1 : i; });
+        }
+        var subs = l[today][periodKey + '_subs'] || {};
+        var newSubs = {};
+        Object.keys(subs).forEach(function(k) {
+          var ki = parseInt(k, 10);
+          if (ki === idx) return;
+          newSubs[String(ki > idx ? ki - 1 : ki)] = subs[k];
+        });
+        l[today][periodKey + '_subs'] = newSubs;
+        setPersonalRoutineLog(l);
+      }
+      renderRoutineAppFull(container);
+    });
+    stepRow.appendChild(delBtn);
+    stepList.appendChild(stepRow);
+
+    // ── Subtasks for this step ────────────────────────────────────────
+    var subtasks = item.subtasks || [];
+    subtasks.forEach(function(sub, si) {
+      var subDone = doneSubs.indexOf(si) >= 0;
+      var subRow  = document.createElement('div');
+      subRow.className = 'app-routine-fv-subtask' + (subDone ? ' done' : '');
+      subRow.style.cssText = 'display:flex;align-items:center;gap:6px;padding:2px 0 2px 28px;';
+
+      var subCb = document.createElement('input');
+      subCb.type = 'checkbox';
+      subCb.checked = subDone;
+      subCb.style.cssText = 'flex-shrink:0;';
+      subCb.addEventListener('change', function() {
         var l = getPersonalRoutineLog();
-        if (!l[today]) l[today] = { morning: [], evening: [] };
-        if (!l[today][period]) l[today][period] = [];
-        if (cb.checked) { if (l[today][period].indexOf(idx) < 0) l[today][period].push(idx); }
-        else { l[today][period] = l[today][period].filter(function(i) { return i !== idx; }); }
+        if (!l[today]) l[today] = {};
+        if (!l[today][periodKey + '_subs']) l[today][periodKey + '_subs'] = {};
+        var arr = (l[today][periodKey + '_subs'][String(idx)] || []).slice();
+        if (subCb.checked) { if (arr.indexOf(si) < 0) arr.push(si); }
+        else { arr = arr.filter(function(i) { return i !== si; }); }
+        l[today][periodKey + '_subs'][String(idx)] = arr;
         setPersonalRoutineLog(l);
         renderRoutineAppFull(container);
       });
+
+      var subText = document.createElement('span');
+      subText.textContent = sub.text || '';
+      subText.style.cssText = 'flex:1;font-size:0.87rem;cursor:pointer;' + (subDone ? 'text-decoration:line-through;color:var(--ios-text-3);' : '');
+      subText.addEventListener('click', function() {
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.value = sub.text || '';
+        inp.style.cssText = 'flex:1;padding:1px 4px;font-size:0.87rem;border:1px solid var(--ios-accent);border-radius:4px;width:100%;';
+        subText.replaceWith(inp);
+        inp.focus();
+        function saveSub() {
+          var newText = inp.value.trim();
+          if (newText) {
+            var curItems = getItems();
+            if (curItems[idx] && curItems[idx].subtasks && curItems[idx].subtasks[si]) {
+              curItems[idx].subtasks[si].text = newText;
+              saveItems(curItems);
+            }
+          }
+          renderRoutineAppFull(container);
+        }
+        inp.addEventListener('blur', saveSub);
+        inp.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') { e.preventDefault(); saveSub(); }
+          if (e.key === 'Escape') { renderRoutineAppFull(container); }
+        });
+      });
+
+      var delSubBtn = document.createElement('button');
+      delSubBtn.textContent = '✕';
+      delSubBtn.className = 'routine-del-btn';
+      delSubBtn.style.cssText = 'padding:0 4px;font-size:0.7rem;flex-shrink:0;';
+      delSubBtn.addEventListener('click', function() {
+        var curItems = getItems();
+        if (curItems[idx] && curItems[idx].subtasks) {
+          curItems[idx].subtasks.splice(si, 1);
+          saveItems(curItems);
+        }
+        var l = getPersonalRoutineLog();
+        if (l[today] && l[today][periodKey + '_subs'] && l[today][periodKey + '_subs'][String(idx)]) {
+          var arr = l[today][periodKey + '_subs'][String(idx)];
+          l[today][periodKey + '_subs'][String(idx)] = arr
+            .filter(function(i) { return i !== si; })
+            .map(function(i) { return i > si ? i - 1 : i; });
+          setPersonalRoutineLog(l);
+        }
+        renderRoutineAppFull(container);
+      });
+
+      subRow.appendChild(subCb);
+      subRow.appendChild(subText);
+      subRow.appendChild(delSubBtn);
+      stepList.appendChild(subRow);
     });
+
+    // "Add subtask" trigger link
+    var addSubLink = document.createElement('button');
+    addSubLink.textContent = '+ Add subtask';
+    addSubLink.className = 'app-fv-link-btn';
+    addSubLink.style.cssText = 'margin-left:28px;font-size:0.76rem;padding:1px 0;display:block;background:none;border:none;color:var(--ios-accent);cursor:pointer;';
+    addSubLink.addEventListener('click', function() {
+      addSubLink.style.display = 'none';
+      var subInput = document.createElement('input');
+      subInput.type = 'text';
+      subInput.placeholder = 'Subtask text…';
+      subInput.style.cssText = 'margin-left:28px;padding:2px 6px;font-size:0.82rem;border:1px solid var(--ios-accent);border-radius:4px;width:calc(100% - 36px);';
+      addSubLink.insertAdjacentElement('afterend', subInput);
+      subInput.focus();
+      var saved = false;
+      function saveNewSub() {
+        if (saved) return; saved = true;
+        var text = subInput.value.trim();
+        if (text) {
+          var curItems = getItems();
+          if (curItems[idx]) {
+            if (!curItems[idx].subtasks) curItems[idx].subtasks = [];
+            curItems[idx].subtasks.push({ text: text });
+            saveItems(curItems);
+          }
+        }
+        renderRoutineAppFull(container);
+      }
+      subInput.addEventListener('blur', function() { setTimeout(saveNewSub, 150); });
+      subInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveNewSub(); }
+        if (e.key === 'Escape') { saved = true; renderRoutineAppFull(container); }
+      });
+    });
+    stepList.appendChild(addSubLink);
+  });
+
+  body.appendChild(stepList);
+
+  // ── Add step form ───────────────────────────────────────────────────
+  var addRow = document.createElement('div');
+  addRow.style.cssText = 'margin-top:12px;display:flex;gap:6px;align-items:center;';
+  var addInput = document.createElement('input');
+  addInput.type = 'text';
+  addInput.placeholder = 'Add step…';
+  addInput.style.cssText = 'flex:1;padding:6px 8px;border:1px solid var(--ios-border,#ddd);border-radius:6px;font-size:0.9rem;';
+  var addDurInput = document.createElement('input');
+  addDurInput.type = 'number';
+  addDurInput.placeholder = 'min';
+  addDurInput.min = '0';
+  addDurInput.title = 'Duration in minutes';
+  addDurInput.style.cssText = 'width:50px;padding:6px 4px;border:1px solid var(--ios-border,#ddd);border-radius:6px;font-size:0.9rem;text-align:center;';
+  var addBtn = document.createElement('button');
+  addBtn.className = 'app-fv-save-btn';
+  addBtn.textContent = '＋ Add';
+  addBtn.addEventListener('click', function() {
+    var text = addInput.value.trim();
+    if (!text) return;
+    var dur = Math.max(0, parseInt(addDurInput.value, 10) || 0);
+    var curItems = getItems();
+    curItems.push({ text: text, duration: dur, notes: '', subtasks: [] });
+    saveItems(curItems);
+    addInput.value = '';
+    addDurInput.value = '';
+    renderRoutineAppFull(container);
+  });
+  addInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
+  });
+  addRow.appendChild(addInput);
+  addRow.appendChild(addDurInput);
+  addRow.appendChild(addBtn);
+  body.appendChild(addRow);
+}
+
+function renderRoutineAppFull(container) {
+  var routines = getPersonalRoutines();
+  var customPhases = routines.customPhases || [];
+
+  // Build the ordered list of routine tab keys (morning + evening + custom phases)
+  var savedOrder = routines.routineTabOrder;
+  var defaultOrder = ['morning', 'evening'];
+  customPhases.forEach(function(ph) { if (defaultOrder.indexOf(ph.id) < 0) defaultOrder.push(ph.id); });
+  var routineTabOrder = Array.isArray(savedOrder) ? savedOrder : defaultOrder;
+  // Ensure every custom phase is represented
+  customPhases.forEach(function(ph) {
+    if (routineTabOrder.indexOf(ph.id) < 0) routineTabOrder.push(ph.id);
+  });
+
+  // Validate the active tab key
+  var tab = container._routineTab;
+  var validRoutineKeys = routineTabOrder.concat(['history', 'settings']);
+  if (!tab || validRoutineKeys.indexOf(tab) < 0) tab = routineTabOrder[0] || 'morning';
+  container._routineTab = tab;
+
+  // ── Build tab bar ──────────────────────────────────────────────────
+  container.innerHTML = '';
+  var tabBar = document.createElement('div');
+  tabBar.className = 'mf-tab-bar';
+  tabBar.style.cssText = 'display:flex;align-items:center;flex-wrap:wrap;gap:0;';
+
+  // Left: routine tabs (draggable to reorder)
+  var tabsLeft = document.createElement('div');
+  tabsLeft.style.cssText = 'display:flex;align-items:center;flex:1;flex-wrap:wrap;';
+
+  routineTabOrder.forEach(function(key) {
+    var label = '';
+    if (key === 'morning') label = '\ud83c\udf05 Morning';
+    else if (key === 'evening') label = '\ud83c\udf19 Evening';
+    else {
+      var ph = customPhases.find(function(p) { return p.id === key; });
+      if (!ph) return;
+      label = (ph.emoji || '\u2b50') + ' ' + ph.name;
+    }
+    var btn = document.createElement('button');
+    btn.className = 'mf-tab-btn' + (key === tab ? ' active' : '');
+    btn.textContent = label;
+    btn.dataset.tabKey = key;
+    btn.draggable = true;
+    btn.title = 'Drag to reorder';
+    btn.addEventListener('click', function() {
+      container._routineTab = key;
+      renderRoutineAppFull(container);
+    });
+    // Drag-to-reorder
+    btn.addEventListener('dragstart', function(e) {
+      e.dataTransfer.setData('text/plain', key);
+      e.dataTransfer.effectAllowed = 'move';
+      btn.classList.add('dragging');
+    });
+    btn.addEventListener('dragend', function() { btn.classList.remove('dragging'); });
+    btn.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      btn.classList.add('drag-over');
+    });
+    btn.addEventListener('dragleave', function() { btn.classList.remove('drag-over'); });
+    btn.addEventListener('drop', function(e) {
+      e.preventDefault();
+      btn.classList.remove('drag-over');
+      var fromKey = e.dataTransfer.getData('text/plain');
+      if (!fromKey || fromKey === key) return;
+      var r = getPersonalRoutines();
+      var order = (r.routineTabOrder || routineTabOrder).slice();
+      var fromIdx = order.indexOf(fromKey);
+      var toIdx   = order.indexOf(key);
+      if (fromIdx < 0 || toIdx < 0) return;
+      order.splice(fromIdx, 1);
+      order.splice(toIdx, 0, fromKey);
+      r.routineTabOrder = order;
+      setPersonalRoutines(r);
+      renderRoutineAppFull(container);
+    });
+    tabsLeft.appendChild(btn);
+  });
+  tabBar.appendChild(tabsLeft);
+
+  // Right: ＋ button + History + Settings
+  var tabsRight = document.createElement('div');
+  tabsRight.style.cssText = 'display:flex;align-items:center;gap:1px;margin-left:auto;flex-shrink:0;';
+
+  var addTabBtn = document.createElement('button');
+  addTabBtn.className = 'mf-tab-btn';
+  addTabBtn.textContent = '\uff0b';
+  addTabBtn.title = 'Add new routine';
+  addTabBtn.style.cssText = 'padding:0 10px;font-weight:700;';
+  addTabBtn.addEventListener('click', function() {
+    var name = prompt('Routine name (e.g. "Afternoon"):');
+    if (!name || !name.trim()) return;
+    var emoji = prompt('Emoji for this routine (optional):', '\u2b50') || '\u2b50';
+    var r = getPersonalRoutines();
+    var id = 'custom_' + Date.now();
+    if (!r.customPhases) r.customPhases = [];
+    r.customPhases.push({ id: id, name: name.trim(), emoji: emoji.trim() || '\u2b50', items: [] });
+    if (!r.routineTabOrder) r.routineTabOrder = ['morning', 'evening'];
+    r.routineTabOrder.push(id);
+    setPersonalRoutines(r);
+    container._routineTab = id;
+    renderRoutineAppFull(container);
+  });
+  tabsRight.appendChild(addTabBtn);
+
+  [{ key: 'history', label: '\ud83d\udcc5 History' }, { key: 'settings', label: '\u2699\ufe0f Settings' }].forEach(function(t) {
+    var btn = document.createElement('button');
+    btn.className = 'mf-tab-btn' + (t.key === tab ? ' active' : '');
+    btn.textContent = t.label;
+    btn.addEventListener('click', function() {
+      container._routineTab = t.key;
+      renderRoutineAppFull(container);
+    });
+    tabsRight.appendChild(btn);
+  });
+  tabBar.appendChild(tabsRight);
+  container.appendChild(tabBar);
+
+  // ── Tab body ───────────────────────────────────────────────────────
+  var body = document.createElement('div');
+  body.className = 'mf-tab-body';
+  container.appendChild(body);
+
+  var today = getTodayISO();
+  var log   = getPersonalRoutineLog();
+  if (!log[today]) log[today] = {};
+
+  if (tab === 'morning') {
+    _buildRoutinePeriodFull(body, 'morning', '\ud83c\udf05', 'Morning', container, false);
 
   } else if (tab === 'evening') {
-    body.innerHTML = buildPeriod('evening', '\ud83c\udf19');
-    body.querySelectorAll('.app-routine-cb').forEach(function(cb) {
-      cb.addEventListener('change', function() {
-        var row = cb.closest('[data-period]'); if (!row) return;
-        var period = row.dataset.period, idx = parseInt(row.dataset.idx, 10);
-        var l = getPersonalRoutineLog();
-        if (!l[today]) l[today] = { morning: [], evening: [] };
-        if (!l[today][period]) l[today][period] = [];
-        if (cb.checked) { if (l[today][period].indexOf(idx) < 0) l[today][period].push(idx); }
-        else { l[today][period] = l[today][period].filter(function(i) { return i !== idx; }); }
-        setPersonalRoutineLog(l);
-        renderRoutineAppFull(container);
-      });
-    });
+    _buildRoutinePeriodFull(body, 'evening', '\ud83c\udf19', 'Evening', container, false);
 
   } else if (tab === 'history') {
+    // ── History tab ──
     var heatHTML = '<h3 class="app-full-col-heading">\ud83d\udcc5 28-Day Completion</h3><div class="app-routine-heatmap">';
+    var allRoutines = getPersonalRoutines();
     for (var ni = 27; ni >= 0; ni--) {
       var dd = new Date(); dd.setDate(dd.getDate() - ni);
       var iso = dd.getFullYear() + '-' + pad2(dd.getMonth() + 1) + '-' + pad2(dd.getDate());
-      var dLog = log[iso] || {};
-      var dDone = ((dLog.morning || []).length) + ((dLog.evening || []).length);
-      var dTotal = (routines.morning || []).length + (routines.evening || []).length;
+      var dLog   = log[iso] || {};
+      var dDone  = ((dLog.morning || []).length) + ((dLog.evening || []).length);
+      var dTotal = (allRoutines.morning || []).length + (allRoutines.evening || []).length;
       var cls = dTotal > 0 && dDone === dTotal ? ' all-done' : dDone > 0 ? ' part-done' : '';
       heatHTML += '<div class="app-routine-hm-cell' + cls + '" title="' + iso + '"></div>';
     }
@@ -13751,7 +14156,7 @@ function renderRoutineAppFull(container) {
     var exportLines = [];
     ['morning', 'evening'].forEach(function(p) {
       exportLines.push(p.charAt(0).toUpperCase() + p.slice(1) + ' Routine:');
-      (routines[p] || []).forEach(function(item, i) {
+      (allRoutines[p] || []).forEach(function(item, i) {
         exportLines.push('  ' + (i + 1) + '. ' + (typeof item === 'string' ? item : (item.text || item.name || '')));
       });
     });
@@ -13763,8 +14168,32 @@ function renderRoutineAppFull(container) {
       catch(e) { alert(exportLines.join('\n')); }
     });
 
-  } else {
+  } else if (tab === 'settings') {
+    // ── Settings tab ──
     _fvRenderPinCard(body, 'routine');
+
+    // Sleep Schedule Sync toggle
+    var curRoutines = getPersonalRoutines();
+    var syncCard = document.createElement('div');
+    syncCard.className = 'app-settings-card';
+    syncCard.innerHTML =
+      '<h4 class="app-full-section-heading">\ud83c\udf19 Sleep Schedule Sync</h4>' +
+      '<label style="display:flex;align-items:center;gap:6px;font-size:0.88rem;cursor:pointer;">' +
+        '<input type="checkbox" id="routineSleepSyncToggle"' + (curRoutines.syncEnabled ? ' checked' : '') + '/>' +
+        '<span>Sync times with Sleep Schedule</span>' +
+      '</label>' +
+      '<p style="font-size:0.75rem;color:var(--ios-text-3);margin:4px 0 0">When enabled, morning and evening routine notification times automatically follow your Sleep Schedule.</p>';
+    body.appendChild(syncCard);
+    var syncCbEl = syncCard.querySelector('#routineSleepSyncToggle');
+    if (syncCbEl) syncCbEl.addEventListener('change', function() {
+      var r = getPersonalRoutines();
+      r.syncEnabled = syncCbEl.checked;
+      setPersonalRoutines(r);
+      if (r.syncEnabled) { try { syncRoutineTimesFromSleep(); } catch(e) {} }
+      renderRoutineAppFull(container);
+    });
+
+    // Reminders card
     var routineCfg = getAppRemSettings().routine || {};
     var routineRemCard = document.createElement('div');
     routineRemCard.className = 'app-settings-card';
@@ -13785,13 +14214,14 @@ function renderRoutineAppFull(container) {
           '</label>' +
           '<input type="time" id="routineRemEveningTime" class="app-sleep-rem-time" value="' + escapeHTML(routineCfg.eveningTime || '21:00') + '" />' +
         '</div>' +
+        '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0">Fallback times used when Sleep Schedule sync is off or unavailable for a given day.</p>' +
         '<button id="routineRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
         '<p id="routineRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
       '</div>';
     body.appendChild(routineRemCard);
     var routineRemSaveBtn = body.querySelector('#routineRemSave');
     if (routineRemSaveBtn) routineRemSaveBtn.addEventListener('click', function() {
-      var s = getAppRemSettings();
+      var s   = getAppRemSettings();
       var morEn = body.querySelector('#routineRemMorningEnabled');
       var morTi = body.querySelector('#routineRemMorningTime');
       var eveEn = body.querySelector('#routineRemEveningEnabled');
@@ -13805,6 +14235,47 @@ function renderRoutineAppFull(container) {
       var st = body.querySelector('#routineRemStatus');
       if (st) { st.textContent = '\u2713 Reminders saved!'; setTimeout(function() { st.textContent = ''; }, 2500); }
     });
+
+    // Manage custom phases (delete)
+    var cPhases = getPersonalRoutines().customPhases || [];
+    if (cPhases.length) {
+      var manageCard = document.createElement('div');
+      manageCard.className = 'app-settings-card';
+      manageCard.innerHTML = '<h4 class="app-full-section-heading">\ud83d\udcdd Custom Routines</h4>';
+      cPhases.forEach(function(ph) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;margin:4px 0;';
+        var lbl = document.createElement('span');
+        lbl.style.cssText = 'flex:1;font-size:0.88rem;';
+        lbl.textContent = (ph.emoji || '\u2b50') + ' ' + ph.name;
+        var delBtn = document.createElement('button');
+        delBtn.textContent = 'Delete';
+        delBtn.className = 'routine-del-btn';
+        delBtn.style.cssText = 'font-size:0.75rem;padding:2px 8px;';
+        delBtn.addEventListener('click', function() {
+          if (!confirm('Delete routine "' + ph.name + '"? This cannot be undone.')) return;
+          var r = getPersonalRoutines();
+          r.customPhases    = (r.customPhases || []).filter(function(p) { return p.id !== ph.id; });
+          r.routineTabOrder = (r.routineTabOrder || []).filter(function(k) { return k !== ph.id; });
+          setPersonalRoutines(r);
+          if (container._routineTab === ph.id) container._routineTab = 'morning';
+          renderRoutineAppFull(container);
+        });
+        row.appendChild(lbl);
+        row.appendChild(delBtn);
+        manageCard.appendChild(row);
+      });
+      body.appendChild(manageCard);
+    }
+
+  } else {
+    // Custom phase tab
+    var activePhase = customPhases.find(function(p) { return p.id === tab; });
+    if (activePhase) {
+      _buildRoutinePeriodFull(body, activePhase.id, activePhase.emoji || '\u2b50', activePhase.name, container, true);
+    } else {
+      body.innerHTML = '<p style="color:var(--ios-text-3);padding:16px;font-size:0.9rem;">Routine not found.</p>';
+    }
   }
 }
 
