@@ -42,6 +42,41 @@
   function safeTasks() { try { return typeof getTasks === 'function' ? getTasks() : JSON.parse(localStorage.getItem('tasks') || '[]') || []; } catch (_) { return []; } }
   function safeRems() { try { return typeof getReminders === 'function' ? getReminders() : JSON.parse(localStorage.getItem('reminders') || '{}') || {}; } catch (_) { return {}; } }
   function safeDomainColors() { try { return typeof getDomainColors === 'function' ? getDomainColors() : { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c' }; } catch (_) { return { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c' }; } }
+  function safeRoutinePhases(dateStr) {
+    try {
+      var r = JSON.parse(localStorage.getItem('personalRoutines') || '{}') || {};
+      var phases;
+      if (r.phases && Array.isArray(r.phases) && r.phases.length > 0) {
+        phases = r.phases.map(function (p) { return JSON.parse(JSON.stringify(p)); });
+      } else {
+        phases = [];
+        ['morning', 'evening'].forEach(function (period) {
+          var steps = r[period] || [];
+          if (steps.length > 0) {
+            phases.push({ id: period, name: period === 'morning' ? 'Morning' : 'Evening', emoji: period === 'morning' ? '🌅' : '🌙', startTime: period === 'morning' ? '06:30' : '21:00', steps: steps });
+          }
+        });
+      }
+      if (dateStr && r.sleepScheduleTimes) {
+        var d = new Date(dateStr + 'T12:00:00');
+        var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+        var dayTimes = r.sleepScheduleTimes[dayName];
+        if (dayTimes) {
+          phases.forEach(function (phase) {
+            if (phase.id === 'morning' && dayTimes.morningStart) {
+              phase.startTime = dayTimes.morningStart;
+              if (dayTimes.morningEnd) { phase.endTime = dayTimes.morningEnd; }
+            }
+            if (phase.id === 'evening') {
+              if (dayTimes.eveningStart) phase.startTime = dayTimes.eveningStart;
+              if (dayTimes.eveningEnd) phase.endTime = dayTimes.eveningEnd;
+            }
+          });
+        }
+      }
+      return phases;
+    } catch (_) { return []; }
+  }
   function selYear() { return window.selectedYear || new Date().getFullYear(); }
   function selMonth() { return window.selectedMonth != null ? window.selectedMonth : new Date().getMonth(); }
 
@@ -1493,6 +1528,15 @@
     var agendaSidebar = document.getElementById('dtAgendaSidebar');
     if (agendaSidebar) agendaSidebar.style.display = 'none';
 
+    /* On desktop, move the Filter button to the left of the prev-month arrow */
+    var monthNavRow = calPage.querySelector('.cal-month-nav');
+    var filterToggle = document.getElementById('categoryFilterToggle');
+    var prevBtn = document.getElementById('prevBtn');
+    if (monthNavRow && filterToggle && prevBtn && !document.getElementById('dcfFilterInNav')) {
+      filterToggle.id = 'dcfFilterInNav'; /* mark as relocated */
+      monthNavRow.insertBefore(filterToggle, prevBtn);
+    }
+
     /* Initial render */
     refreshUpcomingPanel();
   }
@@ -1667,8 +1711,9 @@
     allTasks.forEach(function (t, idx) { if (nd(t.date) === ymd) tasks.push({ task: t, idx: idx }); });
     var rems = safeRems()[ymd] || [];
     var dcs = safeDomainColors();
+    var routinePhases = safeRoutinePhases(ymd);
 
-    if (!evts.length && !tasks.length && !rems.length) {
+    if (!evts.length && !tasks.length && !rems.length && !routinePhases.length) {
       content.innerHTML = '<div style="color:#aaa;padding:8px 0;text-align:center">Nothing scheduled.</div>';
       return;
     }
@@ -1702,7 +1747,7 @@
       if (s === null) s = 9 * 60;
       if (en === null) en = s + 60;
       if (en <= s) en = s + 60;
-      items.push({ kind: 'event', title: e.title || 'Event', emoji: e.emoji || '📌', startMin: s, endMin: en, hasTimes: hasTimes, color: dcs[e.domain || 'personal'] || '#4a90e2', eventId: e.id, repeat: e.repeat || 'none', occurrenceDate: e.occurrenceDate || '' });
+      items.push({ kind: 'event', title: e.title || 'Event', emoji: e.emoji || '📌', startMin: s, endMin: en, hasTimes: hasTimes, color: dcs[e.domain || 'personal'] || '#4a90e2', eventId: e.id, repeat: e.repeat || 'none', occurrenceDate: e.occurrenceDate || '', preBuffer: parseInt(e.preBuffer, 10) || 0, postBuffer: parseInt(e.postBuffer, 10) || 0 });
     });
     tasks.forEach(function (entry) {
       var t = entry.task;
@@ -1715,6 +1760,35 @@
       if (s === null) return;
       items.push({ kind: 'reminder', title: r.text || 'Reminder', emoji: '🔔', startMin: s, endMin: s + 15, hasTimes: true, color: '#e67e22', remKey: ymd, remIdx: ri });
     });
+    /* Routine phases – mirroring daily-view.js */
+    routinePhases.forEach(function (phase) {
+      var s = toMin(phase.startTime);
+      if (s === null) return;
+      var en = phase.endTime ? toMin(phase.endTime) : null;
+      if (en === null) {
+        var DEFAULT_STEP_DUR = 10;
+        var phaseDur = (phase.steps || []).reduce(function (sum, step) { return sum + (parseInt(step.duration, 10) || DEFAULT_STEP_DUR); }, 0);
+        en = s + (phaseDur > 0 ? phaseDur : 15);
+      }
+      if (en <= s) en += 1440;
+      items.push({ kind: 'routine', title: phase.name || 'Routine', emoji: (phase.emoji || '📋'), startMin: s, endMin: en, hasTimes: true, color: dcs.personal || '#9b59b6' });
+    });
+    /* Meals with scheduled times – mirroring daily-view.js */
+    try {
+      var MEAL_LABELS = { breakfast: 'Eat Breakfast', lunch: 'Eat Lunch', dinner: 'Eat Dinner', snacks: 'Eat Snack' };
+      var MEAL_EMOJIS = { breakfast: '🌅', lunch: '☀️', dinner: '🌙', snacks: '🍎' };
+      var allMeals = JSON.parse(localStorage.getItem('personalMeals') || '{}') || {};
+      var dayMeals = allMeals[ymd];
+      if (dayMeals) {
+        ['breakfast', 'lunch', 'dinner', 'snacks'].forEach(function (mk) {
+          var meal = dayMeals[mk];
+          if (!meal || !meal.name || !meal.time) return;
+          var s = toMin(meal.time);
+          if (s === null) return;
+          items.push({ kind: 'meal', title: (MEAL_LABELS[mk] || 'Eat') + ': ' + meal.name, emoji: MEAL_EMOJIS[mk] || '🍽️', startMin: s, endMin: s + 15, hasTimes: true, color: dcs.personal || '#9b59b6' });
+        });
+      }
+    } catch (_) {}
     items.sort(function (a, b) { return a.startMin - b.startMin; });
 
     /* Determine visible hour range */
@@ -1722,6 +1796,11 @@
     if (items.length > 0) {
       var earliest = items[0].startMin;
       var latest = items[items.length - 1].endMin;
+      /* Account for pre/post buffers when determining visible range */
+      items.forEach(function (item) {
+        if (item.preBuffer > 0) earliest = Math.min(earliest, item.startMin - item.preBuffer);
+        if (item.postBuffer > 0) latest = Math.max(latest, item.endMin + item.postBuffer);
+      });
       rangeStart = Math.max(0, Math.floor(earliest / 60) - 1);
       rangeEnd = Math.min(24, Math.ceil(latest / 60) + 1);
       if (rangeEnd - rangeStart < 4) rangeEnd = rangeStart + 4;
@@ -1846,6 +1925,50 @@
       if (item.remKey) { block.dataset.remKey = item.remKey; block.dataset.remIdx = item.remIdx; }
 
       body.appendChild(block);
+
+      /* Render pre-buffer block */
+      if (item.preBuffer > 0 && item.hasTimes) {
+        var preBufStart = Math.max(item.startMin - item.preBuffer, rangeStartMin);
+        var preBufEnd = item.startMin;
+        if (preBufEnd > preBufStart) {
+          var preBufTopPx = ((preBufStart - rangeStartMin) / (rangeEndMin - rangeStartMin)) * totalPx;
+          var preBufH = Math.max(4, ((preBufEnd - preBufStart) / (rangeEndMin - rangeStartMin)) * totalPx);
+          var preBuf = document.createElement('div');
+          preBuf.className = 'dcf-day-timeline-block';
+          preBuf.style.top = preBufTopPx + 'px';
+          preBuf.style.height = preBufH + 'px';
+          preBuf.style.left = leftPct + '%';
+          preBuf.style.width = (colWidth - 2) + '%';
+          preBuf.style.background = 'repeating-linear-gradient(45deg,rgba(230,126,34,0.10),rgba(230,126,34,0.10) 3px,transparent 3px,transparent 6px)';
+          preBuf.style.borderLeftColor = '#e67e22';
+          preBuf.style.opacity = '0.85';
+          preBuf.title = '🚗 ' + item.preBuffer + ' min pre-buffer';
+          preBuf.innerHTML = '<span style="font-size:0.58rem;color:#e67e22">🚗 ' + item.preBuffer + 'm</span>';
+          body.appendChild(preBuf);
+        }
+      }
+
+      /* Render post-buffer block */
+      if (item.postBuffer > 0 && item.hasTimes) {
+        var postBufStart = item.endMin;
+        var postBufEnd = Math.min(item.endMin + item.postBuffer, rangeEndMin);
+        if (postBufEnd > postBufStart) {
+          var postBufTopPx = ((postBufStart - rangeStartMin) / (rangeEndMin - rangeStartMin)) * totalPx;
+          var postBufH = Math.max(4, ((postBufEnd - postBufStart) / (rangeEndMin - rangeStartMin)) * totalPx);
+          var postBuf = document.createElement('div');
+          postBuf.className = 'dcf-day-timeline-block';
+          postBuf.style.top = postBufTopPx + 'px';
+          postBuf.style.height = postBufH + 'px';
+          postBuf.style.left = leftPct + '%';
+          postBuf.style.width = (colWidth - 2) + '%';
+          postBuf.style.background = 'repeating-linear-gradient(45deg,rgba(230,126,34,0.10),rgba(230,126,34,0.10) 3px,transparent 3px,transparent 6px)';
+          postBuf.style.borderLeftColor = '#e67e22';
+          postBuf.style.opacity = '0.85';
+          postBuf.title = item.postBuffer + ' min post-buffer';
+          postBuf.innerHTML = '<span style="font-size:0.58rem;color:#e67e22">' + item.postBuffer + 'm</span>';
+          body.appendChild(postBuf);
+        }
+      }
     });
 
     /* Current time indicator (only for today) */
