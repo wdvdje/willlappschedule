@@ -8997,267 +8997,221 @@ function renderClothesWidget() {
 }
 
 function renderClothesAppFull(container) {
-  container.innerHTML = '';
+  var tab = container._clothesTab || 'outfits';
+  container._clothesTab = tab;
+  var TABS = [
+    { key: 'outfits',  label: '\ud83d\udc54 Outfits' },
+    { key: 'laundry',  label: '\ud83e\uddfb Laundry' },
+    { key: 'wishlist', label: '\ud83d\uded2 Wishlist' },
+    { key: 'settings', label: '\u2699\ufe0f Settings' }
+  ];
+  var body = _fvBuildTabs(container, TABS, tab, function(k) {
+    container._clothesTab = k;
+    renderClothesAppFull(container);
+  });
+
   var clothes = getPersonalClothes();
   var today = getTodayISO();
 
-  /* ── 7-day weather outfit strip ── */
-  var weatherDays = _clothesWeather7Days();
-  var hasWeather = weatherDays.some(function(d) { return d.rec; });
-  if (hasWeather) {
-    var weatherHeader = document.createElement('h3');
-    weatherHeader.className = 'app-full-col-heading';
-    weatherHeader.textContent = '🌤️ 7-Day Outfit Guide';
-    container.appendChild(weatherHeader);
-
-    var strip = document.createElement('div');
-    strip.className = 'clothes-weather-7day-strip clothes-weather-7day-strip-full';
-    weatherDays.forEach(function(d) {
-      var cell = document.createElement('div');
-      cell.className = 'clothes-w7-cell' + (d.iso === today ? ' today' : '');
-      cell.innerHTML =
-        '<div class="clothes-w7-dayname">' + escapeHTML(d.dayName) + '</div>' +
-        '<div class="clothes-w7-date">' + escapeHTML(d.date) + '</div>' +
-        '<div class="clothes-w7-emoji">' + (d.rec ? d.rec.emoji : '—') + '</div>' +
-        '<div class="clothes-w7-rec">' + (d.rec ? escapeHTML(d.rec.text) : 'No data') + '</div>';
-      strip.appendChild(cell);
-    });
-    container.appendChild(strip);
-  } else {
-    var rec = _clothesWeatherRec();
-    if (rec) {
-      var recEl = document.createElement('div');
-      recEl.className = 'clothes-weather-rec clothes-weather-rec-full';
-      recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
-      container.appendChild(recEl);
+  if (tab === 'outfits') {
+    /* ── 7-day weather outfit strip ── */
+    var weatherDays = _clothesWeather7Days();
+    var hasWeather = weatherDays.some(function(d) { return d.rec; });
+    if (hasWeather) {
+      var weatherHeader = document.createElement('h3');
+      weatherHeader.className = 'app-full-col-heading';
+      weatherHeader.textContent = '\ud83c\udf24\ufe0f 7-Day Outfit Guide';
+      body.appendChild(weatherHeader);
+      var strip = document.createElement('div');
+      strip.className = 'clothes-weather-7day-strip clothes-weather-7day-strip-full';
+      weatherDays.forEach(function(d) {
+        var cell = document.createElement('div');
+        cell.className = 'clothes-w7-cell' + (d.iso === today ? ' today' : '');
+        cell.innerHTML =
+          '<div class="clothes-w7-dayname">' + escapeHTML(d.dayName) + '</div>' +
+          '<div class="clothes-w7-date">' + escapeHTML(d.date) + '</div>' +
+          '<div class="clothes-w7-emoji">' + (d.rec ? d.rec.emoji : '\u2014') + '</div>' +
+          '<div class="clothes-w7-rec">' + (d.rec ? escapeHTML(d.rec.text) : 'No data') + '</div>';
+        strip.appendChild(cell);
+      });
+      body.appendChild(strip);
+    } else {
+      var rec = _clothesWeatherRec();
+      if (rec) {
+        var recEl = document.createElement('div');
+        recEl.className = 'clothes-weather-rec clothes-weather-rec-full';
+        recEl.innerHTML = '<span class="clothes-rec-emoji">' + rec.emoji + '</span><span>' + escapeHTML(rec.text) + '</span>';
+        body.appendChild(recEl);
+      }
     }
-  }
 
-  var layout = document.createElement('div');
-  layout.className = 'app-full-two-col';
-  var left  = document.createElement('div'); left.className  = 'app-full-col';
-  var right = document.createElement('div'); right.className = 'app-full-col';
-
-  /* ════════════════ LEFT: Laundry + Outfits ════════════════ */
-
-  /* Laundry tracker */
-  var laundry = clothes.laundry || {};
-  var daysAgo = _clothesLaundryDaysAgo(laundry.lastDone);
-  var interval = laundry.intervalDays || 7;
-  var isOverdue = daysAgo !== null && daysAgo >= interval;
-
-  var lHTML = '<h3 class="app-full-col-heading">🧺 Laundry Tracker</h3>';
-  lHTML += '<div class="clothes-laundry-status-block' + (isOverdue ? ' overdue' : '') + '">';
-  lHTML += '<div class="clothes-laundry-status-line">' +
-    (daysAgo === null ? 'No laundry logged yet.' : (isOverdue ? '⚠️ Overdue! ' : '✅ ') + 'Last done: ' + escapeHTML(laundry.lastDone || '') + ' (' + daysAgo + ' day' + (daysAgo !== 1 ? 's' : '') + ' ago)') +
-    '</div>';
-  lHTML += '<button class="clothes-laundry-btn" id="clfLaundryDoneBtn">✓ Did laundry today</button>';
-  lHTML += '<div class="clothes-laundry-settings">' +
-    '<label class="clothes-setting-label">Remind every <input type="number" id="clfInterval" class="clothes-interval-input" value="' + escapeHTML(String(interval)) + '" min="1" max="60" /> days</label>' +
-    '<label class="clothes-setting-label clothes-setting-check"><input type="checkbox" id="clfReminderEnabled"' + (laundry.reminderEnabled ? ' checked' : '') + ' /> Enable reminder</label>' +
-    '<button class="clothes-save-btn" id="clfSaveInterval">Save</button>' +
-  '</div>';
-  lHTML += '</div>';
-
-  /* Outfits */
-  var outfits = clothes.outfits || [];
-  lHTML += '<h3 class="app-full-col-heading clothes-outfits-heading">👔 Saved Outfits</h3>';
-  lHTML += '<div class="clothes-add-row">' +
-    '<input type="text" id="clfOutfitName" placeholder="Outfit name…" class="clothes-text-input" />' +
-    '<input type="text" id="clfOutfitTags" placeholder="Tags (e.g. casual, work)" class="clothes-text-input" />' +
-    '<input type="url" id="clfOutfitImg" placeholder="Image URL (optional)" class="clothes-text-input" />' +
-    '<button class="clothes-add-btn" id="clfOutfitAdd">＋ Add</button>' +
-  '</div>';
-  lHTML += '<div id="clfOutfitList" class="clothes-list">';
-  if (!outfits.length) { lHTML += '<div class="clothes-empty">No outfits yet.</div>'; }
-  outfits.forEach(function(o, idx) {
-    lHTML += '<div class="clothes-outfit-card">' +
-      (o.imageUrl ? '<img src="' + escapeHTML(o.imageUrl) + '" class="clothes-outfit-img" alt="" />' : '') +
-      '<div class="clothes-outfit-info"><strong>' + escapeHTML(o.name) + '</strong>' +
-      (o.description ? '<div class="clothes-outfit-desc">' + escapeHTML(o.description) + '</div>' : '') +
-      (o.tags ? '<div class="clothes-outfit-tags">' + escapeHTML(o.tags) + '</div>' : '') +
+    /* Saved outfits */
+    var outfits = clothes.outfits || [];
+    var outfitsHTML = '<h3 class="app-full-col-heading clothes-outfits-heading">\ud83d\udc54 Saved Outfits</h3>' +
+      '<div class="clothes-add-row">' +
+        '<input type="text" id="clfOutfitName" placeholder="Outfit name\u2026" class="clothes-text-input" />' +
+        '<input type="text" id="clfOutfitTags" placeholder="Tags (e.g. casual, work)" class="clothes-text-input" />' +
+        '<input type="url" id="clfOutfitImg" placeholder="Image URL (optional)" class="clothes-text-input" />' +
+        '<button class="clothes-add-btn" id="clfOutfitAdd">\uff0b Add</button>' +
       '</div>' +
-      '<button class="clothes-del-btn" data-type="outfit" data-idx="' + idx + '">✕</button>' +
-    '</div>';
-  });
-  lHTML += '</div>';
-  left.innerHTML = lHTML;
+      '<div id="clfOutfitList" class="clothes-list">';
+    if (!outfits.length) outfitsHTML += '<div class="clothes-empty">No outfits yet.</div>';
+    outfits.forEach(function(o, idx) {
+      outfitsHTML += '<div class="clothes-outfit-card">' +
+        (o.imageUrl ? '<img src="' + escapeHTML(o.imageUrl) + '" class="clothes-outfit-img" alt="" />' : '') +
+        '<div class="clothes-outfit-info"><strong>' + escapeHTML(o.name) + '</strong>' +
+        (o.description ? '<div class="clothes-outfit-desc">' + escapeHTML(o.description) + '</div>' : '') +
+        (o.tags ? '<div class="clothes-outfit-tags">' + escapeHTML(o.tags) + '</div>' : '') +
+        '</div><button class="clothes-del-btn" data-type="outfit" data-idx="' + idx + '">\u2715</button></div>';
+    });
+    outfitsHTML += '</div>';
 
-  /* ════════════════ RIGHT: Wishlist ════════════════ */
-  var wishlist = clothes.wishlist || [];
-  var rHTML = '<h3 class="app-full-col-heading">🛍️ Clothing Wishlist</h3>';
-  rHTML += '<div class="clothes-add-row">' +
-    '<input type="text" id="clfWishName" placeholder="Item name…" class="clothes-text-input" />' +
-    '<input type="url" id="clfWishUrl" placeholder="Link (URL)" class="clothes-text-input" />' +
-    '<input type="text" id="clfWishPrice" placeholder="Price (optional)" class="clothes-text-input" style="max-width:90px" />' +
-    '<input type="text" id="clfWishNotes" placeholder="Notes (optional)" class="clothes-text-input" />' +
-    '<button class="clothes-add-btn" id="clfWishAdd">＋ Add</button>' +
-  '</div>';
-  rHTML += '<div id="clfWishList" class="clothes-list">';
-  if (!wishlist.length) { rHTML += '<div class="clothes-empty">No wishlist items yet.</div>'; }
-  wishlist.forEach(function(item, idx) {
-    rHTML += '<div class="clothes-wish-card">' +
-      '<div class="clothes-wish-main">' +
-        '<a class="clothes-wish-link" href="' + escapeHTML(item.url || '#') + '" target="_blank" rel="noopener">' + escapeHTML(item.name) + '</a>' +
-        (item.price ? '<span class="clothes-wish-price">$' + escapeHTML(item.price) + '</span>' : '') +
-      '</div>' +
-      (item.notes ? '<div class="clothes-wish-notes">' + escapeHTML(item.notes) + '</div>' : '') +
-      '<button class="clothes-del-btn" data-type="wish" data-idx="' + idx + '">✕</button>' +
-    '</div>';
-  });
-  rHTML += '</div>';
-  right.innerHTML = rHTML;
+    /* Weekly outfit planner */
+    var currentWeekISO = _getISOWeekStr();
+    var weekPlan = clothes.weeklyOutfitPlan || {};
+    var planWeekISO = weekPlan.weekISO;
+    var planDays = (planWeekISO === currentWeekISO) ? (weekPlan.days || {}) : {};
+    var DAY_NAMES_FULL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  /* ── Weekly Outfit Planner ── */
-  var currentWeekISO = _getISOWeekStr();
-  var weekPlan = clothes.weeklyOutfitPlan || {};
-  // Reset plan if it belongs to a different week
-  var planWeekISO = weekPlan.weekISO;
-  var planDays = (planWeekISO === currentWeekISO) ? (weekPlan.days || {}) : {};
+    var outfitsDiv = document.createElement('div');
+    outfitsDiv.innerHTML = outfitsHTML;
+    body.appendChild(outfitsDiv);
 
-  var outfits = clothes.outfits || [];
-  var DAY_NAMES_FULL = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var outfitAddBtn = body.querySelector('#clfOutfitAdd');
+    if (outfitAddBtn) outfitAddBtn.addEventListener('click', function() {
+      var nameEl = body.querySelector('#clfOutfitName'), tagsEl = body.querySelector('#clfOutfitTags'), imgEl = body.querySelector('#clfOutfitImg');
+      var name = nameEl ? nameEl.value.trim() : '';
+      if (!name) { if (nameEl) nameEl.focus(); return; }
+      var c = getPersonalClothes();
+      c.outfits.push({ id: Date.now() + '_' + Math.floor(Math.random() * 1e6), name: name, tags: tagsEl ? tagsEl.value.trim() : '', imageUrl: imgEl ? imgEl.value.trim() : '', createdAt: today });
+      setPersonalClothes(c); renderClothesAppFull(container);
+    });
 
-  var plannerSection = document.createElement('div');
-  plannerSection.className = 'clothes-weekly-planner';
-  var plannerTitle = document.createElement('h3');
-  plannerTitle.className = 'app-full-col-heading';
-  plannerTitle.textContent = '📅 Weekly Outfit Planner';
-  plannerSection.appendChild(plannerTitle);
+    var plannerSection = document.createElement('div');
+    plannerSection.className = 'clothes-weekly-planner';
+    var plannerTitle = document.createElement('h3');
+    plannerTitle.className = 'app-full-col-heading';
+    plannerTitle.textContent = '\ud83d\udcc5 Weekly Outfit Planner';
+    plannerSection.appendChild(plannerTitle);
+    if (!outfits.length) {
+      var noOutfitsMsg = document.createElement('p');
+      noOutfitsMsg.style.cssText = 'font-size:0.82rem;color:var(--ios-text-3)';
+      noOutfitsMsg.textContent = 'Save some outfits above to start planning your week.';
+      plannerSection.appendChild(noOutfitsMsg);
+    } else {
+      var grid = document.createElement('div'); grid.className = 'clothes-plan-grid';
+      DAY_NAMES_FULL.forEach(function(dayName) {
+        var cell = document.createElement('div'); cell.className = 'clothes-plan-cell';
+        var label2 = document.createElement('div'); label2.className = 'clothes-plan-day'; label2.textContent = dayName;
+        var sel = document.createElement('select'); sel.className = 'clothes-plan-sel app-fv-select'; sel.dataset.day = dayName;
+        var noneOpt = document.createElement('option'); noneOpt.value = ''; noneOpt.textContent = '\u2014 None \u2014'; sel.appendChild(noneOpt);
+        outfits.forEach(function(o) {
+          var opt = document.createElement('option'); opt.value = o.id; opt.textContent = o.name;
+          if (planDays[dayName] === o.id) opt.selected = true; sel.appendChild(opt);
+        });
+        cell.appendChild(label2); cell.appendChild(sel); grid.appendChild(cell);
+      });
+      plannerSection.appendChild(grid);
+      var planSaveBtn = document.createElement('button'); planSaveBtn.className = 'app-fv-save-btn'; planSaveBtn.style.marginTop = '10px'; planSaveBtn.textContent = 'Save Weekly Plan';
+      planSaveBtn.addEventListener('click', function() {
+        var newDays = {};
+        plannerSection.querySelectorAll('.clothes-plan-sel').forEach(function(s2) { if (s2.value) newDays[s2.dataset.day] = s2.value; });
+        var c = getPersonalClothes(); c.weeklyOutfitPlan = { weekISO: currentWeekISO, days: newDays }; setPersonalClothes(c);
+        planSaveBtn.textContent = '\u2713 Saved'; setTimeout(function() { planSaveBtn.textContent = 'Save Weekly Plan'; }, 1500);
+      });
+      plannerSection.appendChild(planSaveBtn);
+    }
+    body.appendChild(plannerSection);
 
-  if (!outfits.length) {
-    var noOutfitsMsg = document.createElement('p');
-    noOutfitsMsg.style.cssText = 'font-size:0.82rem;color:var(--ios-text-3)';
-    noOutfitsMsg.textContent = 'Save some outfits above to start planning your week.';
-    plannerSection.appendChild(noOutfitsMsg);
+    body.querySelectorAll('.clothes-del-btn[data-type="outfit"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var c = getPersonalClothes(); c.outfits.splice(parseInt(btn.dataset.idx, 10), 1); setPersonalClothes(c); renderClothesAppFull(container);
+      });
+    });
+
+  } else if (tab === 'laundry') {
+    var laundry = clothes.laundry || {};
+    var daysAgo = _clothesLaundryDaysAgo(laundry.lastDone);
+    var interval = laundry.intervalDays || 7;
+    var isOverdue = daysAgo !== null && daysAgo >= interval;
+    var lHTML = '<h3 class="app-full-col-heading">\ud83e\uddfb Laundry Tracker</h3>';
+    lHTML += '<div class="clothes-laundry-status-block' + (isOverdue ? ' overdue' : '') + '">';
+    lHTML += '<div class="clothes-laundry-status-line">' +
+      (daysAgo === null ? 'No laundry logged yet.' : (isOverdue ? '\u26a0\ufe0f Overdue! ' : '\u2705 ') + 'Last done: ' + escapeHTML(laundry.lastDone || '') + ' (' + daysAgo + ' day' + (daysAgo !== 1 ? 's' : '') + ' ago)') +
+      '</div>';
+    lHTML += '<button class="clothes-laundry-btn" id="clfLaundryDoneBtn">\u2713 Did laundry today</button>';
+    lHTML += '</div>';
+    body.innerHTML = lHTML;
+    var laundryDoneBtn = body.querySelector('#clfLaundryDoneBtn');
+    if (laundryDoneBtn) laundryDoneBtn.addEventListener('click', function() {
+      var c = getPersonalClothes(); c.laundry.lastDone = today; setPersonalClothes(c); renderClothesAppFull(container);
+    });
+
+  } else if (tab === 'wishlist') {
+    var wishlist = clothes.wishlist || [];
+    var rHTML = '<h3 class="app-full-col-heading">\ud83d\uded2 Clothing Wishlist</h3>';
+    rHTML += '<div class="clothes-add-row">' +
+      '<input type="text" id="clfWishName" placeholder="Item name\u2026" class="clothes-text-input" />' +
+      '<input type="url" id="clfWishUrl" placeholder="Link (URL)" class="clothes-text-input" />' +
+      '<input type="text" id="clfWishPrice" placeholder="Price (optional)" class="clothes-text-input" style="max-width:90px" />' +
+      '<input type="text" id="clfWishNotes" placeholder="Notes (optional)" class="clothes-text-input" />' +
+      '<button class="clothes-add-btn" id="clfWishAdd">\uff0b Add</button>' +
+    '</div><div id="clfWishList" class="clothes-list">';
+    if (!wishlist.length) rHTML += '<div class="clothes-empty">No wishlist items yet.</div>';
+    wishlist.forEach(function(item, idx) {
+      rHTML += '<div class="clothes-wish-card">' +
+        '<div class="clothes-wish-main">' +
+          '<a class="clothes-wish-link" href="' + escapeHTML(item.url || '#') + '" target="_blank" rel="noopener">' + escapeHTML(item.name) + '</a>' +
+          (item.price ? '<span class="clothes-wish-price">$' + escapeHTML(item.price) + '</span>' : '') +
+        '</div>' +
+        (item.notes ? '<div class="clothes-wish-notes">' + escapeHTML(item.notes) + '</div>' : '') +
+        '<button class="clothes-del-btn" data-type="wish" data-idx="' + idx + '">\u2715</button></div>';
+    });
+    rHTML += '</div>';
+    body.innerHTML = rHTML;
+    var wishAddBtn = body.querySelector('#clfWishAdd');
+    if (wishAddBtn) wishAddBtn.addEventListener('click', function() {
+      var nameEl = body.querySelector('#clfWishName'), urlEl = body.querySelector('#clfWishUrl');
+      var priceEl = body.querySelector('#clfWishPrice'), notesEl = body.querySelector('#clfWishNotes');
+      var name = nameEl ? nameEl.value.trim() : '';
+      if (!name) { if (nameEl) nameEl.focus(); return; }
+      var c = getPersonalClothes();
+      c.wishlist.push({ id: Date.now() + '_' + Math.floor(Math.random() * 1e6), name: name, url: urlEl ? urlEl.value.trim() : '', price: priceEl ? priceEl.value.trim() : '', notes: notesEl ? notesEl.value.trim() : '', addedAt: today });
+      setPersonalClothes(c); renderClothesAppFull(container);
+    });
+    body.querySelectorAll('.clothes-del-btn[data-type="wish"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var c = getPersonalClothes(); c.wishlist.splice(parseInt(btn.dataset.idx, 10), 1); setPersonalClothes(c); renderClothesAppFull(container);
+      });
+    });
+
   } else {
-    var grid = document.createElement('div');
-    grid.className = 'clothes-plan-grid';
-    DAY_NAMES_FULL.forEach(function(dayName) {
-      var cell = document.createElement('div');
-      cell.className = 'clothes-plan-cell';
-      var label = document.createElement('div');
-      label.className = 'clothes-plan-day';
-      label.textContent = dayName;
-      var sel = document.createElement('select');
-      sel.className = 'clothes-plan-sel app-fv-select';
-      sel.dataset.day = dayName;
-      var noneOpt = document.createElement('option');
-      noneOpt.value = '';
-      noneOpt.textContent = '— None —';
-      sel.appendChild(noneOpt);
-      outfits.forEach(function(o) {
-        var opt = document.createElement('option');
-        opt.value = o.id;
-        opt.textContent = o.name;
-        if (planDays[dayName] === o.id) opt.selected = true;
-        sel.appendChild(opt);
-      });
-      cell.appendChild(label);
-      cell.appendChild(sel);
-      grid.appendChild(cell);
-    });
-    plannerSection.appendChild(grid);
-
-    var planSaveBtn = document.createElement('button');
-    planSaveBtn.className = 'app-fv-save-btn';
-    planSaveBtn.style.marginTop = '10px';
-    planSaveBtn.textContent = 'Save Weekly Plan';
-    planSaveBtn.addEventListener('click', function() {
-      var newDays = {};
-      plannerSection.querySelectorAll('.clothes-plan-sel').forEach(function(s) {
-        if (s.value) newDays[s.dataset.day] = s.value;
-      });
+    _fvRenderPinCard(body, 'clothes');
+    var laundrySettings = clothes.laundry || {};
+    var settInterval = laundrySettings.intervalDays || 7;
+    var settRemEnabled = !!laundrySettings.reminderEnabled;
+    var settCard = document.createElement('div');
+    settCard.className = 'app-settings-card';
+    settCard.innerHTML =
+      '<h4 class="app-full-section-heading">\ud83d\udd14 Laundry Reminder</h4>' +
+      '<div class="clothes-laundry-settings">' +
+        '<label class="clothes-setting-label">Remind every ' +
+          '<input type="number" id="clfInterval" class="clothes-interval-input" value="' + escapeHTML(String(settInterval)) + '" min="1" max="60" /> days</label>' +
+        '<label class="clothes-setting-label clothes-setting-check">' +
+          '<input type="checkbox" id="clfReminderEnabled"' + (settRemEnabled ? ' checked' : '') + ' /> Enable reminder</label>' +
+        '<button class="clothes-save-btn" id="clfSaveInterval">Save</button>' +
+      '</div>';
+    body.appendChild(settCard);
+    var saveIntBtn = body.querySelector('#clfSaveInterval');
+    if (saveIntBtn) saveIntBtn.addEventListener('click', function() {
       var c = getPersonalClothes();
-      c.weeklyOutfitPlan = { weekISO: currentWeekISO, days: newDays };
+      var iv = parseInt((body.querySelector('#clfInterval') || {}).value, 10) || 7;
+      var remEn = !!(body.querySelector('#clfReminderEnabled') || {}).checked;
+      c.laundry.intervalDays = iv; c.laundry.reminderEnabled = remEn;
       setPersonalClothes(c);
-      planSaveBtn.textContent = '✓ Saved';
-      setTimeout(function() { planSaveBtn.textContent = 'Save Weekly Plan'; }, 1500);
+      saveIntBtn.textContent = '\u2713 Saved'; setTimeout(function() { saveIntBtn.textContent = 'Save'; }, 1500);
     });
-    plannerSection.appendChild(planSaveBtn);
   }
-
-  layout.appendChild(left);
-  layout.appendChild(right);
-  container.appendChild(layout);
-  container.appendChild(plannerSection);
-
-  /* Wire laundry done button */
-  var laundryDoneBtn = container.querySelector('#clfLaundryDoneBtn');
-  if (laundryDoneBtn) laundryDoneBtn.addEventListener('click', function() {
-    var c = getPersonalClothes();
-    c.laundry.lastDone = today;
-    setPersonalClothes(c);
-    renderClothesAppFull(container);
-  });
-
-  /* Wire laundry settings save */
-  var saveIntBtn = container.querySelector('#clfSaveInterval');
-  if (saveIntBtn) saveIntBtn.addEventListener('click', function() {
-    var c = getPersonalClothes();
-    var iv = parseInt((container.querySelector('#clfInterval') || {}).value, 10) || 7;
-    var remEn = !!(container.querySelector('#clfReminderEnabled') || {}).checked;
-    c.laundry.intervalDays = iv;
-    c.laundry.reminderEnabled = remEn;
-    setPersonalClothes(c);
-    saveIntBtn.textContent = '✓ Saved';
-    setTimeout(function() { saveIntBtn.textContent = 'Save'; }, 1500);
-  });
-
-  /* Wire outfit add */
-  var outfitAddBtn = container.querySelector('#clfOutfitAdd');
-  if (outfitAddBtn) outfitAddBtn.addEventListener('click', function() {
-    var nameEl  = container.querySelector('#clfOutfitName');
-    var tagsEl  = container.querySelector('#clfOutfitTags');
-    var imgEl   = container.querySelector('#clfOutfitImg');
-    var name = nameEl ? nameEl.value.trim() : '';
-    if (!name) { if (nameEl) nameEl.focus(); return; }
-    var c = getPersonalClothes();
-    c.outfits.push({
-      id: Date.now() + '_' + Math.floor(Math.random() * 1e6),
-      name: name,
-      tags: tagsEl ? tagsEl.value.trim() : '',
-      imageUrl: imgEl ? imgEl.value.trim() : '',
-      createdAt: today
-    });
-    setPersonalClothes(c);
-    renderClothesAppFull(container);
-  });
-
-  /* Wire wishlist add */
-  var wishAddBtn = container.querySelector('#clfWishAdd');
-  if (wishAddBtn) wishAddBtn.addEventListener('click', function() {
-    var nameEl  = container.querySelector('#clfWishName');
-    var urlEl   = container.querySelector('#clfWishUrl');
-    var priceEl = container.querySelector('#clfWishPrice');
-    var notesEl = container.querySelector('#clfWishNotes');
-    var name = nameEl ? nameEl.value.trim() : '';
-    if (!name) { if (nameEl) nameEl.focus(); return; }
-    var c = getPersonalClothes();
-    c.wishlist.push({
-      id: Date.now() + '_' + Math.floor(Math.random() * 1e6),
-      name: name,
-      url: urlEl ? urlEl.value.trim() : '',
-      price: priceEl ? priceEl.value.trim() : '',
-      notes: notesEl ? notesEl.value.trim() : '',
-      addedAt: today
-    });
-    setPersonalClothes(c);
-    renderClothesAppFull(container);
-  });
-
-  /* Wire delete buttons */
-  container.querySelectorAll('.clothes-del-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var type = btn.dataset.type;
-      var idx  = parseInt(btn.dataset.idx, 10);
-      var c = getPersonalClothes();
-      if (type === 'outfit') c.outfits.splice(idx, 1);
-      if (type === 'wish')   c.wishlist.splice(idx, 1);
-      setPersonalClothes(c);
-      renderClothesAppFull(container);
-    });
-  });
 }
 
 window.renderClothesWidget  = renderClothesWidget;
@@ -11435,172 +11389,184 @@ function renderWeatherAppFull(container) {
 }
 
 function renderSleepAppFull(container) {
-  container.innerHTML = '';
-  var sleep=getPersonalSleep(), today=getTodayISO();
-  var DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], todayDay=DAYS[new Date().getDay()];
-  var todaySched=sleep.schedule[todayDay]||{bedtime:'22:30',wake:'07:00'};
-  var todayLog=sleep.log&&sleep.log[today];
-  var layout=document.createElement('div'); layout.className='app-full-two-col';
-  var left=document.createElement('div'); left.className='app-full-col';
-  var right=document.createElement('div'); right.className='app-full-col';
-
-  var lHTML='<h3 class="app-full-col-heading">\ud83d\ude34 Sleep Schedule</h3><div class="app-sleep-sched-grid"><div class="assg-h">Day</div><div class="assg-h">\ud83c\udf19 Bedtime</div><div class="assg-h">\u2600\ufe0f Wake</div>';
-  DAYS.forEach(function(day){
-    var ds=sleep.schedule[day]||{bedtime:'22:30',wake:'07:00'};
-    lHTML+='<div class="assg-day'+(day===todayDay?' assg-today':'')+'">' +day+'</div>'+
-      '<input class="assg-time" type="time" data-day="'+day+'" data-field="bedtime" value="'+(ds.bedtime||'22:30')+'"/>'+
-      '<input class="assg-time" type="time" data-day="'+day+'" data-field="wake" value="'+(ds.wake||'07:00')+'"/>';
-  });
-  lHTML+='</div>';
-  lHTML+='<h4 class="app-full-section-heading">\ud83d\udcdd Today\'s Sleep Log</h4><div class="app-sleep-log-form">';
-  if(todayLog){
-    var bm=_fvTimeToMins(todayLog.bedtime||''),wm=_fvTimeToMins(todayLog.wakeTime||'');
-    var dur=wm>bm?wm-bm:(1440-bm)+wm;
-    var stars=todayLog.quality?'\u2b50'.repeat(todayLog.quality)+'\u2606'.repeat(5-todayLog.quality):'';
-    lHTML+='<div class="app-sleep-logged-ok">\u2705 '+escapeHTML(todayLog.bedtime||'\u2014')+' \u2192 '+escapeHTML(todayLog.wakeTime||'\u2014')+' <em>('+Math.floor(dur/60)+'h '+(dur%60)+'m)</em>'+(stars?' '+stars:'')+'</div><button id="sleepFvEdit" class="app-fv-link-btn">Edit log</button>';
-  }
-  var qualOpts=[5,4,3,2,1].map(function(n){return '<option value="'+n+'"'+(todayLog&&todayLog.quality===n?' selected':'')+'>'+ '\u2b50'.repeat(n)+' '+['','Bad','Poor','Okay','Good','Great'][n]+'</option>';}).join('');
-  lHTML+='<div id="sleepFvForm"'+(todayLog?' style="display:none"':'')+' class="app-sleep-log-inner">'+
-    '<label>Bed <input type="time" id="sleepFvBed" value="'+(todayLog?(todayLog.bedtime||''):todaySched.bedtime)+'"/></label>'+
-    '<label>Wake <input type="time" id="sleepFvWake" value="'+(todayLog?(todayLog.wakeTime||''):todaySched.wake)+'"/></label>'+
-    '<label>Quality <select id="sleepFvQual" class="app-fv-select"><option value="">\u2014</option>'+qualOpts+'</select></label>'+
-    '<button id="sleepFvSave" class="app-fv-save-btn">Save</button>'+
-    (todayLog?'<button id="sleepFvCancel" class="app-fv-cancel-btn">Cancel</button>':'')+
-    '</div></div>';
-  var wakeMin=_fvTimeToMins(todaySched.wake);
-  var cyclePills=[4,5,6].map(function(c){
-    var bm=((wakeMin-c*90-14)+1440)%1440;
-    return '<span class="app-fv-pill">'+pad2(Math.floor(bm/60))+':'+pad2(bm%60)+' ('+c+' cycles)</span>';
-  }).join('');
-  lHTML+='<div class="app-sleep-alarm-box"><strong>\ud83d\udca1 Ideal bedtimes for '+todaySched.wake+' wake:</strong><div class="app-sleep-cycle-pills">'+cyclePills+'</div></div>';
-
-  /* ── Reminders section ── */
-  var DEFAULT_SLEEP_REMINDERS = { bedtimeEnabled: false, bedtimeTime: todaySched.bedtime || '22:00', bedtimeOffset: '30m', wakeEnabled: false, wakeTime: todaySched.wake || '07:00' };
-  var sleepRems = sleep.reminders ? Object.assign({}, DEFAULT_SLEEP_REMINDERS, sleep.reminders) : DEFAULT_SLEEP_REMINDERS;
-  lHTML += '<h4 class="app-full-section-heading">🔔 Sleep Reminders</h4>' +
-    '<div class="app-sleep-reminders-grid">' +
-      '<div class="app-sleep-rem-row">' +
-        '<label class="app-sleep-rem-label">' +
-          '<input type="checkbox" id="sleepFvBedReminderEnabled" class="app-sleep-rem-check"' + (sleepRems.bedtimeEnabled ? ' checked' : '') + ' />' +
-          '🌙 Bedtime reminder' +
-        '</label>' +
-        '<input type="time" id="sleepFvBedReminderTime" class="app-sleep-rem-time" value="' + escapeHTML(sleepRems.bedtimeTime || '22:00') + '" />' +
-        '<select id="sleepFvBedReminderOffset" class="app-sleep-rem-select">' +
-          '<option value="at"' + (sleepRems.bedtimeOffset === 'at' ? ' selected' : '') + '>At time</option>' +
-          '<option value="15m"' + (sleepRems.bedtimeOffset === '15m' ? ' selected' : '') + '>15 min before</option>' +
-          '<option value="30m"' + ((!sleepRems.bedtimeOffset || sleepRems.bedtimeOffset === '30m') ? ' selected' : '') + '>30 min before</option>' +
-          '<option value="1h"' + (sleepRems.bedtimeOffset === '1h' ? ' selected' : '') + '>1 hour before</option>' +
-        '</select>' +
-      '</div>' +
-      '<div class="app-sleep-rem-row">' +
-        '<label class="app-sleep-rem-label">' +
-          '<input type="checkbox" id="sleepFvWakeReminderEnabled" class="app-sleep-rem-check"' + (sleepRems.wakeEnabled ? ' checked' : '') + ' />' +
-          '☀️ Wake-up reminder' +
-        '</label>' +
-        '<input type="time" id="sleepFvWakeReminderTime" class="app-sleep-rem-time" value="' + escapeHTML(sleepRems.wakeTime || '07:00') + '" />' +
-      '</div>' +
-      '<button id="sleepFvSaveReminders" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
-      '<p id="sleepFvRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
-    '</div>';
-
-  left.innerHTML=lHTML;
-
-  var past14=[];
-  for(var ni=13;ni>=0;ni--){
-    var dd=new Date();dd.setDate(dd.getDate()-ni);
-    var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());
-    var e=sleep.log&&sleep.log[iso]; var dur2=0;
-    if(e&&e.bedtime&&e.wakeTime){var b=_fvTimeToMins(e.bedtime),w=_fvTimeToMins(e.wakeTime);dur2=w>b?w-b:(1440-b)+w;}
-    past14.push({iso:iso,dur:dur2,quality:e?(e.quality||0):0});
-  }
-  var maxDur=Math.max.apply(null,past14.map(function(d){return d.dur;}));
-  if(maxDur<1)maxDur=480;
-  var SW=240,SH=90,PL2=8,PT2=14,PB2=16;
-  var bw=Math.floor((SW-PL2*2)/14)-2,ch=SH-PT2-PB2;
-  var svgH='<svg width="100%" height="'+SH+'" viewBox="0 0 '+SW+' '+SH+'" preserveAspectRatio="none">';
-  past14.forEach(function(d,i){
-    var x=PL2+i*(bw+2),barH=d.dur>0?Math.max(3,Math.round(ch*d.dur/maxDur)):0,y=PT2+ch-barH;
-    var fill=d.quality>=4?'#27ae60':d.quality>=3?'#4a90e2':d.quality>=1?'#e67e22':(d.dur>0?'#a0c4ef':'#eee');
-    if(d.dur>0){svgH+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+barH+'" fill="'+fill+'" rx="2"/>';if(barH>12)svgH+='<text x="'+(x+bw/2)+'" y="'+(y-2)+'" text-anchor="middle" font-size="6.5" fill="#666">'+Math.floor(d.dur/60)+'h</text>';}
-    if(i%4===0){var dd2=new Date(d.iso+'T12:00:00');svgH+='<text x="'+(x+bw/2)+'" y="'+(SH-2)+'" text-anchor="middle" font-size="6" fill="#aaa">'+(dd2.getMonth()+1)+'/'+(dd2.getDate())+'</text>';}
-  });
-  svgH+='</svg>';
-  var schedVals=DAYS.map(function(d){var s=sleep.schedule[d]||{bedtime:'22:30',wake:'07:00'};var b2=_fvTimeToMins(s.bedtime),w2=_fvTimeToMins(s.wake);return w2>b2?w2-b2:(1440-b2)+w2;});
-  var avgTarget=Math.round(schedVals.reduce(function(a,b){return a+b;},0)/7);
-  var debt=past14.reduce(function(acc,d){return acc+Math.max(0,avgTarget-d.dur);},0);
-  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcca 14-Night History</h3><div class="app-sleep-chart">'+svgH+'</div>'+
-    '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0 10px">Green=great \u00b7 Blue=good \u00b7 Orange=poor \u00b7 Gray=unrated</p>'+
-    '<div class="app-sleep-debt-row"><span>\ud83d\udca4 14-day sleep debt</span><span class="app-sleep-debt-val'+(debt>60?' app-sleep-debt-red':'')+'">'+
-    (debt>0?Math.floor(debt/60)+'h '+(debt%60)+'m':'None \u2705')+'</span></div>';
-  var tips=[
-    ['\ud83d\udcf1','Avoid blue light 1h before bed \u2014 use Night Shift or dark mode'],
-    ['\u2615','Caffeine cutoff: 6h before bedtime (coffee lingers 5\u20137h)'],
-    ['\ud83c\udf21\ufe0f','Keep bedroom cool (18\u201319\u00b0C / 65\u201367\u00b0F) for deeper sleep'],
-    ['\ud83c\udf05','Get morning sunlight within 1h of waking \u2014 resets circadian clock'],
-    ['\ud83c\udf77','Alcohol disrupts REM sleep \u2014 avoid within 3h of bedtime']
+  var tab = container._sleepTab || 'schedule';
+  container._sleepTab = tab;
+  var TABS = [
+    { key: 'schedule', label: '\ud83d\udcc5 Schedule' },
+    { key: 'history',  label: '\ud83d\udcca History' },
+    { key: 'settings', label: '\u2699\ufe0f Settings' }
   ];
-  rHTML+='<div class="app-sleep-tips"><h4 class="app-full-section-heading">\ud83e\udde0 Circadian Rhythm Tips</h4>';
-  tips.forEach(function(t){rHTML+='<div class="app-sleep-tip-row"><span>'+t[0]+'</span><span>'+t[1]+'</span></div>';});
-  rHTML+='</div>';
-  right.innerHTML=rHTML;
-  layout.appendChild(left); layout.appendChild(right); container.appendChild(layout);
-
-  container.querySelectorAll('.assg-time').forEach(function(inp){
-    inp.addEventListener('change',function(){var s=getPersonalSleep();if(!s.schedule[inp.dataset.day])s.schedule[inp.dataset.day]={};s.schedule[inp.dataset.day][inp.dataset.field]=inp.value;setPersonalSleep(s);});
-  });
-  var editBtn=container.querySelector('#sleepFvEdit');
-  if(editBtn)editBtn.addEventListener('click',function(){var f=container.querySelector('#sleepFvForm');if(f)f.style.display='';});
-  var cancelBtn=container.querySelector('#sleepFvCancel');
-  if(cancelBtn)cancelBtn.addEventListener('click',function(){var f=container.querySelector('#sleepFvForm');if(f)f.style.display='none';});
-  var saveBtn=container.querySelector('#sleepFvSave');
-  if(saveBtn)saveBtn.addEventListener('click',function(){
-    var bed=container.querySelector('#sleepFvBed'),wake=container.querySelector('#sleepFvWake'),qual=container.querySelector('#sleepFvQual');
-    var s=getPersonalSleep();if(!s.log)s.log={};
-    s.log[today]={bedtime:bed?bed.value:'',wakeTime:wake?wake.value:'',quality:qual&&qual.value?parseInt(qual.value,10):0};
-    setPersonalSleep(s);renderSleepAppFull(container);
+  var body = _fvBuildTabs(container, TABS, tab, function(k) {
+    container._sleepTab = k;
+    renderSleepAppFull(container);
   });
 
-  /* ── Wire sleep reminders save ── */
-  var saveRemsBtn = container.querySelector('#sleepFvSaveReminders');
-  if (saveRemsBtn) {
-    saveRemsBtn.addEventListener('click', function() {
-      var bedEnabled  = !!(container.querySelector('#sleepFvBedReminderEnabled') || {}).checked;
-      var bedTime     = (container.querySelector('#sleepFvBedReminderTime') || {}).value || '22:00';
-      var bedOffset   = (container.querySelector('#sleepFvBedReminderOffset') || {}).value || '30m';
-      var wakeEnabled = !!(container.querySelector('#sleepFvWakeReminderEnabled') || {}).checked;
-      var wakeTime    = (container.querySelector('#sleepFvWakeReminderTime') || {}).value || '07:00';
+  var sleep = getPersonalSleep(), today = getTodayISO();
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], todayDay = DAYS[new Date().getDay()];
+  var todaySched = sleep.schedule[todayDay] || { bedtime: '22:30', wake: '07:00' };
+  var todayLog = sleep.log && sleep.log[today];
 
-      /* Persist reminder prefs on the sleep data */
+  if (tab === 'schedule') {
+    var lHTML = '<h3 class="app-full-col-heading">\ud83d\ude34 Sleep Schedule</h3>' +
+      '<div class="app-sleep-sched-grid">' +
+        '<div class="assg-h">Day</div><div class="assg-h">\ud83c\udf19 Bedtime</div><div class="assg-h">\u2600\ufe0f Wake</div>';
+    DAYS.forEach(function(day) {
+      var ds = sleep.schedule[day] || { bedtime: '22:30', wake: '07:00' };
+      lHTML += '<div class="assg-day' + (day === todayDay ? ' assg-today' : '') + '">' + day + '</div>' +
+        '<input class="assg-time" type="time" data-day="' + day + '" data-field="bedtime" value="' + (ds.bedtime || '22:30') + '"/>' +
+        '<input class="assg-time" type="time" data-day="' + day + '" data-field="wake" value="' + (ds.wake || '07:00') + '"/>';
+    });
+    lHTML += '</div>';
+    lHTML += '<h4 class="app-full-section-heading">\ud83d\udcdd Today\'s Sleep Log</h4><div class="app-sleep-log-form">';
+    if (todayLog) {
+      var bm = _fvTimeToMins(todayLog.bedtime || ''), wm = _fvTimeToMins(todayLog.wakeTime || '');
+      var dur = wm > bm ? wm - bm : (1440 - bm) + wm;
+      var stars = todayLog.quality ? '\u2b50'.repeat(todayLog.quality) + '\u2606'.repeat(5 - todayLog.quality) : '';
+      lHTML += '<div class="app-sleep-logged-ok">\u2705 ' + escapeHTML(todayLog.bedtime || '\u2014') + ' \u2192 ' + escapeHTML(todayLog.wakeTime || '\u2014') +
+        ' <em>(' + Math.floor(dur / 60) + 'h ' + (dur % 60) + 'm)</em>' + (stars ? ' ' + stars : '') +
+        '</div><button id="sleepFvEdit" class="app-fv-link-btn">Edit log</button>';
+    }
+    var qualOpts = [5,4,3,2,1].map(function(n) {
+      return '<option value="' + n + '"' + (todayLog && todayLog.quality === n ? ' selected' : '') + '>' + '\u2b50'.repeat(n) + ' ' + ['','Bad','Poor','Okay','Good','Great'][n] + '</option>';
+    }).join('');
+    lHTML += '<div id="sleepFvForm"' + (todayLog ? ' style="display:none"' : '') + ' class="app-sleep-log-inner">' +
+      '<label>Bed <input type="time" id="sleepFvBed" value="' + (todayLog ? (todayLog.bedtime || '') : todaySched.bedtime) + '"/></label>' +
+      '<label>Wake <input type="time" id="sleepFvWake" value="' + (todayLog ? (todayLog.wakeTime || '') : todaySched.wake) + '"/></label>' +
+      '<label>Quality <select id="sleepFvQual" class="app-fv-select"><option value="">\u2014</option>' + qualOpts + '</select></label>' +
+      '<button id="sleepFvSave" class="app-fv-save-btn">Save</button>' +
+      (todayLog ? '<button id="sleepFvCancel" class="app-fv-cancel-btn">Cancel</button>' : '') +
+      '</div></div>';
+    var wakeMin = _fvTimeToMins(todaySched.wake);
+    var cyclePills = [4,5,6].map(function(c) {
+      var bm2 = ((wakeMin - c * 90 - 14) + 1440) % 1440;
+      return '<span class="app-fv-pill">' + pad2(Math.floor(bm2 / 60)) + ':' + pad2(bm2 % 60) + ' (' + c + ' cycles)</span>';
+    }).join('');
+    lHTML += '<div class="app-sleep-alarm-box"><strong>\ud83d\udca1 Ideal bedtimes for ' + todaySched.wake + ' wake:</strong>' +
+      '<div class="app-sleep-cycle-pills">' + cyclePills + '</div></div>';
+    body.innerHTML = lHTML;
+    body.querySelectorAll('.assg-time').forEach(function(inp) {
+      inp.addEventListener('change', function() {
+        var s = getPersonalSleep();
+        if (!s.schedule[inp.dataset.day]) s.schedule[inp.dataset.day] = {};
+        s.schedule[inp.dataset.day][inp.dataset.field] = inp.value; setPersonalSleep(s);
+      });
+    });
+    var editBtn = body.querySelector('#sleepFvEdit');
+    if (editBtn) editBtn.addEventListener('click', function() { var f = body.querySelector('#sleepFvForm'); if (f) f.style.display = ''; });
+    var cancelBtn = body.querySelector('#sleepFvCancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', function() { var f = body.querySelector('#sleepFvForm'); if (f) f.style.display = 'none'; });
+    var saveBtn = body.querySelector('#sleepFvSave');
+    if (saveBtn) saveBtn.addEventListener('click', function() {
+      var bed = body.querySelector('#sleepFvBed'), wake2 = body.querySelector('#sleepFvWake'), qual = body.querySelector('#sleepFvQual');
+      var s = getPersonalSleep(); if (!s.log) s.log = {};
+      s.log[today] = { bedtime: bed ? bed.value : '', wakeTime: wake2 ? wake2.value : '', quality: qual && qual.value ? parseInt(qual.value, 10) : 0 };
+      setPersonalSleep(s); renderSleepAppFull(container);
+    });
+
+  } else if (tab === 'history') {
+    var past14 = [];
+    for (var ni = 13; ni >= 0; ni--) {
+      var dd = new Date(); dd.setDate(dd.getDate() - ni);
+      var iso = dd.getFullYear() + '-' + pad2(dd.getMonth() + 1) + '-' + pad2(dd.getDate());
+      var e = sleep.log && sleep.log[iso]; var dur2 = 0;
+      if (e && e.bedtime && e.wakeTime) { var b = _fvTimeToMins(e.bedtime), w = _fvTimeToMins(e.wakeTime); dur2 = w > b ? w - b : (1440 - b) + w; }
+      past14.push({ iso: iso, dur: dur2, quality: e ? (e.quality || 0) : 0 });
+    }
+    var maxDur = Math.max.apply(null, past14.map(function(d) { return d.dur; }));
+    if (maxDur < 1) maxDur = 480;
+    var SW = 240, SH = 90, PL2 = 8, PT2 = 14, PB2 = 16;
+    var bw = Math.floor((SW - PL2 * 2) / 14) - 2, ch = SH - PT2 - PB2;
+    var svgH = '<svg width="100%" height="' + SH + '" viewBox="0 0 ' + SW + ' ' + SH + '" preserveAspectRatio="none">';
+    past14.forEach(function(d, i) {
+      var x = PL2 + i * (bw + 2), barH = d.dur > 0 ? Math.max(3, Math.round(ch * d.dur / maxDur)) : 0, y = PT2 + ch - barH;
+      var fill = d.quality >= 4 ? '#27ae60' : d.quality >= 3 ? '#4a90e2' : d.quality >= 1 ? '#e67e22' : (d.dur > 0 ? '#a0c4ef' : '#eee');
+      if (d.dur > 0) {
+        svgH += '<rect x="' + x + '" y="' + y + '" width="' + bw + '" height="' + barH + '" fill="' + fill + '" rx="2"/>';
+        if (barH > 12) svgH += '<text x="' + (x + bw / 2) + '" y="' + (y - 2) + '" text-anchor="middle" font-size="6.5" fill="#666">' + Math.floor(d.dur / 60) + 'h</text>';
+      }
+      if (i % 4 === 0) { var dd2 = new Date(d.iso + 'T12:00:00'); svgH += '<text x="' + (x + bw / 2) + '" y="' + (SH - 2) + '" text-anchor="middle" font-size="6" fill="#aaa">' + (dd2.getMonth() + 1) + '/' + (dd2.getDate()) + '</text>'; }
+    });
+    svgH += '</svg>';
+    var schedVals = DAYS.map(function(d) { var s2 = sleep.schedule[d] || { bedtime: '22:30', wake: '07:00' }; var b2 = _fvTimeToMins(s2.bedtime), w2 = _fvTimeToMins(s2.wake); return w2 > b2 ? w2 - b2 : (1440 - b2) + w2; });
+    var avgTarget = Math.round(schedVals.reduce(function(a, b) { return a + b; }, 0) / 7);
+    var debt = past14.reduce(function(acc, d) { return acc + Math.max(0, avgTarget - d.dur); }, 0);
+    var rHTML = '<h3 class="app-full-col-heading">\ud83d\udcca 14-Night History</h3>' +
+      '<div class="app-sleep-chart">' + svgH + '</div>' +
+      '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0 10px">Green=great \u00b7 Blue=good \u00b7 Orange=poor \u00b7 Gray=unrated</p>' +
+      '<div class="app-sleep-debt-row"><span>\ud83d\udca4 14-day sleep debt</span><span class="app-sleep-debt-val' + (debt > 60 ? ' app-sleep-debt-red' : '') + '">' +
+      (debt > 0 ? Math.floor(debt / 60) + 'h ' + (debt % 60) + 'm' : 'None \u2705') + '</span></div>';
+    var tips = [
+      ['\ud83d\udcf1','Avoid blue light 1h before bed \u2014 use Night Shift or dark mode'],
+      ['\u2615','Caffeine cutoff: 6h before bedtime (coffee lingers 5\u20137h)'],
+      ['\ud83c\udf21\ufe0f','Keep bedroom cool (18\u201319\u00b0C / 65\u201367\u00b0F) for deeper sleep'],
+      ['\ud83c\udf05','Get morning sunlight within 1h of waking \u2014 resets circadian clock'],
+      ['\ud83c\udf77','Alcohol disrupts REM sleep \u2014 avoid within 3h of bedtime']
+    ];
+    rHTML += '<div class="app-sleep-tips"><h4 class="app-full-section-heading">\ud83e\udde0 Circadian Rhythm Tips</h4>';
+    tips.forEach(function(t) { rHTML += '<div class="app-sleep-tip-row"><span>' + t[0] + '</span><span>' + t[1] + '</span></div>'; });
+    rHTML += '</div>';
+    body.innerHTML = rHTML;
+
+  } else {
+    _fvRenderPinCard(body, 'sleep');
+    var DEFAULT_SLEEP_REMINDERS = { bedtimeEnabled: false, bedtimeTime: todaySched.bedtime || '22:00', bedtimeOffset: '30m', wakeEnabled: false, wakeTime: todaySched.wake || '07:00' };
+    var sleepRems = sleep.reminders ? Object.assign({}, DEFAULT_SLEEP_REMINDERS, sleep.reminders) : DEFAULT_SLEEP_REMINDERS;
+    var sleepRemCard = document.createElement('div');
+    sleepRemCard.className = 'app-settings-card';
+    sleepRemCard.innerHTML =
+      '<h4 class="app-full-section-heading">\ud83d\udd14 Sleep Reminders</h4>' +
+      '<div class="app-sleep-reminders-grid">' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">' +
+            '<input type="checkbox" id="sleepFvBedReminderEnabled" class="app-sleep-rem-check"' + (sleepRems.bedtimeEnabled ? ' checked' : '') + ' />' +
+            '\ud83c\udf19 Bedtime reminder' +
+          '</label>' +
+          '<input type="time" id="sleepFvBedReminderTime" class="app-sleep-rem-time" value="' + escapeHTML(sleepRems.bedtimeTime || '22:00') + '" />' +
+          '<select id="sleepFvBedReminderOffset" class="app-sleep-rem-select">' +
+            '<option value="at"' + (sleepRems.bedtimeOffset === 'at' ? ' selected' : '') + '>At time</option>' +
+            '<option value="15m"' + (sleepRems.bedtimeOffset === '15m' ? ' selected' : '') + '>15 min before</option>' +
+            '<option value="30m"' + ((!sleepRems.bedtimeOffset || sleepRems.bedtimeOffset === '30m') ? ' selected' : '') + '>30 min before</option>' +
+            '<option value="1h"' + (sleepRems.bedtimeOffset === '1h' ? ' selected' : '') + '>1 hour before</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">' +
+            '<input type="checkbox" id="sleepFvWakeReminderEnabled" class="app-sleep-rem-check"' + (sleepRems.wakeEnabled ? ' checked' : '') + ' />' +
+            '\u2600\ufe0f Wake-up reminder' +
+          '</label>' +
+          '<input type="time" id="sleepFvWakeReminderTime" class="app-sleep-rem-time" value="' + escapeHTML(sleepRems.wakeTime || '07:00') + '" />' +
+        '</div>' +
+        '<button id="sleepFvSaveReminders" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
+        '<p id="sleepFvRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
+      '</div>';
+    body.appendChild(sleepRemCard);
+    var saveRemsBtn = body.querySelector('#sleepFvSaveReminders');
+    if (saveRemsBtn) saveRemsBtn.addEventListener('click', function() {
+      var bedEnabled  = !!(body.querySelector('#sleepFvBedReminderEnabled') || {}).checked;
+      var bedTime     = (body.querySelector('#sleepFvBedReminderTime') || {}).value || '22:00';
+      var bedOffset   = (body.querySelector('#sleepFvBedReminderOffset') || {}).value || '30m';
+      var wakeEnabled = !!(body.querySelector('#sleepFvWakeReminderEnabled') || {}).checked;
+      var wakeTime    = (body.querySelector('#sleepFvWakeReminderTime') || {}).value || '07:00';
       var s = getPersonalSleep();
       s.reminders = { bedtimeEnabled: bedEnabled, bedtimeTime: bedTime, bedtimeOffset: bedOffset, wakeEnabled: wakeEnabled, wakeTime: wakeTime };
       setPersonalSleep(s);
-
-      /* Write today's reminders into the reminders store with domain:'apps' */
       var rems = getReminders();
       var removeAppSleepRems = function(dateKey) {
         if (!rems[dateKey]) return;
         rems[dateKey] = rems[dateKey].filter(function(r) { return !(r.domain === 'apps' && r.appSource === 'sleep'); });
         if (!rems[dateKey].length) delete rems[dateKey];
       };
-      /* Schedule for each of the next 7 days */
       var _sleepBase = new Date();
       for (var di = 0; di < 7; di++) {
         var dt = new Date(_sleepBase.getFullYear(), _sleepBase.getMonth(), _sleepBase.getDate() + di);
         var dk = dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate());
         removeAppSleepRems(dk);
-        if (bedEnabled) {
-          if (!rems[dk]) rems[dk] = [];
-          rems[dk].push({ text: '🌙 Bedtime reminder', time: bedTime, notify: bedOffset, domain: 'apps', appSource: 'sleep' });
-        }
-        if (wakeEnabled) {
-          if (!rems[dk]) rems[dk] = [];
-          rems[dk].push({ text: '☀️ Wake-up reminder', time: wakeTime, notify: 'at', domain: 'apps', appSource: 'sleep' });
-        }
+        if (bedEnabled) { if (!rems[dk]) rems[dk] = []; rems[dk].push({ text: '\ud83c\udf19 Bedtime reminder', time: bedTime, notify: bedOffset, domain: 'apps', appSource: 'sleep' }); }
+        if (wakeEnabled) { if (!rems[dk]) rems[dk] = []; rems[dk].push({ text: '\u2600\ufe0f Wake-up reminder', time: wakeTime, notify: 'at', domain: 'apps', appSource: 'sleep' }); }
       }
       setReminders(rems);
-
-      var statusEl = container.querySelector('#sleepFvRemStatus');
-      if (statusEl) { statusEl.textContent = '✓ Reminders saved!'; setTimeout(function(){ statusEl.textContent = ''; }, 2500); }
+      var statusEl = body.querySelector('#sleepFvRemStatus');
+      if (statusEl) { statusEl.textContent = '\u2713 Reminders saved!'; setTimeout(function() { statusEl.textContent = ''; }, 2500); }
     });
   }
 }
@@ -11751,6 +11717,83 @@ function _syncJournalReminders() {
 }
 window._syncJournalReminders = _syncJournalReminders;
 
+/* ── Shared Full-View Tab Helpers ──────────────────────────────── */
+
+/**
+ * Sync daily focus-priorities reminder for the next 30 days.
+ */
+function _syncFocusReminders() {
+  var cfg = getAppRemSettings().focus || {};
+  if (!cfg.enabled) { _saveAppsSourceRems('focus', [], 30); return; }
+  var time = cfg.time || '08:00';
+  var entries = [];
+  var _base = new Date();
+  for (var di = 0; di < 30; di++) {
+    var d = new Date(_base.getFullYear(), _base.getMonth(), _base.getDate() + di);
+    var dk = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    entries.push({ date: dk, text: '\ud83c\udfaf Set daily priorities', time: time, notify: 'at' });
+  }
+  _saveAppsSourceRems('focus', entries, 30);
+}
+window._syncFocusReminders = _syncFocusReminders;
+
+/**
+ * Build a tab bar + body shell inside `container` using the mf-tab-bar/mf-tab-btn pattern.
+ * Returns the mf-tab-body element ready for content.
+ * @param {Element}  container  - the app window content element
+ * @param {Array}    TABS       - [{key, label}, ...]
+ * @param {string}   activeKey  - currently active tab key
+ * @param {Function} onSwitch   - called with (key) when a tab button is clicked
+ * @returns {Element} body div
+ */
+function _fvBuildTabs(container, TABS, activeKey, onSwitch) {
+  container.innerHTML = '';
+  var tabBar = document.createElement('div');
+  tabBar.className = 'mf-tab-bar';
+  TABS.forEach(function(t) {
+    var btn = document.createElement('button');
+    btn.className = 'mf-tab-btn' + (t.key === activeKey ? ' active' : '');
+    btn.textContent = t.label;
+    btn.addEventListener('click', function() { onSwitch(t.key); });
+    tabBar.appendChild(btn);
+  });
+  container.appendChild(tabBar);
+  var body = document.createElement('div');
+  body.className = 'mf-tab-body';
+  container.appendChild(body);
+  return body;
+}
+
+/**
+ * Render a "📌 Today Page" pin card into `body` for the given app key.
+ * Syncs with the header #appWindowPinToggle.
+ */
+function _fvRenderPinCard(body, appKey) {
+  var pinned = {};
+  try { pinned = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
+  var isPinned = !!pinned[appKey];
+  var card = document.createElement('div');
+  card.className = 'app-settings-card';
+  card.innerHTML =
+    '<h4 class="app-full-section-heading">\ud83d\udccc Today Page</h4>' +
+    '<label class="app-settings-pin-row">' +
+      '<input type="checkbox" id="appFvPinToggle"' + (isPinned ? ' checked' : '') + ' />' +
+      '<span>Pin to Today page</span>' +
+    '</label>';
+  body.appendChild(card);
+  var cb = card.querySelector('#appFvPinToggle');
+  if (cb) cb.addEventListener('change', function() {
+    var p = {};
+    try { p = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
+    if (cb.checked) p[appKey] = true; else delete p[appKey];
+    try { localStorage.setItem('pinnedApps', JSON.stringify(p)); } catch(e) {}
+    var hdr = document.getElementById('appWindowPinToggle');
+    if (hdr && hdr.dataset.app === appKey) hdr.checked = cb.checked;
+    if (typeof renderTodayPinnedApps === 'function') try { renderTodayPinnedApps(); } catch(_) {}
+  });
+}
+
+
 /* ── Sleep App — Medium View ────────────────────────────────────────── */
 function renderSleepAppMedium(container) {
   container.innerHTML = '';
@@ -11851,266 +11894,529 @@ window.renderSleepAppMedium = renderSleepAppMedium;
 
 
 function renderMoodAppFull(container) {
-  container.innerHTML='';
-  var moods=getPersonalMood(),today=getTodayISO();
-  var todayEntry=moods.find(function(m){return m.date===today;});
-  var MOODS=[{e:'\ud83d\ude0a',l:'Great'},{e:'\ud83d\ude42',l:'Good'},{e:'\ud83d\ude10',l:'Okay'},{e:'\ud83d\ude1f',l:'Low'},{e:'\ud83d\ude22',l:'Rough'}];
-  var MOOD_SCORE={Great:5,Good:4,Okay:3,Low:2,Rough:1};
-  var ENERGY_OPT=['\ud83d\udfe2 High','\ud83d\udfe1 Medium','\ud83d\udd34 Low'];
-  var layout=document.createElement('div');layout.className='app-full-two-col';
-  var left=document.createElement('div');left.className='app-full-col';
-  var right=document.createElement('div');right.className='app-full-col';
-
-  var lHTML='<h3 class="app-full-col-heading">\ud83d\ude0a Today\'s Check-in</h3>';
-  if(todayEntry){
-    lHTML+='<div class="app-mood-checked"><span style="font-size:2rem">'+escapeHTML(todayEntry.mood)+'</span>'+
-      '<div style="margin-left:10px"><div style="font-weight:700">'+escapeHTML(todayEntry.moodLabel)+'</div>'+
-      '<div style="font-size:0.82rem;color:var(--ios-text-3)">'+escapeHTML(todayEntry.energy)+'</div>'+
-      (todayEntry.note?'<div style="font-size:0.8rem;font-style:italic;color:var(--ios-text-3)">\u201c'+escapeHTML(todayEntry.note)+'\u201d</div>':'')+
-      '</div></div><button id="moodFvEdit" class="app-fv-link-btn">Edit today\'s entry</button>';
-  }
-  lHTML+='<div id="moodFvForm"'+(todayEntry?' style="display:none"':'')+' class="app-mood-form">'+
-    '<div class="app-mood-emoji-row">'+MOODS.map(function(m){return '<button class="app-mood-emoji-btn" data-mood="'+m.e+'" data-label="'+m.l+'" title="'+m.l+'">'+m.e+'</button>';}).join('')+'</div>'+
-    '<div class="app-mood-energy-row">'+ENERGY_OPT.map(function(o){return '<button class="app-mood-energy-btn" data-energy="'+escapeHTML(o)+'">'+escapeHTML(o)+'</button>';}).join('')+'</div>'+
-    '<input type="text" id="moodFvNote" class="app-fv-note-input" placeholder="Optional note\u2026" value="'+escapeHTML(todayEntry?(todayEntry.note||''):'')+'"/>'+
-    '<button id="moodFvSave" class="app-fv-save-btn">\ud83d\udcbe Save Check-in</button>'+
-    (todayEntry?'<button id="moodFvCancel" class="app-fv-cancel-btn">Cancel</button>':'')+
-    '</div>';
-  lHTML+='<h4 class="app-full-section-heading">\ud83d\udccb Recent History</h4><div class="app-mood-history-list">';
-  moods.slice(0,10).forEach(function(m){
-    lHTML+='<div class="app-mood-hist-row"><span class="app-mood-hist-date">'+escapeHTML(m.date||'')+'</span><span style="font-size:1.1rem">'+escapeHTML(m.mood||'')+'</span><span style="font-size:0.8rem">'+escapeHTML(m.moodLabel||'')+'</span><span style="font-size:0.75rem;color:var(--ios-text-3)">'+escapeHTML(m.energy||'')+'</span>'+(m.note?'<span style="font-size:0.75rem;font-style:italic;color:var(--ios-text-3)">'+escapeHTML(m.note)+'</span>':'')+'</div>';
+  var tab = container._moodTab || 'checkin';
+  container._moodTab = tab;
+  var TABS = [
+    { key: 'checkin',  label: '\u270f\ufe0f Check-in' },
+    { key: 'trends',   label: '\ud83d\udcc8 Trends' },
+    { key: 'settings', label: '\u2699\ufe0f Settings' }
+  ];
+  var body = _fvBuildTabs(container, TABS, tab, function(k) {
+    container._moodTab = k;
+    renderMoodAppFull(container);
   });
-  if(!moods.length)lHTML+='<p style="color:var(--ios-text-3);font-size:0.85rem">No entries yet.</p>';
-  lHTML+='</div>';
-  left.innerHTML=lHTML;
 
-  var past30=[];
-  for(var ni=29;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());past30.push({iso:iso,entry:moods.find(function(m){return m.date===iso;})});}
-  var MCOL={Great:'#27ae60',Good:'#4a90e2',Okay:'#f39c12',Low:'#e67e22',Rough:'#e74c3c'};
-  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcc5 30-Day Mood</h3><div class="app-mood-heatmap">';
-  past30.forEach(function(d){var color=d.entry&&MCOL[d.entry.moodLabel]?MCOL[d.entry.moodLabel]:'#eee';rHTML+='<div class="app-mood-hm-cell" style="background:'+color+'" title="'+d.iso+(d.entry?' \u00b7 '+d.entry.moodLabel:'')+'"></div>';});
-  rHTML+='</div><div class="app-mood-hm-legend">'+Object.keys(MCOL).map(function(k){return '<span><span style="background:'+MCOL[k]+';width:9px;height:9px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px"></span>'+k+'</span>';}).join('')+'</div>';
+  var moods = getPersonalMood(), today = getTodayISO();
+  var todayEntry = moods.find(function(m) { return m.date === today; });
+  var MOODS = [
+    { e: '\ud83d\ude0a', l: 'Great' }, { e: '\ud83d\ude42', l: 'Good' },
+    { e: '\ud83d\ude10', l: 'Okay' },  { e: '\ud83d\ude1f', l: 'Low' },
+    { e: '\ud83d\ude22', l: 'Rough' }
+  ];
+  var MOOD_SCORE = { Great: 5, Good: 4, Okay: 3, Low: 2, Rough: 1 };
+  var ENERGY_OPT = ['\ud83d\udfe2 High', '\ud83d\udfe1 Medium', '\ud83d\udd34 Low'];
 
-  var trend14=[];
-  for(var ti=13;ti>=0;ti--){var td=new Date();td.setDate(td.getDate()-ti);var tIso=td.getFullYear()+'-'+pad2(td.getMonth()+1)+'-'+pad2(td.getDate());var te=moods.find(function(m){return m.date===tIso;});trend14.push({score:te?(MOOD_SCORE[te.moodLabel]||null):null});}
-  var validPts=trend14.filter(function(d){return d.score!=null;});
-  rHTML+='<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udcc8 Mood Trend (14 days)</h4>';
-  if(validPts.length>1){
-    var TW=220,TH=55,stepX=TW/13;
-    var tPts=trend14.map(function(d,i){return{x:i*stepX,y:d.score!=null?(TH-5-(d.score-1)/4*(TH-10)):null};});
-    var pathD='';tPts.forEach(function(p){if(p.y==null)return;pathD+=(pathD===''?'M':'L')+p.x.toFixed(1)+' '+p.y.toFixed(1);});
-    var svgT='<svg width="100%" height="'+TH+'" viewBox="0 0 '+TW+' '+TH+'" preserveAspectRatio="none"><path d="'+pathD+'" fill="none" stroke="#4a90e2" stroke-width="2" stroke-linejoin="round"/>';
-    tPts.forEach(function(p){if(p.y==null)return;svgT+='<circle cx="'+p.x.toFixed(1)+'" cy="'+p.y.toFixed(1)+'" r="3" fill="#4a90e2"/>';});
-    svgT+='</svg>';
-    rHTML+='<div class="fv-chart-wrap">'+svgT+'</div>';
+  if (tab === 'checkin') {
+    var lHTML = '<h3 class="app-full-col-heading">\ud83d\ude0a Today\'s Check-in</h3>';
+    if (todayEntry) {
+      lHTML += '<div class="app-mood-checked">' +
+        '<span style="font-size:2rem">' + escapeHTML(todayEntry.mood) + '</span>' +
+        '<div style="margin-left:10px">' +
+          '<div style="font-weight:700">' + escapeHTML(todayEntry.moodLabel) + '</div>' +
+          '<div style="font-size:0.82rem;color:var(--ios-text-3)">' + escapeHTML(todayEntry.energy) + '</div>' +
+          (todayEntry.note ? '<div style="font-size:0.8rem;font-style:italic;color:var(--ios-text-3)">\u201c' + escapeHTML(todayEntry.note) + '\u201d</div>' : '') +
+        '</div></div>' +
+        '<button id="moodFvEdit" class="app-fv-link-btn">Edit today\'s entry</button>';
+    }
+    lHTML += '<div id="moodFvForm"' + (todayEntry ? ' style="display:none"' : '') + ' class="app-mood-form">' +
+      '<div class="app-mood-emoji-row">' +
+      MOODS.map(function(m) { return '<button class="app-mood-emoji-btn" data-mood="' + m.e + '" data-label="' + m.l + '" title="' + m.l + '">' + m.e + '</button>'; }).join('') +
+      '</div>' +
+      '<div class="app-mood-energy-row">' +
+      ENERGY_OPT.map(function(o) { return '<button class="app-mood-energy-btn" data-energy="' + escapeHTML(o) + '">' + escapeHTML(o) + '</button>'; }).join('') +
+      '</div>' +
+      '<input type="text" id="moodFvNote" class="app-fv-note-input" placeholder="Optional note\u2026" value="' + escapeHTML(todayEntry ? (todayEntry.note || '') : '') + '"/>' +
+      '<button id="moodFvSave" class="app-fv-save-btn">\ud83d\udcbe Save Check-in</button>' +
+      (todayEntry ? '<button id="moodFvCancel" class="app-fv-cancel-btn">Cancel</button>' : '') +
+      '</div>';
+    lHTML += '<h4 class="app-full-section-heading">\ud83d\udccb Recent History</h4><div class="app-mood-history-list">';
+    moods.slice(0, 10).forEach(function(m) {
+      lHTML += '<div class="app-mood-hist-row">' +
+        '<span class="app-mood-hist-date">' + escapeHTML(m.date || '') + '</span>' +
+        '<span style="font-size:1.1rem">' + escapeHTML(m.mood || '') + '</span>' +
+        '<span style="font-size:0.8rem">' + escapeHTML(m.moodLabel || '') + '</span>' +
+        '<span style="font-size:0.75rem;color:var(--ios-text-3)">' + escapeHTML(m.energy || '') + '</span>' +
+        (m.note ? '<span style="font-size:0.75rem;font-style:italic;color:var(--ios-text-3)">' + escapeHTML(m.note) + '</span>' : '') +
+        '</div>';
+    });
+    if (!moods.length) lHTML += '<p style="color:var(--ios-text-3);font-size:0.85rem">No entries yet.</p>';
+    lHTML += '</div>';
+    body.innerHTML = lHTML;
+    var editBtn = body.querySelector('#moodFvEdit');
+    if (editBtn) editBtn.addEventListener('click', function() { var f = body.querySelector('#moodFvForm'); if (f) f.style.display = ''; });
+    var cancelBtn = body.querySelector('#moodFvCancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', function() { var f = body.querySelector('#moodFvForm'); if (f) f.style.display = 'none'; });
+    body.querySelectorAll('.app-mood-emoji-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { body.querySelectorAll('.app-mood-emoji-btn').forEach(function(b) { b.classList.remove('selected'); }); btn.classList.add('selected'); });
+    });
+    body.querySelectorAll('.app-mood-energy-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { body.querySelectorAll('.app-mood-energy-btn').forEach(function(b) { b.classList.remove('selected'); }); btn.classList.add('selected'); });
+    });
+    if (todayEntry) {
+      var mb = body.querySelector('[data-mood="' + todayEntry.mood + '"]'); if (mb) mb.classList.add('selected');
+      var eb = body.querySelector('[data-energy="' + todayEntry.energy + '"]'); if (eb) eb.classList.add('selected');
+    }
+    var saveBtn = body.querySelector('#moodFvSave');
+    if (saveBtn) saveBtn.addEventListener('click', function() {
+      var sm = body.querySelector('.app-mood-emoji-btn.selected');
+      var se = body.querySelector('.app-mood-energy-btn.selected');
+      var noteInp = body.querySelector('#moodFvNote');
+      if (!sm || !se) {
+        var errEl = body.querySelector('#moodFvSaveErr');
+        if (!errEl) { errEl = document.createElement('span'); errEl.id = 'moodFvSaveErr'; errEl.style.cssText = 'color:#e74c3c;font-size:0.78rem;margin-left:6px'; saveBtn.parentNode.insertBefore(errEl, saveBtn.nextSibling); }
+        errEl.textContent = 'Select a mood and energy level.'; return;
+      }
+      var data = getPersonalMood();
+      data = data.filter(function(m) { return m.date !== today; });
+      data.unshift({ date: today, mood: sm.dataset.mood, moodLabel: sm.dataset.label, energy: se.dataset.energy, note: noteInp ? noteInp.value.trim() : '' });
+      if (data.length > 90) data = data.slice(0, 90);
+      setPersonalMood(data); renderMoodAppFull(container);
+    });
+
+  } else if (tab === 'trends') {
+    var past30 = [];
+    for (var ni = 29; ni >= 0; ni--) {
+      var dd = new Date(); dd.setDate(dd.getDate() - ni);
+      var iso = dd.getFullYear() + '-' + pad2(dd.getMonth() + 1) + '-' + pad2(dd.getDate());
+      past30.push({ iso: iso, entry: moods.find(function(m) { return m.date === iso; }) });
+    }
+    var MCOL = { Great: '#27ae60', Good: '#4a90e2', Okay: '#f39c12', Low: '#e67e22', Rough: '#e74c3c' };
+    var rHTML = '<h3 class="app-full-col-heading">\ud83d\udcc5 30-Day Mood</h3><div class="app-mood-heatmap">';
+    past30.forEach(function(d) {
+      var color = d.entry && MCOL[d.entry.moodLabel] ? MCOL[d.entry.moodLabel] : '#eee';
+      rHTML += '<div class="app-mood-hm-cell" style="background:' + color + '" title="' + d.iso + (d.entry ? ' \u00b7 ' + d.entry.moodLabel : '') + '"></div>';
+    });
+    rHTML += '</div><div class="app-mood-hm-legend">' +
+      Object.keys(MCOL).map(function(k) {
+        return '<span><span style="background:' + MCOL[k] + ';width:9px;height:9px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px"></span>' + k + '</span>';
+      }).join('') + '</div>';
+    var trend14 = [];
+    for (var ti = 13; ti >= 0; ti--) {
+      var td = new Date(); td.setDate(td.getDate() - ti);
+      var tIso = td.getFullYear() + '-' + pad2(td.getMonth() + 1) + '-' + pad2(td.getDate());
+      var te = moods.find(function(m) { return m.date === tIso; });
+      trend14.push({ score: te ? (MOOD_SCORE[te.moodLabel] || null) : null });
+    }
+    var validPts = trend14.filter(function(d) { return d.score != null; });
+    rHTML += '<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udcc8 Mood Trend (14 days)</h4>';
+    if (validPts.length > 1) {
+      var TW = 220, TH = 55, stepX = TW / 13;
+      var tPts = trend14.map(function(d, i) { return { x: i * stepX, y: d.score != null ? (TH - 5 - (d.score - 1) / 4 * (TH - 10)) : null }; });
+      var pathD = ''; tPts.forEach(function(p) { if (p.y == null) return; pathD += (pathD === '' ? 'M' : 'L') + p.x.toFixed(1) + ' ' + p.y.toFixed(1); });
+      var svgT = '<svg width="100%" height="' + TH + '" viewBox="0 0 ' + TW + ' ' + TH + '" preserveAspectRatio="none">' +
+        '<path d="' + pathD + '" fill="none" stroke="#4a90e2" stroke-width="2" stroke-linejoin="round"/>';
+      tPts.forEach(function(p) { if (p.y == null) return; svgT += '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="3" fill="#4a90e2"/>'; });
+      svgT += '</svg>';
+      rHTML += '<div class="fv-chart-wrap">' + svgT + '</div>';
+    } else {
+      rHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">Need more entries for a trend chart.</p>';
+    }
+    rHTML += '<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udd0d Patterns</h4>';
+    var DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], byDow = {};
+    DOW.forEach(function(d) { byDow[d] = []; });
+    moods.forEach(function(m) { var d2 = new Date((m.date || '') + 'T12:00:00'); if (!isNaN(d2) && m.moodLabel) byDow[DOW[d2.getDay()]].push(MOOD_SCORE[m.moodLabel] || 0); });
+    var dowAvg = DOW.map(function(d) { var arr = byDow[d]; return { day: d, avg: arr.length ? arr.reduce(function(a, b) { return a + b; }, 0) / arr.length : null }; }).filter(function(d) { return d.avg != null; });
+    if (dowAvg.length >= 2) {
+      var best = dowAvg.reduce(function(a, b) { return b.avg > a.avg ? b : a; });
+      var worst = dowAvg.reduce(function(a, b) { return b.avg < a.avg ? b : a; });
+      rHTML += '<div class="app-mood-patterns">' +
+        '<span>\ud83d\ude0a Best day: <strong>' + best.day + '</strong> (avg ' + best.avg.toFixed(1) + '/5)</span>' +
+        '<span>\ud83d\ude1f Toughest: <strong>' + worst.day + '</strong> (avg ' + worst.avg.toFixed(1) + '/5)</span></div>';
+    } else {
+      rHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">Log more entries to see day-of-week patterns.</p>';
+    }
+    body.innerHTML = rHTML;
+
   } else {
-    rHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">Need more entries for a trend chart.</p>';
+    _fvRenderPinCard(body, 'mood');
+    var moodCfg = getAppRemSettings().mood || {};
+    var moodRemCard = document.createElement('div');
+    moodRemCard.className = 'app-settings-card';
+    moodRemCard.innerHTML =
+      '<h4 class="app-full-section-heading">\ud83d\udd14 Daily Check-in Reminder</h4>' +
+      '<div class="app-sleep-reminders-grid">' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">' +
+            '<input type="checkbox" id="moodRemEnabled" class="app-sleep-rem-check"' + (moodCfg.enabled ? ' checked' : '') + '/>' +
+            '\ud83d\ude0a Remind me to check in' +
+          '</label>' +
+          '<input type="time" id="moodRemTime" class="app-sleep-rem-time" value="' + escapeHTML(moodCfg.time || '20:00') + '" />' +
+        '</div>' +
+        '<button id="moodRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminder</button>' +
+        '<p id="moodRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
+      '</div>';
+    body.appendChild(moodRemCard);
+    var moodRemSaveBtn = body.querySelector('#moodRemSave');
+    if (moodRemSaveBtn) moodRemSaveBtn.addEventListener('click', function() {
+      var s = getAppRemSettings();
+      var enEl = body.querySelector('#moodRemEnabled');
+      var tiEl = body.querySelector('#moodRemTime');
+      s.mood = { enabled: !!(enEl && enEl.checked), time: tiEl ? tiEl.value : '20:00' };
+      setAppRemSettings(s);
+      try { _syncMoodReminders(); } catch(e) { console.warn('[Mood] _syncMoodReminders:', e); }
+      var st = body.querySelector('#moodRemStatus');
+      if (st) { st.textContent = '\u2713 Reminder saved!'; setTimeout(function() { st.textContent = ''; }, 2500); }
+    });
   }
-  rHTML+='<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udd0d Patterns</h4>';
-  var DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],byDow={};
-  DOW.forEach(function(d){byDow[d]=[];});
-  moods.forEach(function(m){var d2=new Date((m.date||'')+'T12:00:00');if(!isNaN(d2)&&m.moodLabel)byDow[DOW[d2.getDay()]].push(MOOD_SCORE[m.moodLabel]||0);});
-  var dowAvg=DOW.map(function(d){var arr=byDow[d];return{day:d,avg:arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:null};}).filter(function(d){return d.avg!=null;});
-  if(dowAvg.length>=2){
-    var best=dowAvg.reduce(function(a,b){return b.avg>a.avg?b:a;});
-    var worst=dowAvg.reduce(function(a,b){return b.avg<a.avg?b:a;});
-    rHTML+='<div class="app-mood-patterns"><span>\ud83d\ude0a Best day: <strong>'+best.day+'</strong> (avg '+best.avg.toFixed(1)+'/5)</span><span>\ud83d\ude1f Toughest: <strong>'+worst.day+'</strong> (avg '+worst.avg.toFixed(1)+'/5)</span></div>';
-  } else {
-    rHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">Log more entries to see day-of-week patterns.</p>';
-  }
-  right.innerHTML=rHTML;
-  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
-
-  var editBtn2=container.querySelector('#moodFvEdit');
-  if(editBtn2)editBtn2.addEventListener('click',function(){var f=container.querySelector('#moodFvForm');if(f)f.style.display='';});
-  var cancelBtn2=container.querySelector('#moodFvCancel');
-  if(cancelBtn2)cancelBtn2.addEventListener('click',function(){var f=container.querySelector('#moodFvForm');if(f)f.style.display='none';});
-  container.querySelectorAll('.app-mood-emoji-btn').forEach(function(btn){btn.addEventListener('click',function(){container.querySelectorAll('.app-mood-emoji-btn').forEach(function(b){b.classList.remove('selected');});btn.classList.add('selected');});});
-  container.querySelectorAll('.app-mood-energy-btn').forEach(function(btn){btn.addEventListener('click',function(){container.querySelectorAll('.app-mood-energy-btn').forEach(function(b){b.classList.remove('selected');});btn.classList.add('selected');});});
-  if(todayEntry){var mb=container.querySelector('[data-mood="'+todayEntry.mood+'"]');if(mb)mb.classList.add('selected');var eb=container.querySelector('[data-energy="'+todayEntry.energy+'"]');if(eb)eb.classList.add('selected');}
-  var saveBtn2=container.querySelector('#moodFvSave');
-  if(saveBtn2)saveBtn2.addEventListener('click',function(){
-    var sm=container.querySelector('.app-mood-emoji-btn.selected');
-    var se=container.querySelector('.app-mood-energy-btn.selected');
-    var noteInp=container.querySelector('#moodFvNote');
-    if(!sm||!se){var errEl=container.querySelector('#moodFvSaveErr');if(!errEl){errEl=document.createElement('span');errEl.id='moodFvSaveErr';errEl.style.cssText='color:#e74c3c;font-size:0.78rem;margin-left:6px';saveBtn2.parentNode.insertBefore(errEl,saveBtn2.nextSibling);}errEl.textContent='Select a mood and energy level.';return;}
-    var data=getPersonalMood();
-    data=data.filter(function(m){return m.date!==today;});
-    data.unshift({date:today,mood:sm.dataset.mood,moodLabel:sm.dataset.label,energy:se.dataset.energy,note:noteInp?noteInp.value.trim():''});
-    if(data.length>90)data=data.slice(0,90);
-    setPersonalMood(data);renderMoodAppFull(container);
-  });
-
-  /* ── Mood Check-in Reminder ── */
-  var moodCfg = getAppRemSettings().mood || {};
-  var moodRemSection = document.createElement('div');
-  moodRemSection.className = 'app-sleep-reminders-grid';
-  moodRemSection.style.marginTop = '16px';
-  moodRemSection.innerHTML =
-    '<h4 class="app-full-section-heading">🔔 Daily Check-in Reminder</h4>' +
-    '<div class="app-sleep-rem-row">' +
-      '<label class="app-sleep-rem-label">' +
-        '<input type="checkbox" id="moodRemEnabled" class="app-sleep-rem-check"' + (moodCfg.enabled ? ' checked' : '') + '/>' +
-        '😊 Remind me to check in' +
-      '</label>' +
-      '<input type="time" id="moodRemTime" class="app-sleep-rem-time" value="' + escapeHTML(moodCfg.time || '20:00') + '" />' +
-    '</div>' +
-    '<button id="moodRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminder</button>' +
-    '<p id="moodRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
-  container.appendChild(moodRemSection);
-
-  var moodRemSaveBtn = container.querySelector('#moodRemSave');
-  if (moodRemSaveBtn) moodRemSaveBtn.addEventListener('click', function() {
-    var s = getAppRemSettings();
-    var enEl = container.querySelector('#moodRemEnabled');
-    var tiEl = container.querySelector('#moodRemTime');
-    s.mood = { enabled: !!(enEl && enEl.checked), time: tiEl ? tiEl.value : '20:00' };
-    setAppRemSettings(s);
-    try { _syncMoodReminders(); } catch(e) { console.warn('[Mood] _syncMoodReminders:', e); }
-    var st = container.querySelector('#moodRemStatus');
-    if (st) { st.textContent = '✓ Mood reminder saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
-  });
 }
 
 function renderFocusAppFull(container) {
-  container.innerHTML='';
-  var today=getTodayISO(),allFocus=getPersonalFocus(),items=allFocus[today]||[];
-  var layout=document.createElement('div');layout.className='app-full-two-col';
-  var left=document.createElement('div');left.className='app-full-col';
-  var right=document.createElement('div');right.className='app-full-col';
-  var lHTML='<h3 class="app-full-col-heading">\ud83c\udfaf Today\'s Priorities</h3><p style="font-size:0.82rem;color:var(--ios-text-3);margin:0 0 10px">Up to 3 must-do items. Resets daily.</p>';
-  items.forEach(function(item,idx){
-    lHTML+='<div class="app-focus-row'+(item.done?' done':'')+'"><input type="checkbox" class="app-focus-cb" data-idx="'+idx+'"'+(item.done?' checked':'')+' /><span class="app-focus-text">'+escapeHTML(item.text)+'</span>'+(item.timeBlock?'<span class="app-focus-time-tag">\u23f0 '+escapeHTML(item.timeBlock)+'</span>':'')+'<button class="app-focus-del" data-del="'+idx+'" aria-label="Remove">\u2715</button></div>';
+  var tab = container._focusTab || 'today';
+  container._focusTab = tab;
+  var TABS = [
+    { key: 'today',    label: '\ud83d\udccb Today' },
+    { key: 'history',  label: '\ud83d\udcc5 History' },
+    { key: 'settings', label: '\u2699\ufe0f Settings' }
+  ];
+  var body = _fvBuildTabs(container, TABS, tab, function(k) {
+    container._focusTab = k;
+    renderFocusAppFull(container);
   });
-  if(items.length<3){lHTML+='<div class="app-focus-add-row"><input type="text" id="focusFvInput" class="app-fv-text-input" placeholder="Priority #'+(items.length+1)+'\u2026"/><input type="time" id="focusFvTime" class="app-fv-time-small" title="Optional time block"/><button id="focusFvAdd" class="app-fv-save-btn">Add</button></div>';}
-  if(items.length&&items.every(function(i){return i.done;})){lHTML+='<div class="app-focus-done-msg">\ud83c\udf89 All priorities completed!</div>';}
-  lHTML+='<h4 class="app-full-section-heading" style="margin-top:20px">\ud83c\udf45 Pomodoro Timer</h4><div class="app-pomodoro"><div class="app-pom-display" id="pomFvDisplay">25:00</div><div class="app-pom-phase" id="pomFvPhase">Focus</div><div class="app-pom-controls"><button id="pomFvStart" class="app-fv-save-btn">\u25b6 Start</button><button id="pomFvPause" class="app-fv-cancel-btn" style="display:none">\u23f8 Pause</button><button id="pomFvReset" class="app-fv-link-btn">\u21ba Reset</button></div><div class="app-pom-counter" id="pomFvCounter">Sessions: 0</div></div>';
-  left.innerHTML=lHTML;
 
-  var DAY_N=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcc5 Weekly Completion</h3><div class="app-focus-heatmap">';
-  for(var ni=6;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());var dayItems=allFocus[iso]||[];var done2=dayItems.filter(function(x){return x.done;}).length;var total=dayItems.length;var cls=total>0&&done2===total?' all-done':total>0&&done2>0?' part-done':'';rHTML+='<div class="app-focus-hm-cell'+cls+'"><span class="app-focus-hm-day">'+DAY_N[dd.getDay()]+'</span><span class="app-focus-hm-score">'+(total>0?done2+'/'+total:'\u2013')+'</span></div>';}
-  rHTML+='</div><h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udcdd Priority History</h4><div class="app-focus-history">';
-  var hasHist=false;
-  for(var hi=6;hi>=1;hi--){var hd=new Date();hd.setDate(hd.getDate()-hi);var hIso=hd.getFullYear()+'-'+pad2(hd.getMonth()+1)+'-'+pad2(hd.getDate());var dayItems2=allFocus[hIso]||[];if(!dayItems2.length)continue;hasHist=true;rHTML+='<div class="app-focus-hist-day"><strong>'+DAY_N[hd.getDay()]+' '+(hd.getMonth()+1)+'/'+(hd.getDate())+'</strong>';dayItems2.forEach(function(item){rHTML+='<div class="app-focus-hist-item'+(item.done?' done':'')+'">'+( item.done?'\u2705':'\u2b1c')+' '+escapeHTML(item.text)+'</div>';});rHTML+='</div>';}
-  if(!hasHist)rHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No history yet.</p>';
-  rHTML+='</div>';
-  right.innerHTML=rHTML;
-  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
+  var today = getTodayISO(), allFocus = getPersonalFocus(), items = allFocus[today] || [];
 
-  container.querySelectorAll('.app-focus-cb').forEach(function(cb){cb.addEventListener('change',function(){var idx=parseInt(cb.dataset.idx,10);var f=getPersonalFocus();if(!f[today]||!f[today][idx])return;f[today][idx].done=cb.checked;setPersonalFocus(f);renderFocusAppFull(container);});});
-  container.querySelectorAll('.app-focus-del').forEach(function(btn){btn.addEventListener('click',function(){var idx=parseInt(btn.dataset.del,10);var f=getPersonalFocus();if(f[today])f[today].splice(idx,1);setPersonalFocus(f);renderFocusAppFull(container);});});
-  var addBtn=container.querySelector('#focusFvAdd');
-  if(addBtn)addBtn.addEventListener('click',function(){var inp=container.querySelector('#focusFvInput');var tInp=container.querySelector('#focusFvTime');var text=inp?inp.value.trim():'';if(!text)return;var f=getPersonalFocus();if(!f[today])f[today]=[];if(f[today].length>=3){var errEl=container.querySelector('#focusFvAddErr');if(!errEl){errEl=document.createElement('span');errEl.id='focusFvAddErr';errEl.style.cssText='color:#e74c3c;font-size:0.78rem;display:block;margin-top:3px';addBtn.parentNode.appendChild(errEl);}errEl.textContent='Maximum 3 priorities per day.';return;}f[today].push({text:text,done:false,timeBlock:tInp&&tInp.value?tInp.value:''});setPersonalFocus(f);renderFocusAppFull(container);});
-  var addInp=container.querySelector('#focusFvInput');
-  if(addInp)addInp.addEventListener('keydown',function(e){if(e.key==='Enter'&&addBtn)addBtn.click();});
+  if (tab === 'today') {
+    var lHTML = '<h3 class="app-full-col-heading">\ud83c\udfaf Today\'s Priorities</h3>' +
+      '<p style="font-size:0.82rem;color:var(--ios-text-3);margin:0 0 10px">Up to 3 must-do items. Resets daily.</p>';
+    items.forEach(function(item, idx) {
+      lHTML += '<div class="app-focus-row' + (item.done ? ' done' : '') + '">' +
+        '<input type="checkbox" class="app-focus-cb" data-idx="' + idx + '"' + (item.done ? ' checked' : '') + ' />' +
+        '<span class="app-focus-text">' + escapeHTML(item.text) + '</span>' +
+        (item.timeBlock ? '<span class="app-focus-time-tag">\u23f0 ' + escapeHTML(item.timeBlock) + '</span>' : '') +
+        '<button class="app-focus-del" data-del="' + idx + '" aria-label="Remove">\u2715</button></div>';
+    });
+    if (items.length < 3) {
+      lHTML += '<div class="app-focus-add-row">' +
+        '<input type="text" id="focusFvInput" class="app-fv-text-input" placeholder="Priority #' + (items.length + 1) + '\u2026"/>' +
+        '<input type="time" id="focusFvTime" class="app-fv-time-small" title="Optional time block"/>' +
+        '<button id="focusFvAdd" class="app-fv-save-btn">Add</button></div>';
+    }
+    if (items.length && items.every(function(i) { return i.done; })) {
+      lHTML += '<div class="app-focus-done-msg">\ud83c\udf89 All priorities completed!</div>';
+    }
+    lHTML += '<h4 class="app-full-section-heading" style="margin-top:20px">\ud83c\udf45 Pomodoro Timer</h4>' +
+      '<div class="app-pomodoro">' +
+        '<div class="app-pom-display" id="pomFvDisplay">25:00</div>' +
+        '<div class="app-pom-phase" id="pomFvPhase">Focus</div>' +
+        '<div class="app-pom-controls">' +
+          '<button id="pomFvStart" class="app-fv-save-btn">\u25b6 Start</button>' +
+          '<button id="pomFvPause" class="app-fv-cancel-btn" style="display:none">\u23f8 Pause</button>' +
+          '<button id="pomFvReset" class="app-fv-link-btn">\u21ba Reset</button>' +
+        '</div>' +
+        '<div class="app-pom-counter" id="pomFvCounter">Sessions: 0</div>' +
+      '</div>';
+    body.innerHTML = lHTML;
+    body.querySelectorAll('.app-focus-cb').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        var idx = parseInt(cb.dataset.idx, 10);
+        var f = getPersonalFocus();
+        if (!f[today] || !f[today][idx]) return;
+        f[today][idx].done = cb.checked; setPersonalFocus(f); renderFocusAppFull(container);
+      });
+    });
+    body.querySelectorAll('.app-focus-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.del, 10);
+        var f = getPersonalFocus();
+        if (f[today]) f[today].splice(idx, 1); setPersonalFocus(f); renderFocusAppFull(container);
+      });
+    });
+    var addBtn = body.querySelector('#focusFvAdd');
+    if (addBtn) addBtn.addEventListener('click', function() {
+      var inp = body.querySelector('#focusFvInput');
+      var tInp = body.querySelector('#focusFvTime');
+      var text = inp ? inp.value.trim() : '';
+      if (!text) return;
+      var f = getPersonalFocus(); if (!f[today]) f[today] = [];
+      if (f[today].length >= 3) {
+        var errEl = body.querySelector('#focusFvAddErr');
+        if (!errEl) { errEl = document.createElement('span'); errEl.id = 'focusFvAddErr'; errEl.style.cssText = 'color:#e74c3c;font-size:0.78rem;display:block;margin-top:3px'; addBtn.parentNode.appendChild(errEl); }
+        errEl.textContent = 'Maximum 3 priorities per day.'; return;
+      }
+      f[today].push({ text: text, done: false, timeBlock: tInp && tInp.value ? tInp.value : '' });
+      setPersonalFocus(f); renderFocusAppFull(container);
+    });
+    var addInp = body.querySelector('#focusFvInput');
+    if (addInp) addInp.addEventListener('keydown', function(e) { if (e.key === 'Enter' && addBtn) addBtn.click(); });
+    var POM_FOCUS = 25 * 60, POM_BREAK = 5 * 60;
+    var pom = _pomState;
+    if (pom.interval) { clearInterval(pom.interval); pom.interval = null; pom.running = false; }
+    function updatePomDisp() {
+      var m = Math.floor(pom.remaining / 60), s = pom.remaining % 60;
+      var disp = body.querySelector('#pomFvDisplay');
+      var phase = body.querySelector('#pomFvPhase');
+      var cnt = body.querySelector('#pomFvCounter');
+      if (disp) disp.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      if (phase) phase.textContent = pom.phase === 'focus' ? '\ud83c\udf45 Focus' : '\u2615 Break';
+      if (cnt) cnt.textContent = 'Sessions: ' + pom.sessions;
+    }
+    var startBtn = body.querySelector('#pomFvStart'), pauseBtn = body.querySelector('#pomFvPause'), resetBtn = body.querySelector('#pomFvReset');
+    if (startBtn) startBtn.addEventListener('click', function() {
+      if (pom.running) return;
+      pom.running = true; startBtn.style.display = 'none'; if (pauseBtn) pauseBtn.style.display = '';
+      pom.interval = setInterval(function() {
+        pom.remaining--;
+        if (pom.remaining <= 0) {
+          if (pom.phase === 'focus') { pom.sessions++; pom.phase = 'break'; pom.remaining = POM_BREAK; }
+          else { pom.phase = 'focus'; pom.remaining = POM_FOCUS; }
+        }
+        updatePomDisp();
+      }, 1000);
+    });
+    if (pauseBtn) pauseBtn.addEventListener('click', function() {
+      clearInterval(pom.interval); pom.interval = null; pom.running = false;
+      startBtn.style.display = ''; pauseBtn.style.display = 'none';
+    });
+    if (resetBtn) resetBtn.addEventListener('click', function() {
+      clearInterval(pom.interval); pom.interval = null; pom.running = false;
+      pom.phase = 'focus'; pom.remaining = POM_FOCUS;
+      if (startBtn) startBtn.style.display = ''; if (pauseBtn) pauseBtn.style.display = 'none';
+      updatePomDisp();
+    });
+    updatePomDisp();
 
-  // Pomodoro timer — use module-level _pomState to survive re-renders
-  var POM_FOCUS=25*60,POM_BREAK=5*60;
-  var pom=_pomState;
-  // Clear any leftover interval from a previous render
-  if(pom.interval){clearInterval(pom.interval);pom.interval=null;pom.running=false;}
-  function updatePomDisp(){var m=Math.floor(pom.remaining/60),s=pom.remaining%60;var disp=container.querySelector('#pomFvDisplay');var phase=container.querySelector('#pomFvPhase');var cnt=container.querySelector('#pomFvCounter');if(disp)disp.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;if(phase)phase.textContent=pom.phase==='focus'?'\ud83c\udf45 Focus':'\u2615 Break';if(cnt)cnt.textContent='Sessions: '+pom.sessions;}
-  var startBtn=container.querySelector('#pomFvStart'),pauseBtn=container.querySelector('#pomFvPause'),resetBtn=container.querySelector('#pomFvReset');
-  if(startBtn)startBtn.addEventListener('click',function(){if(pom.running)return;pom.running=true;startBtn.style.display='none';if(pauseBtn)pauseBtn.style.display='';pom.interval=setInterval(function(){pom.remaining--;if(pom.remaining<=0){if(pom.phase==='focus'){pom.sessions++;pom.phase='break';pom.remaining=POM_BREAK;}else{pom.phase='focus';pom.remaining=POM_FOCUS;}}updatePomDisp();},1000);});
-  if(pauseBtn)pauseBtn.addEventListener('click',function(){clearInterval(pom.interval);pom.interval=null;pom.running=false;startBtn.style.display='';pauseBtn.style.display='none';});
-  if(resetBtn)resetBtn.addEventListener('click',function(){clearInterval(pom.interval);pom.interval=null;pom.running=false;pom.phase='focus';pom.remaining=POM_FOCUS;if(startBtn)startBtn.style.display='';if(pauseBtn)pauseBtn.style.display='none';updatePomDisp();});
-  updatePomDisp();
+  } else if (tab === 'history') {
+    var DAY_N = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var rHTML = '<h3 class="app-full-col-heading">\ud83d\udcc5 Weekly Completion</h3><div class="app-focus-heatmap">';
+    for (var ni = 6; ni >= 0; ni--) {
+      var dd = new Date(); dd.setDate(dd.getDate() - ni);
+      var iso = dd.getFullYear() + '-' + pad2(dd.getMonth() + 1) + '-' + pad2(dd.getDate());
+      var dayItems = allFocus[iso] || [];
+      var done2 = dayItems.filter(function(x) { return x.done; }).length;
+      var total = dayItems.length;
+      var cls = total > 0 && done2 === total ? ' all-done' : total > 0 && done2 > 0 ? ' part-done' : '';
+      rHTML += '<div class="app-focus-hm-cell' + cls + '">' +
+        '<span class="app-focus-hm-day">' + DAY_N[dd.getDay()] + '</span>' +
+        '<span class="app-focus-hm-score">' + (total > 0 ? done2 + '/' + total : '\u2013') + '</span></div>';
+    }
+    rHTML += '</div><h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udcdd Priority History</h4><div class="app-focus-history">';
+    var hasHist = false;
+    for (var hi = 6; hi >= 1; hi--) {
+      var hd = new Date(); hd.setDate(hd.getDate() - hi);
+      var hIso = hd.getFullYear() + '-' + pad2(hd.getMonth() + 1) + '-' + pad2(hd.getDate());
+      var dayItems2 = allFocus[hIso] || [];
+      if (!dayItems2.length) continue;
+      hasHist = true;
+      rHTML += '<div class="app-focus-hist-day"><strong>' + DAY_N[hd.getDay()] + ' ' + (hd.getMonth() + 1) + '/' + (hd.getDate()) + '</strong>';
+      dayItems2.forEach(function(item) {
+        rHTML += '<div class="app-focus-hist-item' + (item.done ? ' done' : '') + '">' + (item.done ? '\u2705' : '\u2b1c') + ' ' + escapeHTML(item.text) + '</div>';
+      });
+      rHTML += '</div>';
+    }
+    if (!hasHist) rHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No history yet.</p>';
+    rHTML += '</div>';
+    body.innerHTML = rHTML;
+
+  } else {
+    _fvRenderPinCard(body, 'focus');
+    var focusCfg = getAppRemSettings().focus || {};
+    var focusRemCard = document.createElement('div');
+    focusRemCard.className = 'app-settings-card';
+    focusRemCard.innerHTML =
+      '<h4 class="app-full-section-heading">\ud83d\udd14 Daily Focus Reminder</h4>' +
+      '<div class="app-sleep-reminders-grid">' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">' +
+            '<input type="checkbox" id="focusRemEnabled" class="app-sleep-rem-check"' + (focusCfg.enabled ? ' checked' : '') + '/>' +
+            '\ud83c\udfaf Remind me to set priorities' +
+          '</label>' +
+          '<input type="time" id="focusRemTime" class="app-sleep-rem-time" value="' + escapeHTML(focusCfg.time || '08:00') + '" />' +
+        '</div>' +
+        '<button id="focusRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminder</button>' +
+        '<p id="focusRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
+      '</div>';
+    body.appendChild(focusRemCard);
+    var focusRemSaveBtn = body.querySelector('#focusRemSave');
+    if (focusRemSaveBtn) focusRemSaveBtn.addEventListener('click', function() {
+      var s = getAppRemSettings();
+      var enEl = body.querySelector('#focusRemEnabled');
+      var tiEl = body.querySelector('#focusRemTime');
+      s.focus = { enabled: !!(enEl && enEl.checked), time: tiEl ? tiEl.value : '08:00' };
+      setAppRemSettings(s);
+      try { _syncFocusReminders(); } catch(e) { console.warn('[Focus] _syncFocusReminders:', e); }
+      var st = body.querySelector('#focusRemStatus');
+      if (st) { st.textContent = '\u2713 Reminder saved!'; setTimeout(function() { st.textContent = ''; }, 2500); }
+    });
+  }
 }
 
 function renderHydrationAppFull(container) {
-  container.innerHTML='';
-  var hyd=getPersonalHydration(),today=getTodayISO();
-  if(!hyd.log)hyd.log={};if(!hyd.typeLog)hyd.typeLog={};if(!hyd.goalByDay)hyd.goalByDay={};
-  var count=typeof hyd.log[today]==='number'?hyd.log[today]:0,goal=hyd.goal||8;
-  var TYPES=[{id:'water',label:'Water',emoji:'\ud83d\udca7'},{id:'coffee',label:'Coffee',emoji:'\u2615'},{id:'tea',label:'Tea',emoji:'\ud83c\udf75'},{id:'juice',label:'Juice',emoji:'\ud83e\udd64'}];
-  var layout=document.createElement('div');layout.className='app-full-two-col';
-  var left=document.createElement('div');left.className='app-full-col';
-  var right=document.createElement('div');right.className='app-full-col';
-  var lHTML='<h3 class="app-full-col-heading">\ud83d\udca7 Today\'s Hydration</h3><div class="app-hydration-glasses">';
-  for(var i=0;i<Math.min(goal,12);i++){lHTML+='<span class="app-hydration-glass'+(i<count?' filled':'')+'" data-gi="'+i+'">\ud83d\udca7</span>';}
-  lHTML+='</div><div class="app-hydration-count-row"><span class="app-hydration-count-big">'+count+'</span><span style="color:var(--ios-text-3)"> / '+goal+' glasses</span></div>';
-  lHTML+='<h4 class="app-full-section-heading">Quick Add by Type</h4><div class="app-hydration-type-row">';
-  TYPES.forEach(function(dt){lHTML+='<button class="app-hyd-type-btn" data-type="'+dt.id+'" data-label="'+dt.label+'" data-emoji="'+dt.emoji+'">'+dt.emoji+'<span>'+dt.label+'</span></button>';});
-  lHTML+='</div><div class="app-hydration-goal-row"><span>\ud83c\udfaf Goal:</span><input type="number" id="hydFvGoal" value="'+goal+'" min="1" max="20" class="app-fv-num-input"/><span>glasses</span><button id="hydFvReset" class="app-fv-link-btn" style="margin-left:auto">Reset today</button></div>';
-  var todayLogs=Array.isArray(hyd.typeLog)?hyd.typeLog.filter(function(e){return e.date===today;}):[];
-  lHTML+='<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udccb Today\'s Log</h4>';
-  if(todayLogs.length){lHTML+='<div class="app-hydration-time-log">';todayLogs.slice().reverse().forEach(function(e){lHTML+='<div class="app-hyd-log-row"><span>'+escapeHTML(e.emoji||'\ud83d\udca7')+'</span><span>'+escapeHTML(e.label||'Water')+'</span><span style="color:var(--ios-text-3);font-size:0.75rem">'+escapeHTML(e.time||'')+'</span></div>';});lHTML+='</div>';}
-  else{lHTML+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No drinks logged today yet.</p>';}
-  left.innerHTML=lHTML;
-
-  var DAY_S=['Su','Mo','Tu','We','Th','Fr','Sa'];
-  var past7=[];
-  for(var ni=6;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());past7.push({label:DAY_S[dd.getDay()],value:typeof hyd.log[iso]==='number'?hyd.log[iso]:0,iso:iso});}
-  var total7=past7.reduce(function(a,d){return a+d.value;},0);
-  var bestDay=past7.reduce(function(a,b){return b.value>a.value?b:a;});
-  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcca 7-Day History</h3>'+_fvBarChart(past7,220,90,14,18,10,10,today)+
-    '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0 12px">Goal: '+goal+' glasses/day</p>'+
-    '<div class="app-hydration-stats">'+
-    '<div class="app-hyd-stat"><span class="app-hyd-stat-val">'+total7+'</span><span class="app-hyd-stat-lbl">Total this week</span></div>'+
-    '<div class="app-hyd-stat"><span class="app-hyd-stat-val">'+(total7/7).toFixed(1)+'</span><span class="app-hyd-stat-lbl">Daily average</span></div>'+
-    '<div class="app-hyd-stat"><span class="app-hyd-stat-val">'+bestDay.value+'</span><span class="app-hyd-stat-lbl">Best ('+bestDay.label+')</span></div></div>';
-  var DAY_FULL=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  rHTML+='<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\uddd3\ufe0f Goal by Day</h4><div class="app-hyd-day-goals">';
-  DAY_FULL.forEach(function(day){rHTML+='<div class="app-hyd-day-goal-row"><span style="min-width:36px">'+day+'</span><input type="number" class="app-hyd-day-inp app-fv-num-small" data-day="'+day+'" value="'+((hyd.goalByDay&&hyd.goalByDay[day])||goal)+'" min="1" max="20"/></div>';});
-  rHTML+='</div>';
-  right.innerHTML=rHTML;
-  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
-
-  container.querySelectorAll('.app-hydration-glass').forEach(function(el){el.addEventListener('click',function(){var idx=parseInt(el.dataset.gi,10);var h=getPersonalHydration();if(!h.log)h.log={};h.log[today]=idx+1;setPersonalHydration(h);renderHydrationAppFull(container);});});
-  container.querySelectorAll('.app-hyd-type-btn').forEach(function(btn){btn.addEventListener('click',function(){var h=getPersonalHydration();if(!h.log)h.log={};if(!Array.isArray(h.typeLog))h.typeLog=[];h.log[today]=(h.log[today]||0)+1;var now=new Date();var dt=TYPES.find(function(d){return d.id===btn.dataset.type;})||TYPES[0];h.typeLog.push({date:today,time:pad2(now.getHours())+':'+pad2(now.getMinutes()),label:btn.dataset.label,emoji:dt.emoji});setPersonalHydration(h);renderHydrationAppFull(container);});});
-  var goalInp=container.querySelector('#hydFvGoal');
-  if(goalInp)goalInp.addEventListener('change',function(){var h=getPersonalHydration();h.goal=parseInt(goalInp.value,10)||8;setPersonalHydration(h);renderHydrationAppFull(container);});
-  var resetBtn=container.querySelector('#hydFvReset');
-  if(resetBtn)resetBtn.addEventListener('click',function(){var h=getPersonalHydration();if(!h.log)h.log={};h.log[today]=0;setPersonalHydration(h);renderHydrationAppFull(container);});
-  container.querySelectorAll('.app-hyd-day-inp').forEach(function(inp){inp.addEventListener('change',function(){var h=getPersonalHydration();if(!h.goalByDay)h.goalByDay={};h.goalByDay[inp.dataset.day]=parseInt(inp.value,10)||8;setPersonalHydration(h);});});
-
-  /* ── Hydration Periodic Reminders ── */
-  var hydCfg = getAppRemSettings().hydration || {};
-  var hydRemSection = document.createElement('div');
-  hydRemSection.className = 'app-sleep-reminders-grid';
-  hydRemSection.style.marginTop = '16px';
-  hydRemSection.innerHTML =
-    '<h4 class="app-full-section-heading">🔔 Hydration Reminders</h4>' +
-    '<div class="app-sleep-rem-row">' +
-      '<label class="app-sleep-rem-label">' +
-        '<input type="checkbox" id="hydRemEnabled" class="app-sleep-rem-check"' + (hydCfg.enabled ? ' checked' : '') + '/>' +
-        '💧 Remind me to drink water' +
-      '</label>' +
-    '</div>' +
-    '<div class="app-sleep-rem-row">' +
-      '<label class="app-sleep-rem-label" style="min-width:140px">Every</label>' +
-      '<input type="number" id="hydRemInterval" class="app-sleep-rem-time" style="width:60px" min="1" max="12" value="' + (hydCfg.intervalHours || 2) + '" />' +
-      '<span style="font-size:0.82rem;margin-left:4px">hours</span>' +
-    '</div>' +
-    '<div class="app-sleep-rem-row">' +
-      '<label class="app-sleep-rem-label">From</label>' +
-      '<input type="time" id="hydRemStart" class="app-sleep-rem-time" value="' + escapeHTML(hydCfg.startTime || '08:00') + '" />' +
-      '<label class="app-sleep-rem-label" style="margin-left:8px">to</label>' +
-      '<input type="time" id="hydRemEnd" class="app-sleep-rem-time" value="' + escapeHTML(hydCfg.endTime || '22:00') + '" />' +
-    '</div>' +
-    '<button id="hydRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
-    '<p id="hydRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
-  container.appendChild(hydRemSection);
-
-  var hydRemSaveBtn = container.querySelector('#hydRemSave');
-  if (hydRemSaveBtn) hydRemSaveBtn.addEventListener('click', function() {
-    var s = getAppRemSettings();
-    var enEl  = container.querySelector('#hydRemEnabled');
-    var intEl = container.querySelector('#hydRemInterval');
-    var stEl  = container.querySelector('#hydRemStart');
-    var enTimeEl = container.querySelector('#hydRemEnd');
-    s.hydration = {
-      enabled:       !!(enEl && enEl.checked),
-      intervalHours: Math.max(1, parseInt((intEl || {}).value, 10) || 2),
-      startTime:     stEl ? stEl.value : '08:00',
-      endTime:       enTimeEl ? enTimeEl.value : '22:00'
-    };
-    setAppRemSettings(s);
-    try { _syncHydrationReminders(); } catch(e) { console.warn('[Hydration] _syncHydrationReminders:', e); }
-    var st = container.querySelector('#hydRemStatus');
-    if (st) { st.textContent = '✓ Hydration reminders saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
+  var tab = container._hydrationTab || 'today';
+  container._hydrationTab = tab;
+  var TABS = [
+    { key: 'today',    label: '\ud83d\udca7 Today' },
+    { key: 'history',  label: '\ud83d\udcca History' },
+    { key: 'settings', label: '\u2699\ufe0f Settings' }
+  ];
+  var body = _fvBuildTabs(container, TABS, tab, function(k) {
+    container._hydrationTab = k;
+    renderHydrationAppFull(container);
   });
+
+  var hyd = getPersonalHydration(), today = getTodayISO();
+  if (!hyd.log) hyd.log = {};
+  if (!hyd.typeLog) hyd.typeLog = {};
+  if (!hyd.goalByDay) hyd.goalByDay = {};
+  var count = typeof hyd.log[today] === 'number' ? hyd.log[today] : 0;
+  var goal = hyd.goal || 8;
+  var TYPES = [
+    { id: 'water',  label: 'Water',  emoji: '\ud83d\udca7' },
+    { id: 'coffee', label: 'Coffee', emoji: '\u2615' },
+    { id: 'tea',    label: 'Tea',    emoji: '\ud83c\udf75' },
+    { id: 'juice',  label: 'Juice',  emoji: '\ud83e\udd64' }
+  ];
+
+  if (tab === 'today') {
+    var lHTML = '<h3 class="app-full-col-heading">\ud83d\udca7 Today\'s Hydration</h3><div class="app-hydration-glasses">';
+    for (var i = 0; i < Math.min(goal, 12); i++) {
+      lHTML += '<span class="app-hydration-glass' + (i < count ? ' filled' : '') + '" data-gi="' + i + '">\ud83d\udca7</span>';
+    }
+    lHTML += '</div><div class="app-hydration-count-row"><span class="app-hydration-count-big">' + count + '</span>' +
+      '<span style="color:var(--ios-text-3)"> / ' + goal + ' glasses</span></div>';
+    lHTML += '<h4 class="app-full-section-heading">Quick Add by Type</h4><div class="app-hydration-type-row">';
+    TYPES.forEach(function(dt) {
+      lHTML += '<button class="app-hyd-type-btn" data-type="' + dt.id + '" data-label="' + dt.label + '" data-emoji="' + dt.emoji + '">' + dt.emoji + '<span>' + dt.label + '</span></button>';
+    });
+    lHTML += '</div>';
+    lHTML += '<div class="app-hydration-goal-row">' +
+      '<span>\ud83c\udfaf Goal:</span>' +
+      '<input type="number" id="hydFvGoal" value="' + goal + '" min="1" max="20" class="app-fv-num-input"/>' +
+      '<span>glasses</span>' +
+      '<button id="hydFvReset" class="app-fv-link-btn" style="margin-left:auto">Reset today</button></div>';
+    var todayLogs = Array.isArray(hyd.typeLog) ? hyd.typeLog.filter(function(e) { return e.date === today; }) : [];
+    lHTML += '<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udccb Today\'s Log</h4>';
+    if (todayLogs.length) {
+      lHTML += '<div class="app-hydration-time-log">';
+      todayLogs.slice().reverse().forEach(function(e) {
+        lHTML += '<div class="app-hyd-log-row">' +
+          '<span>' + escapeHTML(e.emoji || '\ud83d\udca7') + '</span>' +
+          '<span>' + escapeHTML(e.label || 'Water') + '</span>' +
+          '<span style="color:var(--ios-text-3);font-size:0.75rem">' + escapeHTML(e.time || '') + '</span></div>';
+      });
+      lHTML += '</div>';
+    } else {
+      lHTML += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No drinks logged today yet.</p>';
+    }
+    body.innerHTML = lHTML;
+    body.querySelectorAll('.app-hydration-glass').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var idx = parseInt(el.dataset.gi, 10);
+        var h = getPersonalHydration(); if (!h.log) h.log = {};
+        h.log[today] = idx + 1; setPersonalHydration(h); renderHydrationAppFull(container);
+      });
+    });
+    body.querySelectorAll('.app-hyd-type-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var h = getPersonalHydration();
+        if (!h.log) h.log = {}; if (!Array.isArray(h.typeLog)) h.typeLog = [];
+        h.log[today] = (h.log[today] || 0) + 1;
+        var now = new Date();
+        var dt = TYPES.find(function(d) { return d.id === btn.dataset.type; }) || TYPES[0];
+        h.typeLog.push({ date: today, time: pad2(now.getHours()) + ':' + pad2(now.getMinutes()), label: btn.dataset.label, emoji: dt.emoji });
+        setPersonalHydration(h); renderHydrationAppFull(container);
+      });
+    });
+    var goalInp = body.querySelector('#hydFvGoal');
+    if (goalInp) goalInp.addEventListener('change', function() {
+      var h = getPersonalHydration(); h.goal = parseInt(goalInp.value, 10) || 8; setPersonalHydration(h); renderHydrationAppFull(container);
+    });
+    var resetBtn = body.querySelector('#hydFvReset');
+    if (resetBtn) resetBtn.addEventListener('click', function() {
+      var h = getPersonalHydration(); if (!h.log) h.log = {}; h.log[today] = 0; setPersonalHydration(h); renderHydrationAppFull(container);
+    });
+
+  } else if (tab === 'history') {
+    var DAY_S = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+    var past7 = [];
+    for (var ni = 6; ni >= 0; ni--) {
+      var dd = new Date(); dd.setDate(dd.getDate() - ni);
+      var iso = dd.getFullYear() + '-' + pad2(dd.getMonth() + 1) + '-' + pad2(dd.getDate());
+      past7.push({ label: DAY_S[dd.getDay()], value: typeof hyd.log[iso] === 'number' ? hyd.log[iso] : 0, iso: iso });
+    }
+    var total7 = past7.reduce(function(a, d) { return a + d.value; }, 0);
+    var bestDay = past7.reduce(function(a, b) { return b.value > a.value ? b : a; });
+    var DAY_FULL = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var rHTML = '<h3 class="app-full-col-heading">\ud83d\udcca 7-Day History</h3>' +
+      _fvBarChart(past7, 220, 90, 14, 18, 10, 10, today) +
+      '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0 12px">Goal: ' + goal + ' glasses/day</p>' +
+      '<div class="app-hydration-stats">' +
+        '<div class="app-hyd-stat"><span class="app-hyd-stat-val">' + total7 + '</span><span class="app-hyd-stat-lbl">Total this week</span></div>' +
+        '<div class="app-hyd-stat"><span class="app-hyd-stat-val">' + (total7 / 7).toFixed(1) + '</span><span class="app-hyd-stat-lbl">Daily average</span></div>' +
+        '<div class="app-hyd-stat"><span class="app-hyd-stat-val">' + bestDay.value + '</span><span class="app-hyd-stat-lbl">Best (' + bestDay.label + ')</span></div>' +
+      '</div>' +
+      '<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\uddd3\ufe0f Goal by Day</h4><div class="app-hyd-day-goals">';
+    DAY_FULL.forEach(function(day) {
+      rHTML += '<div class="app-hyd-day-goal-row">' +
+        '<span style="min-width:36px">' + day + '</span>' +
+        '<input type="number" class="app-hyd-day-inp app-fv-num-small" data-day="' + day + '" value="' + ((hyd.goalByDay && hyd.goalByDay[day]) || goal) + '" min="1" max="20"/></div>';
+    });
+    rHTML += '</div>';
+    body.innerHTML = rHTML;
+    body.querySelectorAll('.app-hyd-day-inp').forEach(function(inp) {
+      inp.addEventListener('change', function() {
+        var h = getPersonalHydration(); if (!h.goalByDay) h.goalByDay = {};
+        h.goalByDay[inp.dataset.day] = parseInt(inp.value, 10) || 8; setPersonalHydration(h);
+      });
+    });
+
+  } else {
+    _fvRenderPinCard(body, 'hydration');
+    var hydCfg = getAppRemSettings().hydration || {};
+    var hydRemCard = document.createElement('div');
+    hydRemCard.className = 'app-settings-card';
+    hydRemCard.innerHTML =
+      '<h4 class="app-full-section-heading">\ud83d\udd14 Hydration Reminders</h4>' +
+      '<div class="app-sleep-reminders-grid">' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">' +
+            '<input type="checkbox" id="hydRemEnabled" class="app-sleep-rem-check"' + (hydCfg.enabled ? ' checked' : '') + '/>' +
+            '\ud83d\udca7 Remind me to drink water' +
+          '</label>' +
+        '</div>' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label" style="min-width:140px">Every</label>' +
+          '<input type="number" id="hydRemInterval" class="app-sleep-rem-time" style="width:60px" min="1" max="12" value="' + (hydCfg.intervalHours || 2) + '" />' +
+          '<span style="font-size:0.82rem;margin-left:4px">hours</span>' +
+        '</div>' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">From</label>' +
+          '<input type="time" id="hydRemStart" class="app-sleep-rem-time" value="' + escapeHTML(hydCfg.startTime || '08:00') + '" />' +
+          '<label class="app-sleep-rem-label" style="margin-left:8px">to</label>' +
+          '<input type="time" id="hydRemEnd" class="app-sleep-rem-time" value="' + escapeHTML(hydCfg.endTime || '22:00') + '" />' +
+        '</div>' +
+        '<button id="hydRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
+        '<p id="hydRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
+      '</div>';
+    body.appendChild(hydRemCard);
+    var hydRemSaveBtn = body.querySelector('#hydRemSave');
+    if (hydRemSaveBtn) hydRemSaveBtn.addEventListener('click', function() {
+      var s = getAppRemSettings();
+      var enEl  = body.querySelector('#hydRemEnabled');
+      var intEl = body.querySelector('#hydRemInterval');
+      var stEl  = body.querySelector('#hydRemStart');
+      var enTimeEl = body.querySelector('#hydRemEnd');
+      s.hydration = {
+        enabled:       !!(enEl && enEl.checked),
+        intervalHours: Math.max(1, parseInt((intEl || {}).value, 10) || 2),
+        startTime:     stEl ? stEl.value : '08:00',
+        endTime:       enTimeEl ? enTimeEl.value : '22:00'
+      };
+      setAppRemSettings(s);
+      try { _syncHydrationReminders(); } catch(e) { console.warn('[Hydration] _syncHydrationReminders:', e); }
+      var st = body.querySelector('#hydRemStatus');
+      if (st) { st.textContent = '\u2713 Reminders saved!'; setTimeout(function() { st.textContent = ''; }, 2500); }
+    });
+  }
 }
 
 
@@ -13169,208 +13475,337 @@ function _mfFavorites(body, container) {
 
 
 function renderGymAppFull(container) {
-  container.innerHTML='';
-  var gym=getPersonalGym(),today=getTodayISO();
-  var routines=gym.routines||[],log=gym.log||{},todayLog=log[today]||{};
-  var layout=document.createElement('div');layout.className='app-full-two-col';
-  var left=document.createElement('div');left.className='app-full-col';
-  var right=document.createElement('div');right.className='app-full-col';
-  // Build workout log section
-  var lHTML='<h3 class="app-full-col-heading">\ud83c\udfcb\ufe0f Today\'s Workout</h3>';
-  // Add-routine form (always visible so routines can be managed right here)
-  lHTML+='<div class="app-gym-add-row">' +
-    '<input type="text" id="gymFvRoutineNameInp" class="app-fv-text-input" placeholder="New routine name (e.g. Upper Body)" style="flex:1"/>' +
-    '<button id="gymFvAddRoutineBtn" class="app-fv-save-btn" style="flex-shrink:0">＋ Add Routine</button>' +
-  '</div>';
-  if(!routines.length){lHTML+='<p style="font-size:0.85rem;color:var(--ios-text-3);margin:8px 0">No routines yet — create one above to get started!</p>';}
-  else{routines.forEach(function(routine,ri){lHTML+='<div class="app-gym-routine">' +
-    '<div class="app-gym-routine-name" style="display:flex;align-items:center;justify-content:space-between">' +
-      '<span>'+escapeHTML(routine.name||'Routine '+(ri+1))+'</span>' +
-      '<button class="app-fv-link-btn app-gym-del-routine-btn" data-ri="'+ri+'" style="color:#e74c3c;font-size:0.78rem">\ud83d\uddd1\ufe0f Del</button>' +
+  var tab = container._gymTab || 'workout';
+  container._gymTab = tab;
+  var TABS = [
+    { key: 'workout',   label: '\ud83c\udfcb\ufe0f Workout' },
+    { key: 'analytics', label: '\ud83d\udcc0 Analytics' },
+    { key: 'settings',  label: '\u2699\ufe0f Settings' }
+  ];
+  var body = _fvBuildTabs(container, TABS, tab, function(k) {
+    container._gymTab = k;
+    renderGymAppFull(container);
+  });
+
+  var gym = getPersonalGym(), today = getTodayISO();
+  var routines = gym.routines || [], log = gym.log || {}, todayLog = log[today] || {};
+
+  if (tab === 'workout') {
+    var lHTML = '<h3 class="app-full-col-heading">\ud83c\udfcb\ufe0f Today\'s Workout</h3>';
+    lHTML += '<div class="app-gym-add-row">' +
+      '<input type="text" id="gymFvRoutineNameInp" class="app-fv-text-input" placeholder="New routine name (e.g. Upper Body)" style="flex:1"/>' +
+      '<button id="gymFvAddRoutineBtn" class="app-fv-save-btn" style="flex-shrink:0">\uff0b Add Routine</button>' +
     '</div>';
-    (routine.exercises||[]).forEach(function(ex,ei){var exLog=(todayLog[ri]&&todayLog[ri][ei])||{sets:ex.sets||3,reps:ex.reps||10,weight:''};lHTML+='<div class="app-gym-ex-row"><span class="app-gym-ex-name">'+escapeHTML(ex.name||'')+'</span><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="sets" value="'+(exLog.sets||3)+'" min="1" max="20"/><span style="font-size:0.75rem;color:var(--ios-text-3)">\u00d7</span><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="reps" value="'+(exLog.reps||10)+'" min="1" max="100"/><input type="number" class="app-gym-inp app-fv-num-small" data-ri="'+ri+'" data-ei="'+ei+'" data-field="weight" value="'+(exLog.weight||'')+'" min="0" step="2.5" placeholder="kg"/>' +
-      '<button class="app-fv-link-btn app-gym-del-ex-btn" data-ri="'+ri+'" data-ei="'+ei+'" style="color:#e74c3c;margin-left:4px;font-size:0.78rem">\u2715</button>' +
-    '</div>';});
-    lHTML+='<div class="app-gym-add-ex-row" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">' +
-      '<input type="text" class="app-gym-ex-name-inp app-fv-text-input" data-ri="'+ri+'" placeholder="Exercise name" style="flex:2;min-width:120px"/>' +
-      '<input type="number" class="app-gym-ex-sets-inp app-fv-num-small" data-ri="'+ri+'" placeholder="Sets" min="1" style="width:50px"/>' +
-      '<input type="text" class="app-gym-ex-reps-inp app-fv-num-small" data-ri="'+ri+'" placeholder="Reps" style="width:50px"/>' +
-      '<input type="text" class="app-gym-ex-wt-inp app-fv-num-small" data-ri="'+ri+'" placeholder="kg" style="width:50px"/>' +
-      '<button class="app-fv-save-btn app-gym-add-ex-btn" data-ri="'+ri+'" style="padding:3px 8px;font-size:0.78rem">＋</button>' +
-    '</div>' +
-  '</div>';});lHTML+='<button id="gymFvSave" class="app-fv-save-btn" style="margin-top:10px">\ud83d\udcbe Save Today\'s Log</button>';}
-  left.innerHTML=lHTML;
-  var bodyM=safeParseStorage('personalBodyMeasurements',[]),latestM=bodyM[bodyM.length-1]||{};
-  var rHTML='<h3 class="app-full-col-heading">\ud83d\udcaa 1-Rep Max Calculator</h3><p style="font-size:0.82rem;color:var(--ios-text-3);margin:0 0 10px">Epley formula: weight \u00d7 (1 + reps/30)</p><div class="app-1rm-form"><label>Weight <input type="number" id="ormWeight" class="app-fv-num-input" placeholder="kg" min="0" step="2.5"/></label><label>Reps <input type="number" id="ormReps" class="app-fv-num-input" placeholder="reps" min="1" max="30"/></label><button id="ormCalc" class="app-fv-save-btn">Calculate</button></div><div id="ormResult" class="app-1rm-result"></div>';
-  rHTML+='<h4 class="app-full-section-heading" style="margin-top:20px">\ud83d\udccf Body Measurements</h4><div class="app-body-measure-form"><label>Body weight (kg) <input type="number" id="bmWeight" class="app-fv-num-input" value="'+(latestM.weight||'')+'" min="0" step="0.1"/></label><label>Body fat % <input type="number" id="bmFat" class="app-fv-num-input" value="'+(latestM.fat||'')+'" min="0" max="60" step="0.1"/></label><button id="bmSave" class="app-fv-save-btn">Log Today</button></div>';
-  if(bodyM.length){var weightBars=bodyM.slice(-8).map(function(m){return{label:(m.date||'').slice(5),value:parseFloat(m.weight)||0,iso:m.date||''};});if(weightBars.some(function(b){return b.value>0;})){rHTML+='<h4 class="app-full-section-heading" style="margin-top:12px">Weight trend</h4>'+_fvBarChart(weightBars,220,70,12,16,8,8,today);}rHTML+='<div class="app-body-history">';bodyM.slice(-5).reverse().forEach(function(m){rHTML+='<div class="app-body-hist-row"><span style="color:var(--ios-text-3);font-size:0.78rem">'+escapeHTML(m.date||'')+'</span><span>'+(m.weight?m.weight+' kg':'')+'</span><span>'+(m.fat?m.fat+'% fat':'')+'</span></div>';});rHTML+='</div>';}
-  right.innerHTML=rHTML;
-  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
-  // Wire: add routine
-  var addRoutineBtn=container.querySelector('#gymFvAddRoutineBtn');
-  if(addRoutineBtn)addRoutineBtn.addEventListener('click',function(){
-    var inp=container.querySelector('#gymFvRoutineNameInp');
-    var name=inp?inp.value.trim():'';
-    if(!name){if(inp){inp.focus();inp.style.outline='2px solid #e74c3c';setTimeout(function(){inp.style.outline='';},1200);}return;}
-    var g=getPersonalGym();g.routines.push({name:name,exercises:[]});setPersonalGym(g);renderGymAppFull(container);
-  });
-  // Wire: delete routine
-  container.querySelectorAll('.app-gym-del-routine-btn').forEach(function(btn){btn.addEventListener('click',function(){
-    if(!confirm('Delete this routine?'))return;
-    var g=getPersonalGym();g.routines.splice(parseInt(btn.dataset.ri,10),1);setPersonalGym(g);renderGymAppFull(container);
-  });});
-  // Wire: add exercise
-  container.querySelectorAll('.app-gym-add-ex-btn').forEach(function(btn){btn.addEventListener('click',function(){
-    var ri=parseInt(btn.dataset.ri,10);
-    var row=btn.parentElement;
-    var name=(row.querySelector('.app-gym-ex-name-inp')||{}).value||'';
-    if(!name.trim()){return;}
-    var g=getPersonalGym();
-    g.routines[ri].exercises.push({
-      name:name.trim(),
-      sets:(row.querySelector('.app-gym-ex-sets-inp')||{}).value||'',
-      reps:(row.querySelector('.app-gym-ex-reps-inp')||{}).value||'',
-      weight:(row.querySelector('.app-gym-ex-wt-inp')||{}).value||''
+    if (!routines.length) {
+      lHTML += '<p style="font-size:0.85rem;color:var(--ios-text-3);margin:8px 0">No routines yet \u2014 create one above to get started!</p>';
+    } else {
+      routines.forEach(function(routine, ri) {
+        lHTML += '<div class="app-gym-routine">' +
+          '<div class="app-gym-routine-name" style="display:flex;align-items:center;justify-content:space-between">' +
+            '<span>' + escapeHTML(routine.name || 'Routine ' + (ri + 1)) + '</span>' +
+            '<button class="app-fv-link-btn app-gym-del-routine-btn" data-ri="' + ri + '" style="color:#e74c3c;font-size:0.78rem">\ud83d\uddd1\ufe0f Del</button>' +
+          '</div>';
+        (routine.exercises || []).forEach(function(ex, ei) {
+          var exLog = (todayLog[ri] && todayLog[ri][ei]) || { sets: ex.sets || 3, reps: ex.reps || 10, weight: '' };
+          lHTML += '<div class="app-gym-ex-row">' +
+            '<span class="app-gym-ex-name">' + escapeHTML(ex.name || '') + '</span>' +
+            '<input type="number" class="app-gym-inp app-fv-num-small" data-ri="' + ri + '" data-ei="' + ei + '" data-field="sets" value="' + (exLog.sets || 3) + '" min="1" max="20"/>' +
+            '<span style="font-size:0.75rem;color:var(--ios-text-3)">\u00d7</span>' +
+            '<input type="number" class="app-gym-inp app-fv-num-small" data-ri="' + ri + '" data-ei="' + ei + '" data-field="reps" value="' + (exLog.reps || 10) + '" min="1" max="100"/>' +
+            '<input type="number" class="app-gym-inp app-fv-num-small" data-ri="' + ri + '" data-ei="' + ei + '" data-field="weight" value="' + (exLog.weight || '') + '" min="0" step="2.5" placeholder="kg"/>' +
+            '<button class="app-fv-link-btn app-gym-del-ex-btn" data-ri="' + ri + '" data-ei="' + ei + '" style="color:#e74c3c;margin-left:4px;font-size:0.78rem">\u2715</button>' +
+          '</div>';
+        });
+        lHTML += '<div class="app-gym-add-ex-row" style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">' +
+          '<input type="text" class="app-gym-ex-name-inp app-fv-text-input" data-ri="' + ri + '" placeholder="Exercise name" style="flex:2;min-width:120px"/>' +
+          '<input type="number" class="app-gym-ex-sets-inp app-fv-num-small" data-ri="' + ri + '" placeholder="Sets" min="1" style="width:50px"/>' +
+          '<input type="text" class="app-gym-ex-reps-inp app-fv-num-small" data-ri="' + ri + '" placeholder="Reps" style="width:50px"/>' +
+          '<input type="text" class="app-gym-ex-wt-inp app-fv-num-small" data-ri="' + ri + '" placeholder="kg" style="width:50px"/>' +
+          '<button class="app-fv-save-btn app-gym-add-ex-btn" data-ri="' + ri + '" style="padding:3px 8px;font-size:0.78rem">\uff0b</button>' +
+        '</div></div>';
+      });
+      lHTML += '<button id="gymFvSave" class="app-fv-save-btn" style="margin-top:10px">\ud83d\udcbe Save Today\'s Log</button>';
+    }
+    body.innerHTML = lHTML;
+    var addRoutineBtn = body.querySelector('#gymFvAddRoutineBtn');
+    if (addRoutineBtn) addRoutineBtn.addEventListener('click', function() {
+      var inp = body.querySelector('#gymFvRoutineNameInp');
+      var name = inp ? inp.value.trim() : '';
+      if (!name) { if (inp) { inp.focus(); inp.style.outline = '2px solid #e74c3c'; setTimeout(function() { inp.style.outline = ''; }, 1200); } return; }
+      var g = getPersonalGym(); g.routines.push({ name: name, exercises: [] }); setPersonalGym(g); renderGymAppFull(container);
     });
-    setPersonalGym(g);renderGymAppFull(container);
-  });});
-  // Wire: delete exercise
-  container.querySelectorAll('.app-gym-del-ex-btn').forEach(function(btn){btn.addEventListener('click',function(){
-    var g=getPersonalGym();
-    var ri=parseInt(btn.dataset.ri,10),ei=parseInt(btn.dataset.ei,10);
-    g.routines[ri].exercises.splice(ei,1);setPersonalGym(g);renderGymAppFull(container);
-  });});
-  container.querySelectorAll('.app-gym-inp').forEach(function(inp){inp.addEventListener('change',function(){var ri=parseInt(inp.dataset.ri,10),ei=parseInt(inp.dataset.ei,10);var g=getPersonalGym();if(!g.log)g.log={};if(!g.log[today])g.log[today]={};if(!g.log[today][ri])g.log[today][ri]={};if(!g.log[today][ri][ei])g.log[today][ri][ei]={};g.log[today][ri][ei][inp.dataset.field]=parseFloat(inp.value)||0;setPersonalGym(g);});});
-  var saveGym=container.querySelector('#gymFvSave');if(saveGym)saveGym.addEventListener('click',function(){saveGym.textContent='✅ Saved!';setTimeout(function(){saveGym.textContent='💾 Save Today\'s Log';},1500);});
-  var ormCalc=container.querySelector('#ormCalc');if(ormCalc)ormCalc.addEventListener('click',function(){var wt=parseFloat((container.querySelector('#ormWeight')||{}).value)||0;var rp=parseInt((container.querySelector('#ormReps')||{}).value,10)||0;var res=container.querySelector('#ormResult');if(!wt||!rp){if(res)res.textContent='Enter weight and reps.';return;}var orm=(wt*(1+rp/30)).toFixed(1);if(res)res.innerHTML='<strong>'+orm+' kg</strong> estimated 1RM';});
-  var bmSave=container.querySelector('#bmSave');if(bmSave)bmSave.addEventListener('click',function(){var wtInp=container.querySelector('#bmWeight'),fatInp=container.querySelector('#bmFat');var bm=safeParseStorage('personalBodyMeasurements',[]);bm=bm.filter(function(m){return m.date!==today;});bm.push({date:today,weight:parseFloat((wtInp||{}).value)||0,fat:parseFloat((fatInp||{}).value)||0});if(bm.length>90)bm=bm.slice(-90);localStorage.setItem('personalBodyMeasurements',JSON.stringify(bm));renderGymAppFull(container);});
+    body.querySelectorAll('.app-gym-del-routine-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (!confirm('Delete this routine?')) return;
+        var g = getPersonalGym(); g.routines.splice(parseInt(btn.dataset.ri, 10), 1); setPersonalGym(g); renderGymAppFull(container);
+      });
+    });
+    body.querySelectorAll('.app-gym-add-ex-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var ri = parseInt(btn.dataset.ri, 10);
+        var row = btn.parentElement;
+        var name = (row.querySelector('.app-gym-ex-name-inp') || {}).value || '';
+        if (!name.trim()) return;
+        var g = getPersonalGym();
+        g.routines[ri].exercises.push({
+          name: name.trim(),
+          sets: (row.querySelector('.app-gym-ex-sets-inp') || {}).value || '',
+          reps: (row.querySelector('.app-gym-ex-reps-inp') || {}).value || '',
+          weight: (row.querySelector('.app-gym-ex-wt-inp') || {}).value || ''
+        });
+        setPersonalGym(g); renderGymAppFull(container);
+      });
+    });
+    body.querySelectorAll('.app-gym-del-ex-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var g = getPersonalGym();
+        var ri = parseInt(btn.dataset.ri, 10), ei = parseInt(btn.dataset.ei, 10);
+        g.routines[ri].exercises.splice(ei, 1); setPersonalGym(g); renderGymAppFull(container);
+      });
+    });
+    body.querySelectorAll('.app-gym-inp').forEach(function(inp) {
+      inp.addEventListener('change', function() {
+        var ri = parseInt(inp.dataset.ri, 10), ei = parseInt(inp.dataset.ei, 10);
+        var g = getPersonalGym();
+        if (!g.log) g.log = {}; if (!g.log[today]) g.log[today] = {};
+        if (!g.log[today][ri]) g.log[today][ri] = {}; if (!g.log[today][ri][ei]) g.log[today][ri][ei] = {};
+        g.log[today][ri][ei][inp.dataset.field] = parseFloat(inp.value) || 0; setPersonalGym(g);
+      });
+    });
+    var saveGym = body.querySelector('#gymFvSave');
+    if (saveGym) saveGym.addEventListener('click', function() {
+      saveGym.textContent = '\u2705 Saved!'; setTimeout(function() { saveGym.textContent = '\ud83d\udcbe Save Today\'s Log'; }, 1500);
+    });
 
-  /* ── Gym Reminders ── */
-  var gymCfg = (getAppRemSettings().gym) || {};
-  var WEEK_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  var remSection = document.createElement('div');
-  remSection.className = 'app-sleep-reminders-grid';
-  remSection.style.marginTop = '16px';
-  var remHTML = '<h4 class="app-full-section-heading">🔔 Gym Session Reminders</h4>' +
-    '<div class="app-sleep-rem-row">' +
-      '<label class="app-sleep-rem-label">' +
-        '<input type="checkbox" id="gymRemEnabled" class="app-sleep-rem-check"' + (gymCfg.enabled ? ' checked' : '') + '/>' +
-        '🏋️ Enable gym reminders' +
-      '</label>' +
-      '<input type="time" id="gymRemTime" class="app-sleep-rem-time" value="' + escapeHTML(gymCfg.time || '08:00') + '" />' +
-    '</div>' +
-    '<div class="app-sleep-rem-row" style="flex-wrap:wrap;gap:6px">' +
-      '<span style="font-size:0.82rem;font-weight:600;min-width:80px">Workout days:</span>' +
-      WEEK_DAYS.map(function(d) {
-        var checked = (gymCfg.days || []).indexOf(d) !== -1 ? ' checked' : '';
-        return '<label style="display:flex;align-items:center;gap:3px;font-size:0.8rem"><input type="checkbox" class="gym-rem-day app-sleep-rem-check" data-day="' + d + '"' + checked + '/>' + d + '</label>';
-      }).join('') +
-    '</div>' +
-    '<button id="gymRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
-    '<p id="gymRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
-  remSection.innerHTML = remHTML;
-  container.appendChild(remSection);
+  } else if (tab === 'analytics') {
+    var bodyM = safeParseStorage('personalBodyMeasurements', []), latestM = bodyM[bodyM.length - 1] || {};
+    var rHTML = '<h3 class="app-full-col-heading">\ud83d\udcaa 1-Rep Max Calculator</h3>' +
+      '<p style="font-size:0.82rem;color:var(--ios-text-3);margin:0 0 10px">Epley formula: weight \u00d7 (1 + reps/30)</p>' +
+      '<div class="app-1rm-form">' +
+        '<label>Weight <input type="number" id="ormWeight" class="app-fv-num-input" placeholder="kg" min="0" step="2.5"/></label>' +
+        '<label>Reps <input type="number" id="ormReps" class="app-fv-num-input" placeholder="reps" min="1" max="30"/></label>' +
+        '<button id="ormCalc" class="app-fv-save-btn">Calculate</button>' +
+      '</div><div id="ormResult" class="app-1rm-result"></div>' +
+      '<h4 class="app-full-section-heading" style="margin-top:20px">\ud83d\udccf Body Measurements</h4>' +
+      '<div class="app-body-measure-form">' +
+        '<label>Body weight (kg) <input type="number" id="bmWeight" class="app-fv-num-input" value="' + (latestM.weight || '') + '" min="0" step="0.1"/></label>' +
+        '<label>Body fat % <input type="number" id="bmFat" class="app-fv-num-input" value="' + (latestM.fat || '') + '" min="0" max="60" step="0.1"/></label>' +
+        '<button id="bmSave" class="app-fv-save-btn">Log Today</button>' +
+      '</div>';
+    if (bodyM.length) {
+      var weightBars = bodyM.slice(-8).map(function(m) { return { label: (m.date || '').slice(5), value: parseFloat(m.weight) || 0, iso: m.date || '' }; });
+      if (weightBars.some(function(b) { return b.value > 0; })) {
+        rHTML += '<h4 class="app-full-section-heading" style="margin-top:12px">Weight trend</h4>' + _fvBarChart(weightBars, 220, 70, 12, 16, 8, 8, today);
+      }
+      rHTML += '<div class="app-body-history">';
+      bodyM.slice(-5).reverse().forEach(function(m) {
+        rHTML += '<div class="app-body-hist-row">' +
+          '<span style="color:var(--ios-text-3);font-size:0.78rem">' + escapeHTML(m.date || '') + '</span>' +
+          '<span>' + (m.weight ? m.weight + ' kg' : '') + '</span>' +
+          '<span>' + (m.fat ? m.fat + '% fat' : '') + '</span></div>';
+      });
+      rHTML += '</div>';
+    }
+    body.innerHTML = rHTML;
+    var ormCalc = body.querySelector('#ormCalc');
+    if (ormCalc) ormCalc.addEventListener('click', function() {
+      var wt = parseFloat((body.querySelector('#ormWeight') || {}).value) || 0;
+      var rp = parseInt((body.querySelector('#ormReps') || {}).value, 10) || 0;
+      var res = body.querySelector('#ormResult');
+      if (!wt || !rp) { if (res) res.textContent = 'Enter weight and reps.'; return; }
+      var orm = (wt * (1 + rp / 30)).toFixed(1);
+      if (res) res.innerHTML = '<strong>' + orm + ' kg</strong> estimated 1RM';
+    });
+    var bmSave = body.querySelector('#bmSave');
+    if (bmSave) bmSave.addEventListener('click', function() {
+      var wtInp = body.querySelector('#bmWeight'), fatInp = body.querySelector('#bmFat');
+      var bm = safeParseStorage('personalBodyMeasurements', []);
+      bm = bm.filter(function(m) { return m.date !== today; });
+      bm.push({ date: today, weight: parseFloat((wtInp || {}).value) || 0, fat: parseFloat((fatInp || {}).value) || 0 });
+      if (bm.length > 90) bm = bm.slice(-90);
+      localStorage.setItem('personalBodyMeasurements', JSON.stringify(bm));
+      renderGymAppFull(container);
+    });
 
-  var gymRemSave = container.querySelector('#gymRemSave');
-  if (gymRemSave) gymRemSave.addEventListener('click', function() {
-    var enabledEl = container.querySelector('#gymRemEnabled');
-    var timeEl    = container.querySelector('#gymRemTime');
-    var days = [];
-    container.querySelectorAll('.gym-rem-day:checked').forEach(function(cb) { days.push(cb.dataset.day); });
-    var s = getAppRemSettings();
-    s.gym = { enabled: !!(enabledEl && enabledEl.checked), time: timeEl ? timeEl.value : '08:00', days: days };
-    setAppRemSettings(s);
-    try { _syncGymReminders(); } catch(e) { console.warn('[Gym] _syncGymReminders:', e); }
-    var st = container.querySelector('#gymRemStatus');
-    if (st) { st.textContent = '✓ Gym reminders saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
-  });
+  } else {
+    _fvRenderPinCard(body, 'gym');
+    var gymCfg = (getAppRemSettings().gym) || {};
+    var WEEK_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    var gymRemCard = document.createElement('div');
+    gymRemCard.className = 'app-settings-card';
+    gymRemCard.innerHTML =
+      '<h4 class="app-full-section-heading">\ud83d\udd14 Gym Session Reminders</h4>' +
+      '<div class="app-sleep-reminders-grid">' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">' +
+            '<input type="checkbox" id="gymRemEnabled" class="app-sleep-rem-check"' + (gymCfg.enabled ? ' checked' : '') + '/>' +
+            '\ud83c\udfcb\ufe0f Enable gym reminders' +
+          '</label>' +
+          '<input type="time" id="gymRemTime" class="app-sleep-rem-time" value="' + escapeHTML(gymCfg.time || '08:00') + '" />' +
+        '</div>' +
+        '<div class="app-sleep-rem-row" style="flex-wrap:wrap;gap:6px">' +
+          '<span style="font-size:0.82rem;font-weight:600;min-width:80px">Workout days:</span>' +
+          WEEK_DAYS.map(function(d) {
+            var checked = (gymCfg.days || []).indexOf(d) !== -1 ? ' checked' : '';
+            return '<label style="display:flex;align-items:center;gap:3px;font-size:0.8rem"><input type="checkbox" class="gym-rem-day app-sleep-rem-check" data-day="' + d + '"' + checked + '/>' + d + '</label>';
+          }).join('') +
+        '</div>' +
+        '<button id="gymRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
+        '<p id="gymRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
+      '</div>';
+    body.appendChild(gymRemCard);
+    var gymRemSave = body.querySelector('#gymRemSave');
+    if (gymRemSave) gymRemSave.addEventListener('click', function() {
+      var enabledEl = body.querySelector('#gymRemEnabled');
+      var timeEl    = body.querySelector('#gymRemTime');
+      var days = [];
+      body.querySelectorAll('.gym-rem-day:checked').forEach(function(cb) { days.push(cb.dataset.day); });
+      var s = getAppRemSettings();
+      s.gym = { enabled: !!(enabledEl && enabledEl.checked), time: timeEl ? timeEl.value : '08:00', days: days };
+      setAppRemSettings(s);
+      try { _syncGymReminders(); } catch(e) { console.warn('[Gym] _syncGymReminders:', e); }
+      var st = body.querySelector('#gymRemStatus');
+      if (st) { st.textContent = '\u2713 Reminders saved!'; setTimeout(function() { st.textContent = ''; }, 2500); }
+    });
+  }
 }
 
 function renderRoutineAppFull(container) {
-  container.innerHTML = '';
+  var tab = container._routineTab || 'morning';
+  container._routineTab = tab;
+  var TABS = [
+    { key: 'morning', label: '\ud83c\udf05 Morning' },
+    { key: 'evening', label: '\ud83c\udf19 Evening' },
+    { key: 'history', label: '\ud83d\udcc5 History' },
+    { key: 'settings',label: '\u2699\ufe0f Settings' }
+  ];
+  var body = _fvBuildTabs(container, TABS, tab, function(k) {
+    container._routineTab = k;
+    renderRoutineAppFull(container);
+  });
 
-  /* ── Use the advanced multi-phase widget from desktop-personal.js if loaded ── */
-  if (typeof window.renderDeskRoutineWidget === 'function') {
-    try {
-      window.renderDeskRoutineWidget(); /* renders into personalRoutineSection */
-      var routineSection = document.getElementById('personalRoutineSection');
-      if (routineSection) {
-        routineSection.classList.remove('hidden');
-        container.appendChild(routineSection);
-        return;
-      }
-      /* personalRoutineSection not found — fall through to basic view */
-    } catch(e) { /* render failed — fall through to basic view */ }
-  }
+  var routines = getPersonalRoutines(), today = getTodayISO(), log = getPersonalRoutineLog();
+  if (!log[today]) log[today] = { morning: [], evening: [] };
+  var todayLog = log[today];
 
-  /* ── Fallback: basic two-column view ── */
-  var routines=getPersonalRoutines(),today=getTodayISO(),log=getPersonalRoutineLog();
-  if(!log[today])log[today]={morning:[],evening:[]};
-  var todayLog=log[today];
-  var layout=document.createElement('div');layout.className='app-full-two-col';
-  var left=document.createElement('div');left.className='app-full-col';
-  var right=document.createElement('div');right.className='app-full-col';
-  function buildPeriod(period,emoji){
-    var items=routines[period]||[],checked=todayLog[period]||[],done=checked.length,total=items.length,pct=total>0?Math.round(done/total*100):0;
-    var h='<h4 class="app-full-section-heading">'+emoji+' '+period.charAt(0).toUpperCase()+period.slice(1)+' Routine ('+done+'/'+total+')</h4>';
-    if(total)h+='<div class="app-routine-pbar"><div style="width:'+pct+'%;background:'+(pct===100?'#27ae60':'var(--ios-accent)')+';height:5px;border-radius:3px"></div></div>';
-    items.forEach(function(item,idx){var isDone=checked.indexOf(idx)>=0;h+='<div class="app-routine-item'+(isDone?' done':'')+'" data-period="'+period+'" data-idx="'+idx+'"><input type="checkbox" class="app-routine-cb"'+(isDone?' checked':'')+'/><span>'+escapeHTML(typeof item==='string'?item:(item.text||item.name||''))+'</span></div>';});
-    if(!total)h+='<p style="font-size:0.82rem;color:var(--ios-text-3)">No steps yet.</p>';
+  function buildPeriod(period, emoji) {
+    var items = routines[period] || [], checked = todayLog[period] || [];
+    var done = checked.length, total = items.length, pct = total > 0 ? Math.round(done / total * 100) : 0;
+    var h = '<h3 class="app-full-col-heading">' + emoji + ' ' + period.charAt(0).toUpperCase() + period.slice(1) + ' Routine</h3>';
+    h += '<p style="font-size:0.82rem;color:var(--ios-text-3);margin:0 0 6px">' + done + ' / ' + total + ' steps completed</p>';
+    if (total) h += '<div class="app-routine-pbar"><div style="width:' + pct + '%;background:' + (pct === 100 ? '#27ae60' : 'var(--ios-accent)') + ';height:5px;border-radius:3px"></div></div>';
+    items.forEach(function(item, idx) {
+      var isDone = checked.indexOf(idx) >= 0;
+      h += '<div class="app-routine-item' + (isDone ? ' done' : '') + '" data-period="' + period + '" data-idx="' + idx + '">' +
+        '<input type="checkbox" class="app-routine-cb"' + (isDone ? ' checked' : '') + '/>' +
+        '<span>' + escapeHTML(typeof item === 'string' ? item : (item.text || item.name || '')) + '</span></div>';
+    });
+    if (!total) h += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No steps yet.</p>';
     return h;
   }
-  left.innerHTML='<h3 class="app-full-col-heading">\ud83c\udf05 Daily Routine</h3>'+buildPeriod('morning','\ud83c\udf05');
-  var heatHTML='<h3 class="app-full-col-heading">\ud83c\udf19 Evening & History</h3>'+buildPeriod('evening','\ud83c\udf19');
-  heatHTML+='<h4 class="app-full-section-heading" style="margin-top:16px">\ud83d\udcc5 28-Day Completion</h4><div class="app-routine-heatmap">';
-  for(var ni=27;ni>=0;ni--){var dd=new Date();dd.setDate(dd.getDate()-ni);var iso=dd.getFullYear()+'-'+pad2(dd.getMonth()+1)+'-'+pad2(dd.getDate());var dLog=log[iso]||{};var dDone=((dLog.morning||[]).length)+((dLog.evening||[]).length);var dTotal=(routines.morning||[]).length+(routines.evening||[]).length;var cls=dTotal>0&&dDone===dTotal?' all-done':dDone>0?' part-done':'';heatHTML+='<div class="app-routine-hm-cell'+cls+'" title="'+iso+'"></div>';}
-  heatHTML+='</div>';
-  var exportLines=[];['morning','evening'].forEach(function(p){exportLines.push(p.charAt(0).toUpperCase()+p.slice(1)+' Routine:');(routines[p]||[]).forEach(function(item,i){exportLines.push('  '+(i+1)+'. '+(typeof item==='string'?item:(item.text||item.name||'')));});});
-  heatHTML+='<button id="routineFvExport" class="app-fv-link-btn" style="margin-top:10px">\ud83d\udccb Copy routine as text</button>';
-  right.innerHTML=heatHTML;
-  layout.appendChild(left);layout.appendChild(right);container.appendChild(layout);
-  container.querySelectorAll('.app-routine-cb').forEach(function(cb){cb.addEventListener('change',function(){var row=cb.closest('[data-period]');if(!row)return;var period=row.dataset.period,idx=parseInt(row.dataset.idx,10);var l=getPersonalRoutineLog();if(!l[today])l[today]={morning:[],evening:[]};if(!l[today][period])l[today][period]=[];if(cb.checked){if(l[today][period].indexOf(idx)<0)l[today][period].push(idx);}else{l[today][period]=l[today][period].filter(function(i){return i!==idx;});}setPersonalRoutineLog(l);renderRoutineAppFull(container);});});
-  var expBtn=container.querySelector('#routineFvExport');if(expBtn)expBtn.addEventListener('click',function(){try{navigator.clipboard.writeText(exportLines.join('\n'));expBtn.textContent='✅ Copied!';setTimeout(function(){expBtn.textContent='📋 Copy routine as text';},2000);}catch(e){alert(exportLines.join('\n'));}});
 
-  /* ── Routine Reminders ── */
-  var routineCfg = getAppRemSettings().routine || {};
-  var routineRemSection = document.createElement('div');
-  routineRemSection.className = 'app-sleep-reminders-grid';
-  routineRemSection.style.marginTop = '16px';
-  routineRemSection.innerHTML =
-    '<h4 class="app-full-section-heading">🔔 Routine Reminders</h4>' +
-    '<div class="app-sleep-rem-row">' +
-      '<label class="app-sleep-rem-label">' +
-        '<input type="checkbox" id="routineRemMorningEnabled" class="app-sleep-rem-check"' + (routineCfg.morningEnabled ? ' checked' : '') + '/>' +
-        '🌅 Morning routine start' +
-      '</label>' +
-      '<input type="time" id="routineRemMorningTime" class="app-sleep-rem-time" value="' + escapeHTML(routineCfg.morningTime || '07:00') + '" />' +
-    '</div>' +
-    '<div class="app-sleep-rem-row">' +
-      '<label class="app-sleep-rem-label">' +
-        '<input type="checkbox" id="routineRemEveningEnabled" class="app-sleep-rem-check"' + (routineCfg.eveningEnabled ? ' checked' : '') + '/>' +
-        '🌙 Evening routine start' +
-      '</label>' +
-      '<input type="time" id="routineRemEveningTime" class="app-sleep-rem-time" value="' + escapeHTML(routineCfg.eveningTime || '21:00') + '" />' +
-    '</div>' +
-    '<button id="routineRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
-    '<p id="routineRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
-  container.appendChild(routineRemSection);
+  if (tab === 'morning') {
+    body.innerHTML = buildPeriod('morning', '\ud83c\udf05');
+    body.querySelectorAll('.app-routine-cb').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        var row = cb.closest('[data-period]'); if (!row) return;
+        var period = row.dataset.period, idx = parseInt(row.dataset.idx, 10);
+        var l = getPersonalRoutineLog();
+        if (!l[today]) l[today] = { morning: [], evening: [] };
+        if (!l[today][period]) l[today][period] = [];
+        if (cb.checked) { if (l[today][period].indexOf(idx) < 0) l[today][period].push(idx); }
+        else { l[today][period] = l[today][period].filter(function(i) { return i !== idx; }); }
+        setPersonalRoutineLog(l);
+        renderRoutineAppFull(container);
+      });
+    });
 
-  var routineRemSaveBtn = container.querySelector('#routineRemSave');
-  if (routineRemSaveBtn) routineRemSaveBtn.addEventListener('click', function() {
-    var s = getAppRemSettings();
-    var morEn = container.querySelector('#routineRemMorningEnabled');
-    var morTi = container.querySelector('#routineRemMorningTime');
-    var eveEn = container.querySelector('#routineRemEveningEnabled');
-    var eveTi = container.querySelector('#routineRemEveningTime');
-    s.routine = {
-      morningEnabled: !!(morEn && morEn.checked), morningTime: morTi ? morTi.value : '07:00',
-      eveningEnabled: !!(eveEn && eveEn.checked), eveningTime: eveTi ? eveTi.value : '21:00'
-    };
-    setAppRemSettings(s);
-    try { _syncRoutineReminders(); } catch(e) { console.warn('[Routine] _syncRoutineReminders:', e); }
-    var st = container.querySelector('#routineRemStatus');
-    if (st) { st.textContent = '✓ Routine reminders saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
-  });
+  } else if (tab === 'evening') {
+    body.innerHTML = buildPeriod('evening', '\ud83c\udf19');
+    body.querySelectorAll('.app-routine-cb').forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        var row = cb.closest('[data-period]'); if (!row) return;
+        var period = row.dataset.period, idx = parseInt(row.dataset.idx, 10);
+        var l = getPersonalRoutineLog();
+        if (!l[today]) l[today] = { morning: [], evening: [] };
+        if (!l[today][period]) l[today][period] = [];
+        if (cb.checked) { if (l[today][period].indexOf(idx) < 0) l[today][period].push(idx); }
+        else { l[today][period] = l[today][period].filter(function(i) { return i !== idx; }); }
+        setPersonalRoutineLog(l);
+        renderRoutineAppFull(container);
+      });
+    });
+
+  } else if (tab === 'history') {
+    var heatHTML = '<h3 class="app-full-col-heading">\ud83d\udcc5 28-Day Completion</h3><div class="app-routine-heatmap">';
+    for (var ni = 27; ni >= 0; ni--) {
+      var dd = new Date(); dd.setDate(dd.getDate() - ni);
+      var iso = dd.getFullYear() + '-' + pad2(dd.getMonth() + 1) + '-' + pad2(dd.getDate());
+      var dLog = log[iso] || {};
+      var dDone = ((dLog.morning || []).length) + ((dLog.evening || []).length);
+      var dTotal = (routines.morning || []).length + (routines.evening || []).length;
+      var cls = dTotal > 0 && dDone === dTotal ? ' all-done' : dDone > 0 ? ' part-done' : '';
+      heatHTML += '<div class="app-routine-hm-cell' + cls + '" title="' + iso + '"></div>';
+    }
+    heatHTML += '</div>';
+    var exportLines = [];
+    ['morning', 'evening'].forEach(function(p) {
+      exportLines.push(p.charAt(0).toUpperCase() + p.slice(1) + ' Routine:');
+      (routines[p] || []).forEach(function(item, i) {
+        exportLines.push('  ' + (i + 1) + '. ' + (typeof item === 'string' ? item : (item.text || item.name || '')));
+      });
+    });
+    heatHTML += '<button id="routineFvExport" class="app-fv-link-btn" style="margin-top:10px">\ud83d\udccb Copy routine as text</button>';
+    body.innerHTML = heatHTML;
+    var expBtn = body.querySelector('#routineFvExport');
+    if (expBtn) expBtn.addEventListener('click', function() {
+      try { navigator.clipboard.writeText(exportLines.join('\n')); expBtn.textContent = '\u2705 Copied!'; setTimeout(function() { expBtn.textContent = '\ud83d\udccb Copy routine as text'; }, 2000); }
+      catch(e) { alert(exportLines.join('\n')); }
+    });
+
+  } else {
+    _fvRenderPinCard(body, 'routine');
+    var routineCfg = getAppRemSettings().routine || {};
+    var routineRemCard = document.createElement('div');
+    routineRemCard.className = 'app-settings-card';
+    routineRemCard.innerHTML =
+      '<h4 class="app-full-section-heading">\ud83d\udd14 Routine Reminders</h4>' +
+      '<div class="app-sleep-reminders-grid">' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">' +
+            '<input type="checkbox" id="routineRemMorningEnabled" class="app-sleep-rem-check"' + (routineCfg.morningEnabled ? ' checked' : '') + '/>' +
+            '\ud83c\udf05 Morning routine start' +
+          '</label>' +
+          '<input type="time" id="routineRemMorningTime" class="app-sleep-rem-time" value="' + escapeHTML(routineCfg.morningTime || '07:00') + '" />' +
+        '</div>' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">' +
+            '<input type="checkbox" id="routineRemEveningEnabled" class="app-sleep-rem-check"' + (routineCfg.eveningEnabled ? ' checked' : '') + '/>' +
+            '\ud83c\udf19 Evening routine start' +
+          '</label>' +
+          '<input type="time" id="routineRemEveningTime" class="app-sleep-rem-time" value="' + escapeHTML(routineCfg.eveningTime || '21:00') + '" />' +
+        '</div>' +
+        '<button id="routineRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminders</button>' +
+        '<p id="routineRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
+      '</div>';
+    body.appendChild(routineRemCard);
+    var routineRemSaveBtn = body.querySelector('#routineRemSave');
+    if (routineRemSaveBtn) routineRemSaveBtn.addEventListener('click', function() {
+      var s = getAppRemSettings();
+      var morEn = body.querySelector('#routineRemMorningEnabled');
+      var morTi = body.querySelector('#routineRemMorningTime');
+      var eveEn = body.querySelector('#routineRemEveningEnabled');
+      var eveTi = body.querySelector('#routineRemEveningTime');
+      s.routine = {
+        morningEnabled: !!(morEn && morEn.checked), morningTime: morTi ? morTi.value : '07:00',
+        eveningEnabled: !!(eveEn && eveEn.checked), eveningTime: eveTi ? eveTi.value : '21:00'
+      };
+      setAppRemSettings(s);
+      try { _syncRoutineReminders(); } catch(e) { console.warn('[Routine] _syncRoutineReminders:', e); }
+      var st = body.querySelector('#routineRemStatus');
+      if (st) { st.textContent = '\u2713 Reminders saved!'; setTimeout(function() { st.textContent = ''; }, 2500); }
+    });
+  }
 }
 
 /* ── Budget Full View helpers ─────────────────────────────────────── */
@@ -14370,19 +14805,33 @@ function renderBudgetAppFull(container) {
 
 
 function renderJobsAppFull(container) {
-  container.innerHTML = '';
-  var earningsSection = document.getElementById('workEarningsSection');
-  if (earningsSection) {
-    earningsSection.classList.remove('hidden');
-    container.appendChild(earningsSection);
-    if (typeof window.renderWorkEarnings === 'function') {
-      try { window.renderWorkEarnings(); } catch (_) {}
+  var tab = container._jobsTab || 'earnings';
+  container._jobsTab = tab;
+  var TABS = [
+    { key: 'earnings', label: '\ud83d\udcbc Earnings' },
+    { key: 'settings', label: '\u2699\ufe0f Settings' }
+  ];
+  var body = _fvBuildTabs(container, TABS, tab, function(k) {
+    container._jobsTab = k;
+    renderJobsAppFull(container);
+  });
+
+  if (tab === 'earnings') {
+    var earningsSection = document.getElementById('workEarningsSection');
+    if (earningsSection) {
+      earningsSection.classList.remove('hidden');
+      body.appendChild(earningsSection);
+      if (typeof window.renderWorkEarnings === 'function') {
+        try { window.renderWorkEarnings(); } catch (_) {}
+      }
+    } else {
+      body.innerHTML =
+        '<p style="color:var(--ios-text-3);font-size:0.9rem;text-align:center;padding:24px 0">' +
+        '\ud83d\udcbc Navigate to the <a href="#work" style="color:var(--ios-accent)">Work</a> page to set up jobs first.</p>';
     }
-    return;
+  } else {
+    _fvRenderPinCard(body, 'jobs');
   }
-  container.innerHTML =
-    '<p style="color:var(--ios-text-3);font-size:0.9rem;text-align:center;padding:24px 0">' +
-    '\ud83d\udcbc Navigate to the <a href="#work" style="color:var(--ios-accent)">Work</a> page to set up jobs first.</p>';
 }
 
 window.renderTodayFocusPreview     = renderTodayFocusPreview;
@@ -14596,607 +15045,424 @@ function renderJournalWidget() {
 
 /* ── Full-screen 3-panel view ── */
 function renderJournalAppFull(container) {
-  container.innerHTML = '';
+  var tab = container._journalTab || 'journal';
+  container._journalTab = tab;
+  var TABS = [
+    { key: 'journal',  label: '\ud83d\udcdd Journal' },
+    { key: 'insights', label: '\ud83d\udcc8 Insights' },
+    { key: 'settings', label: '\u2699\ufe0f Settings' }
+  ];
+  var body = _fvBuildTabs(container, TABS, tab, function(k) {
+    container._journalTab = k;
+    renderJournalAppFull(container);
+  });
 
-  var _jState = {
-    folderId:      null,      /* null = All Entries; '__starred__' = Starred */
-    entryId:       null,
-    search:        '',
-    sort:          'newest',
-    panel:         (function() {
-      /* On mobile fullscreen, skip the folders sidebar and go straight to the list */
-      var modal = document.getElementById('appWindowModal');
-      if (modal && modal.classList.contains('fullscreen') &&
-          window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
-        return 'list';
-      }
-      return 'folders';
-    }()), /* mobile nav: 'folders' | 'list' | 'editor' */
-    focusMode:     false,
-    autosaveTimer: null
-  };
+  if (tab === 'journal') {
+    /* ── Rebuild the existing three-panel journal layout inside body ── */
+    var _jState = {
+      folderId:      null,
+      entryId:       null,
+      search:        '',
+      sort:          'newest',
+      panel:         (function() {
+        var modal = document.getElementById('appWindowModal');
+        if (modal && modal.classList.contains('fullscreen') &&
+            window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+          return 'list';
+        }
+        return 'folders';
+      }()),
+      focusMode:     false,
+      autosaveTimer: null
+    };
 
-  /* If widget opened a specific entry, jump straight to editor */
-  if (window._journalOpenEntryId) {
-    _jState.entryId = window._journalOpenEntryId;
-    _jState.panel   = 'editor';
-    window._journalOpenEntryId = null;
-  }
+    if (window._journalOpenEntryId) {
+      _jState.entryId = window._journalOpenEntryId;
+      _jState.panel   = 'editor';
+      window._journalOpenEntryId = null;
+    }
 
-  /* ── Root layout ── */
-  var root = document.createElement('div');
-  root.className = 'jv-root';
-  root.dataset.panel = _jState.panel;
-
-  var sidebar    = document.createElement('div'); sidebar.className    = 'jv-sidebar';
-  var listPanel  = document.createElement('div'); listPanel.className  = 'jv-list-panel';
-  var editorPanel= document.createElement('div'); editorPanel.className= 'jv-editor-panel';
-
-  root.appendChild(sidebar);
-  root.appendChild(listPanel);
-  root.appendChild(editorPanel);
-  container.appendChild(root);
-
-  /* ── Helpers ── */
-  function rebuild() {
-    renderSidebar();
-    renderList();
-    renderEditor();
+    var root = document.createElement('div');
+    root.className = 'jv-root';
     root.dataset.panel = _jState.panel;
-  }
 
-  /* ══════════════════════════════════════
-     SIDEBAR — Folders
-     ══════════════════════════════════════ */
-  function renderSidebar() {
-    sidebar.innerHTML = '';
+    var sidebar     = document.createElement('div'); sidebar.className     = 'jv-sidebar';
+    var listPanel   = document.createElement('div'); listPanel.className   = 'jv-list-panel';
+    var editorPanel = document.createElement('div'); editorPanel.className = 'jv-editor-panel';
 
-    var entries = getJournalEntries();
-    var folders = getJournalFolders();
+    root.appendChild(sidebar);
+    root.appendChild(listPanel);
+    root.appendChild(editorPanel);
+    body.appendChild(root);
 
-    var heading = document.createElement('div');
-    heading.className = 'jv-sidebar-heading';
-    heading.textContent = '📂 Folders';
-    sidebar.appendChild(heading);
+    function rebuild() {
+      renderSidebar();
+      renderList();
+      renderEditor();
+      root.dataset.panel = _jState.panel;
+    }
 
-    /* All Entries */
-    _appendFolderItem(sidebar, '📚', 'All Entries', entries.length, null);
-
-    /* Starred */
-    var starCount = entries.filter(function(e){ return e.starred; }).length;
-    _appendFolderItem(sidebar, '⭐', 'Starred', starCount, '__starred__');
-
-    /* User folders */
-    folders.forEach(function(f) {
-      var count = entries.filter(function(e){ return e.folderId === f.id; }).length;
-      var item = _appendFolderItem(sidebar, f.emoji || '📁', f.name, count, f.id);
-      /* Delete button */
-      var del = document.createElement('button');
-      del.className = 'jv-folder-del';
-      del.textContent = '✕';
-      del.title = 'Delete folder';
-      del.addEventListener('click', function(e) {
-        e.stopPropagation();
-        if (!confirm('Delete folder "' + f.name + '"?\nEntries will move to All Entries.')) return;
-        var flds = getJournalFolders().filter(function(x){ return x.id !== f.id; });
+    /* SIDEBAR */
+    function renderSidebar() {
+      sidebar.innerHTML = '';
+      var entries = getJournalEntries();
+      var folders = getJournalFolders();
+      var heading = document.createElement('div');
+      heading.className = 'jv-sidebar-heading';
+      heading.textContent = '\ud83d\udcc2 Folders';
+      sidebar.appendChild(heading);
+      _appendFolderItem(sidebar, '\ud83d\udcda', 'All Entries', entries.length, null);
+      var starCount = entries.filter(function(e){ return e.starred; }).length;
+      _appendFolderItem(sidebar, '\u2b50', 'Starred', starCount, '__starred__');
+      folders.forEach(function(f) {
+        var count = entries.filter(function(e){ return e.folderId === f.id; }).length;
+        var item = _appendFolderItem(sidebar, f.emoji || '\ud83d\udcc1', f.name, count, f.id);
+        var del = document.createElement('button');
+        del.className = 'jv-folder-del';
+        del.textContent = '\u2715';
+        del.title = 'Delete folder';
+        del.addEventListener('click', function(e) {
+          e.stopPropagation();
+          if (!confirm('Delete folder "' + f.name + '"?\nEntries will move to All Entries.')) return;
+          var flds = getJournalFolders().filter(function(x){ return x.id !== f.id; });
+          setJournalFolders(flds);
+          var ents = getJournalEntries().map(function(x){ if (x.folderId === f.id) x.folderId = null; return x; });
+          setJournalEntries(ents);
+          if (_jState.folderId === f.id) { _jState.folderId = null; _jState.entryId = null; }
+          rebuild();
+        });
+        item.appendChild(del);
+      });
+      var addForm = document.createElement('div');
+      addForm.className = 'jv-add-folder-form';
+      addForm.innerHTML =
+        '<input type="text" id="jvFolderEmoji" placeholder="\ud83d\udcc1" maxlength="2" class="jv-folder-emoji-inp" />' +
+        '<input type="text" id="jvFolderName"  placeholder="New folder\u2026"   class="jv-folder-name-inp"  />' +
+        '<button id="jvAddFolderBtn" class="jv-add-folder-btn" title="Add folder">\uff0b</button>';
+      addForm.querySelector('#jvAddFolderBtn').addEventListener('click', function() {
+        var emojiInp = addForm.querySelector('#jvFolderEmoji');
+        var nameInp  = addForm.querySelector('#jvFolderName');
+        var name = nameInp ? nameInp.value.trim() : '';
+        if (!name) { if (nameInp) nameInp.focus(); return; }
+        var flds = getJournalFolders();
+        flds.push({ id: 'f:' + Date.now().toString(36), name: name, emoji: emojiInp && emojiInp.value.trim() ? emojiInp.value.trim() : '\ud83d\udcc1' });
         setJournalFolders(flds);
-        var ents = getJournalEntries().map(function(x){ if (x.folderId === f.id) x.folderId = null; return x; });
-        setJournalEntries(ents);
-        if (_jState.folderId === f.id) { _jState.folderId = null; _jState.entryId = null; }
+        if (nameInp) nameInp.value = '';
+        if (emojiInp) emojiInp.value = '';
         rebuild();
       });
-      item.appendChild(del);
-    });
-
-    /* Add folder form */
-    var addForm = document.createElement('div');
-    addForm.className = 'jv-add-folder-form';
-    addForm.innerHTML =
-      '<input type="text" id="jvFolderEmoji" placeholder="📁" maxlength="2" class="jv-folder-emoji-inp" />' +
-      '<input type="text" id="jvFolderName"  placeholder="New folder…"   class="jv-folder-name-inp"  />' +
-      '<button id="jvAddFolderBtn" class="jv-add-folder-btn" title="Add folder">＋</button>';
-    addForm.querySelector('#jvAddFolderBtn').addEventListener('click', function() {
-      var emojiInp = addForm.querySelector('#jvFolderEmoji');
-      var nameInp  = addForm.querySelector('#jvFolderName');
-      var name = nameInp ? nameInp.value.trim() : '';
-      if (!name) return;
-      var flds = getJournalFolders();
-      flds.push({ id: generateJournalId(), name: name, emoji: (emojiInp ? emojiInp.value.trim() : '') || '📁' });
-      setJournalFolders(flds);
-      if (nameInp)  nameInp.value  = '';
-      if (emojiInp) emojiInp.value = '';
-      rebuild();
-    });
-    sidebar.appendChild(addForm);
-
-    /* Streak */
-    var streak = calcJournalStreak();
-    if (streak > 0) {
-      var streakEl = document.createElement('div');
-      streakEl.className = 'jv-streak';
-      streakEl.textContent = '🔥 ' + streak + '-day streak!';
-      sidebar.appendChild(streakEl);
-    }
-  }
-
-  function _appendFolderItem(parent, emoji, name, count, fid) {
-    var item = document.createElement('div');
-    item.className = 'jv-folder-item' + (_jState.folderId === fid ? ' active' : '');
-    item.innerHTML =
-      '<span class="jv-folder-emoji">' + escapeHTML(emoji) + '</span>' +
-      '<span class="jv-folder-name">'  + escapeHTML(name)  + '</span>' +
-      '<span class="jv-folder-count">' + count + '</span>';
-    item.addEventListener('click', function(e) {
-      if (e.target.classList.contains('jv-folder-del')) return;
-      _jState.folderId = fid;
-      _jState.entryId  = null;
-      _jState.panel    = 'list';
-      rebuild();
-    });
-    parent.appendChild(item);
-    return item;
-  }
-
-  /* ══════════════════════════════════════
-     ENTRY LIST — Middle column
-     ══════════════════════════════════════ */
-  function renderList() {
-    listPanel.innerHTML = '';
-
-    var entries = getJournalEntries();
-    var folders = getJournalFolders();
-
-    /* Mobile back → folders */
-    var mBack = document.createElement('button');
-    mBack.className = 'jv-mobile-back jv-mobile-only';
-    mBack.textContent = '← Folders';
-    mBack.addEventListener('click', function() { _jState.panel = 'folders'; root.dataset.panel = 'folders'; });
-    listPanel.appendChild(mBack);
-
-    /* Header: search + sort + new */
-    var hdr = document.createElement('div');
-    hdr.className = 'jv-list-header';
-    hdr.innerHTML =
-      '<input type="text" class="jv-search" placeholder="🔍 Search entries…" value="' + escapeHTML(_jState.search) + '" />' +
-      '<div class="jv-list-controls">' +
-        '<select class="jv-sort-select">' +
-          '<option value="newest"' + (_jState.sort==='newest'?' selected':'') + '>Newest</option>' +
-          '<option value="oldest"' + (_jState.sort==='oldest'?' selected':'') + '>Oldest</option>' +
-          '<option value="edited"' + (_jState.sort==='edited'?' selected':'') + '>Last edited</option>' +
-        '</select>' +
-        '<button class="jv-new-entry-btn" id="jvNewEntryBtn">＋ New</button>' +
-      '</div>';
-    listPanel.appendChild(hdr);
-
-    hdr.querySelector('.jv-search').addEventListener('input', function(e) {
-      _jState.search = e.target.value;
-      renderList();
-    });
-    hdr.querySelector('.jv-sort-select').addEventListener('change', function(e) {
-      _jState.sort = e.target.value;
-      renderList();
-    });
-    hdr.querySelector('#jvNewEntryBtn').addEventListener('click', _createNewEntry);
-
-    /* Filter */
-    var filtered = entries;
-    if (_jState.folderId === '__starred__') {
-      filtered = entries.filter(function(e){ return e.starred; });
-    } else if (_jState.folderId !== null) {
-      filtered = entries.filter(function(e){ return e.folderId === _jState.folderId; });
+      sidebar.appendChild(addForm);
     }
 
-    /* Search */
-    var q = _jState.search.toLowerCase().trim();
-    if (q) {
-      filtered = filtered.filter(function(e) {
-        var bodyPlain = _jvStripHtml(e.body || '').toLowerCase();
-        return (e.title || '').toLowerCase().indexOf(q) !== -1 || bodyPlain.indexOf(q) !== -1;
+    function _appendFolderItem(parent, emoji, name, count, folderId) {
+      var item = document.createElement('div');
+      item.className = 'jv-folder-item' + (_jState.folderId === folderId ? ' active' : '');
+      item.innerHTML = '<span class="jv-fi-emoji">' + escapeHTML(emoji) + '</span>' +
+        '<span class="jv-fi-name">' + escapeHTML(name) + '</span>' +
+        '<span class="jv-fi-count">' + count + '</span>';
+      item.addEventListener('click', function() {
+        _jState.folderId = folderId;
+        _jState.entryId  = null;
+        _jState.panel    = 'list';
+        rebuild();
       });
+      parent.appendChild(item);
+      return item;
     }
 
-    /* Sort */
-    if (_jState.sort === 'oldest') {
-      filtered.sort(function(a,b){ return (a.createdAt||0)-(b.createdAt||0); });
-    } else if (_jState.sort === 'edited') {
-      filtered.sort(function(a,b){ return (b.updatedAt||0)-(a.updatedAt||0); });
-    } else {
-      filtered.sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
-    }
-
-    /* Starred entries float to top */
-    var starred = filtered.filter(function(e){ return e.starred; });
-    var rest    = filtered.filter(function(e){ return !e.starred; });
-    filtered = starred.concat(rest);
-
-    /* Entry rows */
-    var listEl = document.createElement('div');
-    listEl.className = 'jv-entries-list';
-
-    if (!filtered.length) {
-      listEl.innerHTML = '<div class="jv-entries-empty">' +
-        (q ? 'No entries matching "<strong>' + escapeHTML(q) + '</strong>".' : 'No entries here yet.<br><small>Tap <strong>＋ New</strong> to start.</small>') +
-        '</div>';
-    } else {
-      filtered.forEach(function(e) {
-        var d = new Date(e.createdAt || Date.now());
-        var dateStr = monthNames[d.getMonth()].slice(0,3) + ' ' + pad2(d.getDate()) + ', ' + d.getFullYear();
-        var folder  = folders.find(function(f){ return f.id === e.folderId; });
-        var bodyText = _jvStripHtml(e.body || '').trim();
-        var wc = bodyText ? bodyText.split(/\s+/).filter(Boolean).length : 0;
-
-        var row = document.createElement('div');
-        row.className = 'jv-entry-row' + (e.id === _jState.entryId ? ' active' : '');
-        row.dataset.jid = e.id;
-        row.innerHTML =
-          '<div class="jv-entry-row-top">' +
-            '<span class="jv-entry-date">' + escapeHTML(dateStr) + '</span>' +
-            (e.starred ? '<span class="jv-entry-star">⭐</span>' : '') +
-            (e.mood    ? '<span class="jv-entry-mood">'  + e.mood   + '</span>' : '') +
-          '</div>' +
-          '<div class="jv-entry-title">' + escapeHTML(e.title || 'Untitled') + '</div>' +
-          '<div class="jv-entry-preview">' + escapeHTML(bodyText.slice(0, 80)) + '</div>' +
-          '<div class="jv-entry-meta">' +
-            (folder ? '<span class="jv-entry-folder-tag">' + escapeHTML(folder.emoji||'📁') + ' ' + escapeHTML(folder.name) + '</span>' : '') +
-            '<span class="jv-entry-wc">' + wc + ' words</span>' +
-          '</div>';
-
-        row.addEventListener('click', function() {
-          _jState.entryId = e.id;
-          _jState.panel   = 'editor';
-          /* Highlight selection without full list re-render */
-          listEl.querySelectorAll('.jv-entry-row').forEach(function(r) {
-            r.classList.toggle('active', r.dataset.jid === e.id);
-          });
-          renderEditor();
-          root.dataset.panel = 'editor';
+    /* LIST PANEL */
+    function renderList() {
+      listPanel.innerHTML = '';
+      var entries = getJournalEntries();
+      var filtered = entries.filter(function(e) {
+        if (_jState.folderId === '__starred__') return e.starred;
+        if (_jState.folderId !== null) return e.folderId === _jState.folderId;
+        return true;
+      });
+      if (_jState.search) {
+        var q = _jState.search.toLowerCase();
+        filtered = filtered.filter(function(e) {
+          return (e.title || '').toLowerCase().indexOf(q) !== -1 ||
+                 (e.body  || '').toLowerCase().indexOf(q) !== -1;
         });
-        listEl.appendChild(row);
+      }
+      if (_jState.sort === 'oldest') filtered = filtered.slice().reverse();
+
+      var toolbar = document.createElement('div');
+      toolbar.className = 'jv-list-toolbar';
+      var searchInp = document.createElement('input');
+      searchInp.type = 'search'; searchInp.placeholder = '\ud83d\udd0d Search\u2026';
+      searchInp.className = 'jv-search-inp'; searchInp.value = _jState.search;
+      searchInp.addEventListener('input', function() { _jState.search = searchInp.value; renderList(); });
+      var sortSel = document.createElement('select');
+      sortSel.className = 'jv-sort-sel app-fv-select';
+      [['newest','\u2193 Newest'],['oldest','\u2191 Oldest']].forEach(function(o) {
+        var opt = document.createElement('option'); opt.value = o[0]; opt.textContent = o[1];
+        if (_jState.sort === o[0]) opt.selected = true;
+        sortSel.appendChild(opt);
       });
+      sortSel.addEventListener('change', function() { _jState.sort = sortSel.value; renderList(); });
+      var newBtn = document.createElement('button');
+      newBtn.className = 'jv-new-btn'; newBtn.textContent = '\u270f\ufe0f New';
+      newBtn.addEventListener('click', _createNewEntry);
+
+      var backBtn = document.createElement('button');
+      backBtn.className = 'jv-back-btn'; backBtn.textContent = '\u2039 Folders';
+      backBtn.addEventListener('click', function() { _jState.panel = 'folders'; rebuild(); });
+
+      toolbar.appendChild(backBtn);
+      toolbar.appendChild(searchInp);
+      toolbar.appendChild(sortSel);
+      toolbar.appendChild(newBtn);
+      listPanel.appendChild(toolbar);
+
+      var list = document.createElement('div'); list.className = 'jv-entry-list';
+      if (!filtered.length) {
+        var empty = document.createElement('div'); empty.className = 'jv-empty';
+        empty.textContent = _jState.search ? 'No results.' : 'No entries yet.';
+        list.appendChild(empty);
+      } else {
+        filtered.forEach(function(entry) {
+          var item = document.createElement('div');
+          item.className = 'jv-entry-item' + (entry.id === _jState.entryId ? ' active' : '');
+          var _previewEl = document.createElement('div');
+          _previewEl.innerHTML = (entry.body || '').slice(0, 300);
+          var preview = (_previewEl.textContent || _previewEl.innerText || '').slice(0, 80);
+          item.innerHTML =
+            '<div class="jv-ei-header">' +
+              '<span class="jv-ei-title">' + escapeHTML(entry.title || 'Untitled') + '</span>' +
+              (entry.starred ? '<span class="jv-ei-star">\u2b50</span>' : '') +
+              '<span class="jv-ei-mood">' + escapeHTML(entry.mood || '') + '</span>' +
+            '</div>' +
+            '<div class="jv-ei-preview">' + escapeHTML(preview) + '</div>' +
+            '<div class="jv-ei-meta">' + escapeHTML(new Date(entry.updatedAt||entry.createdAt||0).toLocaleDateString()) + '</div>';
+          item.addEventListener('click', function() {
+            _jState.entryId = entry.id;
+            _jState.panel   = 'editor';
+            rebuild();
+          });
+          list.appendChild(item);
+        });
+      }
+      listPanel.appendChild(list);
     }
-    listPanel.appendChild(listEl);
-  }
 
-  /* ══════════════════════════════════════
-     EDITOR — Right column
-     ══════════════════════════════════════ */
-  function renderEditor() {
-    editorPanel.innerHTML = '';
-
-    /* Mobile back → list */
-    var mBack = document.createElement('button');
-    mBack.className = 'jv-mobile-back jv-mobile-only';
-    mBack.textContent = '← Entries';
-    mBack.addEventListener('click', function() { _jState.panel = 'list'; root.dataset.panel = 'list'; });
-    editorPanel.appendChild(mBack);
-
-    if (!_jState.entryId) {
-      var empty = document.createElement('div');
-      empty.className = 'jv-editor-empty';
-      empty.innerHTML = '<div style="font-size:2.5rem">📓</div><p>Select an entry or tap <strong>＋ New</strong> to start writing.</p>';
-      editorPanel.appendChild(empty);
-      return;
-    }
-
-    var entries = getJournalEntries();
-    var idx = entries.findIndex(function(e){ return e.id === _jState.entryId; });
-    if (idx === -1) { _jState.entryId = null; renderEditor(); return; }
-    var entry = entries[idx];
-
-    /* ── Toolbar ── */
-    var toolbar = document.createElement('div');
-    toolbar.className = 'jv-toolbar';
-
-    var toolDefs = [
-      { cmd:'bold',                 html:'<b>B</b>',  title:'Bold (Ctrl+B)' },
-      { cmd:'italic',               html:'<i>I</i>',  title:'Italic (Ctrl+I)' },
-      { cmd:'underline',            html:'<u>U</u>',  title:'Underline (Ctrl+U)' },
-      { cmd:'strikeThrough',        html:'<s>S</s>',  title:'Strikethrough' },
-      { sep:true },
-      { cmd:'h1',                   html:'H1',         title:'Heading 1' },
-      { cmd:'h2',                   html:'H2',         title:'Heading 2' },
-      { cmd:'h3',                   html:'H3',         title:'Heading 3' },
-      { sep:true },
-      { cmd:'insertUnorderedList',  html:'•',          title:'Bullet list' },
-      { cmd:'insertOrderedList',    html:'1.',         title:'Numbered list' },
-      { cmd:'checklist',            html:'☑',          title:'Checklist item' },
-      { sep:true },
-      { cmd:'blockquote',           html:'❝',          title:'Block quote' },
-      { cmd:'insertHorizontalRule', html:'—',          title:'Horizontal rule' }
-    ];
-
-    toolDefs.forEach(function(def) {
-      if (def.sep) {
-        var sep = document.createElement('span');
-        sep.className = 'jv-toolbar-sep';
-        toolbar.appendChild(sep);
+    /* EDITOR PANEL */
+    function renderEditor() {
+      editorPanel.innerHTML = '';
+      if (!_jState.entryId) {
+        var placeholder = document.createElement('div'); placeholder.className = 'jv-editor-placeholder';
+        placeholder.innerHTML = '<div style="text-align:center;color:var(--ios-text-3);padding:40px 20px">' +
+          '<div style="font-size:2.5rem;margin-bottom:10px">\ud83d\udcdd</div>' +
+          '<div style="font-size:0.9rem">Select an entry or create a new one.</div></div>';
+        editorPanel.appendChild(placeholder);
         return;
       }
-      var btn = document.createElement('button');
-      btn.className = 'jv-toolbar-btn';
-      btn.innerHTML = def.html;
-      btn.title = def.title;
-      btn.type  = 'button';
-      btn.addEventListener('mousedown', function(e) {
-        e.preventDefault(); /* keep editor focus */
-        var ed = editorPanel.querySelector('.jv-editor-body');
-        if (!ed) return;
-        ed.focus();
-        var _headingTags = { h1: '<h1>', h2: '<h2>', h3: '<h3>' };
-        if (_headingTags[def.cmd]) {
-          document.execCommand('formatBlock', false, _headingTags[def.cmd]);
-        } else if (def.cmd === 'checklist') {
-          document.execCommand('insertHTML', false,
-            '<div><label><input type="checkbox"> <span>&#8203;</span></label></div>');
-        } else if (def.cmd === 'blockquote') {
-          document.execCommand('formatBlock', false, '<blockquote>');
-        } else {
-          document.execCommand(def.cmd, false, null);
-        }
+      var entries = getJournalEntries();
+      var entry = entries.find(function(e){ return e.id === _jState.entryId; });
+      if (!entry) { _jState.entryId = null; renderEditor(); return; }
+
+      var hdr = document.createElement('div'); hdr.className = 'jv-editor-hdr';
+      var titleInp = document.createElement('input');
+      titleInp.type = 'text'; titleInp.className = 'jv-title-input';
+      titleInp.value = entry.title || ''; titleInp.placeholder = 'Title\u2026';
+      var moodSel = document.createElement('select');
+      moodSel.className = 'jv-mood-sel app-fv-select';
+      ['\ud83d\ude0a','\ud83d\ude42','\ud83d\ude10','\ud83d\ude1f','\ud83d\ude22','\ud83d\ude4f'].forEach(function(m){
+        var o = document.createElement('option'); o.value = m; o.textContent = m;
+        if (entry.mood === m) o.selected = true;
+        moodSel.appendChild(o);
       });
-      toolbar.appendChild(btn);
-    });
+      var starBtn = document.createElement('button');
+      starBtn.className = 'jv-star-btn' + (entry.starred ? ' starred' : '');
+      starBtn.title = 'Favourite'; starBtn.textContent = entry.starred ? '\u2b50' : '\u2606';
+      var delBtn = document.createElement('button');
+      delBtn.className = 'jv-del-btn'; delBtn.title = 'Delete entry'; delBtn.textContent = '\ud83d\uddd1\ufe0f';
+      var backBtn2 = document.createElement('button');
+      backBtn2.className = 'jv-back-btn'; backBtn2.textContent = '\u2039 List';
+      backBtn2.addEventListener('click', function() { _jState.panel = 'list'; rebuild(); });
 
-    /* Focus-mode toggle */
-    var focusBtn = document.createElement('button');
-    focusBtn.className = 'jv-toolbar-btn jv-focus-btn' + (_jState.focusMode ? ' active' : '');
-    focusBtn.innerHTML = '⛶';
-    focusBtn.title = 'Distraction-free mode';
-    focusBtn.type  = 'button';
-    focusBtn.addEventListener('click', function() {
-      _jState.focusMode = !_jState.focusMode;
-      root.classList.toggle('jv-focus-mode', _jState.focusMode);
-      focusBtn.classList.toggle('active', _jState.focusMode);
-    });
-    toolbar.appendChild(focusBtn);
+      hdr.appendChild(backBtn2); hdr.appendChild(titleInp);
+      hdr.appendChild(moodSel); hdr.appendChild(starBtn); hdr.appendChild(delBtn);
+      editorPanel.appendChild(hdr);
 
-    /* Export button */
-    var exportBtn = document.createElement('button');
-    exportBtn.className = 'jv-toolbar-btn';
-    exportBtn.innerHTML = '📋';
-    exportBtn.title = 'Copy entry as plain text';
-    exportBtn.type  = 'button';
-    exportBtn.addEventListener('click', function() {
-      var ed = editorPanel.querySelector('.jv-editor-body');
-      var titleEl = editorPanel.querySelector('.jv-title-input');
-      var titleVal = titleEl ? titleEl.value.trim() : '';
-      var text = (titleVal ? titleVal + '\n\n' : '') + (ed ? (ed.innerText || '') : '');
-      try {
-        navigator.clipboard.writeText(text).then(function() {
-          exportBtn.innerHTML = '✅';
-          setTimeout(function(){ exportBtn.innerHTML = '📋'; }, 1500);
-        });
-      } catch(_) { alert(text); }
-    });
-    toolbar.appendChild(exportBtn);
+      var textarea = document.createElement('textarea');
+      textarea.className = 'jv-body-textarea';
+      textarea.value = entry.body || '';
+      textarea.placeholder = 'Write your entry\u2026';
+      editorPanel.appendChild(textarea);
 
-    /* Delete entry */
-    var delBtn = document.createElement('button');
-    delBtn.className = 'jv-toolbar-btn jv-del-btn';
-    delBtn.innerHTML = '🗑';
-    delBtn.title = 'Delete entry';
-    delBtn.type  = 'button';
-    delBtn.addEventListener('click', function() {
-      if (!confirm('Delete this entry? This cannot be undone.')) return;
-      var ents = getJournalEntries().filter(function(e){ return e.id !== _jState.entryId; });
-      setJournalEntries(ents);
-      _jState.entryId = null;
-      _jState.panel   = 'list';
-      rebuild();
-    });
-    toolbar.appendChild(delBtn);
+      var statusBar = document.createElement('div'); statusBar.className = 'jv-status-bar';
+      statusBar.textContent = new Date(entry.updatedAt||entry.createdAt||0).toLocaleString();
+      editorPanel.appendChild(statusBar);
 
-    editorPanel.appendChild(toolbar);
-
-    /* ── Title input ── */
-    var titleInp = document.createElement('input');
-    titleInp.type = 'text';
-    titleInp.className = 'jv-title-input';
-    titleInp.placeholder = 'Entry title…';
-    titleInp.value = entry.title || '';
-    editorPanel.appendChild(titleInp);
-
-    /* ── Date stamp ── */
-    var dateStamp = document.createElement('div');
-    dateStamp.className = 'jv-date-stamp';
-    var d = new Date(entry.createdAt || Date.now());
-    dateStamp.textContent = d.toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'long', day:'numeric' }) +
-                            ' · ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    editorPanel.appendChild(dateStamp);
-
-    /* ── Editor body ── */
-    var editorBody = document.createElement('div');
-    editorBody.className = 'jv-editor-body';
-    editorBody.contentEditable = 'true';
-    editorBody.spellcheck = true;
-    editorBody.innerHTML = entry.body || '';
-    editorPanel.appendChild(editorBody);
-
-    /* ── Footer ── */
-    var footer = document.createElement('div');
-    footer.className = 'jv-editor-footer';
-    footer.style.position = 'relative'; /* for mood popup */
-
-    /* Folder picker */
-    var allFolders = getJournalFolders();
-    var folderOpts = '<option value="">📚 All Entries</option>';
-    allFolders.forEach(function(f) {
-      folderOpts += '<option value="' + escapeHTML(f.id) + '"' + (entry.folderId===f.id?' selected':'') + '>' +
-        escapeHTML(f.emoji||'📁') + ' ' + escapeHTML(f.name) + '</option>';
-    });
-    var folderSel = document.createElement('select');
-    folderSel.className = 'jv-footer-select';
-    folderSel.innerHTML = folderOpts;
-    footer.appendChild(folderSel);
-
-    /* Tags input */
-    var tagsInp = document.createElement('input');
-    tagsInp.type = 'text';
-    tagsInp.className = 'jv-tags-input';
-    tagsInp.placeholder = '🏷 tags, comma-sep';
-    tagsInp.value = (entry.tags || []).join(', ');
-    footer.appendChild(tagsInp);
-
-    /* Mood picker */
-    var moodBtn = document.createElement('span');
-    moodBtn.className = 'jv-footer-mood';
-    moodBtn.title = 'Change mood';
-    moodBtn.textContent = entry.mood || '😐';
-    moodBtn.setAttribute('role', 'button');
-    moodBtn.addEventListener('click', function() {
-      var existing = footer.querySelector('.jv-mood-popup');
-      if (existing) { existing.remove(); return; }
-      var popup = document.createElement('div');
-      popup.className = 'jv-mood-popup';
-      ['😊','😐','😟','😠','🥳','😴','🤒','🥰'].forEach(function(m) {
-        var b = document.createElement('button');
-        b.className = 'jv-mood-popup-btn';
-        b.textContent = m;
-        b.type = 'button';
-        b.addEventListener('click', function() {
-          moodBtn.textContent = m;
-          popup.remove();
-          _saveEntry();
-        });
-        popup.appendChild(b);
-      });
-      footer.appendChild(popup);
-    });
-    footer.appendChild(moodBtn);
-
-    /* Star toggle */
-    var starBtn = document.createElement('button');
-    starBtn.className = 'jv-footer-star-btn' + (entry.starred ? ' active' : '');
-    starBtn.title = entry.starred ? 'Unstar entry' : 'Star entry';
-    starBtn.textContent = entry.starred ? '⭐' : '☆';
-    starBtn.type = 'button';
-    starBtn.addEventListener('click', function() { _saveEntry(true); });
-    footer.appendChild(starBtn);
-
-    /* Word count */
-    var wcEl = document.createElement('span');
-    wcEl.className = 'jv-wc';
-
-    /* Save status */
-    var saveStatus = document.createElement('span');
-    saveStatus.className = 'jv-save-status';
-
-    footer.appendChild(wcEl);
-    footer.appendChild(saveStatus);
-    editorPanel.appendChild(footer);
-
-    /* ── Word count updater ── */
-    function _updateWC() {
-      var text = editorBody.innerText || '';
-      var wc = text.trim() ? text.trim().split(/\s+/).length : 0;
-      var rt = Math.max(1, Math.ceil(wc / 200));
-      wcEl.textContent = wc + ' words · ' + rt + ' min';
-    }
-    _updateWC();
-
-    /* ── Save ── */
-    function _saveEntry(toggleStar) {
-      if (_jState.autosaveTimer) { clearTimeout(_jState.autosaveTimer); _jState.autosaveTimer = null; }
-      var ents = getJournalEntries();
-      var i = ents.findIndex(function(e){ return e.id === _jState.entryId; });
-      if (i === -1) return;
-      ents[i].title    = titleInp.value.trim();
-      ents[i].body     = editorBody.innerHTML;
-      ents[i].folderId = folderSel.value || null;
-      ents[i].tags     = tagsInp.value.split(',').map(function(t){ return t.trim(); }).filter(Boolean);
-      ents[i].mood     = moodBtn.textContent;
-      ents[i].updatedAt = Date.now();
-      if (toggleStar) {
-        ents[i].starred = !ents[i].starred;
-        starBtn.classList.toggle('active', ents[i].starred);
-        starBtn.textContent = ents[i].starred ? '⭐' : '☆';
-        starBtn.title = ents[i].starred ? 'Unstar entry' : 'Star entry';
+      function _save() {
+        var ents = getJournalEntries();
+        var idx = ents.findIndex(function(e){ return e.id === _jState.entryId; });
+        if (idx < 0) return;
+        ents[idx].title     = titleInp.value;
+        ents[idx].body      = textarea.value;
+        ents[idx].mood      = moodSel.value;
+        ents[idx].updatedAt = Date.now();
+        setJournalEntries(ents);
+        entry = ents[idx];
+        statusBar.textContent = '\u2713 Saved ' + new Date().toLocaleTimeString();
       }
+      function _scheduleAutosave() {
+        if (_jState.autosaveTimer) clearTimeout(_jState.autosaveTimer);
+        _jState.autosaveTimer = setTimeout(_save, 1200);
+      }
+      titleInp.addEventListener('input', _scheduleAutosave);
+      textarea.addEventListener('input', _scheduleAutosave);
+      moodSel.addEventListener('change', function() { _save(); rebuild(); });
+      starBtn.addEventListener('click', function() {
+        var ents = getJournalEntries();
+        var idx2 = ents.findIndex(function(e){ return e.id === _jState.entryId; });
+        if (idx2 >= 0) { ents[idx2].starred = !ents[idx2].starred; setJournalEntries(ents); }
+        rebuild();
+      });
+      delBtn.addEventListener('click', function() {
+        if (!confirm('Delete this entry?')) return;
+        var ents = getJournalEntries().filter(function(e){ return e.id !== _jState.entryId; });
+        setJournalEntries(ents);
+        _jState.entryId = null; _jState.panel = 'list';
+        rebuild();
+      });
+    }
+
+    function _createNewEntry() {
+      var now = new Date();
+      var dateStr = now.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+      var timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      var entry = {
+        id:        generateJournalId(),
+        title:     dateStr + ' \u2014 ' + timeStr,
+        body:      '',
+        folderId:  (_jState.folderId === '__starred__' || _jState.folderId === null) ? null : _jState.folderId,
+        tags:      [],
+        mood:      '\ud83d\ude10',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        starred:   false
+      };
+      var ents = getJournalEntries();
+      ents.unshift(entry);
       setJournalEntries(ents);
-      saveStatus.textContent = 'Saved ✓';
-      saveStatus.style.color = '#27ae60';
-      setTimeout(function(){ saveStatus.textContent = ''; }, 2000);
-      /* Refresh list row title live */
-      var listRow = listPanel.querySelector('[data-jid="' + _jState.entryId + '"] .jv-entry-title');
-      if (listRow) listRow.textContent = ents[i].title || 'Untitled';
-      if (typeof renderTodayJournalPreview === 'function') renderTodayJournalPreview();
+      _jState.entryId = entry.id;
+      _jState.panel   = 'editor';
+      rebuild();
+      setTimeout(function() {
+        var ti = editorPanel.querySelector('.jv-title-input');
+        if (ti) { ti.focus(); ti.select(); }
+      }, 40);
     }
 
-    function _scheduleAutosave() {
-      if (_jState.autosaveTimer) clearTimeout(_jState.autosaveTimer);
-      saveStatus.textContent = '…';
-      saveStatus.style.color = '#bbb';
-      _jState.autosaveTimer = setTimeout(_saveEntry, 1000);
-    }
-
-    editorBody.addEventListener('input', function() { _updateWC(); _scheduleAutosave(); });
-    titleInp.addEventListener('input', _scheduleAutosave);
-    folderSel.addEventListener('change', _saveEntry);
-    tagsInp.addEventListener('change', _saveEntry);
-  }
-
-  /* ══════════════════════════════════════
-     CREATE NEW ENTRY
-     ══════════════════════════════════════ */
-  function _createNewEntry() {
-    var now = new Date();
-    var dateStr = now.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
-    var timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    var entry = {
-      id:        generateJournalId(),
-      title:     dateStr + ' — ' + timeStr,
-      body:      '',
-      folderId:  (_jState.folderId === '__starred__' || _jState.folderId === null) ? null : _jState.folderId,
-      tags:      [],
-      mood:      '😐',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      starred:   false
-    };
-    var ents = getJournalEntries();
-    ents.unshift(entry);
-    setJournalEntries(ents);
-    _jState.entryId = entry.id;
-    _jState.panel   = 'editor';
     rebuild();
-    setTimeout(function() {
-      var ti = editorPanel.querySelector('.jv-title-input');
-      if (ti) { ti.focus(); ti.select(); }
-    }, 40);
+
+  } else if (tab === 'insights') {
+    var entries = getJournalEntries();
+    var folders = getJournalFolders();
+    var streak  = calcJournalStreak();
+    var totalEntries = entries.length;
+    var totalWords = entries.reduce(function(acc, e) {
+      return acc + ((e.body || '').replace(/<[^>]+>/g, ' ').trim().split(/\s+/).filter(Boolean).length);
+    }, 0);
+    var todayISO2 = getTodayISO();
+    var todayCount = entries.filter(function(e) {
+      return new Date(e.createdAt || 0).toISOString().slice(0, 10) === todayISO2;
+    }).length;
+
+    /* Per-folder breakdown */
+    var folderMap = {};
+    folders.forEach(function(f) { folderMap[f.id] = { name: f.name, emoji: f.emoji || '\ud83d\udcc1', count: 0 }; });
+    var unfiledCount = 0;
+    entries.forEach(function(e) {
+      if (e.folderId && folderMap[e.folderId]) folderMap[e.folderId].count++;
+      else unfiledCount++;
+    });
+
+    /* Mood breakdown */
+    var MOOD_LABELS = { '\ud83d\ude0a': 'Great', '\ud83d\ude42': 'Good', '\ud83d\ude10': 'Neutral', '\ud83d\ude1f': 'Low', '\ud83d\ude22': 'Sad', '\ud83d\ude4f': 'Grateful' };
+    var moodCounts = {};
+    entries.forEach(function(e) { var m = e.mood || '\ud83d\ude10'; moodCounts[m] = (moodCounts[m] || 0) + 1; });
+
+    /* Recent 30-day activity heatmap */
+    var recent30 = [];
+    for (var ri = 29; ri >= 0; ri--) {
+      var rd = new Date(); rd.setDate(rd.getDate() - ri);
+      var riso = rd.getFullYear() + '-' + pad2(rd.getMonth() + 1) + '-' + pad2(rd.getDate());
+      var rcount = entries.filter(function(e) {
+        return new Date(e.createdAt || 0).toISOString().slice(0, 10) === riso;
+      }).length;
+      recent30.push({ iso: riso, count: rcount });
+    }
+
+    var html = '<h3 class="app-full-col-heading">\ud83d\udcc8 Journal Insights</h3>' +
+      '<div class="app-full-two-col">' +
+        '<div class="app-full-col">' +
+          '<div class="app-budget-summary-row"><span>\ud83d\udd25 Current streak</span><span style="font-weight:700;color:var(--ios-accent)">' + streak + ' day' + (streak !== 1 ? 's' : '') + '</span></div>' +
+          '<div class="app-budget-summary-row"><span>\ud83d\udcda Total entries</span><span style="font-weight:700">' + totalEntries + '</span></div>' +
+          '<div class="app-budget-summary-row"><span>\u270f\ufe0f Total words written</span><span style="font-weight:700">' + totalWords.toLocaleString() + '</span></div>' +
+          '<div class="app-budget-summary-row"><span>\ud83d\uddd3\ufe0f Written today</span><span style="font-weight:700">' + todayCount + '</span></div>' +
+          '<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\udcc2 By Folder</h4>' +
+          '<div class="app-budget-bills-list">';
+    folders.forEach(function(f) {
+      html += '<div class="app-budget-bill-row"><span>' + escapeHTML(f.emoji || '\ud83d\udcc1') + ' ' + escapeHTML(f.name) + '</span><span>' + (folderMap[f.id] ? folderMap[f.id].count : 0) + ' entries</span></div>';
+    });
+    html += '<div class="app-budget-bill-row"><span>\ud83d\udcc4 Unfiled</span><span>' + unfiledCount + ' entries</span></div>' +
+          '</div></div>' +
+        '<div class="app-full-col">' +
+          '<h4 class="app-full-section-heading">\ud83d\ude0a Mood Breakdown</h4>' +
+          '<div class="app-budget-bills-list">';
+    Object.keys(moodCounts).sort(function(a,b){ return moodCounts[b] - moodCounts[a]; }).forEach(function(m) {
+      html += '<div class="app-budget-bill-row"><span>' + escapeHTML(m) + ' ' + escapeHTML(MOOD_LABELS[m] || m) + '</span><span>' + moodCounts[m] + '</span></div>';
+    });
+    if (!Object.keys(moodCounts).length) html += '<p style="font-size:0.82rem;color:var(--ios-text-3)">No mood data yet.</p>';
+    html += '</div>' +
+          '<h4 class="app-full-section-heading" style="margin-top:14px">\ud83d\uddd3\ufe0f 30-Day Activity</h4>' +
+          '<div class="app-routine-heatmap">';
+    recent30.forEach(function(d) {
+      var cls = d.count > 1 ? ' all-done' : d.count === 1 ? ' part-done' : '';
+      html += '<div class="app-routine-hm-cell' + cls + '" title="' + d.iso + (d.count ? ': ' + d.count + ' entr' + (d.count !== 1 ? 'ies' : 'y') : '') + '"></div>';
+    });
+    html += '</div>' +
+          '<p style="font-size:0.72rem;color:var(--ios-text-3);margin:4px 0 0">Dark=wrote, Light=missed</p>' +
+        '</div>' +
+      '</div>';
+    body.innerHTML = html;
+
+  } else {
+    /* Settings */
+    _fvRenderPinCard(body, 'journal');
+    var journalCfg = getAppRemSettings().journal || {};
+    var jRemCard = document.createElement('div');
+    jRemCard.className = 'app-settings-card';
+    jRemCard.innerHTML =
+      '<h4 class="app-full-section-heading">\ud83d\udd14 Daily Writing Reminder</h4>' +
+      '<div class="app-sleep-reminders-grid">' +
+        '<div class="app-sleep-rem-row">' +
+          '<label class="app-sleep-rem-label">' +
+            '<input type="checkbox" id="journalRemEnabled" class="app-sleep-rem-check"' + (journalCfg.enabled ? ' checked' : '') + '/>' +
+            '\ud83d\udcdd Remind me to write' +
+          '</label>' +
+          '<input type="time" id="journalRemTime" class="app-sleep-rem-time" value="' + escapeHTML(journalCfg.time || '21:00') + '" />' +
+        '</div>' +
+        '<button id="journalRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminder</button>' +
+        '<p id="journalRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>' +
+      '</div>';
+    body.appendChild(jRemCard);
+    var jRemSaveBtn = body.querySelector('#journalRemSave');
+    if (jRemSaveBtn) jRemSaveBtn.addEventListener('click', function() {
+      var s = getAppRemSettings();
+      var enEl = body.querySelector('#journalRemEnabled');
+      var tiEl = body.querySelector('#journalRemTime');
+      s.journal = { enabled: !!(enEl && enEl.checked), time: tiEl ? tiEl.value : '21:00' };
+      setAppRemSettings(s);
+      try { _syncJournalReminders(); } catch(e) { console.warn('[Journal] _syncJournalReminders:', e); }
+      var st = body.querySelector('#journalRemStatus');
+      if (st) { st.textContent = '\u2713 Reminder saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
+    });
   }
-
-  /* Initial render */
-  rebuild();
-
-  /* ── Journal Writing Reminder ── */
-  var journalCfg = getAppRemSettings().journal || {};
-  var jRemSection = document.createElement('div');
-  jRemSection.className = 'app-sleep-reminders-grid';
-  jRemSection.style.marginTop = '16px';
-  jRemSection.innerHTML =
-    '<h4 class="app-full-section-heading">🔔 Daily Writing Reminder</h4>' +
-    '<div class="app-sleep-rem-row">' +
-      '<label class="app-sleep-rem-label">' +
-        '<input type="checkbox" id="journalRemEnabled" class="app-sleep-rem-check"' + (journalCfg.enabled ? ' checked' : '') + '/>' +
-        '📓 Remind me to write' +
-      '</label>' +
-      '<input type="time" id="journalRemTime" class="app-sleep-rem-time" value="' + escapeHTML(journalCfg.time || '21:00') + '" />' +
-    '</div>' +
-    '<button id="journalRemSave" class="app-fv-save-btn" style="margin-top:6px">Save reminder</button>' +
-    '<p id="journalRemStatus" style="margin:4px 0 0;font-size:0.78rem;color:var(--ios-accent)"></p>';
-  container.appendChild(jRemSection);
-
-  var jRemSaveBtn = container.querySelector('#journalRemSave');
-  if (jRemSaveBtn) jRemSaveBtn.addEventListener('click', function() {
-    var s = getAppRemSettings();
-    var enEl = container.querySelector('#journalRemEnabled');
-    var tiEl = container.querySelector('#journalRemTime');
-    s.journal = { enabled: !!(enEl && enEl.checked), time: tiEl ? tiEl.value : '21:00' };
-    setAppRemSettings(s);
-    try { _syncJournalReminders(); } catch(e) { console.warn('[Journal] _syncJournalReminders:', e); }
-    var st = container.querySelector('#journalRemStatus');
-    if (st) { st.textContent = '✓ Journal reminder saved!'; setTimeout(function(){ st.textContent = ''; }, 2500); }
-  });
 }
 
 window.renderJournalWidget       = renderJournalWidget;
