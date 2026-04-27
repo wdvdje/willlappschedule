@@ -63,7 +63,7 @@
   <!-- Dark mode initialized in <head> above; also handled by ios-native.js -->
   <script>try{if(!document.body.classList.contains('dark-mode')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body.classList.add('dark-mode')}catch(e){}</script>
   <!-- Child window mode: apply class immediately so CSS hides page chrome before render -->
-  <script>try{var _cwp=new URLSearchParams(window.location.search).get('childApp');if(_cwp)document.body.classList.add('child-window-mode')}catch(e){}</script>
+  <script>try{var _urlParams=new URLSearchParams(window.location.search);if(_urlParams.get('childApp')||_urlParams.get('childView'))document.body.classList.add('child-window-mode');if(_urlParams.get('childView'))document.body.classList.add('child-view-mode')}catch(e){}</script>
   <header id="appHeader">
     <button type="button" class="header-btn" id="headerInboxBtn" aria-label="Inbox">📥<span class="header-btn-label">Inbox</span></button>
     <span id="appHeaderTitle">📅 TimeScape Planner</span>
@@ -1133,19 +1133,19 @@
       <button id="sidebarCollapseBtn" class="sidebar-collapse-btn" aria-label="Toggle sidebar" title="Toggle sidebar">☰</button>
     </div>
     <span class="sidebar-section-label">Views</span>
-    <a href="#today"     class="sidebar-item" data-view="today">    <span class="sidebar-icon">🏠</span><span class="sidebar-label">Today</span></a>
-    <a href="#week"      class="sidebar-item" data-view="week">     <span class="sidebar-icon">📆</span><span class="sidebar-label">Week</span></a>
-    <a href="#calendar"  class="sidebar-item" data-view="calendar"> <span class="sidebar-icon">🗓️</span><span class="sidebar-label">Month</span></a>
+    <a href="#today"     class="sidebar-item" data-view="today"     title="Double-click to open in a new window"><span class="sidebar-icon">🏠</span><span class="sidebar-label">Today</span></a>
+    <a href="#week"      class="sidebar-item" data-view="week"      title="Double-click to open in a new window"><span class="sidebar-icon">📆</span><span class="sidebar-label">Week</span></a>
+    <a href="#calendar"  class="sidebar-item" data-view="calendar"  title="Double-click to open in a new window"><span class="sidebar-icon">🗓️</span><span class="sidebar-label">Month</span></a>
     <div class="sidebar-divider"></div>
     <span class="sidebar-section-label">Domains</span>
-    <a href="#personal"  class="sidebar-item" data-view="personal"> <span class="sidebar-icon">👤</span><span class="sidebar-label">Personal</span></a>
-    <a href="#home"      class="sidebar-item" data-view="home">     <span class="sidebar-icon">🏡</span><span class="sidebar-label">Home</span></a>
-    <a href="#work"      class="sidebar-item" data-view="work">     <span class="sidebar-icon">💼</span><span class="sidebar-label">Work</span></a>
+    <a href="#personal"  class="sidebar-item" data-view="personal"  title="Double-click to open in a new window"><span class="sidebar-icon">👤</span><span class="sidebar-label">Personal</span></a>
+    <a href="#home"      class="sidebar-item" data-view="home"      title="Double-click to open in a new window"><span class="sidebar-icon">🏡</span><span class="sidebar-label">Home</span></a>
+    <a href="#work"      class="sidebar-item" data-view="work"      title="Double-click to open in a new window"><span class="sidebar-icon">💼</span><span class="sidebar-label">Work</span></a>
     <div class="sidebar-divider"></div>
     <span class="sidebar-section-label">Items</span>
-    <a href="#events"    class="sidebar-item" data-view="events">   <span class="sidebar-icon">📅</span><span class="sidebar-label">Events</span></a>
-    <a href="#reminders" class="sidebar-item" data-view="reminders"><span class="sidebar-icon">🔔</span><span class="sidebar-label">Reminders</span></a>
-    <a href="#tasks"     class="sidebar-item" data-view="tasks">    <span class="sidebar-icon">✅</span><span class="sidebar-label">Tasks</span></a>
+    <a href="#events"    class="sidebar-item" data-view="events"    title="Double-click to open in a new window"><span class="sidebar-icon">📅</span><span class="sidebar-label">Events</span></a>
+    <a href="#reminders" class="sidebar-item" data-view="reminders" title="Double-click to open in a new window"><span class="sidebar-icon">🔔</span><span class="sidebar-label">Reminders</span></a>
+    <a href="#tasks"     class="sidebar-item" data-view="tasks"     title="Double-click to open in a new window"><span class="sidebar-icon">✅</span><span class="sidebar-label">Tasks</span></a>
     <div class="sidebar-bottom">
       <div class="sidebar-divider"></div>
       <button type="button" id="sidebarAppsBtn"     class="sidebar-item"><span class="sidebar-icon">⊞</span><span class="sidebar-label">Apps</span></button>
@@ -1562,6 +1562,57 @@
       }, 500);
     }
 
+    // Track child windows opened for page views (one per view)
+    var _childViewWindows = {};
+
+    // View label map for child window titles
+    var _VIEW_LABEL_MAP = {
+      today: 'Today', week: 'Week', calendar: 'Month',
+      personal: 'Personal', home: 'Home', work: 'Work',
+      events: 'Events', reminders: 'Reminders', tasks: 'Tasks'
+    };
+
+    // Open the given page view in a child browser window.
+    // If a window for this view is already open, focus it instead.
+    function openChildViewWindow(view) {
+      // Focus existing window if already open
+      if (_childViewWindows[view] && !_childViewWindows[view].closed) {
+        try { _childViewWindows[view].focus(); } catch(e) {}
+        return;
+      }
+
+      var baseUrl = window.location.href.split('?')[0].split('#')[0];
+      var url = baseUrl + '?childView=' + encodeURIComponent(view) + '#' + view;
+
+      var _cw = 1100, _ch = 700;
+      var _cl = Math.round((screen.width  - _cw) / 2);
+      var _ct = Math.round((screen.height - _ch) / 2);
+      var win = window.open(url, 'timescape_view_' + view,
+        'width=' + _cw + ',height=' + _ch + ',left=' + _cl + ',top=' + _ct + ',toolbar=0,menubar=0,location=0,scrollbars=1,resizable=1,status=0');
+      if (!win || win.closed) {
+        _showAppToast('Pop-up blocked — please allow pop-ups for this site in your browser settings.', 5000);
+        return;
+      }
+
+      _childViewWindows[view] = win;
+
+      // Mark the sidebar item so the user knows the view is open elsewhere
+      var sidebarItem = document.querySelector('.sidebar-item[data-view="' + view + '"]');
+      if (sidebarItem) sidebarItem.classList.add('is-child-open');
+
+      // Poll every 500 ms to detect when the child window is closed
+      var watcher = setInterval(function() {
+        if (win.closed) {
+          clearInterval(watcher);
+          delete _childViewWindows[view];
+          var si = document.querySelector('.sidebar-item[data-view="' + view + '"]');
+          if (si) si.classList.remove('is-child-open');
+          var label = _VIEW_LABEL_MAP[view] || view;
+          _showAppToast(label + ' window was closed.');
+        }
+      }, 500);
+    }
+
     // Map of full-view render functions (exposed from app.js)
     var _APP_FULL_RENDER_MAP = {
       weather: 'renderWeatherAppFull',
@@ -1892,6 +1943,14 @@
           if (!btn) return;
           openAppDetail(btn.dataset.app);
         });
+        // Double-click on an app icon opens it as a child window (desktop only)
+        appsGrid.addEventListener('dblclick', function(e) {
+          var btn = e.target.closest('[data-app]');
+          if (!btn) return;
+          if (!window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+          e.preventDefault();
+          openChildAppWindow(btn.dataset.app);
+        });
       }
 
       // App window modal: back button returns to apps grid
@@ -1965,6 +2024,16 @@
         var am = document.getElementById('appsModal');
         if (am && !am.classList.contains('hidden')) { closeAppsModal(); }
       });
+
+      // Double-click on sidebar nav items opens that view as a child window (desktop only)
+      if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) {
+        document.querySelectorAll('.sidebar-item[data-view]').forEach(function(a) {
+          a.addEventListener('dblclick', function(e) {
+            e.preventDefault();
+            openChildViewWindow(a.dataset.view);
+          });
+        });
+      }
 
       /* ── Theme Accent Color ── */
       var _THEME_PRESETS = [
@@ -2279,6 +2348,33 @@
           if (fullFn && typeof window[fullFn] === 'function') {
             try { window[fullFn](childRoot); } catch(e) {}
           }
+        });
+      })();
+
+      // Child view window mode: detect ?childView=<view> URL param and show that view standalone
+      (function() {
+        var childView;
+        try { childView = new URLSearchParams(window.location.search).get('childView'); } catch(e) {}
+        if (!childView) return;
+
+        // Set a descriptive window title
+        document.title = (_VIEW_LABEL_MAP[childView] || childView) + ' — TimeScape';
+
+        // Navigate to the requested view (CSS already hides sidebar/header via child-view-mode)
+        showView(childView);
+
+        // Lock in-page navigation so the user stays on this view
+        window.addEventListener('hashchange', function() {
+          // Keep the hash pinned to the child view; re-show it in case something changed it
+          if (location.hash !== '#' + childView) {
+            history.replaceState(null, '', '#' + childView);
+          }
+          showView(childView);
+        });
+
+        // Live sync: re-render the view whenever localStorage changes from the parent window
+        window.addEventListener('storage', function() {
+          try { showView(childView); } catch(_err) {}
         });
       })();
     });
