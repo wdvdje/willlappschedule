@@ -15225,7 +15225,9 @@ function renderJournalAppFull(container) {
         filtered.forEach(function(entry) {
           var item = document.createElement('div');
           item.className = 'jv-entry-item' + (entry.id === _jState.entryId ? ' active' : '');
-          var preview = (entry.body || '').replace(/<[^>]+>/g,'').slice(0,80);
+          var _previewEl = document.createElement('div');
+          _previewEl.innerHTML = (entry.body || '').slice(0, 300);
+          var preview = (_previewEl.textContent || _previewEl.innerText || '').slice(0, 80);
           item.innerHTML =
             '<div class="jv-ei-header">' +
               '<span class="jv-ei-title">' + escapeHTML(entry.title || 'Untitled') + '</span>' +
