@@ -13668,7 +13668,7 @@ function renderGymAppFull(container) {
 /* ── Daily Routines Full View helpers ─────────────────────────────── */
 
 /**
- * Normalise a routine step value (string or object) into a full step object.
+ * Normalize a routine step value (string or object) into a full step object.
  */
 function _routineNormaliseStep(item) {
   if (typeof item === 'string') return { text: item, duration: 0, notes: '', subtasks: [] };
@@ -14189,7 +14189,7 @@ function renderRoutineAppFull(container) {
       var r = getPersonalRoutines();
       r.syncEnabled = syncCbEl.checked;
       setPersonalRoutines(r);
-      if (r.syncEnabled) { try { syncRoutineTimesFromSleep(); } catch(e) {} }
+      if (r.syncEnabled) { try { syncRoutineTimesFromSleep(); } catch(e) { console.warn('[Routine] syncRoutineTimesFromSleep:', e); } }
       renderRoutineAppFull(container);
     });
 
