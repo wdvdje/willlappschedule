@@ -801,6 +801,17 @@ function generateCalendar(){
 
     cell.addEventListener('click', ()=> showReminders(day));
 
+    /* Double-click on a calendar day opens the Add Item modal pre-filled with that date */
+    (function(d, y, m) {
+      cell.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        var dateStr = y + '-' + pad2(m + 1) + '-' + pad2(d);
+        if (typeof window.openCalAddItemModal === 'function') {
+          window.openCalAddItemModal('event', dateStr);
+        }
+      });
+    })(day, selectedYear, selectedMonth);
+
     /* Mobile long-press: show daily summary modal */
     (function(dayNum, cellEl){
       var LONG_PRESS_MS = 500;
@@ -1826,12 +1837,46 @@ function editEvent(id, occurrenceDate){
 /* modal helpers */
 function openEditModal(title){ const m = document.getElementById('editModal'), h = document.getElementById('editModalHeading'); if (h) h.textContent = title; if (m) m.style.display = 'flex'; }
 function closeEditModal(){ const m = document.getElementById('editModal'); if (m) m.style.display = 'none'; }
+/* ── Wire domain/category → bucket cascade for the edit modal ──
+   - editCategory (for events & tasks) drives which domain's buckets are listed
+   - editItemDomain (for reminders) drives the same
+   Both fire _updateEditBucketOptions when they change.
+*/
+function initEditModalDomainBucket() {
+  function _updateEditBucketOptions(domain) {
+    var bRow = document.getElementById('editBucketRow');
+    var bSel = document.getElementById('editBucket');
+    if (!bRow || !bSel) return;
+    var validDomain = (domain in DOMAIN_META);
+    if (!validDomain) { bRow.style.display = 'none'; return; }
+    var buckets = getBuckets(domain);
+    if (!buckets.length) { bRow.style.display = 'none'; return; }
+    populateBucketSelect(bSel, domain, undefined);
+    bRow.style.display = 'block';
+  }
+
+  var catSel = document.getElementById('editCategory');
+  if (catSel) {
+    catSel.addEventListener('change', function() {
+      _updateEditBucketOptions(catSel.value);
+    });
+  }
+
+  var domSel = document.getElementById('editItemDomain');
+  if (domSel) {
+    domSel.addEventListener('change', function() {
+      _updateEditBucketOptions(domSel.value);
+    });
+  }
+}
+
 function showModalFieldsFor(kind){
   const loc = document.getElementById('editLocation'), emoji = document.getElementById('editEmoji'), category = document.getElementById('editCategory'), priority = document.getElementById('editPriority');
   if (!loc || !emoji || !category || !priority) return;
-  if (kind==='event'){ loc.parentElement.style.display='block'; emoji.parentElement.style.display='block'; category.parentElement.style.display='block'; priority.parentElement.style.display='none'; }
-  else if (kind==='task'){ loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='block'; priority.parentElement.style.display='block'; }
-  else { loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='none'; priority.parentElement.style.display='none'; }
+  const domainRow = document.getElementById('editItemDomainRow');
+  if (kind==='event'){ loc.parentElement.style.display='block'; emoji.parentElement.style.display='block'; category.parentElement.style.display='block'; priority.parentElement.style.display='none'; if (domainRow) domainRow.style.display='none'; }
+  else if (kind==='task'){ loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='block'; priority.parentElement.style.display='block'; if (domainRow) domainRow.style.display='none'; }
+  else { loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='none'; priority.parentElement.style.display='none'; if (domainRow) domainRow.style.display='block'; }
 }
 
 /* edit form submit handling */
@@ -1853,14 +1898,19 @@ function saveEditHandler(e){
       let repeatPayload;
       try { repeatPayload = readRepeatPayload('edit', date); } catch(err) { alert(err && err.message ? err.message : 'Invalid recurrence settings'); return; }
       const newId = evs.length ? Math.max.apply(null, evs.map(function(e){return e.id;})) + 1 : 1;
+      const _newEvCat = (document.getElementById('editCategory') ? document.getElementById('editCategory').value : 'event') || 'event';
+      const _newEvDomain = (_newEvCat in DOMAIN_META) ? _newEvCat : undefined;
       const newEv = Object.assign({
         id: newId, title: text, date: date, time: time, startTime: time, endTime: endTime,
         location: document.getElementById('editLocation') ? document.getElementById('editLocation').value.trim() : '',
         emoji: document.getElementById('editEmoji') ? document.getElementById('editEmoji').value.trim() : '',
-        category: (document.getElementById('editCategory') ? document.getElementById('editCategory').value : 'event') || 'event',
+        category: _newEvCat,
+        domain: _newEvDomain,
         preBuffer: getBufferValue(document.getElementById('editPreBuffer'), document.getElementById('editPreBufferCustom')),
         postBuffer: getBufferValue(document.getElementById('editPostBuffer'), document.getElementById('editPostBufferCustom'))
       }, repeatPayload);
+      const _newEvBucketEl = document.getElementById('editBucket');
+      if (_newEvBucketEl && _newEvBucketEl.value) newEv.bucketId = parseInt(_newEvBucketEl.value, 10);
       const newEvAdvSpecs = readAdvancedSpecs('editAdvSpecList');
       if (newEvAdvSpecs.length) newEv.advancedSpecs = newEvAdvSpecs;
       evs.push(newEv);
@@ -1948,9 +1998,12 @@ function saveEditHandler(e){
     if (!tasks[idx]) {
       /* ── Create a new task ── */
       if (!text) { alert('Task needs a title'); return; }
+      const _newTaskCat = document.getElementById('editCategory') ? document.getElementById('editCategory').value || 'personal' : 'personal';
+      const _newTaskDomain = (_newTaskCat in DOMAIN_META) ? _newTaskCat : undefined;
       const newTask = {
         id: generateTaskId(), title: text, date: date, time: time,
-        category: document.getElementById('editCategory') ? document.getElementById('editCategory').value || 'work' : 'work',
+        category: _newTaskCat,
+        domain: _newTaskDomain,
         priority: document.getElementById('editPriority') ? document.getElementById('editPriority').value || '2' : '2',
         done: false
       };
@@ -3179,6 +3232,8 @@ document.addEventListener('DOMContentLoaded', function(){
       _wireBufferCustomToggle(document.getElementById('editPreBuffer'), document.getElementById('editPreBufferCustom'));
       _wireBufferCustomToggle(document.getElementById('editPostBuffer'), document.getElementById('editPostBufferCustom'));
     }catch(e){ console.warn('wireBufferCustomToggle failed', e); }
+    // Wire domain/category → bucket cascade for edit modal
+    try{ initEditModalDomainBucket(); }catch(e){ console.warn('initEditModalDomainBucket failed', e); }
 
     // dayPartSelect removed – full 24h scrollable view is now used
   }catch(err){
@@ -4433,14 +4488,16 @@ function renderWeekView() {
     wvSetV('editABWeek', 'a');
     wvSetV('editPreBuffer', '0');
     wvSetV('editPostBuffer', '0');
+    wvSetV('editCategory', 'personal');
     var repSection = document.getElementById('editRepeatSection');
     if (repSection) repSection.style.display = '';
     var advSection = document.getElementById('editAdvancedSpecs');
     if (advSection) advSection.style.display = '';
-    var bRow = document.getElementById('editBucketRow');
-    if (bRow) bRow.style.display = 'none';
-    try { if (typeof populateAdvancedSpecs === 'function') populateAdvancedSpecs('editAdvSpecList', []); } catch(_) { /* optional helper — safe to skip if not loaded */ }
-    try { var rep = document.getElementById('editRepeat'); if (rep) rep.dispatchEvent(new Event('change')); } catch(_) { /* safe to skip if repeat UI not present */ }
+    /* Trigger domain→bucket cascade */
+    var catEl = document.getElementById('editCategory');
+    if (catEl) catEl.dispatchEvent(new Event('change'));
+    try { if (typeof populateAdvancedSpecs === 'function') populateAdvancedSpecs('editAdvSpecList', []); } catch(_) {}
+    try { var rep = document.getElementById('editRepeat'); if (rep) rep.dispatchEvent(new Event('change')); } catch(_) {}
     if (typeof showModalFieldsFor === 'function') showModalFieldsFor('event');
     if (typeof openEditModal    === 'function') openEditModal('Add Event');
   }
@@ -4456,10 +4513,11 @@ function renderWeekView() {
     wvSetV('editDate', dateStr);
     wvSetV('editTime', timeStr);
     wvSetV('editEndTime', '');
-    wvSetV('editCategory', 'work');
+    wvSetV('editCategory', 'personal');
     wvSetV('editPriority', '2');
-    var bRow = document.getElementById('editBucketRow');
-    if (bRow) bRow.style.display = 'none';
+    /* Trigger domain→bucket cascade */
+    var catEl = document.getElementById('editCategory');
+    if (catEl) catEl.dispatchEvent(new Event('change'));
     if (typeof showModalFieldsFor === 'function') showModalFieldsFor('task');
     if (typeof openEditModal    === 'function') openEditModal('Add Task');
   }
@@ -4475,8 +4533,10 @@ function renderWeekView() {
     wvSetV('editDate', dateStr);
     wvSetV('editTime', timeStr);
     wvSetV('editEndTime', '');
-    var bRow = document.getElementById('editBucketRow');
-    if (bRow) bRow.style.display = 'none';
+    wvSetV('editItemDomain', 'personal');
+    /* Trigger domain→bucket cascade */
+    var domEl = document.getElementById('editItemDomain');
+    if (domEl) domEl.dispatchEvent(new Event('change'));
     if (typeof showModalFieldsFor === 'function') showModalFieldsFor('reminder');
     if (typeof openEditModal    === 'function') openEditModal('Add Reminder');
   }
@@ -5655,12 +5715,68 @@ function sortInboxItem(index,kind){
 }
 window.sortInboxItem=sortInboxItem;
 
-/* Sort an inbox item that already has a type into a specific domain */
+/* Sort an inbox item that already has a type into a specific domain, with optional bucket pick */
 function sortInboxItemToDomain(index, domain) {
   var inbox = getInbox();
   if (index < 0 || index >= inbox.length) return;
   var item = inbox[index];
   var kind = item.type || 'event';
+  var buckets = getBuckets(domain);
+
+  /* If the domain has buckets, show a small picker overlay before committing */
+  if (buckets.length) {
+    _showInboxBucketPicker(index, domain, kind, buckets);
+    return;
+  }
+
+  _doSortInboxItemToDomain(index, domain, kind, undefined);
+}
+
+function _showInboxBucketPicker(index, domain, kind, buckets) {
+  /* Remove any stale picker */
+  var existing = document.getElementById('inboxBucketPicker');
+  if (existing) existing.parentNode.removeChild(existing);
+
+  var overlay = document.createElement('div');
+  overlay.id = 'inboxBucketPicker';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.38);z-index:10010;display:flex;align-items:center;justify-content:center';
+
+  var panel = document.createElement('div');
+  panel.style.cssText = 'background:#fff;border-radius:12px;padding:18px 20px;min-width:240px;max-width:340px;box-shadow:0 8px 32px rgba(0,0,0,0.22)';
+
+  var meta = DOMAIN_META[domain] || {};
+  panel.innerHTML =
+    '<h4 style="margin:0 0 10px;font-size:0.95rem">Assign to a ' + escapeHTML(meta.label || domain) + ' bucket?</h4>' +
+    '<select id="inboxBucketPickerSel" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;margin-bottom:12px">' +
+      '<option value="">— No bucket —</option>' +
+      buckets.map(function(b) {
+        return '<option value="' + b.id + '">' + escapeHTML((b.emoji ? b.emoji + ' ' : '') + b.name) + '</option>';
+      }).join('') +
+    '</select>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+      '<button id="inboxBucketPickerCancel" style="padding:6px 14px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;cursor:pointer;font-size:0.88rem">Cancel</button>' +
+      '<button id="inboxBucketPickerOk" class="btn-primary" style="padding:6px 14px;border:none;border-radius:8px;cursor:pointer;font-size:0.88rem;font-weight:600">Assign</button>' +
+    '</div>';
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  function dismiss() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }
+
+  document.getElementById('inboxBucketPickerCancel').addEventListener('click', dismiss);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) dismiss(); });
+  document.getElementById('inboxBucketPickerOk').addEventListener('click', function() {
+    var sel = document.getElementById('inboxBucketPickerSel');
+    var bId = sel && sel.value ? parseInt(sel.value, 10) : undefined;
+    dismiss();
+    _doSortInboxItemToDomain(index, domain, kind, bId);
+  });
+}
+
+function _doSortInboxItemToDomain(index, domain, kind, bucketId) {
+  var inbox = getInbox();
+  if (index < 0 || index >= inbox.length) return;
+  var item = inbox[index];
   inbox.splice(index, 1);
   setInbox(inbox);
 
@@ -5668,6 +5784,7 @@ function sortInboxItemToDomain(index, domain) {
     var evs = getEvents();
     var id = evs.length ? Math.max.apply(null, evs.map(function(e) { return e.id; })) + 1 : 1;
     var ev = { id: id, title: item.title, date: item.date || new Date().toISOString().slice(0, 10), time: item.time || '', startTime: item.time || '', endTime: item.endTime || '', location: item.location || '', emoji: item.emoji || '', category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
+    if (bucketId !== undefined) ev.bucketId = bucketId;
     if (item.advancedSpecs && item.advancedSpecs.length) ev.advancedSpecs = item.advancedSpecs;
     evs.push(ev);
     setEvents(evs);
@@ -5676,12 +5793,16 @@ function sortInboxItemToDomain(index, domain) {
     var dateKey = item.date || new Date().toISOString().slice(0, 10);
     var rems = getReminders();
     if (!rems[dateKey]) rems[dateKey] = [];
-    rems[dateKey].push({ text: item.title, time: item.time || '', notify: 'none', domain: domain, emoji: item.emoji || '' });
+    var rObj = { text: item.title, time: item.time || '', notify: 'none', domain: domain, emoji: item.emoji || '' };
+    if (bucketId !== undefined) rObj.bucketId = bucketId;
+    rems[dateKey].push(rObj);
     setReminders(rems);
     showUndoToast('\uD83D\uDD14 Reminder added to ' + (DOMAIN_META[domain] ? DOMAIN_META[domain].label : domain) + '!');
   } else {
     var tasks = getTasks();
-    tasks.push({ id: generateTaskId(), title: item.title, category: domain, domain: domain, done: false, date: item.date || '', time: item.time || '', priority: item.priority || '2', emoji: item.emoji || '' });
+    var t = { id: generateTaskId(), title: item.title, category: domain, domain: domain, done: false, date: item.date || '', time: item.time || '', priority: item.priority || '2', emoji: item.emoji || '' };
+    if (bucketId !== undefined) t.bucketId = bucketId;
+    tasks.push(t);
     setTasks(tasks);
     showUndoToast('\u2705 Task added to ' + (DOMAIN_META[domain] ? DOMAIN_META[domain].label : domain) + '!');
   }
@@ -6537,7 +6658,10 @@ function buildBucketAddArea(domain, bucketId) {
         '<input type="time" class="bi-time" style="flex:1" />',
         '<input type="time" class="bi-endtime" style="flex:1" title="End time (optional)" />',
         '</div>',
-        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="event">Add Event</button>'
+        '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">',
+        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="font-size:0.85rem;padding:6px 10px" data-type="event">Add Event</button>',
+        '<button type="button" class="bucket-full-form-btn" style="background:none;border:none;cursor:pointer;font-size:0.82rem;color:#4a90e2;padding:4px 6px;text-decoration:underline" data-type="event">⋯ Full form</button>',
+        '</div>'
       ].join('');
     } else if (t.key === 'task') {
       var energyOpts = domain === 'home' ?
@@ -6551,7 +6675,10 @@ function buildBucketAddArea(domain, bucketId) {
         '<select class="bi-priority" style="width:110px"><option value="1">! Low</option><option value="2" selected>!! Med</option><option value="3">!!! High</option></select>',
         energyOpts,
         '</div>',
-        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="task">Add Task</button>'
+        '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">',
+        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="font-size:0.85rem;padding:6px 10px" data-type="task">Add Task</button>',
+        '<button type="button" class="bucket-full-form-btn" style="background:none;border:none;cursor:pointer;font-size:0.82rem;color:#4a90e2;padding:4px 6px;text-decoration:underline" data-type="task">⋯ Full form</button>',
+        '</div>'
       ].join('');
     } else {
       form.innerHTML = [
@@ -6560,7 +6687,10 @@ function buildBucketAddArea(domain, bucketId) {
         '<input type="date" class="bi-date" style="flex:1" />',
         '<input type="time" class="bi-time" style="flex:1" />',
         '</div>',
-        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="reminder">Add Reminder</button>'
+        '<div style="display:flex;gap:6px;align-items:center;margin-top:6px">',
+        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="font-size:0.85rem;padding:6px 10px" data-type="reminder">Add Reminder</button>',
+        '<button type="button" class="bucket-full-form-btn" style="background:none;border:none;cursor:pointer;font-size:0.82rem;color:#4a90e2;padding:4px 6px;text-decoration:underline" data-type="reminder">⋯ Full form</button>',
+        '</div>'
       ].join('');
     }
 
@@ -6583,6 +6713,35 @@ function buildBucketAddArea(domain, bucketId) {
     btn.addEventListener('click', function() {
       const type = btn.dataset.type;
       if (forms[type]) addItemToBucket(domain, bucketId, type, forms[type]);
+    });
+  });
+
+  /* "Full form" buttons open the Add Item modal pre-filled with this domain + bucket */
+  panel.querySelectorAll('.bucket-full-form-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var type = btn.dataset.type;
+      /* Collect any partial input from the quick form */
+      var form = forms[type];
+      var titleVal = form ? (form.querySelector('.bi-title') || {value:''}).value.trim() : '';
+      var dateVal = form ? (form.querySelector('.bi-date') || {value:''}).value : '';
+      var timeVal = form ? (form.querySelector('.bi-time') || {value:''}).value : '';
+      if (typeof window.openCalAddItemModal === 'function') {
+        window.openCalAddItemModal(type, dateVal);
+        /* Pre-fill title, time, domain, bucket after the modal builds */
+        setTimeout(function() {
+          function sf(id, val) { if (!val) return; var el = document.getElementById(id); if (el) el.value = val; }
+          sf('calAddTitle', titleVal);
+          sf('calAddDate', dateVal);
+          sf('calAddTime', timeVal);
+          /* Set domain and trigger bucket population */
+          var domSel = document.getElementById('calAddDomain');
+          if (domSel) { domSel.value = domain; domSel.dispatchEvent(new Event('change')); }
+          setTimeout(function() {
+            var bSel = document.getElementById('calAddBucket');
+            if (bSel && bucketId != null) bSel.value = String(bucketId);
+          }, 60);
+        }, 60);
+      }
     });
   });
 
@@ -10381,6 +10540,21 @@ function initCalendarAddItemPopup() {
     step2.style.display = 'none';
     chosenType = '';
   }
+  /* Open the modal directly to step 2 with a given type and optional pre-filled date */
+  function openModalToType(type, dateStr) {
+    overlay.classList.add('open');
+    modal.classList.add('open');
+    step1.style.display = 'none';
+    step2.style.display = '';
+    chosenType = type;
+    buildStep2(type);
+    if (dateStr) {
+      var dateInp = document.getElementById('calAddDate');
+      if (dateInp) dateInp.value = dateStr;
+    }
+    var titleInp = document.getElementById('calAddTitle');
+    if (titleInp) setTimeout(function() { titleInp.focus(); }, 80);
+  }
   function closeModal() {
     overlay.classList.remove('open');
     modal.classList.remove('open');
@@ -10388,6 +10562,10 @@ function initCalendarAddItemPopup() {
 
   headerBtn.addEventListener('click', openModal);
   overlay.addEventListener('click', closeModal);
+
+  /* Expose globally so calendar dblclick and other callers can use it */
+  window.openCalAddItemModal = openModalToType;
+  window.closeCalAddItemModal = closeModal;
 
   /* Show the header button on all main views */
   headerBtn.style.display = '';
@@ -10421,7 +10599,11 @@ function initCalendarAddItemPopup() {
       domainOptions += '<option value="' + d + '">' + meta.emoji + ' ' + meta.label + '</option>';
     });
 
-    var html = '<h3 style="margin:0 0 10px;font-size:1rem;text-align:center">' + typeLabel + '</h3>';
+    /* Header row: type label + pop-out button */
+    var html = '<div style="display:flex;align-items:center;margin-bottom:10px">' +
+      '<h3 style="margin:0;font-size:1rem;flex:1;text-align:center">' + typeLabel + '</h3>' +
+      '<button type="button" id="calAddPopoutBtn" title="Open in new window" style="background:none;border:1px solid #ddd;border-radius:6px;cursor:pointer;font-size:1rem;padding:2px 7px;line-height:1;color:#555;flex-shrink:0" aria-label="Pop out into new window">⧉</button>' +
+      '</div>';
 
     /* Domain selector */
     html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Domain</label>' +
@@ -10554,6 +10736,10 @@ function initCalendarAddItemPopup() {
     var saveBtn = document.getElementById('calAddSave');
     if (saveBtn) saveBtn.addEventListener('click', function() { saveCalendarItem(type); });
 
+    /* Wire Pop-out button */
+    var popoutBtn = document.getElementById('calAddPopoutBtn');
+    if (popoutBtn) popoutBtn.addEventListener('click', function() { openCreateItemPopout(type); });
+
     /* Wire Enter key on title */
     var titleInp = document.getElementById('calAddTitle');
     if (titleInp) {
@@ -10562,6 +10748,51 @@ function initCalendarAddItemPopup() {
       });
       setTimeout(function() { titleInp.focus(); }, 80);
     }
+  }
+
+  /* Collect current step-2 form values into a plain object */
+  function collectCalAddFormValues(type) {
+    function v(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+    function c(id) { var el = document.getElementById(id); return el ? el.checked : false; }
+    var data = {
+      type: type,
+      domain: v('calAddDomain'),
+      bucket: v('calAddBucket'),
+      title: v('calAddTitle'),
+      emoji: v('calAddEmoji'),
+      date: v('calAddDate'),
+      time: v('calAddTime'),
+      endTime: v('calAddEndTime'),
+      location: v('calAddLocation'),
+      priority: v('calAddPriority'),
+      repeat: v('calAddRepeat'),
+      repeatUntil: v('calAddRepeatUntil'),
+      repeatInterval: v('calAddRepeatInterval'),
+      repeatUnit: v('calAddRepeatUnit'),
+      abWeek: v('calAddAbWeek'),
+      abSkipHolidays: c('calAddAbSkipHolidays')
+    };
+    return data;
+  }
+
+  /* Open the create form in a child browser window */
+  function openCreateItemPopout(type) {
+    var data = collectCalAddFormValues(type);
+    try { localStorage.setItem('_createPopoutData', JSON.stringify(data)); } catch(_) {}
+
+    var baseUrl = window.location.href.split('?')[0].split('#')[0];
+    var url = baseUrl + '?createItemPopout=1';
+
+    var _cw = 700, _ch = 680;
+    var _cl = Math.round((screen.width  - _cw) / 2);
+    var _ct = Math.round((screen.height - _ch) / 2);
+    var win = window.open(url, 'timescape_create_item',
+      'width=' + _cw + ',height=' + _ch + ',left=' + _cl + ',top=' + _ct + ',toolbar=0,menubar=0,location=0,scrollbars=1,resizable=1,status=0');
+    if (!win || win.closed) {
+      showUndoToast('Pop-up blocked — allow pop-ups for this site in your browser settings.');
+      return;
+    }
+    closeModal();
   }
 
   function updateBucketOptions(domain) {
@@ -10709,6 +10940,13 @@ function initCalendarAddItemPopup() {
     try { generateCalendar(); } catch(_) {}
     try { renderCalendarSummary(); } catch(_) {}
     if (window.selectedDay) { try { showReminders(window.selectedDay); } catch(_) {} }
+
+    /* If this is a pop-out child window, close it after saving */
+    try {
+      if (new URLSearchParams(window.location.search).get('createItemPopout')) {
+        setTimeout(function() { window.close(); }, 200);
+      }
+    } catch(_) {}
   }
 }
 
