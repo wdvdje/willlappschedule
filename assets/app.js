@@ -1898,14 +1898,14 @@ function saveEditHandler(e){
       let repeatPayload;
       try { repeatPayload = readRepeatPayload('edit', date); } catch(err) { alert(err && err.message ? err.message : 'Invalid recurrence settings'); return; }
       const newId = evs.length ? Math.max.apply(null, evs.map(function(e){return e.id;})) + 1 : 1;
-      const _newEvCat = (document.getElementById('editCategory') ? document.getElementById('editCategory').value : 'event') || 'event';
-      const _newEvDomain = (_newEvCat in DOMAIN_META) ? _newEvCat : undefined;
+      const newEvCat = (document.getElementById('editCategory') ? document.getElementById('editCategory').value : 'event') || 'event';
+      const newEvDomain = (newEvCat in DOMAIN_META) ? newEvCat : undefined;
       const newEv = Object.assign({
         id: newId, title: text, date: date, time: time, startTime: time, endTime: endTime,
         location: document.getElementById('editLocation') ? document.getElementById('editLocation').value.trim() : '',
         emoji: document.getElementById('editEmoji') ? document.getElementById('editEmoji').value.trim() : '',
-        category: _newEvCat,
-        domain: _newEvDomain,
+        category: newEvCat,
+        domain: newEvDomain,
         preBuffer: getBufferValue(document.getElementById('editPreBuffer'), document.getElementById('editPreBufferCustom')),
         postBuffer: getBufferValue(document.getElementById('editPostBuffer'), document.getElementById('editPostBufferCustom'))
       }, repeatPayload);
@@ -1998,12 +1998,12 @@ function saveEditHandler(e){
     if (!tasks[idx]) {
       /* ── Create a new task ── */
       if (!text) { alert('Task needs a title'); return; }
-      const _newTaskCat = document.getElementById('editCategory') ? document.getElementById('editCategory').value || 'personal' : 'personal';
-      const _newTaskDomain = (_newTaskCat in DOMAIN_META) ? _newTaskCat : undefined;
+      const newTaskCat = document.getElementById('editCategory') ? document.getElementById('editCategory').value || 'personal' : 'personal';
+      const newTaskDomain = (newTaskCat in DOMAIN_META) ? newTaskCat : undefined;
       const newTask = {
         id: generateTaskId(), title: text, date: date, time: time,
-        category: _newTaskCat,
-        domain: _newTaskDomain,
+        category: newTaskCat,
+        domain: newTaskDomain,
         priority: document.getElementById('editPriority') ? document.getElementById('editPriority').value || '2' : '2',
         done: false
       };
@@ -5750,7 +5750,7 @@ function _showInboxBucketPicker(index, domain, kind, buckets) {
     '<select id="inboxBucketPickerSel" style="width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:0.9rem;margin-bottom:12px">' +
       '<option value="">— No bucket —</option>' +
       buckets.map(function(b) {
-        return '<option value="' + b.id + '">' + escapeHTML((b.emoji ? b.emoji + ' ' : '') + b.name) + '</option>';
+        return '<option value="' + String(b.id) + '">' + escapeHTML((b.emoji ? b.emoji + ' ' : '') + b.name) + '</option>';
       }).join('') +
     '</select>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end">' +
@@ -10784,7 +10784,7 @@ function initCalendarAddItemPopup() {
     var url = baseUrl + '?createItemPopout=1';
 
     var _cw = 700, _ch = 680;
-    var _cl = Math.round((screen.width  - _cw) / 2);
+    var _cl = Math.round((screen.width - _cw) / 2);
     var _ct = Math.round((screen.height - _ch) / 2);
     var win = window.open(url, 'timescape_create_item',
       'width=' + _cw + ',height=' + _ch + ',left=' + _cl + ',top=' + _ct + ',toolbar=0,menubar=0,location=0,scrollbars=1,resizable=1,status=0');

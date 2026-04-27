@@ -2416,7 +2416,7 @@
         document.title = { event: 'Add Event', task: 'Add Task', reminder: 'Add Reminder' }[itemType] + ' — TimeScape';
 
         // Wait for initCalendarAddItemPopup to have run and exposed openCalAddItemModal
-        var _retries = 20;
+        var maxRetries = 20;
         function tryOpenPopout() {
           if (typeof window.openCalAddItemModal === 'function') {
             // Fill data before opening so the modal renders with pre-filled values
@@ -2461,7 +2461,7 @@
                 setTimeout(function() { try { window.close(); } catch(_) {} }, 300);
               }
             });
-          } else if (_retries-- > 0) {
+          } else if (maxRetries-- > 0) {
             setTimeout(tryOpenPopout, 150);
           }
         }
