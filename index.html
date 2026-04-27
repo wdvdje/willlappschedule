@@ -63,7 +63,7 @@
   <!-- Dark mode initialized in <head> above; also handled by ios-native.js -->
   <script>try{if(!document.body.classList.contains('dark-mode')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body.classList.add('dark-mode')}catch(e){}</script>
   <!-- Child window mode: apply class immediately so CSS hides page chrome before render -->
-  <script>try{var _cwp=new URLSearchParams(window.location.search);if(_cwp.get('childApp')||_cwp.get('childView'))document.body.classList.add('child-window-mode');if(_cwp.get('childView'))document.body.classList.add('child-view-mode')}catch(e){}</script>
+  <script>try{var _urlParams=new URLSearchParams(window.location.search);if(_urlParams.get('childApp')||_urlParams.get('childView'))document.body.classList.add('child-window-mode');if(_urlParams.get('childView'))document.body.classList.add('child-view-mode')}catch(e){}</script>
   <header id="appHeader">
     <button type="button" class="header-btn" id="headerInboxBtn" aria-label="Inbox">📥<span class="header-btn-label">Inbox</span></button>
     <span id="appHeaderTitle">📅 TimeScape Planner</span>
@@ -2364,8 +2364,7 @@
         showView(childView);
 
         // Lock in-page navigation so the user stays on this view
-        window.addEventListener('hashchange', function(e) {
-          e.preventDefault();
+        window.addEventListener('hashchange', function() {
           // Keep the hash pinned to the child view; re-show it in case something changed it
           if (location.hash !== '#' + childView) {
             history.replaceState(null, '', '#' + childView);
@@ -2375,7 +2374,7 @@
 
         // Live sync: re-render the view whenever localStorage changes from the parent window
         window.addEventListener('storage', function() {
-          try { showView(childView); } catch(_) {}
+          try { showView(childView); } catch(_err) {}
         });
       })();
     });
