@@ -4390,6 +4390,57 @@ body.child-window-mode .app-window-header {
   gap: 24px;
 }
 
+/* ======================================================================
+   CHILD VIEW MODE
+   Applied via body.child-view-mode when opened with ?childView= param.
+   The page view fills the entire OS window — no sidebar, no header.
+   ====================================================================== */
+
+/* Remove sidebar margin-left so the view fills the full window width */
+@media (min-width: 768px) {
+  body.child-view-mode > header,
+  body.child-view-mode #syncStatusBar {
+    margin-left: 0 !important;
+    left: 0 !important;
+  }
+  body.child-view-mode > main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* Make <main> fill the full viewport */
+body.child-view-mode main {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Let the active page section fill its container */
+body.child-view-mode .page:not(.hidden) {
+  min-height: 100dvh;
+}
+
+/* ── Sidebar visual indicator: is-child-open ─────────────────────── */
+/* A small accent dot shows next to a sidebar item whose view is open  */
+/* in a child window.                                                   */
+.sidebar-item.is-child-open {
+  position: relative;
+}
+.sidebar-item.is-child-open::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ios-accent, #007AFF);
+  box-shadow: 0 0 0 2px var(--ios-surface, #fff);
+}
+
 /* ── Haptic visual proxy (@media hover: none = touch device) ─────── */
 /* On iOS, navigator.vibrate is absent and AudioContext feedback is    */
 /* subtle.  These :active scale transforms provide a reliable tactile  */
