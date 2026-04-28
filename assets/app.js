@@ -10775,18 +10775,20 @@ function initCalendarAddItemPopup() {
     return data;
   }
 
-  /* Open the create form in a child browser window */
+  /* Open the create form in a dedicated child browser window */
   function openCreateItemPopout(type) {
     var data = collectCalAddFormValues(type);
     try { localStorage.setItem('_createPopoutData', JSON.stringify(data)); } catch(_) {}
 
     var baseUrl = window.location.href.split('?')[0].split('#')[0];
-    var url = baseUrl + '?createItemPopout=1';
+    var createItemUrl = new URL('create-item.html', baseUrl).href + '?type=' + encodeURIComponent(type);
 
-    var _cw = 700, _ch = 680;
+    var sizes = { event: [600, 580], task: [480, 360], reminder: [480, 340] };
+    var sz = sizes[type] || sizes.event;
+    var _cw = sz[0], _ch = sz[1];
     var _cl = Math.round((screen.width - _cw) / 2);
     var _ct = Math.round((screen.height - _ch) / 2);
-    var win = window.open(url, 'timescape_create_item',
+    var win = window.open(createItemUrl, 'timescape_create_item',
       'width=' + _cw + ',height=' + _ch + ',left=' + _cl + ',top=' + _ct + ',toolbar=0,menubar=0,location=0,scrollbars=1,resizable=1,status=0');
     if (!win || win.closed) {
       showUndoToast('Pop-up blocked — allow pop-ups for this site in your browser settings.');
@@ -10940,13 +10942,6 @@ function initCalendarAddItemPopup() {
     try { generateCalendar(); } catch(_) {}
     try { renderCalendarSummary(); } catch(_) {}
     if (window.selectedDay) { try { showReminders(window.selectedDay); } catch(_) {} }
-
-    /* If this is a pop-out child window, close it after saving */
-    try {
-      if (new URLSearchParams(window.location.search).get('createItemPopout')) {
-        setTimeout(function() { window.close(); }, 200);
-      }
-    } catch(_) {}
   }
 }
 
