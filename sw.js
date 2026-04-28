@@ -1,8 +1,9 @@
 /* Service worker: offline shell caching + push notifications */
-const CACHE_VERSION = 'ts-cache-v9';
+const CACHE_VERSION = 'ts-cache-v10';
 const CORE_ASSETS = [
   './',
   './index.html',
+  './create-item.html',
   './calendar.html',
   './events.html',
   './tasks.html',
