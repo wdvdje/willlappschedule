@@ -718,6 +718,8 @@
         <button type="button" id="moreSheetAppsBtn" class="more-sheet-item" aria-label="Open Apps"><span class="more-sheet-icon">⊞</span><span class="more-sheet-label">Apps</span></button>
         <a href="#settings" class="more-sheet-item" data-view="settings"><span class="more-sheet-icon">⚙️</span><span class="more-sheet-label">Settings</span></a>
       </div>
+    </div>
+  </div>
 
   <!-- Edit modal used by all pages -->
   <div id="editModal" role="dialog" aria-modal="true" class="hidden">
@@ -854,6 +856,7 @@
 
   <!-- Apps modal and sidebar JavaScript -->
   <script>
+    var _APP_EMOJI_MAP = {
       budget: '💰', hydration: '💧', mood: '😊', focus: '🎯',
       sleep: '😴', meal: '🥗', gym: '🏋️', routine: '🌅',
       weather: '🌤️', jobs: '💼', journal: '📓',
@@ -1155,6 +1158,11 @@
           _pinnedAppsDragSrc = card;
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', app);
+        });
+
+        col.appendChild(card);
+      });
+    }
   </script>
 
   <!-- load canonical app script -->
