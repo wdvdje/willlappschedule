@@ -2,19 +2,53 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
+<<<<<<< HEAD
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
   <link rel="stylesheet" href="./assets/app.css" />
+=======
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="description" content="TimeScape Planner Settings — customise your profile, notification preferences, sync options, and app appearance." />
+  <meta name="keywords" content="settings, preferences, profile, notifications, sync, planner" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="TimeScape Planner — Settings" />
+  <meta property="og:description" content="Customise your profile, notifications, sync options, and app appearance." />
+  <meta property="og:image" content="assets/icon.svg" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./assets/app.css" />
+  <link rel="stylesheet" href="./assets/ios-native.css" />
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   <style>
     /* ADDED: center only the User Profile and Jobs headings on settings page */
     #userProfile h3, #userJobs h3 { text-align: center; }
   </style>
+<<<<<<< HEAD
 </head>
 <body>
   <header id="appHeader">📅 TimeScape Planner</header>
+=======
+  <!-- Resolve og:image to absolute URL at runtime -->
+  <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
+  <!-- Redirect to the SPA; noscript fallback for crawlers -->
+  <script>location.replace('./index.html#settings');</script>
+  <noscript><meta http-equiv="refresh" content="0;url=./index.html#settings" /></noscript>
+</head>
+<body>
+  <header id="appHeader">
+    <a href="index.html#inbox" class="header-btn" aria-label="Inbox"><span>📥</span><span style="font-size:0.75rem">Inbox</span></a>
+    <span style="flex:1;text-align:center">📅 TimeScape Planner</span>
+    <a href="index.html#settings" class="header-btn" aria-label="Settings"><span>⚙️</span><span style="font-size:0.75rem">Settings</span></a>
+  </header>
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
 
   <main style="max-width:640px;margin:18px auto;padding:12px;">
     <h2 style="text-align:center">Settings</h2>
@@ -34,15 +68,22 @@
         <input id="userHome" type="text" placeholder="Enter your home address" autocomplete="off" />
         <div id="userHomeList" class="suggestions-list" style="display:none"></div>
       </div>
+<<<<<<< HEAD
 
       <div style="display:flex;gap:8px;margin-top:8px">
         <button id="saveProfileBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save profile</button>
+=======
+      <small style="color:#888;font-size:0.8rem">Used to estimate travel time in event buffer tooltips</small>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="saveProfileBtn" class="small-btn btn-primary">Save profile</button>
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
         <button id="clearProfileBtn" class="small-btn">Clear</button>
       </div>
 
       <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
     </section>
 
+<<<<<<< HEAD
     <!-- Jobs -->
     <section id="userJobs" style="margin-top:18px">
       <h3>Jobs</h3>
@@ -91,6 +132,76 @@
           <button id="clearJobBtn" class="small-btn">Clear</button>
         </div>
       </div>
+=======
+    <!-- Jobs: now managed on the Work page -->
+    <section id="userJobs" style="margin-top:18px">
+      <h3>Jobs</h3>
+      <p style="color:#666;font-size:0.9rem">Jobs are now managed on the <a href="index.html#work" style="color:#4a90e2">💼 Work</a> page.</p>
+    </section>
+
+    <!-- School A/B Schedule -->
+    <section id="schoolABSection" style="margin-top:18px">
+      <h3 style="text-align:center">🏫 School A/B Schedule</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Enable A/B day labels on the calendar. Set any date you know is an A or B day — the calendar will automatically label every other school day going forward and backward.</p>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <label style="font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="abEnabled" />
+          Show A/B labels on calendar
+        </label>
+      </div>
+
+      <div id="abConfigFields" style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px">
+            <label for="abAnchorDate" style="display:block;font-weight:600;margin-bottom:2px">Anchor date</label>
+            <input id="abAnchorDate" type="date" />
+          </div>
+          <div style="width:110px">
+            <label for="abAnchorLabel" style="display:block;font-weight:600;margin-bottom:2px">This date is…</label>
+            <select id="abAnchorLabel" style="width:100%">
+              <option value="A">Day A</option>
+              <option value="B">Day B</option>
+            </select>
+          </div>
+        </div>
+        <p style="color:#888;font-size:0.82rem;margin:0">Federal holidays and any custom off-days you add below are automatically skipped when computing the A/B sequence.</p>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <button id="saveABBtn" class="small-btn btn-primary">Save</button>
+        <button id="clearABBtn" class="small-btn">Clear</button>
+        <span id="abStatus" style="font-size:0.9rem;color:#27ae60;margin-left:6px"></span>
+      </div>
+    </section>
+
+    <!-- Off-Days / Holidays -->
+    <section id="userOffDays" style="margin-top:18px">
+      <h3 style="text-align:center">Off-Days / Holidays</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Add custom off-days (e.g. company holidays, personal days off). These will be skipped by the A/B weekday repeat pattern when "Skip holidays" is checked.</p>
+      <p style="color:#888;font-size:0.85rem;margin:0 0 8px">Federal holidays (MLK Day, Presidents' Day, Memorial Day, Juneteenth, Independence Day, Labor Day, Columbus Day, Veterans Day, Thanksgiving, Christmas, New Year's) are already included automatically.</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <input id="offDayDate" type="date" style="flex:1" />
+        <input id="offDayLabel" type="text" placeholder="Label (optional)" style="flex:1" />
+        <button id="addOffDayBtn" class="small-btn btn-primary">Add</button>
+      </div>
+      <ul id="offDaysList" style="list-style:none;padding:0;margin:8px 0;"></ul>
+    </section>
+
+    <!-- Active Hours -->
+    <section id="activeHoursSection" style="margin-top:18px">
+      <h3 style="text-align:center">Active Hours</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Set your productive day window. The "Day Elapsed" ring on the dashboard will track progress within these hours instead of the full 24-hour day.</p>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <label style="font-weight:600">Start</label>
+        <select id="dayStartHour" style="width:110px"></select>
+        <label style="font-weight:600">End</label>
+        <select id="dayEndHour" style="width:110px"></select>
+        <button id="saveActiveHoursBtn" class="small-btn btn-primary">Save</button>
+        <button id="resetActiveHoursBtn" class="small-btn">Reset</button>
+      </div>
+      <div id="activeHoursStatus" style="margin-top:6px;color:#666;font-size:0.9rem"></div>
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     </section>
 
     <!-- Task categories -->
@@ -99,11 +210,16 @@
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
         <input id="newCategoryName" type="text" placeholder="Category name" style="flex:1" />
         <input id="newCategoryColor" type="color" value="#ffd54f" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+<<<<<<< HEAD
         <button id="addCategoryBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+=======
+        <button id="addCategoryBtn" class="small-btn btn-primary">Add</button>
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
       </div>
       <div id="categoriesList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
     </section>
 
+<<<<<<< HEAD
     <!-- Push notifications settings -->
     <section id="pushSettings" style="margin-top:18px">
       <h3>Push notifications</h3>
@@ -125,6 +241,211 @@
       <h3>Data Backup</h3>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
         <button id="exportDataBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export JSON</button>
+=======
+    <!-- Domain Colors -->
+    <section id="domainColorsSection" style="margin-top:18px">
+      <h3 style="text-align:center">Domain Colors</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 12px">Customize the accent colors used for each domain on the calendar and throughout the app.</p>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">💼 Work</label>
+          <input id="dcWork" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcWorkHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">🏡 Home</label>
+          <input id="dcHome" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcHomeHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">👤 Personal</label>
+          <input id="dcPersonal" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcPersonalHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">🎉 Holiday</label>
+          <input id="dcHoliday" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcHolidayHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+        <button id="saveDomainColorsBtn" class="small-btn btn-primary">Save colors</button>
+        <button id="resetDomainColorsBtn" class="small-btn">Reset to defaults</button>
+        <span id="domainColorStatus" style="font-size:0.9rem;color:#27ae60;margin-left:8px"></span>
+      </div>
+    </section>
+
+    <!-- Notifications group -->
+    <section id="notificationsSection" style="margin-top:18px;border:1px solid #eee;border-radius:10px;padding:12px 14px">
+      <h3 style="text-align:center;margin:0 0 12px">🔔 Notifications</h3>
+
+      <!-- Push notifications settings -->
+      <section id="pushSettings" style="margin-top:0;padding-top:8px;border-top:1px solid #f0f0f0">
+        <h4 style="text-align:center;margin:0 0 8px;font-size:0.95rem">Push Notifications</h4>
+
+        <!-- iOS install prompt -->
+        <div id="iosInstallGuide" class="ios-push-prompt" style="display:none">
+          <div class="ios-push-prompt-icon">📲</div>
+          <div class="ios-push-prompt-text">
+            <b>Add to Home Screen for notifications</b>
+            <small>On iOS, open this page in Safari, tap the Share button (⬆), then choose <strong>Add to Home Screen</strong>. Launch from there to enable push notifications.</small>
+          </div>
+        </div>
+
+        <!-- Permission status prompt -->
+        <div id="iosPermPrompt" class="ios-push-prompt" style="display:none">
+          <div class="ios-push-prompt-icon">🔔</div>
+          <div class="ios-push-prompt-text">
+            <b>Notifications not yet enabled</b>
+            <small>Allow notifications to receive reminders and event alerts even when the app is in the background.</small>
+          </div>
+          <button id="requestPermBtn" class="ios-push-prompt-btn">Allow</button>
+        </div>
+
+        <label for="pushVapidKey" style="display:block;font-weight:600;margin-top:12px">VAPID Public Key (base64)</label>
+        <input id="pushVapidKey" type="text" placeholder="BEl... (optional for testing)" />
+
+        <label for="pushServerUrl" style="display:block;font-weight:600;margin-top:8px">Push server URL (optional)</label>
+        <input id="pushServerUrl" type="text" placeholder="https://example.com/save-subscription" />
+
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+          <button id="subscribePushBtn" class="small-btn btn-primary">Subscribe</button>
+          <button id="unsubscribePushBtn" class="small-btn">Unsubscribe</button>
+          <div id="pushStatus" style="margin-left:8px;color:#666">Checking…</div>
+        </div>
+        <div style="margin-top:8px;color:#666;font-size:0.9rem" id="notifTipText">Tip: supply a public VAPID key if you use a push server that requires VAPID. On iOS 16.4+, the app must be installed to the Home Screen.</div>
+        <div id="triggerApiStatus" style="margin-top:6px;font-size:0.85rem;color:#27ae60;display:none">✅ Scheduled Notifications supported — reminders will fire even when the app is closed.</div>
+      </section>
+
+      <!-- App Notifications settings -->
+      <section id="appNotifSettings" style="margin-top:14px;padding-top:14px;border-top:1px solid #f0f0f0">
+        <h4 style="text-align:center;margin:0 0 8px;font-size:0.95rem">App Notifications</h4>
+        <p style="font-size:0.88rem;color:#666;margin:4px 0 10px">
+          Control which apps can generate reminders that appear in your calendar and reminders view.
+          Use the lead time selector to get notified ahead of time.
+        </p>
+        <div class="app-notif-list" id="appNotifList">
+          <!-- Populated by script below -->
+        </div>
+        <div style="margin-top:10px;font-size:0.82rem;color:#888">
+          Changes take effect immediately. Reminders are rebuilt on next app open.
+        </div>
+      </section>
+    </section>
+    <script>
+    (function () {
+      var APP_NOTIF_DEFS = [
+        { id: 'budget',   emoji: '💰', label: 'Budget',   desc: 'Bill due dates, paycheck reminders, savings goals, low-balance alerts' },
+        { id: 'groceries',emoji: '🛒', label: 'Groceries',desc: 'Shopping reminders and restock alerts' },
+        { id: 'chores',   emoji: '🏠', label: 'Chores',   desc: 'Chore due and overdue reminders' }
+      ];
+      var LEAD_OPTIONS = [
+        { value: 'at',  label: 'At time' },
+        { value: '1d',  label: '1 day before' },
+        { value: '3d',  label: '3 days before' },
+        { value: '1w',  label: '1 week before' }
+      ];
+
+      function getSettings() {
+        try { return JSON.parse(localStorage.getItem('appNotificationSettings') || '{}'); } catch(_) { return {}; }
+      }
+      function saveSettings(s) { localStorage.setItem('appNotificationSettings', JSON.stringify(s)); }
+
+      var list = document.getElementById('appNotifList');
+      if (!list) return;
+
+      APP_NOTIF_DEFS.forEach(function (def) {
+        var settings = getSettings();
+        var cfg = Object.assign({ enabled: true, leadTime: '1d' }, settings[def.id] || {});
+
+        var row = document.createElement('div');
+        row.className = 'app-notif-row';
+
+        var leadOpts = LEAD_OPTIONS.map(function(o) {
+          return '<option value="' + o.value + '"' + (o.value === cfg.leadTime ? ' selected' : '') + '>' + o.label + '</option>';
+        }).join('');
+
+        row.innerHTML =
+          '<span class="app-notif-emoji">' + def.emoji + '</span>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div class="app-notif-label">' + def.label + '</div>' +
+            '<div style="font-size:0.75rem;color:#888;margin-top:1px">' + def.desc + '</div>' +
+          '</div>' +
+          '<select class="app-notif-lead-sel" data-app="' + def.id + '">' + leadOpts + '</select>' +
+          '<label class="app-notif-toggle">' +
+            '<input type="checkbox" class="app-notif-chk" data-app="' + def.id + '"' + (cfg.enabled ? ' checked' : '') + '/>' +
+            '<span class="app-notif-slider"></span>' +
+          '</label>';
+
+        list.appendChild(row);
+      });
+
+      // Wire up toggles and lead-time selectors
+      list.addEventListener('change', function (e) {
+        var appId = e.target.dataset.app;
+        if (!appId) return;
+        var settings = getSettings();
+        if (!settings[appId]) settings[appId] = { enabled: true, leadTime: '1d' };
+        if (e.target.classList.contains('app-notif-chk')) {
+          settings[appId].enabled = e.target.checked;
+          // Trigger budget notification sync if the budget toggle changed
+          if (appId === 'budget' && window.syncBudgetNotifications) {
+            try { window.syncBudgetNotifications(); } catch(e) { console.warn("[AppNotif] syncBudgetNotifications failed:", e); }
+          }
+        } else if (e.target.classList.contains('app-notif-lead-sel')) {
+          settings[appId].leadTime = e.target.value;
+          if (appId === 'budget' && window.syncBudgetNotifications) {
+            try { window.syncBudgetNotifications(); } catch(e) { console.warn("[AppNotif] syncBudgetNotifications failed:", e); }
+          }
+        }
+        saveSettings(settings);
+      });
+    })();
+    </script>
+    <script>
+    (function () {
+      function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      }
+      function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+      }
+      var installGuide = document.getElementById('iosInstallGuide');
+      var permPrompt   = document.getElementById('iosPermPrompt');
+      var reqBtn       = document.getElementById('requestPermBtn');
+
+      if (isIOS() && !isStandalone() && installGuide) {
+        installGuide.style.display = 'flex';
+      } else if ('Notification' in window && Notification.permission === 'default' && permPrompt) {
+        permPrompt.style.display = 'flex';
+      }
+
+      if (reqBtn) {
+        reqBtn.addEventListener('click', function () {
+          Notification.requestPermission().then(function (perm) {
+            if (permPrompt) permPrompt.style.display = 'none';
+            var statusEl = document.getElementById('pushStatus');
+            if (statusEl) statusEl.textContent = perm === 'granted' ? 'Permission granted ✅' : 'Permission ' + perm;
+            if (perm === 'granted' && window.pushClient && typeof window.pushClient.registerSW === 'function') {
+              window.pushClient.registerSW();
+            }
+          }).catch(function () {});
+        });
+      }
+
+      // Show Notification Trigger API support status
+      var triggerStatusEl = document.getElementById('triggerApiStatus');
+      if (triggerStatusEl && typeof TimestampTrigger !== 'undefined') {
+        triggerStatusEl.style.display = 'block';
+      }
+    })();
+    </script>
+
+    <section id="dataBackupSettings" style="margin-top:18px">
+      <h3>Data Backup</h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <button id="exportDataBtn" class="small-btn btn-primary">Export JSON</button>
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
         <select id="dataImportMode" style="width:180px">
           <option value="overwrite">Import mode: Overwrite</option>
           <option value="merge">Import mode: Merge</option>
@@ -134,6 +455,7 @@
       </div>
       <div id="dataBackupStatus" style="margin-top:8px;color:#666;font-size:0.95rem">No backup action yet</div>
     </section>
+<<<<<<< HEAD
   </main>
 
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
@@ -162,11 +484,340 @@
     })();
   </script>
 
+=======
+
+    <!-- iCloud Drive Sync -->
+    <section id="icloudSyncSettings" style="margin-top:18px">
+      <h3>☁️ iCloud Drive Sync</h3>
+
+      <!-- macOS Safari (Tier 1 — folder-based auto-sync) -->
+      <div id="icloudMacSection" style="display:none">
+        <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">
+          Connect an iCloud Drive folder once. Your data will sync automatically in the background every time it changes.
+        </p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <button id="icloudConnectBtn" class="small-btn btn-primary">Connect iCloud Drive Folder</button>
+          <button id="icloudDisconnectBtn" class="small-btn">Disconnect</button>
+        </div>
+        <div id="icloudMacStatus" style="margin-top:8px;color:#666;font-size:0.9rem">No folder connected.</div>
+        <!-- Re-authorize prompt (shown when permission is 'prompt') -->
+        <div id="icloudReauthPrompt" style="display:none;margin-top:8px;padding:8px 10px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;font-size:0.9rem">
+          ⚠️ Permission needed to continue syncing.
+          <button id="icloudReauthBtn" class="small-btn" style="margin-left:8px;background:#f0a500;color:#fff">Re-authorize</button>
+        </div>
+      </div>
+
+      <!-- iOS/iPadOS (Tier 2 — manual file exchange) -->
+      <div id="icloudIosSection" style="display:none">
+        <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">
+          Export your data as a JSON file to save to iCloud Drive via the Files app, or import a previously saved file.
+        </p>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+          <button id="icloudExportBtn" class="small-btn btn-primary">Export to Files / iCloud Drive</button>
+          <button id="icloudImportBtn" class="small-btn">Import from Files / iCloud Drive</button>
+        </div>
+        <div id="icloudIosStatus" style="margin-top:8px;color:#666;font-size:0.9rem"></div>
+
+        <!-- iOS Shortcuts auto-import -->
+        <details style="margin-top:14px">
+          <summary style="cursor:pointer;font-size:0.9rem;font-weight:600;color:#4a90e2">
+            ⚡ Auto-import via iOS Shortcut
+          </summary>
+          <div style="margin-top:10px;font-size:0.85rem;color:#555;line-height:1.6">
+            <p style="margin:0 0 8px">
+              Set up a Shortcut that automatically reads <code>timescape-data.json</code> from
+              your iCloud Drive and loads it into the app — no manual picking required.
+            </p>
+            <ol style="margin:0 0 10px;padding-left:1.4em">
+              <li>Open the <strong>Shortcuts</strong> app and create a new Shortcut.</li>
+              <li>Add action: <strong>Get File</strong> → choose the file
+                  <code>timescape-data.json</code> from your iCloud Drive
+                  (e.g. <em>iCloud Drive / Shortcuts / timescape-data.json</em>).
+                  Enable <em>"Show file picker"</em> once to locate it, then disable
+                  it so future runs grab it automatically.</li>
+              <li>Add action: <strong>Encode</strong> → set encoding to <strong>Base64</strong>.</li>
+              <li>Add action: <strong>Copy to Clipboard</strong> — this copies the Base64
+                  output from the previous step to your clipboard.</li>
+              <li>Add action: <strong>URL</strong> → paste the URL below exactly as-is
+                  (do <em>not</em> modify it — the data travels via clipboard, not the URL).</li>
+              <li>Add action: <strong>Open URLs</strong>.</li>
+              <li>Run the Shortcut — the app will open, read the clipboard, and import
+                  your data automatically. Tap <strong>Allow</strong> if asked for
+                  clipboard permission.</li>
+            </ol>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="icloudShortcutUrl" type="text" readonly
+                     style="flex:1;min-width:0;font-size:0.8rem;padding:5px 8px;border:1px solid #ccc;border-radius:6px;background:#f5f5f5;color:#333"
+                     placeholder="Loading URL…" />
+              <button id="icloudCopyShortcutUrl" class="small-btn" style="white-space:nowrap">Copy URL</button>
+            </div>
+            <p style="margin:8px 0 0;color:#888;font-size:0.8rem">
+              💡 Tip: Save the exported file as <code>timescape-data.json</code> in an
+              iCloud Drive folder of your choice and point your Shortcut at that path.
+              Run the Export button above first to create the initial file.
+            </p>
+          </div>
+        </details>
+      </div>
+
+      <!-- No API available -->
+      <div id="icloudNoApiSection" style="display:none;padding:8px 10px;background:#f5f5f5;border-radius:6px;font-size:0.9rem;color:#666;margin-top:8px">
+        ℹ️ iCloud Drive sync is not available in this browser. For best results, use Safari on macOS or iOS.
+      </div>
+    </section>
+
+  </main>
+
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   <script src="./assets/app.js"></script>
   <script src="./events-view.js"></script>
   <script src="./push.js"></script>
   <script src="./notifications.js"></script>
   <!-- ADDED: tasks manager (handles categories too) -->
   <script src="./tasks.js"></script>
+<<<<<<< HEAD
+=======
+  <script>
+    // School A/B Schedule settings
+    (function () {
+      function getABCfg() {
+        try { return JSON.parse(localStorage.getItem('schoolABSchedule') || '{}'); } catch (_) { return {}; }
+      }
+      function setABCfg(cfg) {
+        localStorage.setItem('schoolABSchedule', JSON.stringify(cfg));
+      }
+
+      var enabledChk  = document.getElementById('abEnabled');
+      var anchorDate  = document.getElementById('abAnchorDate');
+      var anchorLabel = document.getElementById('abAnchorLabel');
+      var configFields = document.getElementById('abConfigFields');
+      var statusEl    = document.getElementById('abStatus');
+
+      function loadUI() {
+        var cfg = getABCfg();
+        if (enabledChk)  enabledChk.checked  = !!cfg.enabled;
+        if (anchorDate)  anchorDate.value     = cfg.anchorDate  || '';
+        if (anchorLabel) anchorLabel.value    = cfg.anchorLabel || 'A';
+        toggleFields();
+      }
+
+      function toggleFields() {
+        if (configFields) configFields.style.opacity = (enabledChk && enabledChk.checked) ? '1' : '0.45';
+      }
+
+      if (enabledChk) enabledChk.addEventListener('change', toggleFields);
+
+      var saveBtn = document.getElementById('saveABBtn');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function () {
+          var enabled = enabledChk ? enabledChk.checked : false;
+          var anchor  = anchorDate  ? anchorDate.value.trim()   : '';
+          var label   = anchorLabel ? anchorLabel.value         : 'A';
+          if (enabled && !anchor) {
+            if (statusEl) { statusEl.textContent = 'Please choose an anchor date.'; statusEl.style.color = '#e74c3c'; }
+            if (anchorDate) anchorDate.focus();
+            return;
+          }
+          setABCfg({ enabled: enabled, anchorDate: anchor, anchorLabel: label });
+          if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.style.color = '#27ae60'; }
+          setTimeout(function () { if (statusEl) statusEl.textContent = ''; }, 2000);
+        });
+      }
+
+      var clearBtn = document.getElementById('clearABBtn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+          localStorage.removeItem('schoolABSchedule');
+          loadUI();
+          if (statusEl) { statusEl.textContent = 'Cleared.'; statusEl.style.color = '#666'; }
+          setTimeout(function () { if (statusEl) statusEl.textContent = ''; }, 2000);
+        });
+      }
+
+      loadUI();
+    })();
+
+    // Off-Days management
+    (function () {
+      function getOffDays() {
+        try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; }
+      }
+      function setOffDays(list) {
+        localStorage.setItem('userOffDays', JSON.stringify(list));
+      }
+      function escapeText(s) { var d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
+      function renderOffDays() {
+        var ul = document.getElementById('offDaysList');
+        if (!ul) return;
+        var days = getOffDays();
+        if (!days.length) { ul.innerHTML = '<li style="color:#999;font-size:0.9rem">No custom off-days added yet.</li>'; return; }
+        ul.innerHTML = '';
+        days.forEach(function(entry, i) {
+          var li = document.createElement('li');
+          li.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #eee';
+          var dateStr = typeof entry === 'string' ? entry : (entry.date || '');
+          var label = (typeof entry === 'object' && entry.label) ? entry.label : '';
+
+          var dateSpan = document.createElement('span');
+          dateSpan.style.fontWeight = '600';
+          dateSpan.textContent = dateStr;
+          li.appendChild(dateSpan);
+
+          if (label) {
+            var labelSpan = document.createElement('span');
+            labelSpan.style.color = '#666';
+            labelSpan.textContent = label;
+            li.appendChild(labelSpan);
+          }
+
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'small-btn';
+          removeBtn.dataset.idx = i;
+          removeBtn.style.cssText = 'margin-left:auto;background:#e74c3c;color:#fff;padding:2px 8px;font-size:0.8rem';
+          removeBtn.textContent = 'Remove';
+          li.appendChild(removeBtn);
+
+          ul.appendChild(li);
+        });
+        ul.querySelectorAll('button[data-idx]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var idx = parseInt(btn.dataset.idx, 10);
+            var list = getOffDays();
+            list.splice(idx, 1);
+            setOffDays(list);
+            renderOffDays();
+          });
+        });
+      }
+      var addBtn = document.getElementById('addOffDayBtn');
+      if (addBtn) {
+        addBtn.addEventListener('click', function() {
+          var dateInp = document.getElementById('offDayDate');
+          var labelInp = document.getElementById('offDayLabel');
+          var date = dateInp ? dateInp.value : '';
+          if (!date) { if (dateInp) dateInp.focus(); return; }
+          var label = labelInp ? labelInp.value.trim() : '';
+          var list = getOffDays();
+          // Store as date string for the skip logic, but keep label for display
+          list.push({ date: date, label: label });
+          // Sort by date
+          list.sort(function(a, b) {
+            var da = typeof a === 'string' ? a : a.date;
+            var db = typeof b === 'string' ? b : b.date;
+            return da < db ? -1 : da > db ? 1 : 0;
+          });
+          setOffDays(list);
+          if (dateInp) dateInp.value = '';
+          if (labelInp) labelInp.value = '';
+          renderOffDays();
+        });
+      }
+      renderOffDays();
+    })();
+
+    // Active Hours management
+    (function () {
+      function populateHourSelect(id, minVal, maxVal, savedVal) {
+        var sel = document.getElementById(id);
+        if (!sel) return;
+        sel.innerHTML = '';
+        for (var h = minVal; h <= maxVal; h++) {
+          var opt = document.createElement('option');
+          opt.value = h;
+          var label;
+          if (h === 0) label = '12:00 AM';
+          else if (h < 12) label = h + ':00 AM';
+          else if (h === 12) label = '12:00 PM';
+          else if (h === 24) label = '12:00 AM (next day)';
+          else label = (h - 12) + ':00 PM';
+          opt.textContent = label;
+          if (h === savedVal) opt.selected = true;
+          sel.appendChild(opt);
+        }
+      }
+      var savedStart = parseInt(localStorage.getItem('dayStartHour') || '', 10);
+      var savedEnd = parseInt(localStorage.getItem('dayEndHour') || '', 10);
+      if (isNaN(savedStart) || savedStart < 0 || savedStart > 23) savedStart = 0;
+      if (isNaN(savedEnd) || savedEnd < 1 || savedEnd > 24) savedEnd = 24;
+      if (savedEnd <= savedStart) { savedStart = 0; savedEnd = 24; }
+      populateHourSelect('dayStartHour', 0, 23, savedStart);
+      populateHourSelect('dayEndHour', 1, 24, savedEnd);
+      var statusEl = document.getElementById('activeHoursStatus');
+      function showStatus() {
+        var s = parseInt(document.getElementById('dayStartHour').value, 10);
+        var e = parseInt(document.getElementById('dayEndHour').value, 10);
+        if (statusEl) {
+          if (s === 0 && e === 24) {
+            statusEl.textContent = 'Using full 24-hour day (default).';
+          } else {
+            statusEl.textContent = 'Active window: ' + (e - s) + ' hours.';
+          }
+        }
+      }
+      showStatus();
+      var saveBtn = document.getElementById('saveActiveHoursBtn');
+      if (saveBtn) saveBtn.addEventListener('click', function() {
+        var s = parseInt(document.getElementById('dayStartHour').value, 10);
+        var e = parseInt(document.getElementById('dayEndHour').value, 10);
+        if (e <= s) {
+          if (statusEl) { statusEl.textContent = 'End hour must be after start hour.'; statusEl.style.color = '#e74c3c'; }
+          return;
+        }
+        localStorage.setItem('dayStartHour', s);
+        localStorage.setItem('dayEndHour', e);
+        if (statusEl) { statusEl.textContent = 'Active hours saved!'; statusEl.style.color = '#27ae60'; }
+        setTimeout(function(){ showStatus(); if(statusEl) statusEl.style.color='#666'; }, 2000);
+      });
+      var resetBtn = document.getElementById('resetActiveHoursBtn');
+      if (resetBtn) resetBtn.addEventListener('click', function() {
+        localStorage.removeItem('dayStartHour');
+        localStorage.removeItem('dayEndHour');
+        populateHourSelect('dayStartHour', 0, 23, 0);
+        populateHourSelect('dayEndHour', 1, 24, 24);
+        if (statusEl) { statusEl.textContent = 'Reset to full 24-hour day.'; statusEl.style.color = '#27ae60'; }
+        setTimeout(function(){ showStatus(); if(statusEl) statusEl.style.color='#666'; }, 2000);
+      });
+    })();
+  </script>
+  <!-- iCloud Drive sync via File System Access API -->
+  <script src="./icloud-sync.js"></script>
+  <script>
+    /* Wire up iOS Shortcut URL helper */
+    (function () {
+      var urlInput  = document.getElementById('icloudShortcutUrl');
+      var copyBtn   = document.getElementById('icloudCopyShortcutUrl');
+      if (!urlInput) return;
+
+      /* Build the template URL for the iOS Shortcut.
+       * Use the current page's full URL (origin + pathname) as the base so
+       * the Shortcut opens back to whatever page the user is viewing, regardless
+       * of whether it's settings.html, index.html, or a sub-path. */
+      var base = window.location.origin + window.location.pathname;
+      var templateUrl = base + '?import-data=clipboard';
+      urlInput.value = templateUrl;
+
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function () {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(templateUrl).then(function () {
+              copyBtn.textContent = 'Copied!';
+              setTimeout(function () { copyBtn.textContent = 'Copy URL'; }, 2000);
+            }).catch(function () {
+              urlInput.select();
+              document.execCommand('copy');
+              copyBtn.textContent = 'Copied!';
+              setTimeout(function () { copyBtn.textContent = 'Copy URL'; }, 2000);
+            });
+          } else {
+            urlInput.select();
+            document.execCommand('copy');
+            copyBtn.textContent = 'Copied!';
+            setTimeout(function () { copyBtn.textContent = 'Copy URL'; }, 2000);
+          }
+        });
+      }
+    })();
+  </script>
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
 </body>
 </html>

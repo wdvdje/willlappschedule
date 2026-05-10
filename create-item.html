@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>New Item — TimeScape</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens (mirrors ios-native.css) ── */
+    :root {
+      --ios-accent:     #007AFF;
+      --ios-accent-dk:  #0062CC;
+      --ios-surface:    #FFFFFF;
+      --ios-surface-2:  #F2F2F7;
+      --ios-surface-3:  #E5E5EA;
+      --ios-border:     rgba(60,60,67,0.13);
+      --ios-text:       #1C1C1E;
+      --ios-text-2:     #48484A;
+      --ios-text-3:     #8E8E93;
+      --ios-danger:     #FF453A;
+      --ios-r-xs:       10px;
+      --ios-fast:       0.18s;
+      --ios-ease:       cubic-bezier(0.25,1,0.5,1);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --ios-surface:   #1C1C1E;
+        --ios-surface-2: #2C2C2E;
+        --ios-surface-3: #3A3A3C;
+        --ios-border:    rgba(255,255,255,0.12);
+        --ios-text:      #F2F2F7;
+        --ios-text-2:    #EBEBF5;
+        --ios-text-3:    #8E8E93;
+      }
+    }
+    body.dark-mode {
+      --ios-surface:   #1C1C1E;
+      --ios-surface-2: #2C2C2E;
+      --ios-surface-3: #3A3A3C;
+      --ios-border:    rgba(255,255,255,0.12);
+      --ios-text:      #F2F2F7;
+      --ios-text-2:    #EBEBF5;
+      --ios-text-3:    #8E8E93;
+    }
+
+    /* ── Reset & base ── */
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Source Sans 3', Arial, sans-serif;
+      margin: 0;
+      background: var(--ios-surface-2);
+      color: var(--ios-text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Title bar ── */
+    #ci-titlebar {
+      background: var(--ios-accent);
+      color: #fff;
+      padding: 10px 16px;
+      font-size: 1rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      user-select: none;
+    }
+
+    /* ── Scrollable form body ── */
+    #ci-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    /* ── Footer action bar ── */
+    #ci-footer {
+      flex-shrink: 0;
+      padding: 10px 16px;
+      background: var(--ios-surface);
+      border-top: 1px solid var(--ios-border);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    /* ── Form field styles ── */
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      margin-bottom: 3px;
+      color: var(--ios-text-2);
+    }
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: 7px 10px;
+      border: 1px solid var(--ios-border);
+      border-radius: var(--ios-r-xs);
+      font-size: 0.9rem;
+      font-family: inherit;
+      background: var(--ios-surface);
+      color: var(--ios-text);
+      transition: outline var(--ios-fast) var(--ios-ease);
+    }
+    input:focus, select:focus {
+      outline: 2px solid var(--ios-accent);
+      outline-offset: -1px;
+    }
+
+    .ci-row { margin-bottom: 12px; }
+
+    .ci-row-inline {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .ci-row-inline > * { flex: 1; min-width: 0; }
+
+    /* Subject row: large title + small emoji picker */
+    #ci-subject-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+      align-items: flex-end;
+    }
+    #ci-subject-row #ci-title {
+      flex: 1;
+      font-size: 1.05rem;
+      padding: 9px 12px;
+      font-weight: 400;
+    }
+    #ci-subject-row .ci-emoji-wrap { flex: 0 0 72px; }
+    #ci-subject-row #ci-emoji {
+      width: 72px;
+      text-align: center;
+      font-size: 1.25rem;
+      padding: 7px 6px;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 8px 20px;
+      border: 1px solid var(--ios-border);
+      border-radius: var(--ios-r-xs);
+      font-size: 0.9rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background var(--ios-fast) var(--ios-ease);
+    }
+    .btn-secondary {
+      background: var(--ios-surface-2);
+      color: var(--ios-text);
+    }
+    .btn-secondary:hover { background: var(--ios-surface-3); }
+    .btn-primary {
+      background: var(--ios-accent);
+      color: #fff;
+      border-color: var(--ios-accent);
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: var(--ios-accent-dk); border-color: var(--ios-accent-dk); }
+
+    /* Advanced spec rows */
+    .adv-spec-row {
+      border: 1px solid var(--ios-border);
+      border-radius: 8px;
+      padding: 8px;
+      margin-top: 6px;
+      position: relative;
+      background: var(--ios-surface);
+    }
+    details > summary {
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--ios-text-2);
+      padding: 4px 0;
+    }
+    details[open] > summary { margin-bottom: 4px; }
+
+    .ci-hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- Apply dark mode before first paint -->
+  <script>
+    (function() {
+      try {
+        var dm = localStorage.getItem('darkMode');
+        if (dm === '1' || dm === 'true') { document.body.classList.add('dark-mode'); return; }
+        if (dm === '0' || dm === 'false') return;
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          document.body.classList.add('dark-mode');
+        }
+      } catch(_) {}
+    })();
+  </script>
+
+  <div id="ci-titlebar">
+    <span id="ci-title-icon" aria-hidden="true"></span>
+    <span id="ci-title-text"></span>
+  </div>
+
+  <div id="ci-body">
+
+    <!-- Subject: title + emoji -->
+    <div id="ci-subject-row">
+      <input type="text" id="ci-title" placeholder="Title" autocomplete="off" aria-label="Title" />
+      <div class="ci-emoji-wrap">
+        <label for="ci-emoji">Emoji</label>
+        <input type="text" id="ci-emoji" placeholder="🎉" autocomplete="off" aria-label="Emoji" />
+      </div>
+    </div>
+
+    <!-- Domain -->
+    <div class="ci-row">
+      <label for="ci-domain">Domain</label>
+      <select id="ci-domain">
+        <option value="inbox">📥 Unassigned (Inbox)</option>
+        <option value="personal">👤 Personal</option>
+        <option value="home">🏡 Home</option>
+        <option value="work">💼 Work</option>
+      </select>
+    </div>
+
+    <!-- Bucket (shown when domain has buckets) -->
+    <div class="ci-row ci-hidden" id="ci-bucket-row">
+      <label for="ci-bucket">Bucket</label>
+      <select id="ci-bucket"></select>
+    </div>
+
+    <!-- ── Event-specific fields ── -->
+    <div id="ci-event-fields">
+      <div class="ci-row-inline">
+        <div><label for="ci-date">Date</label><input type="date" id="ci-date" /></div>
+        <div><label for="ci-time">Start</label><input type="time" id="ci-time" /></div>
+        <div><label for="ci-endtime">End</label><input type="time" id="ci-endtime" /></div>
+      </div>
+      <div class="ci-row">
+        <label for="ci-location">Location</label>
+        <input type="text" id="ci-location" placeholder="Location (optional)" autocomplete="off" aria-label="Location" />
+      </div>
+      <div class="ci-row-inline">
+        <div>
+          <label for="ci-repeat">Repeat</label>
+          <select id="ci-repeat">
+            <option value="none">None</option>
+            <option value="daily">Every day</option>
+            <option value="2day">Every 2 days</option>
+            <option value="weekday">Every weekday (Mon–Fri)</option>
+            <option value="weekly">Every week</option>
+            <option value="monthly">Every month</option>
+            <option value="custom">Custom interval</option>
+            <option value="weekday_ab">A/B weekday pattern</option>
+          </select>
+        </div>
+        <div>
+          <label for="ci-repeat-until">Until</label>
+          <input type="date" id="ci-repeat-until" />
+        </div>
+      </div>
+      <!-- Custom interval row (hidden until repeat = custom) -->
+      <div class="ci-row-inline ci-hidden" id="ci-custom-row">
+        <div style="flex:0 0 auto;display:flex;align-items:flex-end;padding-bottom:8px">
+          <span style="font-size:0.85rem;font-weight:600;white-space:nowrap">Every</span>
+        </div>
+        <div style="flex:0 0 90px">
+          <label for="ci-repeat-interval">&nbsp;</label>
+          <input type="number" id="ci-repeat-interval" min="1" max="30" value="1" aria-label="Repeat interval number" />
+        </div>
+        <div>
+          <label for="ci-repeat-unit">&nbsp;</label>
+          <select id="ci-repeat-unit" aria-label="Repeat interval unit">
+            <option value="days">Days</option>
+            <option value="weeks">Weeks</option>
+            <option value="months">Months</option>
+            <option value="years">Years</option>
+          </select>
+        </div>
+      </div>
+      <!-- A/B week row (hidden until repeat = weekday_ab) -->
+      <div class="ci-row-inline ci-hidden" id="ci-ab-row">
+        <div>
+          <label for="ci-ab-week">Start template</label>
+          <select id="ci-ab-week">
+            <option value="a">A week (Mon/Wed/Fri)</option>
+            <option value="b">B week (Tue/Thu)</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:flex-end;padding-bottom:8px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-size:0.9rem;font-weight:400">
+            <input type="checkbox" id="ci-ab-skip-holidays" /> Skip holidays
+          </label>
+        </div>
+      </div>
+      <!-- Advanced Item Specifications (collapsible) -->
+      <details id="ci-adv-details" style="margin-top:6px;margin-bottom:4px">
+        <summary>Advanced Item Specifications</summary>
+        <p style="margin:4px 0 6px;font-size:0.8em;color:var(--ios-text-3)">Add additional time &amp; repeat schedules for this event.</p>
+        <div id="ci-adv-list"></div>
+        <button type="button" id="ci-adv-add" class="btn btn-secondary" style="margin-top:6px;font-size:0.8rem;padding:5px 12px">+ Add time / repeat schedule</button>
+      </details>
+    </div>
+
+    <!-- ── Task-specific fields ── -->
+    <div id="ci-task-fields" class="ci-hidden">
+      <div class="ci-row-inline">
+        <div><label for="ci-task-date">Date</label><input type="date" id="ci-task-date" /></div>
+        <div>
+          <label for="ci-priority">Priority</label>
+          <select id="ci-priority">
+            <option value="1">! Low</option>
+            <option value="2" selected>!! Med</option>
+            <option value="3">!!! High</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Reminder-specific fields ── -->
+    <div id="ci-reminder-fields" class="ci-hidden">
+      <div class="ci-row-inline">
+        <div><label for="ci-rem-date">Date</label><input type="date" id="ci-rem-date" /></div>
+        <div><label for="ci-rem-time">Time</label><input type="time" id="ci-rem-time" /></div>
+      </div>
+    </div>
+
+  </div><!-- #ci-body -->
+
+  <div id="ci-footer">
+    <button type="button" id="ci-cancel" class="btn btn-secondary">Cancel</button>
+    <button type="button" id="ci-save" class="btn btn-primary">Save</button>
+  </div>
+
+  <script>
+    /* ── Storage helpers ── */
+    function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+    function generateTaskId() { return 'task:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
+    function safeParseStorage(key, fallback) {
+      try { var raw = localStorage.getItem(key); if (!raw) return fallback; return JSON.parse(raw); } catch(_) { return fallback; }
+    }
+    function normalizeDate(s) {
+      if (!s) return '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+      var d = new Date(s);
+      if (isNaN(d.getTime())) return '';
+      return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    }
+    function getEvents()  { return safeParseStorage('events', []); }
+    function setEvents(v) { localStorage.setItem('events', JSON.stringify(v)); }
+    function getTasks()   { return safeParseStorage('tasks', []); }
+    function setTasks(v)  { localStorage.setItem('tasks', JSON.stringify(v)); }
+    function getInbox()   { return safeParseStorage('inbox', []); }
+    function setInbox(v)  { localStorage.setItem('inbox', JSON.stringify(v)); }
+    function getJobs()    { return safeParseStorage('jobs', []); }
+    function getBuckets(domain) {
+      if (domain === 'work') {
+        return getJobs().map(function(j) { return { id: j.id, name: j.name, emoji: j.emoji || '💼' }; });
+      }
+      return safeParseStorage(domain + 'Buckets', []);
+    }
+    function getTodayDate() { return new Date().toISOString().slice(0, 10); }
+    function clampRepeatInterval(elId) {
+      return Math.max(1, Math.min(30, parseInt(document.getElementById(elId).value, 10) || 1));
+    }
+    function remindersToMap(input) {
+      var map = {};
+      if (!input) return map;
+      if (Array.isArray(input)) {
+        input.forEach(function(r) {
+          if (!r || typeof r !== 'object') return;
+          var date = normalizeDate(r.date || r.reminderDate || '');
+          if (!date) return;
+          if (!map[date]) map[date] = [];
+          var ro = { text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || 'none' };
+          if (r.domain) ro.domain = r.domain;
+          if (r.bucketId !== undefined) ro.bucketId = r.bucketId;
+          map[date].push(ro);
+        });
+        return map;
+      }
+      if (typeof input === 'object') {
+        Object.keys(input).forEach(function(dateKey) {
+          var date = normalizeDate(dateKey);
+          if (!date) return;
+          var arr = Array.isArray(input[dateKey]) ? input[dateKey] : [];
+          map[date] = [];
+          arr.forEach(function(r) {
+            if (!r || typeof r !== 'object') return;
+            var ro = { text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || 'none' };
+            if (r.domain) ro.domain = r.domain;
+            if (r.bucketId !== undefined) ro.bucketId = r.bucketId;
+            map[date].push(ro);
+          });
+        });
+      }
+      return map;
+    }
+    function getReminders() { return remindersToMap(safeParseStorage('reminders', {})); }
+    function setReminders(v) { localStorage.setItem('reminders', JSON.stringify(remindersToMap(v))); }
+
+    /* ── Buffer helpers (used by advanced specs) ── */
+    var _BUFFER_STD = [0, 5, 10, 15, 20, 25, 30];
+    function _buildBufferOptions(val) {
+      var v = parseInt(val, 10) || 0;
+      var isCustom = _BUFFER_STD.indexOf(v) === -1 && v > 0;
+      var opts = '<option value="0"' + (v === 0 ? ' selected' : '') + '>None</option>';
+      _BUFFER_STD.slice(1).forEach(function(n) {
+        opts += '<option value="' + n + '"' + (v === n ? ' selected' : '') + '>' + n + ' min</option>';
+      });
+      opts += '<option value="custom"' + (isCustom ? ' selected' : '') + '>Custom\u2026</option>';
+      return opts;
+    }
+    function getBufferValue(selectEl, customEl) {
+      if (!selectEl) return 0;
+      if (selectEl.value === 'custom') return (customEl ? parseInt(customEl.value, 10) : 0) || 0;
+      return parseInt(selectEl.value, 10) || 0;
+    }
+    function _wireBufferCustomToggle(selectEl, customEl) {
+      if (!selectEl || !customEl) return;
+      selectEl.addEventListener('change', function() {
+        customEl.style.display = selectEl.value === 'custom' ? 'inline-block' : 'none';
+        if (selectEl.value === 'custom') customEl.focus();
+      });
+    }
+
+    function _bufferCustomDisplay(val) {
+      var v = parseInt(val, 10) || 0;
+      return _BUFFER_STD.indexOf(v) === -1 && v > 0 ? 'block' : 'none';
+    }
+
+    /* ── Advanced spec row builder ── */
+    var _advSpecCounter = 0;
+    function buildAdvSpecRow(spec) {
+      spec = spec || {};
+      var div = document.createElement('div');
+      div.className = 'adv-spec-row';
+      div.dataset.advIdx = _advSpecCounter++;
+      div.innerHTML =
+        '<button type="button" class="adv-spec-remove" style="position:absolute;top:4px;right:6px;background:none;border:none;font-size:1.1em;cursor:pointer;color:#e74c3c" title="Remove">\u00d7</button>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+          '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">Start time</label><input type="time" class="advSpec-time" value="' + (spec.time || '') + '" style="width:100%"></div>' +
+          '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">End time</label><input type="time" class="advSpec-endTime" value="' + (spec.endTime || '') + '" style="width:100%"></div>' +
+          '<div style="min-width:100px"><label style="font-size:0.85em">Pre-buffer</label><select class="advSpec-preBuffer" style="width:100%">' + _buildBufferOptions(spec.preBuffer) + '</select>' +
+          '<input type="number" class="advSpec-preBufferCustom" min="1" max="240" placeholder="min" style="display:' + _bufferCustomDisplay(spec.preBuffer) + ';width:100%;margin-top:2px" value="' + (parseInt(spec.preBuffer, 10) || 0) + '"></div>' +
+          '<div style="min-width:100px"><label style="font-size:0.85em">Post-buffer</label><select class="advSpec-postBuffer" style="width:100%">' + _buildBufferOptions(spec.postBuffer) + '</select>' +
+          '<input type="number" class="advSpec-postBufferCustom" min="1" max="240" placeholder="min" style="display:' + _bufferCustomDisplay(spec.postBuffer) + ';width:100%;margin-top:2px" value="' + (parseInt(spec.postBuffer, 10) || 0) + '"></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">' +
+          '<label style="min-width:60px;margin:0;font-size:0.85em">Repeat</label>' +
+          '<select class="advSpec-repeat" style="width:160px">' +
+            '<option value="none"' + (!spec.repeat || spec.repeat === 'none' ? ' selected' : '') + '>None</option>' +
+            '<option value="daily"' + (spec.repeat === 'daily' ? ' selected' : '') + '>Every day</option>' +
+            '<option value="2day"' + (spec.repeat === '2day' ? ' selected' : '') + '>Every 2 days</option>' +
+            '<option value="weekday"' + (spec.repeat === 'weekday' ? ' selected' : '') + '>Every weekday (Mon-Fri)</option>' +
+            '<option value="weekly"' + (spec.repeat === 'weekly' ? ' selected' : '') + '>Every week</option>' +
+            '<option value="monthly"' + (spec.repeat === 'monthly' ? ' selected' : '') + '>Every month</option>' +
+            '<option value="custom"' + (spec.repeat === 'custom' ? ' selected' : '') + '>Custom interval</option>' +
+            '<option value="weekday_ab"' + (spec.repeat === 'weekday_ab' ? ' selected' : '') + '>A/B weekday pattern</option>' +
+          '</select>' +
+          '<label style="min-width:40px;margin:0;font-size:0.85em">Until</label>' +
+          '<input type="date" class="advSpec-repeatUntil" value="' + (spec.repeatUntil || '') + '" style="width:150px">' +
+        '</div>' +
+        '<div class="advSpec-customRow" style="' + (spec.repeat === 'custom' ? 'display:flex;' : 'display:none;') + 'gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+          '<label style="min-width:60px;margin:0;font-size:0.85em">Every</label>' +
+          '<input type="number" class="advSpec-repeatInterval" min="1" max="30" value="' + (spec.repeatInterval || 1) + '" style="width:70px">' +
+          '<select class="advSpec-repeatUnit" style="width:110px">' +
+            '<option value="days"' + (!spec.repeatUnit || spec.repeatUnit === 'days' ? ' selected' : '') + '>Days</option>' +
+            '<option value="weeks"' + (spec.repeatUnit === 'weeks' ? ' selected' : '') + '>Weeks</option>' +
+            '<option value="months"' + (spec.repeatUnit === 'months' ? ' selected' : '') + '>Months</option>' +
+            '<option value="years"' + (spec.repeatUnit === 'years' ? ' selected' : '') + '>Years</option>' +
+          '</select>' +
+        '</div>' +
+        '<div class="advSpec-abRow" style="' + (spec.repeat === 'weekday_ab' ? 'display:flex;' : 'display:none;') + 'gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+          '<label style="min-width:100px;margin:0;font-size:0.85em">Start template</label>' +
+          '<select class="advSpec-abWeek" style="width:190px">' +
+            '<option value="a"' + (!spec.abWeek || spec.abWeek === 'a' ? ' selected' : '') + '>A week (Mon/Wed/Fri)</option>' +
+            '<option value="b"' + (spec.abWeek === 'b' ? ' selected' : '') + '>B week (Tue/Thu)</option>' +
+          '</select>' +
+          '<label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer;font-size:0.85em"><input type="checkbox" class="advSpec-abSkipHolidays"' + (spec.abSkipHolidays ? ' checked' : '') + '> Skip holidays</label>' +
+        '</div>';
+
+      var repSel = div.querySelector('.advSpec-repeat');
+      repSel.addEventListener('change', function() {
+        var mode = repSel.value;
+        div.querySelector('.advSpec-customRow').style.display = mode === 'custom' ? 'flex' : 'none';
+        div.querySelector('.advSpec-abRow').style.display = mode === 'weekday_ab' ? 'flex' : 'none';
+      });
+      _wireBufferCustomToggle(div.querySelector('.advSpec-preBuffer'), div.querySelector('.advSpec-preBufferCustom'));
+      _wireBufferCustomToggle(div.querySelector('.advSpec-postBuffer'), div.querySelector('.advSpec-postBufferCustom'));
+      div.querySelector('.adv-spec-remove').addEventListener('click', function() { div.remove(); });
+      return div;
+    }
+
+    function readAdvancedSpecs(containerId) {
+      var container = document.getElementById(containerId);
+      if (!container) return [];
+      var rows = container.querySelectorAll('.adv-spec-row');
+      var specs = [];
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var spec = {
+          time:        row.querySelector('.advSpec-time').value || '',
+          endTime:     row.querySelector('.advSpec-endTime').value || '',
+          repeat:      row.querySelector('.advSpec-repeat').value || 'none',
+          repeatUntil: row.querySelector('.advSpec-repeatUntil').value || '',
+          preBuffer:   getBufferValue(row.querySelector('.advSpec-preBuffer'), row.querySelector('.advSpec-preBufferCustom')),
+          postBuffer:  getBufferValue(row.querySelector('.advSpec-postBuffer'), row.querySelector('.advSpec-postBufferCustom'))
+        };
+        if (spec.repeat === 'custom') {
+          var n = parseInt(row.querySelector('.advSpec-repeatInterval').value, 10);
+          spec.repeatInterval = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1;
+          spec.repeatUnit = row.querySelector('.advSpec-repeatUnit').value || 'days';
+        }
+        if (spec.repeat === 'weekday_ab') {
+          spec.abWeek = row.querySelector('.advSpec-abWeek').value || 'a';
+          spec.abSkipHolidays = row.querySelector('.advSpec-abSkipHolidays').checked || false;
+        }
+        specs.push(spec);
+      }
+      return specs;
+    }
+
+    /* ── Repeat UI sync ── */
+    function syncRepeat() {
+      var val = document.getElementById('ci-repeat').value;
+      document.getElementById('ci-custom-row').classList.toggle('ci-hidden', val !== 'custom');
+      document.getElementById('ci-ab-row').classList.toggle('ci-hidden', val !== 'weekday_ab');
+    }
+
+    /* ── Bucket population ── */
+    function updateBuckets(domain, preselect) {
+      var row = document.getElementById('ci-bucket-row');
+      var sel = document.getElementById('ci-bucket');
+      if (domain === 'inbox') { row.classList.add('ci-hidden'); return; }
+      var buckets = getBuckets(domain);
+      if (!buckets.length) { row.classList.add('ci-hidden'); return; }
+      row.classList.remove('ci-hidden');
+      sel.innerHTML = '<option value="">— No bucket —</option>';
+      buckets.forEach(function(b) {
+        var opt = document.createElement('option');
+        opt.value = String(b.id);
+        opt.textContent = (b.emoji || '') + ' ' + (b.name || 'Bucket ' + b.id);
+        sel.appendChild(opt);
+      });
+      if (preselect !== undefined && preselect !== null && preselect !== '') {
+        sel.value = String(preselect);
+      }
+    }
+
+    /* ── Save logic ── */
+    function saveItem(type) {
+      var titleEl = document.getElementById('ci-title');
+      var title = titleEl ? titleEl.value.trim() : '';
+      if (!title) {
+        titleEl.focus();
+        titleEl.style.outline = '2px solid #e74c3c';
+        setTimeout(function() { titleEl.style.outline = ''; }, 1200);
+        return;
+      }
+
+      var domain   = document.getElementById('ci-domain').value;
+      var bucketSel = document.getElementById('ci-bucket');
+      var bucketId  = (bucketSel && bucketSel.value) ? parseInt(bucketSel.value, 10) : undefined;
+      var emoji     = document.getElementById('ci-emoji').value.trim();
+
+      if (domain === 'inbox') {
+        var inboxItem = { title: title, emoji: emoji, type: type, created: new Date().toISOString() };
+        if (type === 'event') {
+          inboxItem.date     = normalizeDate(document.getElementById('ci-date').value) || '';
+          inboxItem.time     = document.getElementById('ci-time').value;
+          inboxItem.endTime  = document.getElementById('ci-endtime').value;
+          inboxItem.location = document.getElementById('ci-location').value.trim();
+          var irVal = document.getElementById('ci-repeat').value;
+          if (irVal && irVal !== 'none') {
+            inboxItem.repeat      = irVal;
+            inboxItem.repeatUntil = document.getElementById('ci-repeat-until').value;
+            if (irVal === 'custom') {
+              inboxItem.repeatInterval = clampRepeatInterval('ci-repeat-interval');
+              inboxItem.repeatUnit     = document.getElementById('ci-repeat-unit').value;
+            }
+            if (irVal === 'weekday_ab') {
+              inboxItem.abWeek         = document.getElementById('ci-ab-week').value;
+              inboxItem.abSkipHolidays = document.getElementById('ci-ab-skip-holidays').checked;
+            }
+          }
+          var iAdvSpecs = readAdvancedSpecs('ci-adv-list');
+          if (iAdvSpecs.length) inboxItem.advancedSpecs = iAdvSpecs;
+        } else if (type === 'task') {
+          inboxItem.date     = normalizeDate(document.getElementById('ci-task-date').value) || '';
+          inboxItem.priority = document.getElementById('ci-priority').value;
+        } else {
+          inboxItem.date = normalizeDate(document.getElementById('ci-rem-date').value) || '';
+          inboxItem.time = document.getElementById('ci-rem-time').value;
+        }
+        var inbox = getInbox();
+        inbox.push(inboxItem);
+        setInbox(inbox);
+        setTimeout(function() { window.close(); }, 150);
+        return;
+      }
+
+      if (type === 'event') {
+        var evDate   = normalizeDate(document.getElementById('ci-date').value) || getTodayDate();
+        var evTime   = document.getElementById('ci-time').value;
+        var evEnd    = document.getElementById('ci-endtime').value;
+        var evLoc    = document.getElementById('ci-location').value.trim();
+        var evRep    = document.getElementById('ci-repeat').value || 'none';
+        var evUntil  = document.getElementById('ci-repeat-until').value;
+        var evs      = getEvents();
+        var newId    = Date.now();
+        var ev = {
+          id: newId, title: title, date: evDate, time: evTime, startTime: evTime,
+          endTime: evEnd, location: evLoc, emoji: emoji,
+          category: domain, domain: domain,
+          repeat: evRep, repeatUntil: evUntil,
+          preBuffer: 0, postBuffer: 0
+        };
+        if (evRep === 'custom') {
+          ev.repeatInterval = clampRepeatInterval('ci-repeat-interval');
+          ev.repeatUnit     = document.getElementById('ci-repeat-unit').value;
+        }
+        if (evRep === 'weekday_ab') {
+          ev.abWeek         = document.getElementById('ci-ab-week').value;
+          ev.abSkipHolidays = document.getElementById('ci-ab-skip-holidays').checked;
+        }
+        if (bucketId !== undefined && !isNaN(bucketId)) ev.bucketId = bucketId;
+        var advSpecs = readAdvancedSpecs('ci-adv-list');
+        if (advSpecs.length) ev.advancedSpecs = advSpecs;
+        evs.push(ev);
+        setEvents(evs);
+
+      } else if (type === 'task') {
+        var tDate    = normalizeDate(document.getElementById('ci-task-date').value) || '';
+        var tPrio    = document.getElementById('ci-priority').value;
+        var tasks    = getTasks();
+        var task     = { id: generateTaskId(), title: title, category: domain, domain: domain, done: false, date: tDate, priority: tPrio, emoji: emoji };
+        if (bucketId !== undefined && !isNaN(bucketId)) task.bucketId = bucketId;
+        tasks.push(task);
+        setTasks(tasks);
+
+      } else if (type === 'reminder') {
+        var rDate = normalizeDate(document.getElementById('ci-rem-date').value) || getTodayDate();
+        var rTime = document.getElementById('ci-rem-time').value;
+        var rmap  = getReminders();
+        if (!rmap[rDate]) rmap[rDate] = [];
+        var rObj  = { text: title, time: rTime, notify: 'none', domain: domain, emoji: emoji };
+        if (bucketId !== undefined && !isNaN(bucketId)) rObj.bucketId = bucketId;
+        rmap[rDate].push(rObj);
+        setReminders(rmap);
+      }
+
+      setTimeout(function() { window.close(); }, 150);
+    }
+
+    /* ── Page init ── */
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var type   = params.get('type') || 'event';
+
+      /* Read and clear pre-fill data written by parent before opening this window */
+      var data = {};
+      try { data = JSON.parse(localStorage.getItem('_createPopoutData') || '{}'); } catch(_) {}
+      try { localStorage.removeItem('_createPopoutData'); } catch(_) {}
+
+      /* Set title bar and page title */
+      var labels = { event: { icon: '📅', text: 'New Event' }, task: { icon: '✅', text: 'New Task' }, reminder: { icon: '🔔', text: 'New Reminder' } };
+      var lbl = labels[type] || labels.event;
+      document.getElementById('ci-title-icon').textContent = lbl.icon;
+      document.getElementById('ci-title-text').textContent = lbl.text;
+      document.title = lbl.text + ' — TimeScape';
+
+      /* Show correct type-specific section */
+      document.getElementById('ci-event-fields').classList.toggle('ci-hidden', type !== 'event');
+      document.getElementById('ci-task-fields').classList.toggle('ci-hidden', type !== 'task');
+      document.getElementById('ci-reminder-fields').classList.toggle('ci-hidden', type !== 'reminder');
+
+      /* Pre-fill shared fields */
+      function sv(id, val) {
+        if (val === undefined || val === null || val === '') return;
+        var el = document.getElementById(id);
+        if (el) el.value = val;
+      }
+      sv('ci-title',  data.title);
+      sv('ci-emoji',  data.emoji);
+      sv('ci-domain', data.domain || 'inbox');
+
+      /* Pre-fill type-specific fields */
+      if (type === 'event') {
+        sv('ci-date',            data.date);
+        sv('ci-time',            data.time);
+        sv('ci-endtime',         data.endTime);
+        sv('ci-location',        data.location);
+        sv('ci-repeat',          data.repeat);
+        sv('ci-repeat-until',    data.repeatUntil);
+        sv('ci-repeat-interval', data.repeatInterval);
+        sv('ci-repeat-unit',     data.repeatUnit);
+        sv('ci-ab-week',         data.abWeek);
+        if (data.abSkipHolidays) {
+          var abSkip = document.getElementById('ci-ab-skip-holidays');
+          if (abSkip) abSkip.checked = true;
+        }
+        /* Default date to today if not pre-filled */
+        var dateEl = document.getElementById('ci-date');
+        if (dateEl && !dateEl.value) dateEl.value = getTodayDate();
+        /* Wire and sync repeat UI */
+        document.getElementById('ci-repeat').addEventListener('change', syncRepeat);
+        syncRepeat();
+        /* Wire Advanced Specs add button */
+        document.getElementById('ci-adv-add').addEventListener('click', function() {
+          document.getElementById('ci-adv-list').appendChild(buildAdvSpecRow());
+        });
+      } else if (type === 'task') {
+        sv('ci-task-date', data.date);
+        sv('ci-priority',  data.priority);
+        var tdEl = document.getElementById('ci-task-date');
+        if (tdEl && !tdEl.value) tdEl.value = getTodayDate();
+      } else {
+        sv('ci-rem-date', data.date);
+        sv('ci-rem-time', data.time);
+        var rdEl = document.getElementById('ci-rem-date');
+        if (rdEl && !rdEl.value) rdEl.value = getTodayDate();
+      }
+
+      /* Domain → bucket cascade */
+      updateBuckets(data.domain || 'inbox', data.bucket);
+      document.getElementById('ci-domain').addEventListener('change', function() {
+        updateBuckets(this.value, '');
+      });
+
+      /* Cancel */
+      document.getElementById('ci-cancel').addEventListener('click', function() { window.close(); });
+
+      /* Save */
+      document.getElementById('ci-save').addEventListener('click', function() { saveItem(type); });
+
+      /* Enter on title triggers save */
+      document.getElementById('ci-title').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveItem(type); }
+      });
+
+      /* Focus the title field */
+      setTimeout(function() { document.getElementById('ci-title').focus(); }, 60);
+    })();
+  </script>
+</body>
+</html>

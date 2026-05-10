@@ -1,4 +1,5 @@
 (function () {
+<<<<<<< HEAD
   const storage = window.appStorage || {
     getItem: function (key, fallback) {
       const fb = (typeof fallback === 'undefined') ? '' : fallback;
@@ -20,6 +21,19 @@
   };
 
   const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
+=======
+  const loadEvents = (window.appUtils && window.appUtils.loadEvents) ? window.appUtils.loadEvents : function () {
+    try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (e) { return []; }
+  };
+
+  // Dynamic lookup so that expandEvents is available even if utils.js loads after this script
+  function expandEvents(startISO, endISO) {
+    if (window.appUtils && typeof window.appUtils.expandEvents === 'function') {
+      return window.appUtils.expandEvents(startISO, endISO);
+    }
+    return null;
+  }
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
 
   function getTodayDateStr() {
     const d = new Date();
@@ -69,7 +83,19 @@
     editBtn.className = 'small-btn';
     editBtn.textContent = 'Edit';
     editBtn.type = 'button';
+<<<<<<< HEAD
     editBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openEdit(ev); });
+=======
+    editBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof window.editEvent === 'function') {
+        window.editEvent(ev._baseId || ev.id, ev.occurrenceDate);
+      } else {
+        openEdit(ev);
+      }
+    });
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     actions.appendChild(editBtn);
 
     li.appendChild(emojiSpan);
@@ -90,7 +116,11 @@
 
   // Jobs helpers
   function loadJobs() {
+<<<<<<< HEAD
     try { return storage.getJSON('jobs', []) || []; } catch (_) { return []; }
+=======
+    try { return JSON.parse(localStorage.getItem('jobs') || '[]') || []; } catch (_) { return []; }
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   }
   function jobSelectEl() { return document.getElementById('eventJobId'); }
   function jobRowEl() { return document.getElementById('eventJobRow'); }
@@ -161,7 +191,11 @@
     const today = getTodayDateStr();
     const past30 = (new Date(new Date(today + 'T00:00:00').getTime() - (30*24*60*60*1000))).toISOString().slice(0,10);
     const future365 = (new Date(new Date(today + 'T00:00:00').getTime() + (365*24*60*60*1000))).toISOString().slice(0,10);
+<<<<<<< HEAD
     const events = expandEvents ? expandEvents(past30, future365) : loadEvents().slice();
+=======
+    const events = expandEvents(past30, future365) ?? loadEvents().slice();
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
 
     // events already sorted by expandEvents, but ensure stable sort
     events.sort((a,b) => {
@@ -224,7 +258,11 @@
   // Header + profile status wiring
   function resolveProfileName() {
     // try a few common keys and inputs
+<<<<<<< HEAD
     let name = storage.getItem('userName', '') || storage.getItem('settingsFullName', '') || storage.getItem('profileName', '') || '';
+=======
+    let name = localStorage.getItem('userName') || localStorage.getItem('settingsFullName') || localStorage.getItem('profileName') || '';
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     if (!name) {
       const inputs = ['userName', 'settingsFullName', 'settingsName', 'settingsFullName'];
       for (const id of inputs) {
@@ -236,11 +274,19 @@
   }
 
   function updateHeaderAndProfileStatus() {
+<<<<<<< HEAD
     const header = document.getElementById('appHeader');
     const profileStatus = document.getElementById('profileStatus');
     const name = resolveProfileName();
     if (header) {
       header.textContent = name ? `${name}'s Planner` : '📅 TimeScape Planner';
+=======
+    const headerTitle = document.getElementById('appHeaderTitle');
+    const profileStatus = document.getElementById('profileStatus');
+    const name = resolveProfileName();
+    if (headerTitle) {
+      headerTitle.textContent = name ? `${name}'s Planner` : '📅 TimeScape Planner';
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     }
     if (profileStatus) {
       profileStatus.textContent = name ? `Name set: ${name}` : 'Name not set';
@@ -257,7 +303,11 @@
       saveBtn.addEventListener('click', (e) => {
         e.preventDefault();
         const v = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
+<<<<<<< HEAD
         if (v) storage.setItem('userName', v);
+=======
+        if (v) localStorage.setItem('userName', v);
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
         updateHeaderAndProfileStatus();
         // notify other tabs
         try { window.dispatchEvent(new Event('storage')); } catch (e) {}
@@ -267,7 +317,11 @@
     if (clearBtn) {
       clearBtn.addEventListener('click', (e) => {
         e.preventDefault();
+<<<<<<< HEAD
         storage.removeItem('userName');
+=======
+        localStorage.removeItem('userName');
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
         if (nameInput) nameInput.value = '';
         updateHeaderAndProfileStatus();
         try { window.dispatchEvent(new Event('storage')); } catch (e) {}

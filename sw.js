@@ -1,14 +1,34 @@
 /* Service worker: offline shell caching + push notifications */
+<<<<<<< HEAD
 const CACHE_VERSION = 'ts-cache-v1';
 const CORE_ASSETS = [
   './',
   './index.html',
+=======
+const CACHE_VERSION = 'ts-cache-v10';
+const CORE_ASSETS = [
+  './',
+  './index.html',
+  './create-item.html',
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   './calendar.html',
   './events.html',
   './tasks.html',
   './reminders.html',
   './settings.html',
   './manifest.json',
+<<<<<<< HEAD
+=======
+  './assets/icon.svg',
+  './assets/icon-180.png',
+  './assets/icon-192.png',
+  './assets/icon-512.png',
+  './assets/shortcuts/shortcut-today.png',
+  './assets/shortcuts/shortcut-calendar.png',
+  './assets/shortcuts/shortcut-tasks.png',
+  './assets/shortcuts/shortcut-inbox.png',
+  './assets/shortcuts/shortcut-reminders.png',
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   './assets/app.css',
   './assets/app.js',
   './utils.js',
@@ -16,10 +36,20 @@ const CORE_ASSETS = [
   './daily-view.js',
   './tasks.js',
   './notifications.js',
+<<<<<<< HEAD
   './push.js'
 ];
 
 self.addEventListener('install', (event) => {
+=======
+  './push.js',
+  './calendar-advanced.js',
+  './desktop.js'
+];
+
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(CORE_ASSETS)).catch(() => undefined)
   );
@@ -78,7 +108,11 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy)).catch(() => undefined);
           return res;
         })
+<<<<<<< HEAD
         .catch(() => caches.match('./index.html'));
+=======
+        .catch(() => new Response('Network error', { status: 503, statusText: 'Service Unavailable' }));
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     })
   );
 });
@@ -96,21 +130,82 @@ self.addEventListener('push', (event) => {
   const tag = payload.tag || ('ts-' + Date.now());
   const data = payload.data || {};
 
+<<<<<<< HEAD
+=======
+  // iOS 26 / web push: notification actions for quick interaction
+  const actions = [];
+  if (data.url || payload.url) {
+    actions.push({ action: 'open', title: 'Open' });
+  }
+  if (payload.snoozeUrl || data.snoozeUrl) {
+    actions.push({ action: 'snooze', title: 'Snooze 10m' });
+  }
+  actions.push({ action: 'dismiss', title: 'Dismiss' });
+
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   const opts = {
     body,
     icon,
     badge: payload.badge || icon,
     tag,
+<<<<<<< HEAD
     data,
     renotify: !!payload.renotify,
   };
 
+=======
+    data: Object.assign({}, data, { url: data.url || payload.url || '/' }),
+    renotify: !!payload.renotify,
+    vibrate: payload.vibrate || [100, 50, 100],
+    requireInteraction: !!payload.requireInteraction,
+    silent: !!payload.silent,
+  };
+
+  // Only add actions if browser supports them (not iOS < 16.4)
+  if (actions.length) {
+    try { opts.actions = actions; } catch (_) {}
+  }
+
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   event.waitUntil(self.registration.showNotification(title, opts));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+<<<<<<< HEAD
   const target = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
+=======
+
+  const action = event.action || 'open';
+  const notifData = event.notification.data || {};
+  const target = notifData.url || '/';
+
+  // Handle snooze action: re-schedule the notification in 1 minute
+  // (Service workers may be suspended; short delays are more reliable)
+  if (action === 'snooze') {
+    const SNOOZE_DELAY = 60 * 1000; // 1 minute — reliable within SW lifetime
+    event.waitUntil(
+      new Promise((resolve) => {
+        setTimeout(() => {
+          self.registration.showNotification(event.notification.title, {
+            body: event.notification.body,
+            icon: event.notification.icon,
+            badge: event.notification.badge,
+            tag: event.notification.tag + '-snoozed',
+            data: notifData,
+            vibrate: [100, 50, 100],
+          }).then(resolve).catch(resolve);
+        }, SNOOZE_DELAY);
+      })
+    );
+    return;
+  }
+
+  // 'dismiss' — notification is already closed above
+  if (action === 'dismiss') return;
+
+  // 'open' or default — focus existing window or open new one
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       for (const client of clientList) {
@@ -120,3 +215,33 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+<<<<<<< HEAD
+=======
+
+// ── Background Sync: iCloud data sync retry ──────────────────────────────
+// Registered by icloud-sync.js when a write attempt fails because the
+// device is offline.  When connectivity is restored the browser fires this
+// event and we message every active client to re-attempt the sync.
+// Supported on iOS 16+ standalone; silently ignored on older browsers.
+self.addEventListener('sync', (event) => {
+  if (event.tag !== 'icloud-sync') return;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage({ type: 'bg-sync:icloud' }));
+    })
+  );
+});
+
+// ── Periodic Background Sync: re-arm scheduled notifications ─────────────
+// Registered by push.js with a 15-minute minimum interval.
+// On each tick we message every active client to call rescheduleAll().
+// Available on iOS 16.4+ PWA standalone; silently ignored elsewhere.
+self.addEventListener('periodicsync', (event) => {
+  if (event.tag !== 'reminder-check') return;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage({ type: 'periodicsync:reminders' }));
+    })
+  );
+});
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4

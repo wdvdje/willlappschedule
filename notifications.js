@@ -1,6 +1,10 @@
 (function () {
   // offsets in minutes
+<<<<<<< HEAD
   const OFFSETS = { none: null, at: 0, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '2h': 120, '1d': 1440 };
+=======
+  const OFFSETS = { none: null, at: 0, '5m': 5, '15m': 15, '30m': 30, '1h': 60, '2h': 120, '1d': 1440, '3d': 4320, '1w': 10080 };
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   const timers = new Map(); // key -> timeout id
 
   function el(id){ return document.getElementById(id); }
@@ -29,6 +33,7 @@
     return OFFSETS.hasOwnProperty(value) ? OFFSETS[value] : null;
   }
 
+<<<<<<< HEAD
   function getBridge() {
     return window.platformBridge || null;
   }
@@ -60,6 +65,10 @@
       try { return !!(await bridge.requestNotificationPermission()); } catch (_) {}
     }
 
+=======
+  async function ensurePermissionAndSW() {
+    try { window.pushClient && (await window.pushClient.registerSW()); } catch(_) {}
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     if (!('Notification' in window)) return false;
     if (Notification.permission === 'granted') return true;
     try {
@@ -68,6 +77,40 @@
     } catch (_) { return false; }
   }
 
+<<<<<<< HEAD
+=======
+  // Detect Notification Trigger API support (Chrome on Android / desktop)
+  function supportsTimestampTrigger() {
+    return typeof TimestampTrigger !== 'undefined' && typeof ServiceWorkerRegistration !== 'undefined';
+  }
+
+  // Registry of scheduled trigger keys so we can cancel them by tag
+  const triggerKeys = new Set();
+
+  async function scheduleTriggeredNotif(key, when, payload, reg) {
+    const title = (payload.emoji ? payload.emoji + ' ' : '') + (payload.title || 'Reminder');
+    const tag = payload.tag || key;
+    const options = {
+      body: payload.body || '',
+      tag,
+      icon: payload.icon || '/icon-192.png',
+      data: { url: payload.url || 'index.html#calendar' },
+      vibrate: [100, 50, 100],
+      showTrigger: new TimestampTrigger(when.getTime()),
+    };
+    try {
+      // Cancel any previously scheduled notification with this tag first
+      const existing = await reg.getNotifications({ tag, includeTriggered: true });
+      existing.forEach(n => n.close());
+    } catch(_) {}
+    try {
+      await reg.showNotification(title, options);
+      triggerKeys.add(tag);
+      return true;
+    } catch(_) { return false; }
+  }
+
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   async function showNotif(payload) {
     const hasPerm = await ensurePermissionAndSW();
     if (!hasPerm) return;
@@ -77,6 +120,7 @@
       tag: payload.tag || ('ts-' + Date.now()),
       icon: payload.icon || '/icon-192.png',
       data: { url: payload.url || 'index.html#calendar' },
+<<<<<<< HEAD
       renotify: false
     };
 
@@ -86,6 +130,21 @@
         const handled = await bridge.showNotification(title, options);
         if (handled) return;
       } catch (_) {}
+=======
+      renotify: false,
+      vibrate: [100, 50, 100],
+    };
+
+    // Show in-app banner if the app is in the foreground (document is visible)
+    if (typeof window.iosShowBanner === 'function' &&
+        document.visibilityState === 'visible') {
+      window.iosShowBanner(
+        (payload.emoji ? payload.emoji + ' ' : '') + (payload.title || 'Reminder'),
+        payload.body || '',
+        payload.emoji || '📅',
+        payload.url || null
+      );
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     }
 
     try {
@@ -109,6 +168,29 @@
       if (delay > -5 * 60 * 1000) setTimeout(() => showNotif(payload), 500);
       return;
     }
+<<<<<<< HEAD
+=======
+
+    // Prefer Notification Trigger API: fires even when the app is closed
+    if (supportsTimestampTrigger()) {
+      (async () => {
+        try {
+          await ensurePermissionAndSW();
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg) {
+            const ok = await scheduleTriggeredNotif(key, when, payload, reg);
+            if (ok) return; // successfully scheduled via trigger — no setTimeout needed
+          }
+        } catch(_) {}
+        // Fall back to setTimeout (in-app only)
+        const id = setTimeout(() => { timers.delete(key); showNotif(payload); }, Math.min(delay, 0x7FFFFFFF));
+        timers.set(key, id);
+      })();
+      return;
+    }
+
+    // No trigger API support — use in-app setTimeout
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     const id = setTimeout(() => {
       timers.delete(key);
       showNotif(payload);
@@ -144,7 +226,11 @@
   // schedule reminders
   function scheduleReminders() {
     let list = [];
+<<<<<<< HEAD
     try { list = storage.getJSON('reminders', {}); } catch(_) { list = []; }
+=======
+    try { list = JSON.parse(localStorage.getItem('reminders') || '{}'); } catch(_) { list = []; }
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     list = normalizeReminders(list);
     const offsetSel = readOffsetFromSelect('reminderNotify', 'none');
     list.forEach((r, idx) => {
@@ -163,6 +249,26 @@
     });
   }
 
+<<<<<<< HEAD
+=======
+  // smart default notification lead time based on event category
+  function smartOffsetMin(ev, globalOffsetVal) {
+    // If event already has an explicit notify value, respect it
+    if (ev.notify && ev.notify !== 'none') return minutesOffset(ev.notify);
+    // If global select has a value set, use it
+    if (globalOffsetVal && globalOffsetVal !== 'none') return minutesOffset(globalOffsetVal);
+    // Smart defaults by category
+    const cat = (ev.category || '').toLowerCase();
+    let base = null;
+    if (cat === 'work' || cat === 'job' || cat === 'appointment') base = 30;
+    else if (cat === 'personal' || cat === 'home' || cat === 'errands') base = 15;
+    if (base === null) return null; // 'none' — no notification
+    // Add 15 min travel buffer when event has a location
+    if (ev.location || ev.place) base += 15;
+    return base;
+  }
+
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   // schedule events (expand repeats and use eventNotify)
   function scheduleEvents() {
     const expand = window.appUtils && window.appUtils.expandEvents;
@@ -175,8 +281,12 @@
     const endISO = end.toISOString().slice(0,10);
     const events = expand ? expand(startISO, endISO) : (loadEvents().filter(e => e && e.date >= startISO && e.date <= endISO));
     events.forEach((ev, idx) => {
+<<<<<<< HEAD
       const offsetVal = ev.notify || ev.eventNotify || offsetSel || 'none';
       const offsetMin = minutesOffset(offsetVal);
+=======
+      const offsetMin = smartOffsetMin(ev, offsetSel);
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
       if (offsetMin == null) return;
       const dateISO = ev.date;
       const when = dateFromParts(dateISO, ev.startTime || '09:00');
@@ -229,7 +339,11 @@
           const offsetMin = minutesOffset(offsetVal);
           // persist the reminder so daily view and other parts see it
           if (dateISO) {
+<<<<<<< HEAD
             const parsed = storage.getJSON('reminders', {});
+=======
+            const parsed = JSON.parse(localStorage.getItem('reminders') || '{}');
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
             const reminders = normalizeReminders(parsed);
             const grouped = {};
             reminders.forEach((r) => {
@@ -239,7 +353,11 @@
             });
             if (!grouped[dateISO]) grouped[dateISO] = [];
             grouped[dateISO].push({ text: text, time: time, notify: offsetVal || 'none' });
+<<<<<<< HEAD
             storage.setJSON('reminders', grouped);
+=======
+            localStorage.setItem('reminders', JSON.stringify(grouped));
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
             // also notify listeners that watch storage (some modules rely on storage event)
             try { window.dispatchEvent(new Event('storage')); } catch (e) { /* ignore */ }
             // schedule immediate notification (if offset set)
@@ -276,6 +394,21 @@
     });
     // also re-evaluate when view changes (in case user sets offsets)
     window.addEventListener('view:show', rescheduleAll);
+<<<<<<< HEAD
+=======
+
+    // ── Periodic Background Sync message from SW ──
+    // When the browser fires a periodicsync event the SW sends this message
+    // to all active clients so they re-arm any notifications that may have
+    // been evicted from memory while the app was in the background.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (ev) => {
+        if (ev && ev.data && ev.data.type === 'periodicsync:reminders') {
+          rescheduleAll();
+        }
+      });
+    }
+>>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   }
 
   document.addEventListener('DOMContentLoaded', init);
