@@ -1,12 +1,8 @@
 {
   "name": "willlappschedule",
   "version": "0.1.0",
-<<<<<<< HEAD
   "private": true,
   "scripts": {
     "start": "node server.js"
   }
-=======
-  "private": true
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
 }

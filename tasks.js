@@ -1,5 +1,4 @@
 (function () {
-<<<<<<< HEAD
   const storage = window.appStorage || {
     getJSON: function (key, fallback) {
       try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
@@ -9,8 +8,6 @@
     }
   };
 
-=======
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   // storage keys
   const TASKS_KEY = 'tasks';
   const CATS_KEY = 'taskCategories';
@@ -40,13 +37,8 @@
 
   // helpers
   function uid(prefix = 'id') { return prefix + ':' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
-<<<<<<< HEAD
   function safeParse(key) { try { return storage.getJSON(key, []); } catch (e) { return []; } }
   function save(key, value) { storage.setJSON(key, value); }
-=======
-  function safeParse(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { return []; } }
-  function save(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   function brighten(hex, amt = 0.06) {
     // return lighter rgba background derived from hex for card bg
     if (!hex || hex[0] !== '#') return hex;

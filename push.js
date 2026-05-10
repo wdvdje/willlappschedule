@@ -5,7 +5,6 @@
 (function () {
   const SW_PATH = './sw.js';
   const LS_KEY = 'pushSubscription';
-<<<<<<< HEAD
 
   function getBridge() {
     return window.platformBridge || null;
@@ -22,10 +21,6 @@
       try { localStorage.removeItem(key); } catch (_) {}
     }
   };
-=======
-  // Minimum interval for the Periodic Background Sync re-arm check (15 minutes)
-  const REMINDER_CHECK_INTERVAL_MS = 15 * 60 * 1000;
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
 
   // helpers
   function el(id){ return document.getElementById(id); }
@@ -44,19 +39,11 @@
 
   // store subscription locally
   function saveLocal(sub) {
-<<<<<<< HEAD
     try { storage.setJSON(LS_KEY, sub); } catch(e){}
   }
   function clearLocal() { storage.removeItem(LS_KEY); }
   function getLocal() {
     try { return storage.getJSON(LS_KEY, null); } catch(e){ return null; }
-=======
-    try { localStorage.setItem(LS_KEY, JSON.stringify(sub)); } catch(e){}
-  }
-  function clearLocal() { localStorage.removeItem(LS_KEY); }
-  function getLocal() {
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch(e){ return null; }
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   }
 
   // post subscription to server (if configured)
@@ -75,7 +62,6 @@
 
   // register service worker
   async function registerSW() {
-<<<<<<< HEAD
     const bridge = getBridge();
     if (bridge && typeof bridge.registerServiceWorker === 'function') {
       try {
@@ -86,8 +72,6 @@
       }
     }
 
-=======
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     if (!('serviceWorker' in navigator)) return null;
     try {
       const reg = await navigator.serviceWorker.register(SW_PATH);
@@ -189,27 +173,7 @@
   (function init() {
     if ('serviceWorker' in navigator) {
       // try to register early but ignore errors
-<<<<<<< HEAD
       registerSW().catch(()=>{});
-=======
-      registerSW().then(function (reg) {
-        if (!reg) return;
-        // ── Periodic Background Sync: re-arm reminders every 15 minutes ──
-        // Available on iOS 16.4+ PWA standalone and Chrome on Android.
-        // Silently ignored when the API or permission is unavailable.
-        if ('periodicSync' in reg) {
-          navigator.permissions.query({ name: 'periodic-background-sync' })
-            .then(function (status) {
-              if (status.state === 'granted') {
-                return reg.periodicSync.register('reminder-check', {
-                  minInterval: REMINDER_CHECK_INTERVAL_MS
-                });
-              }
-            })
-            .catch(function () {});
-        }
-      }).catch(function () {});
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     }
     document.addEventListener('DOMContentLoaded', () => {
       wireUi();
