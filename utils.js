@@ -1,6 +1,5 @@
 // Minimal shared helpers used by other view scripts
 (function () {
-<<<<<<< HEAD
   const storage = window.appStorage || {
     getJSON: function (key, fallback) {
       try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
@@ -10,11 +9,6 @@
   function loadEvents(storageKey = 'events') {
     try {
       return storage.getJSON(storageKey, []) || [];
-=======
-  function loadEvents(storageKey = 'events') {
-    try {
-      return JSON.parse(localStorage.getItem(storageKey) || '[]') || [];
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     } catch (e) {
       return [];
     }
@@ -67,10 +61,6 @@
     };
     setIf('editKind', 'event');
     setIf('editEventId', ev.id || '');
-<<<<<<< HEAD
-=======
-    setIf('editOccurrenceDate', ''); // clear occurrence mode when using fallback path
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     setIf('editText', ev.title || '');
     setIf('editDate', ev.date || '');
     setIf('editTime', ev.startTime || ev.time || '');
@@ -85,17 +75,6 @@
       const rep = document.getElementById('editRepeat');
       if (rep) rep.dispatchEvent(new Event('change'));
     } catch (_) {}
-<<<<<<< HEAD
-=======
-    // --- populate advanced item specifications if available ---
-    try {
-      if (typeof populateAdvancedSpecs === 'function') {
-        populateAdvancedSpecs('editAdvSpecList', ev.advancedSpecs || []);
-      } else if (window.populateAdvancedSpecs) {
-        window.populateAdvancedSpecs('editAdvSpecList', ev.advancedSpecs || []);
-      }
-    } catch (_) {}
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     // --- copy job/category info (if present) into the main event form so it is visible/editable ---
     try {
       const mainCat = document.getElementById('eventCategory');
@@ -164,75 +143,6 @@
     return a <= b ? a : b;
   }
 
-<<<<<<< HEAD
-=======
-  // Build a map of dates to skip (federal holidays, user off-days, job/bucket off-days).
-  // Checks jobs first, then personalBuckets and homeBuckets, for bucket-specific off-days.
-  // Returns an object { 'YYYY-MM-DD': true, ... } or null if nothing to skip.
-  function buildSkipDatesMap(abSkipHolidays, baseDateISO, effectiveEndISO, bucketOrJobId) {
-    var skipDates = null;
-    if (abSkipHolidays) {
-      skipDates = {};
-      function _hp2(n) { return n < 10 ? '0' + n : '' + n; }
-      function _hnthWd(yr, mi, wd, n) {
-        var f = new Date(yr, mi, 1).getDay();
-        return 1 + ((7 + wd - f) % 7) + (n - 1) * 7;
-      }
-      function _hlastWd(yr, mi, wd) {
-        var last = new Date(yr, mi + 1, 0);
-        return last.getDate() - ((7 + last.getDay() - wd) % 7);
-      }
-      var startYr = parseISO(baseDateISO).getFullYear();
-      var endYr = parseISO(effectiveEndISO).getFullYear();
-      for (var yr = startYr; yr <= endYr; yr++) {
-        var fixedDates = [
-          yr + '-01-01', yr + '-06-19', yr + '-07-04', yr + '-11-11', yr + '-12-25'
-        ];
-        fixedDates.forEach(function(d) { skipDates[d] = true; });
-        skipDates[yr + '-01-' + _hp2(_hnthWd(yr, 0, 1, 3))] = true;  // MLK Day
-        skipDates[yr + '-02-' + _hp2(_hnthWd(yr, 1, 1, 3))] = true;  // Presidents' Day
-        skipDates[yr + '-05-' + _hp2(_hlastWd(yr, 4, 1))] = true;    // Memorial Day
-        skipDates[yr + '-09-' + _hp2(_hnthWd(yr, 8, 1, 1))] = true;  // Labor Day
-        skipDates[yr + '-10-' + _hp2(_hnthWd(yr, 9, 1, 2))] = true;  // Columbus Day
-        skipDates[yr + '-11-' + _hp2(_hnthWd(yr, 10, 4, 4))] = true; // Thanksgiving
-      }
-      try {
-        var userOffDays = JSON.parse(localStorage.getItem('userOffDays') || '[]');
-        if (Array.isArray(userOffDays)) {
-          userOffDays.forEach(function(d) {
-            var dateStr = typeof d === 'string' ? d : (d && d.date ? d.date : '');
-            if (dateStr) skipDates[dateStr] = true;
-          });
-        }
-      } catch(_) {}
-    }
-    // Job-specific and bucket-specific off-days
-    if (bucketOrJobId !== null && bucketOrJobId !== undefined) {
-      try {
-        var normId = (typeof bucketOrJobId === 'string') ? parseInt(bucketOrJobId, 10) : bucketOrJobId;
-        var jobs = JSON.parse(localStorage.getItem('jobs') || '[]');
-        var linkedItem = jobs.find(function(j) { return j.id === normId; }) || null;
-        // If not found in jobs, check personal and home buckets
-        if (!linkedItem) {
-          var bucketKeys = ['personalBuckets', 'homeBuckets'];
-          for (var bki = 0; bki < bucketKeys.length && !linkedItem; bki++) {
-            var blist = JSON.parse(localStorage.getItem(bucketKeys[bki]) || '[]');
-            linkedItem = blist.find(function(b) { return b.id === normId; }) || null;
-          }
-        }
-        if (linkedItem && Array.isArray(linkedItem.offDays) && linkedItem.offDays.length) {
-          if (!skipDates) skipDates = {};
-          linkedItem.offDays.forEach(function(d) {
-            var dateStr = typeof d === 'string' ? d : (d && d.date ? d.date : '');
-            if (dateStr) skipDates[dateStr] = true;
-          });
-        }
-      } catch(_) {}
-    }
-    return skipDates;
-  }
-
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   // expandEvents(startISO, endISO): returns occurrences (including non-repeating) whose date falls within [startISO,endISO]
   // Each occurrence is a shallow clone of the base event with .occurrenceDate and ._baseId set to original id.
   function expandEvents(startISO, endISO, storageKey = 'events') {
@@ -253,15 +163,7 @@
       const pushIfInRange = (dISO) => {
         const dt = parseISO(dISO);
         if (dt >= start && dt <= end) {
-<<<<<<< HEAD
           const occ = Object.assign({}, ev);
-=======
-          // Check for a per-occurrence exception override
-          const exc = ev.repeatExceptions && ev.repeatExceptions[dISO];
-          if (exc && exc._skipped) return; // this occurrence was individually deleted
-          const occ = Object.assign({}, ev);
-          if (exc) Object.assign(occ, exc); // apply any field overrides for this occurrence
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
           occ.occurrenceDate = dISO;
           occ.date = dISO; // make date property be the occurrence date for downstream code
           occ._baseId = ev.id || ev._id || null;
@@ -282,23 +184,12 @@
         const mondays = startOfWeekMonday(baseDate);
         const aDays = [1,3,5];
         const bDays = [2,4];
-<<<<<<< HEAD
-=======
-
-        // Build set of dates to skip (holidays, user off-days, job off-days)
-        var bucketOrJobId = (ev.bucketId !== undefined && ev.bucketId !== null) ? ev.bucketId : (ev.jobId ? ev.jobId : null);
-        var skipDates = buildSkipDatesMap(ev.abSkipHolidays, baseDate, effectiveEnd, bucketOrJobId);
-
-        // Build the full list of canonical A/B slot dates (ignoring off-days).
-        const canonicalSlots = [];
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
         let weekIndex = 0;
         while (weekIndex < 200) {
           const weekStart = addDaysISO(mondays, weekIndex * 7);
           if (weekStart > effectiveEnd) break;
           const useA = (firstPattern === 'a') ? (weekIndex % 2 === 0) : (weekIndex % 2 !== 0);
           const dayList = useA ? aDays : bDays;
-<<<<<<< HEAD
           dayList.forEach((weekdayNum) => {
             const occ = addDaysISO(weekStart, weekdayNum - 1);
             if (occ < baseDate) return;
@@ -307,79 +198,10 @@
           });
           weekIndex += 1;
         }
-=======
-          dayList.forEach(function(weekdayNum) {
-            canonicalSlots.push(addDaysISO(weekStart, weekdayNum - 1));
-          });
-          weekIndex += 1;
-        }
-
-        // Walk canonical slots tracking how many school days have been lost
-        // to off-days. For each canonical slot, advance that many school days
-        // forward (skipping weekends and off-days) to find the actual date.
-        //
-        // School A/B days form a continuous sequence of school days. A holiday
-        // on ANY weekday — even one that was not itself a canonical event slot —
-        // removes one day from the sequence and therefore shifts every subsequent
-        // occurrence forward by one school day.
-        //
-        // Unlike a simple calendar-day shift, advancing by school days correctly
-        // handles weekend crossings: a 1-school-day shift from Friday lands on
-        // Monday (not Saturday), without permanently inflating the shift for
-        // subsequent slots.
-        let schoolDaysLost = 0;
-        // scanFrom tracks where the inter-slot scan should begin (inclusive).
-        // It starts at baseDate so that weekday holidays between baseDate and
-        // the first canonical slot are counted, but days before baseDate are not.
-        let scanFrom = baseDate;
-        canonicalSlots.forEach(function(canonical) {
-          if (canonical < baseDate) return;
-          // Count off-days on weekdays in [scanFrom, canonical).
-          // Each such off-day removes one school day from the sequence.
-          if (skipDates) {
-            let scanDate = scanFrom;
-            while (scanDate < canonical) {
-              const sdow = parseISO(scanDate).getDay();
-              if (sdow !== 0 && sdow !== 6 && skipDates[scanDate]) {
-                schoolDaysLost++;
-              }
-              scanDate = addDaysISO(scanDate, 1);
-            }
-          }
-          // Next scan starts after this canonical slot so it is not re-scanned.
-          scanFrom = addDaysISO(canonical, 1);
-          // Check if the canonical date itself is an off-day (the inter-slot
-          // scan excludes the canonical date, so we check it separately).
-          if (skipDates && skipDates[canonical]) {
-            schoolDaysLost++;
-          }
-          // Advance schoolDaysLost school days from the canonical date.
-          // Each step skips weekends and off-days without permanently
-          // inflating the shift count.
-          let candidate = canonical;
-          let remaining = schoolDaysLost;
-          let safety = 0;
-          while (remaining > 0 && safety++ < 200) {
-            candidate = addDaysISO(candidate, 1);
-            const dow = parseISO(candidate).getDay();
-            if (dow === 0 || dow === 6) continue;
-            if (skipDates && skipDates[candidate]) continue;
-            remaining--;
-          }
-          if (candidate > effectiveEnd) return;
-          pushIfInRange(candidate);
-        });
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
         return;
       }
 
       // repeating: iterate from baseDate to end, advancing according to rule, stop at repeatUntil if present
-<<<<<<< HEAD
-=======
-      // Build skip dates (holidays, user off-days, job/bucket off-days) for this event
-      var mainBucketOrJobId = (ev.bucketId !== undefined && ev.bucketId !== null) ? ev.bucketId : (ev.jobId ? ev.jobId : null);
-      var mainSkipDates = buildSkipDatesMap(ev.abSkipHolidays, baseDate, effectiveEnd, mainBucketOrJobId);
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
       let d = baseDate;
       const maxLoop = 2000; // safety cap
       let loops = 0;
@@ -387,27 +209,11 @@
         if (loops++ > maxLoop) break;
         // stop if beyond end or beyond repeatUntil
         if (d > effectiveEnd) break;
-<<<<<<< HEAD
         // push occurrence if >= start and <= end
         pushIfInRange(d);
         // advance
         if (repeat === 'daily') d = addDaysISO(d, 1);
         else if (repeat === '2day') d = addDaysISO(d, 2);
-=======
-        // push occurrence if >= start and <= end, and not a skipped day
-        if (!mainSkipDates || !mainSkipDates[d]) {
-          pushIfInRange(d);
-        }
-        // advance
-        if (repeat === 'daily') d = addDaysISO(d, 1);
-        else if (repeat === '2day') d = addDaysISO(d, 2);
-        else if (repeat === 'weekday') {
-          d = addDaysISO(d, 1);
-          const wd = parseISO(d).getDay();
-          if (wd === 6) d = addDaysISO(d, 2);
-          else if (wd === 0) d = addDaysISO(d, 1);
-        }
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
         else if (repeat === 'weekly') d = addDaysISO(d, 7);
         else if (repeat === 'monthly') {
           d = addMonthsISO(d, 1);
@@ -425,135 +231,6 @@
         // stop when d built beyond reasonable date
         if (parseISO(d) > parseISO('2100-01-01')) break;
       }
-<<<<<<< HEAD
-=======
-
-      // ── Advanced Item Specifications: expand additional time/repeat schedules ──
-      if (Array.isArray(ev.advancedSpecs) && ev.advancedSpecs.length) {
-        ev.advancedSpecs.forEach(function(spec) {
-          var specRepeat = spec.repeat || 'none';
-          var specUntil = spec.repeatUntil || null;
-          var specCapUntil = addYearsISO(baseDate, 2);
-          var specEffEnd = minDateISO(endISO, minDateISO(specUntil, specCapUntil));
-
-          var pushSpecIfInRange = function(dISO) {
-            var dt = parseISO(dISO);
-            if (dt >= start && dt <= end) {
-              var occ = Object.assign({}, ev);
-              occ.occurrenceDate = dISO;
-              occ.date = dISO;
-              occ._baseId = ev.id || ev._id || null;
-              // Override time fields from the spec
-              occ.time = spec.time || '';
-              occ.startTime = spec.time || '';
-              occ.endTime = spec.endTime || '';
-              // Override buffer fields from the spec if provided
-              if (spec.preBuffer !== undefined) occ.preBuffer = parseInt(spec.preBuffer, 10) || 0;
-              if (spec.postBuffer !== undefined) occ.postBuffer = parseInt(spec.postBuffer, 10) || 0;
-              occ._advancedSpec = true;
-              out.push(occ);
-            }
-          };
-
-          if (!specRepeat || specRepeat === 'none') {
-            pushSpecIfInRange(baseDate);
-            return; // skip to next spec in forEach
-          }
-
-          if (specRepeat === 'weekday_ab') {
-            var specStartDow = parseISO(baseDate).getDay();
-            if (specStartDow === 0 || specStartDow === 6) return; // skip spec: weekday_ab needs a weekday start
-            var specFirstPattern = (String(spec.abWeek || 'a').toLowerCase() === 'b') ? 'b' : 'a';
-            var specMondays = startOfWeekMonday(baseDate);
-            var specADays = [1,3,5];
-            var specBDays = [2,4];
-
-            var specBucketOrJobId = (ev.bucketId !== undefined && ev.bucketId !== null) ? ev.bucketId : (ev.jobId ? ev.jobId : null);
-            var specSkipDates = buildSkipDatesMap(spec.abSkipHolidays, baseDate, specEffEnd, specBucketOrJobId);
-
-            var specCanonicalSlots = [];
-            var specWeekIndex = 0;
-            while (specWeekIndex < 200) {
-              var specWeekStart = addDaysISO(specMondays, specWeekIndex * 7);
-              if (specWeekStart > specEffEnd) break;
-              var specUseA = (specFirstPattern === 'a') ? (specWeekIndex % 2 === 0) : (specWeekIndex % 2 !== 0);
-              var specDayList = specUseA ? specADays : specBDays;
-              specDayList.forEach(function(weekdayNum) {
-                specCanonicalSlots.push(addDaysISO(specWeekStart, weekdayNum - 1));
-              });
-              specWeekIndex += 1;
-            }
-
-            var specSchoolDaysLost = 0;
-            var specScanFrom = baseDate;
-            specCanonicalSlots.forEach(function(canonical) {
-              if (canonical < baseDate) return;
-              if (specSkipDates) {
-                var scanDate = specScanFrom;
-                while (scanDate < canonical) {
-                  var sdow = parseISO(scanDate).getDay();
-                  if (sdow !== 0 && sdow !== 6 && specSkipDates[scanDate]) specSchoolDaysLost++;
-                  scanDate = addDaysISO(scanDate, 1);
-                }
-              }
-              specScanFrom = addDaysISO(canonical, 1);
-              if (specSkipDates && specSkipDates[canonical]) specSchoolDaysLost++;
-              var candidate = canonical;
-              var remaining = specSchoolDaysLost;
-              var safety = 0;
-              while (remaining > 0 && safety++ < 200) {
-                candidate = addDaysISO(candidate, 1);
-                var dow = parseISO(candidate).getDay();
-                if (dow === 0 || dow === 6) continue;
-                if (specSkipDates && specSkipDates[candidate]) continue;
-                remaining--;
-              }
-              if (candidate > specEffEnd) return;
-              pushSpecIfInRange(candidate);
-            });
-            return; // done with weekday_ab spec, skip to next spec in forEach
-          }
-
-          // Build skip dates for non-weekday_ab advanced spec repeats
-          // Uses parent event's abSkipHolidays flag and job off-days
-          var nonAbJobId = (ev.bucketId !== undefined && ev.bucketId !== null) ? ev.bucketId : (ev.jobId ? ev.jobId : null);
-          var nonAbSkipDates = buildSkipDatesMap(ev.abSkipHolidays, baseDate, specEffEnd, nonAbJobId);
-
-          var sd = baseDate;
-          var specMaxLoop = 2000; // safety cap matching base event expansion limit
-          var specLoops = 0;
-          while (true) {
-            if (specLoops++ > specMaxLoop) break;
-            if (sd > specEffEnd) break;
-            // Skip days off (holidays, user off-days, job off-days)
-            if (!nonAbSkipDates || !nonAbSkipDates[sd]) {
-              pushSpecIfInRange(sd);
-            }
-            if (specRepeat === 'daily') sd = addDaysISO(sd, 1);
-            else if (specRepeat === '2day') sd = addDaysISO(sd, 2);
-            else if (specRepeat === 'weekday') {
-              sd = addDaysISO(sd, 1);
-              var swd = parseISO(sd).getDay();
-              if (swd === 6) sd = addDaysISO(sd, 2);
-              else if (swd === 0) sd = addDaysISO(sd, 1);
-            }
-            else if (specRepeat === 'weekly') sd = addDaysISO(sd, 7);
-            else if (specRepeat === 'monthly') sd = addMonthsISO(sd, 1);
-            else if (specRepeat === 'custom') {
-              var sn = Math.max(1, Math.min(30, parseInt(spec.repeatInterval, 10) || 1));
-              var sunit = ['days','weeks','months','years'].includes(spec.repeatUnit) ? spec.repeatUnit : 'days';
-              if (sunit === 'days') sd = addDaysISO(sd, sn);
-              else if (sunit === 'weeks') sd = addDaysISO(sd, sn * 7);
-              else if (sunit === 'months') sd = addMonthsISO(sd, sn);
-              else sd = addYearsISO(sd, sn);
-            } else {
-              break;
-            }
-            if (parseISO(sd) > parseISO('2100-01-01')) break;
-          }
-        });
-      }
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     });
     // sort by date asc
     out.sort((a,b) => (a.date||'').localeCompare(b.date||''));

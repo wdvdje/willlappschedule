@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-<<<<<<< HEAD
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -14,39 +13,6 @@
 </head>
 <body>
   <header>📅 TimeScape Planner</header>
-=======
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="theme-color" content="#4a90e2" />
-  <meta name="description" content="TimeScape Planner Month — view and manage your monthly schedule at a glance." />
-  <meta name="keywords" content="calendar, schedule, planner, monthly view, iOS" />
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="TimeScape Planner — Month" />
-  <meta property="og:description" content="View and manage your monthly schedule at a glance." />
-  <meta property="og:image" content="assets/icon.svg" />
-  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
-  <link rel="manifest" href="./manifest.json" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
-  <title>TimeScape Planner — Month</title>
-  <link rel="stylesheet" href="./assets/app.css" />
-  <link rel="stylesheet" href="./assets/ios-native.css" />
-  <!-- Resolve og:image to absolute URL at runtime -->
-  <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
-  <!-- Redirect to the SPA; noscript fallback for crawlers -->
-  <script>location.replace('./index.html#calendar');</script>
-  <noscript><meta http-equiv="refresh" content="0;url=./index.html#calendar" /></noscript>
-</head>
-<body>
-  <header>
-    <a href="index.html#inbox" class="header-btn" aria-label="Inbox"><span>📥</span><span style="font-size:0.75rem">Inbox</span></a>
-    <span style="flex:1;text-align:center">📅 TimeScape Planner</span>
-    <button type="button" class="header-btn" id="headerAddItemBtn" aria-label="Add Item"><span>＋</span><span class="header-btn-label">Add</span></button>
-    <a href="index.html#settings" class="header-btn" aria-label="Settings"><span>⚙️</span><span style="font-size:0.75rem">Settings</span></a>
-  </header>
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
 
   <div class="calendar-controls">
     <button id="prevBtn">&lt;</button>
@@ -56,11 +22,7 @@
 
   <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
 
-<<<<<<< HEAD
   <div id="selectedDateArea" style="max-width:540px;margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
-=======
-  <div id="selectedDateArea" style="margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
     <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
     <div id="dayTopBars"></div>
   </div>
@@ -68,7 +30,6 @@
   <section class="dashboard">
     <h2>📊 Dashboard</h2>
     <p id="summaryStats"></p>
-<<<<<<< HEAD
     <div style="display:flex;align-items:center;gap:12px">
       <div class="progress" id="progressRing" title="Overall progress"></div>
       <div style="display:flex;flex-direction:column;align-items:flex-start">
@@ -179,36 +140,6 @@
     <a href="index.html#settings" class="r-item"><span>⚙️</span><span class="r-label">Settings</span></a>
   </nav>
 
-=======
-    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:8px;justify-content:center">
-      <div class="progress-ring-wrap" id="completionRingWrap" title="Completion">
-        <svg viewBox="0 0 44 44">
-          <circle class="ring-bg" cx="22" cy="22" r="18"/>
-          <circle class="ring-fg" id="completionRingFg" cx="22" cy="22" r="18"
-                  stroke="#4a90e2" stroke-dasharray="113.1" stroke-dashoffset="113.1"
-                  transform="rotate(-90 22 22)"/>
-          <text class="ring-pct" id="completionRingPct" x="22" y="22">0%</text>
-        </svg>
-        <span class="ring-label">Completed</span>
-      </div>
-      <div class="progress-ring-wrap" id="dayElapsedRingWrap" title="Day elapsed">
-        <svg viewBox="0 0 44 44">
-          <circle class="ring-bg" cx="22" cy="22" r="18"/>
-          <circle class="ring-fg" id="dayElapsedRingFg" cx="22" cy="22" r="18"
-                  stroke="#e67e22" stroke-dasharray="113.1" stroke-dashoffset="113.1"
-                  transform="rotate(-90 22 22)"/>
-          <text class="ring-pct" id="dayElapsedRingPct" x="22" y="22">0%</text>
-        </svg>
-        <span class="ring-label">Day Elapsed</span>
-      </div>
-    </div>
-    <div class="weekly-salary" id="weeklySalaryDisplay"></div>
-  </section>
-
-  <div id="reminderBar" aria-live="polite" style="margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>
-
-  <script src="./utils.js"></script>
->>>>>>> d0d3b2b1f29f497b52a9e4c6d83e20bbe75f6cc4
   <script src="./assets/app.js"></script>
 </body>
 </html>
