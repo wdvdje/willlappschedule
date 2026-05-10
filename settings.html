@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <link rel="icon" href="data:," />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./assets/app.css" />
+  <style>
+    /* ADDED: center only the User Profile and Jobs headings on settings page */
+    #userProfile h3, #userJobs h3 { text-align: center; }
+  </style>
+</head>
+<body>
+  <header id="appHeader">📅 TimeScape Planner</header>
+
+  <main style="max-width:640px;margin:18px auto;padding:12px;">
+    <h2 style="text-align:center">Settings</h2>
+
+    <!-- User Profile -->
+    <section id="userProfile" style="margin-top:12px">
+      <h3>User Profile</h3>
+
+      <label for="userName" style="display:block;font-weight:600;margin-top:8px">Name</label>
+      <input id="userName" type="text" placeholder="Your name" />
+
+      <!-- ADDED: profile status indicator -->
+      <div id="profileStatus" style="margin-top:6px;color:#666;font-size:0.95rem">Name not set</div>
+
+      <label for="userHome" style="display:block;font-weight:600;margin-top:8px">Home address</label>
+      <div class="places-suggestions" style="position:relative">
+        <input id="userHome" type="text" placeholder="Enter your home address" autocomplete="off" />
+        <div id="userHomeList" class="suggestions-list" style="display:none"></div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="saveProfileBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save profile</button>
+        <button id="clearProfileBtn" class="small-btn">Clear</button>
+      </div>
+
+      <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
+    </section>
+
+    <!-- Jobs -->
+    <section id="userJobs" style="margin-top:18px">
+      <h3>Jobs</h3>
+
+      <!-- Saved Jobs -->
+      <div id="savedJobs" style="margin-top:8px">
+        <h4>Saved Jobs</h4>
+        <ul id="jobList" style="list-style:none;padding:0;margin:8px 0;">
+          <!-- ... populated by JS ... -->
+        </ul>
+      </div>
+
+      <!-- Add / Edit Job -->
+      <div id="addJob" style="margin-top:16px">
+        <h4>Add Job</h4>
+        <input id="jobId" type="hidden" />
+        <label for="jobName" style="display:block;margin-top:6px;font-weight:600">Job name</label>
+        <input id="jobName" type="text" placeholder="e.g. Lawn mowing" />
+
+        <label for="jobEmoji" style="display:block;margin-top:6px;font-weight:600">Emoji</label>
+        <input id="jobEmoji" type="text" placeholder="e.g. 🚜" />
+
+        <label for="jobLocation" style="display:block;margin-top:6px;font-weight:600">Location</label>
+        <div class="places-suggestions" style="position:relative">
+          <input id="jobLocation" type="text" placeholder="Address or area" autocomplete="off" />
+          <div id="jobLocationList" class="suggestions-list" style="display:none"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <div style="flex:1">
+            <label for="jobRate" style="display:block;font-weight:600">Rate</label>
+            <input id="jobRate" type="text" placeholder="e.g. 25.00" />
+          </div>
+          <div style="width:140px">
+            <label for="jobUnit" style="display:block;font-weight:600">Unit</label>
+            <select id="jobUnit">
+              <option value="hour">hour</option>
+              <option value="job">job</option>
+              <option value="day">day</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
+          <button id="clearJobBtn" class="small-btn">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Task categories -->
+    <section id="taskCategories" style="margin-top:18px">
+      <h3 style="text-align:center">Task categories</h3>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <input id="newCategoryName" type="text" placeholder="Category name" style="flex:1" />
+        <input id="newCategoryColor" type="color" value="#ffd54f" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+        <button id="addCategoryBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+      </div>
+      <div id="categoriesList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+    </section>
+
+    <!-- Push notifications settings -->
+    <section id="pushSettings" style="margin-top:18px">
+      <h3>Push notifications</h3>
+      <label for="pushVapidKey" style="display:block;font-weight:600;margin-top:8px">VAPID Public Key (base64)</label>
+      <input id="pushVapidKey" type="text" placeholder="BEl... (optional for testing)" />
+
+      <label for="pushServerUrl" style="display:block;font-weight:600;margin-top:8px">Push server URL (optional)</label>
+      <input id="pushServerUrl" type="text" placeholder="https://example.com/save-subscription" />
+
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+        <button id="subscribePushBtn" class="small-btn" style="background:#4a90e2;color:#fff">Subscribe</button>
+        <button id="unsubscribePushBtn" class="small-btn">Unsubscribe</button>
+        <div id="pushStatus" style="margin-left:8px;color:#666">Not subscribed</div>
+      </div>
+      <div style="margin-top:8px;color:#666;font-size:0.9rem">Tip: supply a public VAPID key if you use a push server that requires VAPID.</div>
+    </section>
+
+    <section id="dataBackupSettings" style="margin-top:18px">
+      <h3>Data Backup</h3>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <button id="exportDataBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export JSON</button>
+        <select id="dataImportMode" style="width:180px">
+          <option value="overwrite">Import mode: Overwrite</option>
+          <option value="merge">Import mode: Merge</option>
+        </select>
+        <button id="importDataBtn" class="small-btn">Import JSON</button>
+        <input id="importDataFile" type="file" accept="application/json,.json" style="display:none" />
+      </div>
+      <div id="dataBackupStatus" style="margin-top:8px;color:#666;font-size:0.95rem">No backup action yet</div>
+    </section>
+  </main>
+
+  <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
+    <a href="#events" class="r-item" data-view="events"><span>📅</span><span class="r-label">Events</span></a>
+    <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
+    <a href="#calendar" class="r-item r-center" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
+    <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
+  </nav>
+
+  <!-- REPLACED: Always navigate to a cache-busted index.html so the latest build loads -->
+  <script>
+    (function () {
+      const items = document.querySelectorAll('.bottom-ribbon .r-item');
+      if (!items || !items.length) return;
+      items.forEach(a => {
+        const view = a.dataset.view || (a.getAttribute('href') || '').replace('#','') || 'calendar';
+        // set href to cache-busted target (fallback)
+        a.setAttribute('href', 'index.html?_=' + Date.now() + '#' + view);
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          // always load fresh index with the requested view
+          location.href = 'index.html?_=' + Date.now() + '#' + view;
+        }, { passive: true });
+      });
+    })();
+  </script>
+
+  <script src="./assets/app.js"></script>
+  <script src="./events-view.js"></script>
+  <script src="./push.js"></script>
+  <script src="./notifications.js"></script>
+  <!-- ADDED: tasks manager (handles categories too) -->
+  <script src="./tasks.js"></script>
+</body>
+</html>

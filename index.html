@@ -1,497 +1,918 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="theme-color" content="#4a90e2" />
+  <link rel="icon" href="data:," />
+  <link rel="manifest" href="./manifest.json" />
   <title>TimeScape Planner</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0; padding: 0;
-      background: #f5f7fa;
-      color: #333;
-      text-align: center;
-    }
-    header {
-      background: #4a90e2;
-      color: white;
-      padding: 1rem;
-      font-size: 1.5rem;
-    }
-    .calendar-controls {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin: 20px 0 0 0;
-    }
-    .calendar-controls button {
-      background: #4a90e2;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 10px;
-      font-size: 1.1rem;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .calendar-controls button:hover {
-      background: #357abd;
-    }
-    .calendar-controls span {
-      font-size: 1.25rem;
-      min-width: 160px;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
-    .calendar {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
-      padding: 10px 10px 0 10px;
-      max-width: 540px;
-      margin: 0 auto 12px auto;
-      background: #fff;
-      border-radius: 10px;
-      box-shadow: 0 1px 8px rgba(0,0,0,0.07);
-    }
-    .calendar-dayname {
-      font-weight: bold;
-      color: #4a90e2;
-      padding-bottom: 4px;
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      cursor: default;
-    }
-    .day {
-      background: white;
-      border-radius: 6px;
-      padding: 10px 0 6px 0;
-      min-height: 58px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.09);
-      cursor: pointer;
-      position: relative;
-      transition: box-shadow 0.2s;
-    }
-    .day.today {
-      outline: 2px solid #4a90e2;
-    }
-    .day.holiday {
-      background: #ffe5e3 !important;
-      color: #c0392b;
-      font-weight: bold;
-    }
-    .day.selected {
-      box-shadow: 0 2px 7px 0 #4a90e250;
-      border: 2px solid #4a90e2;
-    }
-    .day .reminder-dot {
-      width: 8px; height: 8px;
-      background: #e67e22;
-      border-radius: 50%;
-      position: absolute;
-      left: 50%;
-      bottom: 8px;
-      transform: translateX(-50%);
-      display: inline-block;
-    }
-    .tasks, .dashboard {
-      margin: 20px;
-      text-align: left;
-      max-width: 540px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-    .tasks h2, .dashboard h2 {
-      margin-bottom: 10px;
-    }
-    .progress {
-      margin: 20px auto;
-      width: 120px; height: 120px;
-      border-radius: 50%;
-      border: 10px solid #ddd;
-      border-top-color: #4a90e2;
-      transition: transform 0.3s ease;
-    }
-    input[type="text"], select {
-      padding: 8px;
-      width: 80%;
-      margin-bottom: 10px;
-      border-radius: 3px;
-      border: 1px solid #ccc;
-    }
-    button {
-      padding: 8px 12px;
-      background: #4a90e2;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    .category-work { color: #e67e22; }
-    .category-personal { color: #2ecc71; }
-    .category-errands { color: #3498db; }
-    .reminder-bar {
-      background: #fbeee6;
-      border-left: 4px solid #e67e22;
-      color: #9a6b16;
-      margin: 8px 0 0 0;
-      padding: 5px 10px;
-      border-radius: 5px;
-      font-size: 0.96rem;
-    }
-    @media (max-width: 600px) {
-      .calendar, .tasks, .dashboard { max-width: 100vw; }
-    }
+    /* filepath: /Users/williamjoyce/Documents/GitHub/willlappschedule/assets/app.css (inlined) */
+    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
+    header { background:#4a90e2; color:#fff; padding:1rem; font-size:1.25rem; position:sticky; top:0; z-index:50 }
+    main{padding-bottom:92px;}
+    .hidden{display:none}
+    .page{max-width:900px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left}
+    .calendar-controls{display:flex;gap:10px;justify-content:center;align-items:center;margin:18px 0;}
+    .calendar-controls button{background:#4a90e2;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;}
+    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;width:calc(100vw - 32px);max-width:100%;margin:0 auto 12px;background:#fff;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,0.07);box-sizing:border-box;}
+    .calendar-dayname{font-weight:700;color:#4a90e2;padding-bottom:4px}
+    .day{background:#fff;border-radius:8px;padding:8px;min-height:64px;position:relative;cursor:pointer;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; flex-direction:column; align-items:stretch;}
+    .day.selected{border:2px solid #4a90e2;box-shadow:0 2px 8px rgba(74,144,226,0.15)}
+    .day.today{outline:2px solid #4a90e2;}
+    .day .day-number{font-weight:700;display:flex;gap:6px;align-items:center;justify-content:flex-start}
+    .emoji-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding-top:6px;flex:1 1 auto;min-height:18px;max-height:48px;box-sizing:border-box}
+    .event-preview{display:inline-flex;align-items:center;justify-content:center;line-height:1;border-radius:6px;padding:2px;background:transparent;user-select:none}
+    .reminder-dot{width:8px;height:8px;border-radius:50%;background:#e67e22;display:inline-block;margin-left:6px}
+    .reminder-bar{background:#fbeee6;border-left:4px solid #e67e22;color:#9a6b16;margin:8px 0;padding:8px;border-radius:6px;font-size:0.95rem;text-align:left}
+    .reminder-bar .events-list{ margin:6px 0 0 0; padding:0; }
+    .reminder-bar .r-event{ padding:4px 0; margin:0; display:flex; gap:8px; align-items:center; font-size:0.95rem; }
+    .reminder-bar .r-event b{ margin-right:4px; }
+    .reminder-bar .r-actions{ margin-left:auto; }
+    .item-controls{margin-left:8px}
+    .small-btn{padding:4px 6px;background:#888;color:#fff;border:none;border-radius:4px;margin-left:6px;cursor:pointer}
+    input[type="text"],input[type="date"],input[type="time"],select,textarea{padding:8px;border-radius:4px;border:1px solid #ccc;width:100%;box-sizing:border-box;margin-top:6px}
+    .mobile-row{display:flex;gap:8px;align-items:center}
+    .mobile-label{display:none;font-weight:600;margin-right:8px}
+    @media (max-width:600px){ .mobile-label{display:inline-block} .calendar,.tasks,.events,.reminders{width:calc(100vw - 32px);}}
+    #editModal{position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
+    #editModal:not(.hidden){display:flex}
+    #editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
+    .event-preview.reminder { color: #e67e22; } .event-preview.task { color: green; } .reminder-dot { display:none; }
+    .places-suggestions { position:relative; }
+    .places-suggestions .suggestions-list { position:absolute; left:0; right:0; background:#fff;border:1px solid #ddd;border-radius:6px;margin-top:6px;z-index:2000; max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+    .places-suggestions .suggestions-list button{ display:block;width:100%;text-align:left;padding:8px 10px;border:0;background:transparent;cursor:pointer; }
+    .places-suggestions .suggestions-list button:hover{ background:#f2f6fb; }
+    .progress { width:64px; height:64px; border-radius:50%; border:8px solid #eee; border-top:8px solid #4a90e2; display:inline-block; margin-top:8px; transition: transform 0.4s linear; box-sizing:border-box; }
+    #dayProgressRing { border-top-color: #4a90e2; } #progressRing { border-top-color: #4a90e2; }
+    .bottom-ribbon{ position:fixed;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid #e6e6e6;display:flex;align-items:center;justify-content:space-around; box-shadow:0 -4px 18px rgba(0,0,0,0.06);z-index:999; }
+    .bottom-ribbon .r-item{ text-decoration:none;color:#333;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:6px 4px;}
+    .bottom-ribbon .r-item .r-label{ font-size:11px;margin-top:4px;display:block;}
+    .bottom-ribbon .r-item.r-center{ background:linear-gradient(0deg, rgba(74,144,226,0.06), transparent); border-radius:12px; margin:0 6px; padding:8px 6px; }
+    body { padding-bottom: 92px; }
+
+    /* ADDED: center top headings on each page */
+    .page h2 { text-align: center; margin-top: 6px; }
+
+    /* ADDED: center only the User Profile and Jobs headings on settings page */
+    #userProfile h3, #userJobs h3 { text-align: center; }
+
+    /* cat modal: keep hidden by default; show only when .hidden removed */
+    #catModal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; z-index: 9999; display: none; }
+    #catModal:not(.hidden) { display: flex; }
   </style>
 </head>
 <body>
-  <header>📅 TimeScape Planner</header>
+  <header id="appHeader">📅 TimeScape Planner</header>
+  <main>
+    <!-- Calendar page -->
+    <section id="page-calendar" class="page">
+      <div id="welcomeWrapper" style="text-align:center;margin-top:8px;">
+        <div id="welcomeText" style="font-size:1rem;color:#222;margin-bottom:6px">Welcome,</div>
+      </div>
 
-  <div class="calendar-controls">
-    <button onclick="prevMonth()">&lt;</button>
-    <span id="monthLabel"></span>
-    <button onclick="nextMonth()">&gt;</button>
-  </div>
-  <section class="calendar" id="calendar"></section>
+      <div class="calendar-controls">
+        <button id="prevBtn">&lt;</button>
+        <span id="monthLabel" aria-live="polite"></span>
+        <button id="nextBtn">&gt;</button>
+      </div>
 
-  <!-- Reminders for Selected Day -->
-  <div id="reminderBar"></div>
-  <div style="margin-bottom:18px;">
-    <input type="text" id="reminderInput" placeholder="Add reminder to selected day..." />
-    <button onclick="addReminder()">Add Reminder</button>
-  </div>
+      <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
 
-  <!-- Tasks -->
-  <section class="tasks">
-    <h2>✅ Tasks</h2>
-    <input type="text" id="newTask" placeholder="Add a task..." />
-    <select id="taskCategory">
-      <option value="work">Work</option>
-      <option value="personal">Personal</option>
-      <option value="errands">Errands</option>
-    </select>
-    <button onclick="addTask()">Add</button>
-    <ul id="taskList"></ul>
-  </section>
+      <div id="selectedDateArea" style="max-width:720px;margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
+        <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
 
-  <!-- Dashboard -->
-  <section class="dashboard">
-    <h2>📊 Dashboard</h2>
-    <p id="summaryStats"></p>
-    <div class="progress" id="progressRing" title="0% complete"></div>
-  </section>
+        <!-- existing top bars (holidays/events summary) -->
+        <div id="dayTopBars"></div>
 
-  <script>
-    // Calendar state
-    let selectedMonth, selectedYear, selectedDay = null;
-    const calendar = document.getElementById('calendar');
-    const monthLabel = document.getElementById('monthLabel');
-    const reminderBar = document.getElementById('reminderBar');
-    const reminderInput = document.getElementById('reminderInput');
+        <!-- Daily view controls -->
+        <div id="dailyViewControls" style="display:flex;gap:8px;align-items:center;margin:10px 0;">
+          <label style="font-weight:600;margin:0 6px 0 0">Show</label>
+          <select id="dayPartSelect" aria-label="Select part of day" style="padding:6px;border-radius:6px">
+            <option value="morning">🌅 Morning (01:00–09:00)</option>
+            <option value="day">☀️ Day (09:00–17:00)</option>
+            <option value="night">🌙 Night (17:00–01:00)</option>
+          </select>
+          <div style="margin-left:auto;color:#666;font-size:0.95rem" id="dailyViewInfo"></div>
+        </div>
 
-    // Month names
-    const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    const weekdayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        <!-- Hourly grid container -->
+        <div id="dailyView" aria-live="polite" style="background:#fff;border-radius:10px;padding:8px;border:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
+          <!-- hourly rows will be rendered here by JS -->
+        </div>
+      </div>
 
-    // Pastel themes per month
-    const themes = [
-      { weekday: '#cce5ff', weekend: '#e0ccff' }, // Jan
-      { weekday: '#ffd6e0', weekend: '#e6ccff' }, // Feb
-      { weekday: '#d6f5d6', weekend: '#cce0ff' }, // Mar
-      { weekday: '#fff0b3', weekend: '#ffd9b3' }, // Apr
-      { weekday: '#e6ffe6', weekend: '#ccf2ff' }, // May
-      { weekday: '#ffe6cc', weekend: '#ffcccc' }, // Jun
-      { weekday: '#fff5cc', weekend: '#ffd6cc' }, // Jul
-      { weekday: '#e6f7ff', weekend: '#d9e6f2' }, // Aug
-      { weekday: '#ffe6b3', weekend: '#ffccb3' }, // Sep
-      { weekday: '#ffd9b3', weekend: '#e6ccb3' }, // Oct
-      { weekday: '#e6f0ff', weekend: '#d6e6f5' }, // Nov
-      { weekday: '#ffcccc', weekend: '#ccffcc' }  // Dec
-    ];
-
-    // Example holidays: { 'MM-DD': { name: 'Holiday Name', emoji: '🎉' } }
-    // Add basic US holidays and emojis
-    const holidays = {
-      '01-01': { name: "New Year's Day", emoji: '🎆' },
-      '01-15': { name: "Martin Luther King Jr. Day", emoji: '✊🏿' }, // 3rd Monday in Jan, but fixed date here for demo
-      '02-14': { name: "Valentine's Day", emoji: '❤️' },
-      '02-19': { name: "Presidents' Day", emoji: '🇺🇸' }, // 3rd Monday in Feb, fixed date
-      '03-17': { name: "St. Patrick's Day", emoji: '🍀' },
-      '04-01': { name: "April Fool's Day", emoji: '🤡' },
-      '05-05': { name: "Cinco de Mayo", emoji: '🪇' },
-      '05-27': { name: "Memorial Day", emoji: '🪖' }, // Last Monday in May, fixed date
-      '06-19': { name: "Juneteenth", emoji: '🖤' },
-      '07-04': { name: "Independence Day", emoji: '🎇' },
-      '09-02': { name: "Labor Day", emoji: '⚒️' }, // 1st Mon in Sep, fixed date
-      '10-14': { name: "Columbus Day", emoji: '🧭' }, // 2nd Mon in Oct, fixed date
-      '10-31': { name: "Halloween", emoji: '🎃' },
-      '11-11': { name: "Veterans Day", emoji: '🎖️' },
-      '11-28': { name: "Thanksgiving", emoji: '🦃' }, // 4th Thu in Nov, fixed date
-      '12-24': { name: "Christmas Eve", emoji: '🎄' },
-      '12-25': { name: "Christmas Day", emoji: '🎅' },
-      '12-31': { name: "New Year's Eve", emoji: '🎉' }
-    };
-
-    function pad2(num) {
-      return num < 10 ? '0' + num : '' + num;
-    }
-
-    function todayKey() {
-      const now = new Date();
-      return `${now.getFullYear()}-${pad2(now.getMonth()+1)}-${pad2(now.getDate())}`;
-    }
-
-    // Reminders stored as { [YYYY-MM-DD]: ["reminder text 1", ...] }
-    function getReminders() {
-      return JSON.parse(localStorage.getItem('reminders') || '{}');
-    }
-    function setReminders(data) {
-      localStorage.setItem('reminders', JSON.stringify(data));
-    }
-    function addReminder() {
-      if (!selectedDay) {
-        alert('Select a day in the calendar first!');
-        return;
-      }
-      const txt = reminderInput.value.trim();
-      if (!txt) return;
-      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(selectedDay)}`;
-      const reminders = getReminders();
-      if (!reminders[key]) reminders[key] = [];
-      reminders[key].push(txt);
-      setReminders(reminders);
-      reminderInput.value = '';
-      showReminders(selectedDay);
-      generateCalendar(); // update dots
-    }
-    function showReminders(day) {
-      selectedDay = day;
-      // Update selected UI
-      [...calendar.children].forEach(cell => {
-        if (cell.classList.contains('day')) {
-          if (parseInt(cell.dataset.day) === day) cell.classList.add('selected');
-          else cell.classList.remove('selected');
-        }
-      });
-      // Show reminders for this day
-      const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-      const reminders = getReminders();
-      const items = reminders[key] || [];
-
-      // Holiday info
-      const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
-      let holidayHTML = '';
-      if (holidays[keyMMDD]) {
-        const h = holidays[keyMMDD];
-        holidayHTML = `
-          <div class="reminder-bar" style="background:#ffe5e3;border-left:4px solid #c0392b;color:#c0392b;">
-            <b>${h.emoji} ${h.name}</b>
+      <section class="dashboard">
+        <h2 id="dashboardHeading">📊 Dashboard</h2>
+        <p id="summaryStats"></p>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div class="progress" id="progressRing" title="Overall progress"></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-start">
+            <div style="font-size:0.95rem;color:#444;">Selected day</div>
+            <div class="progress" id="dayProgressRing" title="Selected-day progress"></div>
           </div>
-        `;
-      }
+        </div>
+      </section>
 
-      let remindersHTML = '';
-      if (items.length > 0) {
-        remindersHTML = `
-          <div class="reminder-bar">
-            <b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b>
-            <ul style="margin:0 0 0 14px;padding:0 0 0 0;">
-              ${items.map(r => `<li>${r}</li>`).join('')}
+      <div id="reminderBar" aria-live="polite" style="max-width:540px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>
+    </section>
+
+    <!-- Events page -->
+    <section id="page-events" class="page hidden">
+      <h2>📅 Events</h2>
+      <form id="eventForm">
+        <input id="eventTitle" type="text" placeholder="Event title" required />
+
+        <!-- Date input with overlay label -->
+        <div class="overlay-input" style="margin-top:8px">
+          <input id="eventDate" type="date" class="overlay-field" required />
+          <span class="overlay-label">Date</span>
+        </div>
+
+        <!-- Start time input with overlay -->
+        <div class="overlay-input" style="margin-top:8px;display:inline-block;width:48%;box-sizing:border-box">
+          <input id="eventTime" type="time" class="overlay-field" />
+          <span class="overlay-label">Start time</span>
+        </div>
+
+        <!-- End time input with overlay -->
+        <div class="overlay-input" style="margin-top:8px;display:inline-block;width:48%;box-sizing:border-box">
+          <input id="eventEndTime" type="time" class="overlay-field" />
+          <span class="overlay-label">End time</span>
+        </div>
+
+        <div class="places-suggestions" style="margin-top:8px">
+          <input id="eventLocation" type="text" placeholder="Location" autocomplete="off" autocorrect="off" autocapitalize="off" />
+          <div id="eventLocationList" class="suggestions-list" style="display:none"></div>
+        </div>
+
+        <input id="eventEmoji" type="text" placeholder="Emoji (e.g. 🎉)" style="margin-top:8px;width:36%" />
+
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+          <label style="min-width:90px;margin:0">Repeat</label>
+          <select id="eventRepeat" style="width:200px">
+            <option value="none">None</option>
+            <option value="daily">Every day</option>
+            <option value="2day">Every 2 days</option>
+            <option value="weekly">Every week</option>
+            <option value="monthly">Every month</option>
+            <option value="custom">Custom interval</option>
+            <option value="weekday_ab">A/B weekday pattern</option>
+          </select>
+          <label style="min-width:90px;margin:0">Until</label>
+          <input id="eventRepeatUntil" type="date" style="width:180px" />
+        </div>
+
+        <details id="eventRecurrenceAdvanced" style="margin-top:8px">
+          <summary style="cursor:pointer;font-weight:600">Advanced recurrence</summary>
+          <div id="eventRepeatCustomRow" style="display:none;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+            <label style="min-width:90px;margin:0">Every</label>
+            <input id="eventRepeatInterval" type="number" min="1" max="30" value="1" style="width:90px" />
+            <select id="eventRepeatUnit" style="width:130px">
+              <option value="days">Days</option>
+              <option value="weeks">Weeks</option>
+              <option value="months">Months</option>
+              <option value="years">Years</option>
+            </select>
+          </div>
+          <div id="eventRepeatABRow" style="display:none;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+            <label style="min-width:120px;margin:0">Start template</label>
+            <select id="eventABWeek" style="width:220px">
+              <option value="a">A week (Mon/Wed/Fri)</option>
+              <option value="b">B week (Tue/Thu)</option>
+            </select>
+          </div>
+        </details>
+
+        <!-- Category -->
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+          <label style="min-width:90px;margin:0">Category</label>
+          <select id="eventCategory" name="eventCategory" style="width:200px">
+            <option value="event">Events</option>
+            <option value="appointment">Appointments</option>
+            <option value="job">Jobs</option>
+            <option value="holiday">Holiday</option>
+            <option value="commitment">Commitment</option>
+          </select>
+        </div>
+        <!-- Job picker (shown only when Category = Jobs) -->
+        <div id="eventJobRow" style="margin-top:8px;display:none;align-items:center;gap:8px">
+          <label style="min-width:90px;margin:0">Job</label>
+          <select id="eventJobId" name="eventJobId" style="width:260px">
+            <option value="">Select a job…</option>
+          </select>
+        </div>
+        <!-- Hidden snapshot fields attached to the event so later earnings can be computed -->
+        <input type="hidden" id="eventJobName" name="eventJobName" />
+        <input type="hidden" id="eventJobRate" name="eventJobRate" />
+        <input type="hidden" id="eventJobUnit" name="eventJobUnit" />
+        <input type="hidden" id="eventJobEmoji" name="eventJobEmoji" />
+        <input type="hidden" id="eventJobLocation" name="eventJobLocation" />
+        <div style="margin-top:8px"><button id="addEventBtn" type="submit">Add Event</button></div>
+      </form>
+      <ul id="eventList" style="margin-top:12px"></ul>
+    </section>
+
+    <!-- Reminders page -->
+    <section id="page-reminders" class="page hidden">
+      <h2>⏰ Reminders</h2>
+      <div id="reminderBarPage" aria-live="polite"></div>
+      <form id="reminderForm" style="margin-top:12px">
+        <div class="mobile-row" style="gap:8px;align-items:center">
+          <label class="mobile-label" for="reminderDate">Date</label>
+          <input id="reminderDate" type="date" />
+        </div>
+        <div style="margin-top:8px" class="mobile-row">
+          <label class="mobile-label" for="reminderInput">Reminder</label>
+          <input type="text" id="reminderInput" placeholder="Add reminder..." />
+        </div>
+        <div style="margin-top:8px" class="mobile-row">
+          <label class="mobile-label" for="reminderTime">Time</label>
+          <input type="time" id="reminderTime" style="width:36%" />
+          <button id="addReminderBtn" type="submit" style="width:auto;margin-left:8px">Add Reminder</button>
+        </div>
+        <div style="margin-top:8px" class="mobile-row">
+          <label class="mobile-label" for="reminderNotify">Notify</label>
+          <select id="reminderNotify" style="width:48%">
+            <option value="none">None</option>
+            <option value="at">At time</option>
+            <option value="5m">5 minutes before</option>
+            <option value="15m">15 minutes before</option>
+            <option value="30m">30 minutes before</option>
+            <option value="1h">1 hour before</option>
+            <option value="2h">2 hours before</option>
+            <option value="1d">1 day before</option>
+          </select>
+        </div>
+      </form>
+    </section>
+
+    <!-- Tasks page -->
+    <section id="page-tasks" class="page hidden">
+      <h2>✅ Tasks</h2>
+      <form id="taskForm">
+        <button id="toggleTaskInputsBtn" type="button" class="small-btn">New Task</button>
+        <div id="taskFormFields" style="display:none">
+          <input id="newTask" type="text" placeholder="Add a task..." required />
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <!-- category select populated by tasks.js -->
+            <select id="taskCategory" style="width:30%">
+              <option value="">No category</option>
+            </select>
+            <button id="quickCatToggleBtn" type="button" class="small-btn">+ Category</button> <!-- opens modal -->
+            <!-- Date with overlay label -->
+            <div class="overlay-input" style="flex:1">
+              <input id="taskDate" type="date" class="overlay-field" />
+              <span class="overlay-label">Date</span>
+            </div>
+            <!-- Time with overlay label -->
+            <div class="overlay-input" style="width:120px">
+              <input id="taskTime" type="time" class="overlay-field" />
+              <span class="overlay-label">Time</span>
+            </div>
+          </div>
+          <!-- note: quick category input now in modal (see #catModal below) -->
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <select id="taskPriority" style="width:120px"><option value="1">!</option><option value="2">!!</option><option value="3">!!!</option></select>
+            <button id="addTaskBtn" type="submit">Add</button>
+          </div>
+        </div>
+      </form>
+
+      <!-- New: card container for tasks -->
+      <div id="tasksContainer" style="margin-top:12px;display:flex;flex-direction:column;gap:10px"></div>
+    </section>
+
+    <!-- Category modal (used by Tasks page) -->
+    <div id="catModal" class="hidden" role="dialog" aria-modal="true">
+      <div style="background:#fff;padding:12px;border-radius:8px;width:320px;box-shadow:0 8px 30px rgba(0,0,0,0.15)">
+        <h3 style="margin:0 0 8px 0">Add category</h3>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <input id="catNameInput" type="text" placeholder="Category name" />
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="margin:0">Color</label>
+            <input id="catColorInput" type="color" value="#ffd54f" />
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
+            <button id="catCancelBtn" type="button" class="small-btn">Cancel</button>
+            <button id="catAddBtn" type="button" style="background:#4a90e2;color:#fff;border:none;padding:6px 10px;border-radius:6px">Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings page -->
+    <section id="page-settings" class="page hidden">
+      <h2 style="text-align:center">Settings</h2>
+
+      <main style="max-width:640px;margin:18px auto;padding:12px;">
+        <!-- User Profile -->
+        <section id="userProfile" style="margin-top:12px">
+          <h3>User Profile</h3>
+
+          <label for="userName" style="display:block;font-weight:600;margin-top:8px">Name</label>
+          <input id="userName" type="text" placeholder="Your name" />
+
+          <!-- ADDED: profile status indicator -->
+          <div id="profileStatus" style="margin-top:6px;color:#666;font-size:0.95rem">Name not set</div>
+
+          <label for="userHome" style="display:block;font-weight:600;margin-top:8px">Home address</label>
+          <div class="places-suggestions" style="position:relative">
+            <input id="userHome" type="text" placeholder="Enter your home address" autocomplete="off" />
+            <div id="userHomeList" class="suggestions-list" style="display:none"></div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="saveProfileBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save profile</button>
+            <button id="clearProfileBtn" class="small-btn">Clear</button>
+          </div>
+
+          <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
+        </section>
+
+        <!-- Jobs -->
+        <section id="userJobs" style="margin-top:18px">
+          <h3>Jobs</h3>
+
+          <!-- Saved Jobs -->
+          <div id="savedJobs" style="margin-top:8px">
+            <h4>Saved Jobs</h4>
+            <ul id="jobList" style="list-style:none;padding:0;margin:8px 0;">
+              <!-- ... populated by JS ... -->
             </ul>
           </div>
-        `;
-      }
-      reminderBar.innerHTML = holidayHTML + remindersHTML;
-    }
 
-    function generateCalendar() {
-      calendar.innerHTML = '';
-      // Display month/year
-      monthLabel.textContent = `${monthNames[selectedMonth]} ${selectedYear}`;
+          <!-- Add / Edit Job -->
+          <div id="addJob" style="margin-top:16px">
+            <h4>Add Job</h4>
+            <input id="jobId" type="hidden" />
+            <label for="jobName" style="display:block;margin-top:6px;font-weight:600">Job name</label>
+            <input id="jobName" type="text" placeholder="e.g. Lawn mowing" />
 
-      // Add weekday names
-      for (let d = 0; d < 7; d++) {
-        const dayName = document.createElement('div');
-        dayName.className = 'calendar-dayname';
-        dayName.textContent = weekdayNames[d];
-        calendar.appendChild(dayName);
-      }
+            <label for="jobEmoji" style="display:block;margin-top:6px;font-weight:600">Emoji</label>
+            <input id="jobEmoji" type="text" placeholder="e.g. 🚜" />
 
-      // 1st day of month
-      const firstDay = new Date(selectedYear, selectedMonth, 1);
-      const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-      const startDay = firstDay.getDay(); // 0=Sun
+            <label for="jobLocation" style="display:block;margin-top:6px;font-weight:600">Location</label>
+            <div class="places-suggestions" style="position:relative">
+              <input id="jobLocation" type="text" placeholder="Address or area" autocomplete="off" />
+              <div id="jobLocationList" class="suggestions-list" style="display:none"></div>
+            </div>
 
-      // Get today's date for highlighting
-      const today = new Date();
-      const isCurrentMonth = today.getFullYear() === selectedYear && today.getMonth() === selectedMonth;
+            <div style="display:flex;gap:8px;margin-top:8px">
+              <div style="flex:1">
+                <label for="jobRate" style="display:block;font-weight:600">Rate</label>
+                <input id="jobRate" type="text" placeholder="e.g. 25.00" />
+              </div>
+              <div style="width:140px">
+                <label for="jobUnit" style="display:block;font-weight:600">Unit</label>
+                <select id="jobUnit">
+                  <option value="hour">hour</option>
+                  <option value="job">job</option>
+                  <option value="day">day</option>
+                </select>
+              </div>
+            </div>
 
-      // Get reminders for dots
-      const reminders = getReminders();
+            <div style="display:flex;gap:8px;margin-top:10px">
+              <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
+              <button id="clearJobBtn" class="small-btn">Clear</button>
+            </div>
+          </div>
+        </section>
 
-      // Add blanks for days before the 1st
-      for (let i = 0; i < startDay; i++) {
-        const blank = document.createElement('div');
-        calendar.appendChild(blank);
-      }
+        <!-- ADDED: PouchDB sync settings -->
+        <section id="pouchSyncSettings" style="margin-top:18px">
+          <h3>Sync (PouchDB)</h3>
+          <label for="syncHost" style="display:block;font-weight:600">CouchDB Host</label>
+          <input id="syncHost" type="text" placeholder="e.g. couch.example.com" />
+          <label for="syncPort" style="display:block;font-weight:600;margin-top:8px">Port</label>
+          <input id="syncPort" type="text" placeholder="e.g. 5984" />
+          <label for="syncHttps" style="display:block;font-weight:600;margin-top:8px">Use HTTPS</label>
+          <input id="syncHttps" type="checkbox" />
+          <label for="syncUser" style="display:block;font-weight:600;margin-top:8px">Username</label>
+          <input id="syncUser" type="text" placeholder="e.g. admin" />
+          <label for="syncPass" style="display:block;font-weight:600;margin-top:8px">Password</label>
+          <input id="syncPass" type="password" placeholder="e.g. password" />
+          <label for="saveCreds" style="display:block;font-weight:600;margin-top:8px">Save Credentials</label>
+          <input id="saveCreds" type="checkbox" />
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button id="startSyncBtn" class="small-btn" style="background:#4a90e2;color:#fff">Start sync</button>
+            <button id="stopSyncBtn" class="small-btn">Stop sync</button>
+            <button id="importNowBtn" class="small-btn">Import now</button>
+          </div>
+          <div id="pouchSyncStatus" style="margin-top:8px;color:#666;font-size:0.95rem">Not syncing</div>
+        </section>
 
-      // Render days
-      const theme = themes[selectedMonth];
-      for (let day = 1; day <= daysInMonth; day++) {
-        const date = new Date(selectedYear, selectedMonth, day);
-        const dayOfWeek = date.getDay();
-        const keyMMDD = pad2(selectedMonth+1) + '-' + pad2(day);
-        const keyYYYYMMDD = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+        <section id="dataBackupSettings" style="margin-top:18px">
+          <h3>Data Backup</h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+            <button id="exportDataBtn" class="small-btn" style="background:#4a90e2;color:#fff">Export JSON</button>
+            <select id="dataImportMode" style="width:180px">
+              <option value="overwrite">Import mode: Overwrite</option>
+              <option value="merge">Import mode: Merge</option>
+            </select>
+            <button id="importDataBtn" class="small-btn">Import JSON</button>
+            <input id="importDataFile" type="file" accept="application/json,.json" style="display:none" />
+          </div>
+          <div id="dataBackupStatus" style="margin-top:8px;color:#666;font-size:0.95rem">No backup action yet</div>
+        </section>
+      </main>
+    </section>
+  </main>
 
-        const cell = document.createElement('div');
-        cell.className = 'day';
-        cell.dataset.day = day;
+  <!-- Edit modal used by all pages -->
+  <div id="editModal" role="dialog" aria-modal="true" class="hidden">
+    <div class="panel">
+      <h3 id="editModalHeading">Edit</h3>
+      <form id="editForm">
+        <input type="hidden" id="editKind" />
+        <input type="hidden" id="editEventId" />
+        <input type="hidden" id="editTaskIndex" />
+        <input type="hidden" id="editReminderKey" />
+        <input type="hidden" id="editReminderIndex" />
+        <div style="margin-top:8px;">
+          <label for="editText">Text / Title</label>
+          <input id="editText" type="text" />
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div style="flex:1"><label for="editDate">Date</label><input id="editDate" type="date" /></div>
+          <div style="width:140px"><label for="editTime">Time</label><input id="editTime" type="time" /></div>
+          <div style="width:140px"><label for="editEndTime">End</label><input id="editEndTime" type="time" /></div>
+        </div>
 
-        // Color for today
-        if (isCurrentMonth && day === today.getDate()) cell.classList.add('today');
+        <!-- Repeat controls in edit modal -->
+        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+          <label style="min-width:90px;margin:0">Repeat</label>
+          <select id="editRepeat" style="width:160px">
+            <option value="none">None</option>
+            <option value="daily">Every day</option>
+            <option value="2day">Every 2 days</option>
+            <option value="weekly">Every week</option>
+            <option value="monthly">Every month</option>
+            <option value="custom">Custom interval</option>
+            <option value="weekday_ab">A/B weekday pattern</option>
+          </select>
+          <label style="min-width:90px;margin:0">Until</label>
+          <input id="editRepeatUntil" type="date" style="width:160px" />
+        </div>
 
-        // Holiday highlight and emoji
-        if (holidays[keyMMDD]) {
-          const h = holidays[keyMMDD];
-          cell.classList.add('holiday');
-          cell.title = h.name;
-          cell.style.backgroundColor = theme.weekend; // Make holidays match weekend color!
-          cell.innerHTML = `${day} <span style="font-size:1.2em">${h.emoji}</span>`;
-        } else {
-          cell.textContent = day;
-          if (dayOfWeek === 0 || dayOfWeek === 6) {
-            cell.style.backgroundColor = theme.weekend;
+        <div id="editRepeatCustomRow" style="display:none;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+          <label style="min-width:90px;margin:0">Every</label>
+          <input id="editRepeatInterval" type="number" min="1" max="30" value="1" style="width:90px" />
+          <select id="editRepeatUnit" style="width:130px">
+            <option value="days">Days</option>
+            <option value="weeks">Weeks</option>
+            <option value="months">Months</option>
+            <option value="years">Years</option>
+          </select>
+        </div>
+
+        <div id="editRepeatABRow" style="display:none;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+          <label style="min-width:120px;margin:0">Start template</label>
+          <select id="editABWeek" style="width:220px">
+            <option value="a">A week (Mon/Wed/Fri)</option>
+            <option value="b">B week (Tue/Thu)</option>
+          </select>
+        </div>
+
+        <div id="editFieldsExtra" style="margin-top:8px">
+          <div style="margin-top:8px">
+            <label for="editLocation">Location</label>
+            <div class="places-suggestions" style="margin-top:8px">
+              <input id="editLocation" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" />
+              <div id="editLocationList" class="suggestions-list" style="display:none"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <div style="flex:1"><label for="editEmoji">Emoji</label><input id="editEmoji" type="text" placeholder="🎉" /></div>
+            <div style="width:140px"><label for="editCategory">Category</label><select id="editCategory"><option value="work">work</option><option value="personal">personal</option><option value="errands">errands</option></select></div>
+            <div style="width:120px"><label for="editPriority">Priority</label><select id="editPriority"><option value="1">!</option><option value="2">!!</option><option value="3">!!!</option></select></div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+            <div style="flex:1"><label for="editPreBuffer">Pre-buffer</label>
+              <select id="editPreBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option></select>
+            </div>
+            <div style="width:140px"><label for="editPostBuffer">Post-buffer</label>
+              <select id="editPostBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option></select>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+          <button type="button" id="cancelEdit" class="small-btn">Cancel</button>
+          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- bottom ribbon navigation -->
+  <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
+    <a href="#events" class="r-item" data-view="events"><span>📅</span><span class="r-label">Events</span></a>
+    <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
+    <a href="#calendar" class="r-item r-center" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
+    <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
+  </nav>
+
+  <!-- Ensure ribbon links always target a cache-busted index.html, but avoid full reload when already on index -->
+  <script>
+  (function () {
+    const items = document.querySelectorAll('.bottom-ribbon .r-item');
+    if (!items || !items.length) return;
+    const now = Date.now();
+    items.forEach(a => {
+      const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '') || 'calendar';
+      // set href to cache-busted target so navigating from other pages loads newest index.html
+      a.setAttribute('href', 'index.html?_=' + now + '#' + view);
+    });
+
+    // Intercept clicks when already on index.html to use SPA router
+    items.forEach(a => {
+      a.addEventListener('click', (e) => {
+        const path = location.pathname.split('/').pop();
+        const view = a.dataset.view || (a.getAttribute('href') || '').split('#')[1] || 'calendar';
+        if (path === '' || path === 'index.html') {
+          // already on index: prevent reload, update hash and trigger hashchange so router shows view
+          e.preventDefault();
+          if (location.hash.replace('#','') !== view) {
+            location.hash = view;
+            // trigger router if it listens to hashchange
+            window.dispatchEvent(new Event('hashchange'));
           } else {
-            cell.style.backgroundColor = theme.weekday;
+            // still call router show via dispatch so UI refreshes if needed
+            window.dispatchEvent(new Event('hashchange'));
           }
         }
+        // otherwise allow default navigation to cache-busted index.html target
+      }, { passive: true });
+    });
+  })();
+  </script>
 
-        // Dot if reminders (add after emoji if holiday)
-        if (reminders[keyYYYYMMDD] && reminders[keyYYYYMMDD].length > 0) {
-          const dot = document.createElement('span');
-          dot.className = 'reminder-dot';
-          cell.appendChild(dot);
-        }
+  <!-- load canonical app script -->
+  <script src="./assets/app.js"></script>
 
-        // Select handler
-        cell.onclick = () => showReminders(day);
+  <!-- ADDED: ensure latest view scripts load and SPA routing (cache-bust + client router) -->
+  <script>
+  (function () {
+    const viewSrcs = ['./utils.js','./events-view.js','./daily-view.js'];
 
-        // Selected day
-        if (selectedDay === day) {
-          cell.classList.add('selected');
-        }
+    // remove existing script tags that match base src (so we can reload fresh)
+    document.querySelectorAll('script[src]').forEach(s => {
+      const base = s.getAttribute('src').replace(/\?.*$/, '');
+      if (viewSrcs.includes(base)) s.remove();
+    });
 
-        calendar.appendChild(cell);
-      }
-    }
-
-    function prevMonth() {
-      if (selectedMonth === 0) {
-        selectedMonth = 11;
-        selectedYear--;
-      } else {
-        selectedMonth--;
-      }
-      selectedDay = null;
-      reminderBar.innerHTML = '';
-      generateCalendar();
-    }
-    function nextMonth() {
-      if (selectedMonth === 11) {
-        selectedMonth = 0;
-        selectedYear++;
-      } else {
-        selectedMonth++;
-      }
-      selectedDay = null;
-      reminderBar.innerHTML = '';
-      generateCalendar();
-    }
-
-    // --- TASKS (unchanged) ---
-    const taskList = document.getElementById('taskList');
-    const progressRing = document.getElementById('progressRing');
-    const summaryStats = document.getElementById('summaryStats');
-
-    function loadTasks() {
-      const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-      taskList.innerHTML = '';
-      tasks.forEach((task, index) => {
-        const li = document.createElement('li');
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = task.done;
-        cb.onchange = () => {
-          tasks[index].done = cb.checked;
-          saveTasks(tasks);
-        };
-        const span = document.createElement('span');
-        span.textContent = ' ' + task.text;
-        span.className = `category-${task.category}`;
-        li.appendChild(cb);
-        li.appendChild(span);
-        taskList.appendChild(li);
+    // load script with cache-bust
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src + '?cb=' + Date.now();
+        s.defer = true;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.body.appendChild(s);
       });
-      updateProgress(tasks);
-      updateDashboard(tasks);
     }
 
-    function saveTasks(tasks) {
-      localStorage.setItem('tasks', JSON.stringify(tasks));
-      updateProgress(tasks);
-      updateDashboard(tasks);
+    // SPA navigation helpers
+    function showView(view) {
+      document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+      const el = document.querySelector('#page-' + view);
+      if (el) el.classList.remove('hidden');
+      document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
+        a.classList.toggle('active', a.dataset.view === view);
+      });
+      // notify view scripts to (re)render for the active view
+      window.dispatchEvent(new CustomEvent('view:show', { detail: { view } }));
     }
 
-    function addTask() {
-      const input = document.getElementById('newTask');
-      const category = document.getElementById('taskCategory').value;
-      const text = input.value.trim();
-      if (!text) return;
-      const tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
-      tasks.push({ text, category, done: false });
-      saveTasks(tasks);
-      input.value = '';
-      loadTasks();
+    function navTo(view) {
+      // if already on index, just update hash + show
+      const path = location.pathname.split('/').pop();
+      if (path === '' || path === 'index.html') {
+        location.hash = view;
+        showView(view);
+        return;
+      }
+      // otherwise navigate to index with cache-bust so latest files load
+      location.href = 'index.html?_=' + Date.now() + '#' + view;
     }
 
-    function updateProgress(tasks) {
-      const total = tasks.length;
-      const done = tasks.filter(t => t.done).length;
-      const percent = total ? Math.round((done / total) * 100) : 0;
-      progressRing.style.borderTopColor = percent === 100 ? "limegreen" : "#4a90e2";
-      progressRing.title = percent + "% complete";
-      progressRing.style.transform = `rotate(${percent * 3.6}deg)`;
+    function wireRibbon() {
+      document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
+          navTo(view || 'calendar');
+        }, { passive: true });
+      });
     }
 
-    function updateDashboard(tasks) {
-      const total = tasks.length;
-      const done = tasks.filter(t => t.done).length;
-      const categories = tasks.reduce((acc, t) => {
-        acc[t.category] = (acc[t.category] || 0) + 1;
-        return acc;
-      }, {});
-      summaryStats.innerHTML = `
-        Total tasks: ${total}<br>
-        Completed: ${done}<br>
-        Work: ${categories.work || 0}, Personal: ${categories.personal || 0}, Errands: ${categories.errands || 0}
-      `;
+    function updateHeaderFromProfile() {
+      try {
+        const name = localStorage.getItem('userName') || '';
+        const header = document.getElementById('appHeader');
+        const profileStatus = document.getElementById('profileStatus');
+        if (header) header.textContent = name ? (name + "'s Planner") : '📅 TimeScape Planner';
+        if (profileStatus) profileStatus.textContent = name ? ('Name set: ' + name) : 'Name not set';
+      } catch (e) { /* ignore */ }
     }
 
-    // Init
-    (function init() {
-      const now = new Date();
-      selectedMonth = now.getMonth();
-      selectedYear = now.getFullYear();
-      selectedDay = now.getDate();
-      generateCalendar();
-      showReminders(selectedDay);
-      loadTasks();
+    // load view scripts and initialize router
+    Promise.all(viewSrcs.map(loadScript)).catch(() => { /* ignore load errors */ }).then(() => {
+      wireRibbon();
+      window.addEventListener('hashchange', () => showView(location.hash.replace('#', '') || 'calendar'));
+      // initial view
+      const initial = location.hash.replace('#', '') || 'calendar';
+      showView(initial);
+      updateHeaderFromProfile();
+    });
+
+  })();
+  </script>
+
+  <!-- ADDED: push notifications client -->
+  <script src="./push.js"></script>
+  <!-- ADDED: local notifications scheduler (events + reminders) -->
+  <script src="./notifications.js"></script>
+  <!-- ADDED: PouchDB sync support (loads PouchDB and provides simple sync helpers) -->
+  <script src="https://unpkg.com/pouchdb@7.3.0/dist/pouchdb.min.js"></script>
+  <script>
+    (function () {
+      // Simple PouchDB sync helpers for "events" and "profile" (user data)
+      // Usage:
+      //   window.initPouchSync('https://user:pass@host:5984'); // returns Promise
+      //   window.stopPouchSync();
+      // Listens for remote changes and dispatches custom events:
+      //   document.addEventListener('pouch-sync:import', (e) => { /* e.detail = { events: [...], profile: [...] } */ });
+      //   document.addEventListener('pouch-sync:error', (e) => { /* e.detail = error */ });
+
+      const state = {
+        local: {},
+        syncHandlers: [],
+      };
+
+      function docsToArray(result) {
+        return (result && result.rows) ? result.rows.map(r => r.doc) : [];
+      }
+
+      async function pullAllDocs(db) {
+        const res = await db.allDocs({ include_docs: true });
+        return docsToArray(res);
+      }
+
+      async function importAll() {
+        try {
+          const events = state.local.events ? await pullAllDocs(state.local.events) : [];
+          const profile = state.local.profile ? await pullAllDocs(state.local.profile) : [];
+          // Broadcast to the app so other scripts can reconcile with localStorage/UI
+          window.dispatchEvent(new CustomEvent('pouch-sync:import', { detail: { events, profile } }));
+        } catch (err) {
+          window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err }));
+        }
+      }
+
+      function makeHandler(dbName) {
+        return async (change) => {
+          // A change occurred in either direction; do a full import (simple, reliable)
+          try {
+            await importAll();
+          } catch (err) {
+            window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err }));
+          }
+        };
+      }
+
+      window.initPouchSync = async function initPouchSync(remoteBaseUrl) {
+        // remoteBaseUrl example: https://user:pass@mycouch.example.com/dbs
+        if (!remoteBaseUrl || typeof remoteBaseUrl !== 'string') {
+          throw new Error('remoteBaseUrl required, e.g. https://user:pass@couch.example.com');
+        }
+
+        // create local DB instances
+        state.local.events = new PouchDB('events');
+        state.local.profile = new PouchDB('profile');
+
+        // compose remote endpoints
+        const remoteEvents = remoteBaseUrl.replace(/\/$/, '') + '/events';
+        const remoteProfile = remoteBaseUrl.replace(/\/$/, '') + '/profile';
+
+        // cancel any existing syncs
+        window.stopPouchSync && window.stopPouchSync();
+
+        // start bidirectional live sync (auto-retry)
+        const opts = { live: true, retry: true };
+        const syncEv = state.local.events.sync(remoteEvents, opts)
+          .on('change', makeHandler('events'))
+          .on('paused', info => window.dispatchEvent(new CustomEvent('pouch-sync:paused', { detail: info })))
+          .on('active', info => window.dispatchEvent(new CustomEvent('pouch-sync:active', { detail: info })))
+          .on('denied', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })))
+          .on('error', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })));
+
+        const syncPr = state.local.profile.sync(remoteProfile, opts)
+          .on('change', makeHandler('profile'))
+          .on('paused', info => window.dispatchEvent(new CustomEvent('pouch-sync:paused', { detail: info })))
+          .on('active', info => window.dispatchEvent(new CustomEvent('pouch-sync:active', { detail: info })))
+          .on('denied', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })))
+          .on('error', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })));
+
+        // keep references so we can cancel later
+        state.syncHandlers = [syncEv, syncPr];
+
+        // initial import of current docs
+        await importAll();
+
+        return { eventsDb: state.local.events, profileDb: state.local.profile };
+      };
+
+      window.stopPouchSync = function stopPouchSync() {
+        if (state.syncHandlers && state.syncHandlers.length) {
+          state.syncHandlers.forEach(s => {
+            try { s.cancel && s.cancel(); } catch (e) { /* ignore */ }
+          });
+        }
+        state.syncHandlers = [];
+        // don't destroy local DB instances (app may still read them)
+      };
+
+      // expose helper to push local JSON objects into PouchDB (upsert by id)
+      // docs should be array of { _id: '...', ... } - if no _id provided one will be created
+      window.upsertDocs = async function upsertDocs(dbName, docs = []) {
+        if (!state.local[dbName]) throw new Error('unknown db: ' + dbName);
+        const db = state.local[dbName];
+        const results = [];
+        for (const doc of docs) {
+          try {
+            if (!doc._id) doc._id = (dbName + ':' + Date.now() + ':' + Math.random().toString(36).slice(2));
+            // try get to preserve _rev when updating
+            const existing = await db.get(doc._id).catch(() => null);
+            if (existing) {
+              const merged = Object.assign({}, existing, doc);
+              merged._rev = existing._rev;
+              results.push(await db.put(merged));
+            } else {
+              results.push(await db.put(doc));
+            }
+          } catch (err) {
+            results.push({ error: err.message || String(err) });
+          }
+        }
+        return results;
+      };
+
+      // lightweight auto-import on load if PouchDB data exists locally
+      (async function autoImportIfLocal() {
+        try {
+          // only import if local DBs are present
+          const test = new PouchDB('events');
+          const count = await test.allDocs({ limit: 1 }).catch(() => ({ rows: [] }));
+          if (count && Array.isArray(count.rows)) {
+            state.local.events = test;
+            state.local.profile = new PouchDB('profile');
+            await importAll();
+          }
+        } catch (e) { /* ignore */ }
+      })();
+
+      // --- ADDED: settings wiring + merge logic for incoming docs ---
+      (function wirePouchUiAndMerge() {
+        const elHost = document.getElementById('syncHost');
+        const elPort = document.getElementById('syncPort');
+        const elHttps = document.getElementById('syncHttps');
+        const elUser = document.getElementById('syncUser');
+        const elPass = document.getElementById('syncPass');
+        const elSave = document.getElementById('saveCreds');
+        const startBtn = document.getElementById('startSyncBtn');
+        const stopBtn = document.getElementById('stopSyncBtn');
+        const importBtn = document.getElementById('importNowBtn');
+        const statusEl = document.getElementById('pouchSyncStatus');
+        function setStatus(s){ if(statusEl) statusEl.textContent = s; }
+
+        // populate saved parts if present
+        if (elHost) elHost.value = localStorage.getItem('pouchSyncHost') || '';
+        if (elPort) elPort.value = localStorage.getItem('pouchSyncPort') || '5984';
+        if (elHttps) elHttps.checked = localStorage.getItem('pouchSyncHttps') === '1';
+        if (elUser) elUser.value = localStorage.getItem('pouchSyncUser') || '';
+        if (elSave) elSave.checked = localStorage.getItem('pouchSyncSaveCreds') === '1';
+
+        startBtn && startBtn.addEventListener('click', async () => {
+          const host = (elHost && elHost.value || '').trim();
+          if (!host) return setStatus('Enter CouchDB host first');
+          const port = (elPort && elPort.value || '').trim();
+          const https = !!(elHttps && elHttps.checked);
+          const user = (elUser && elUser.value || '').trim();
+          const pass = (elPass && elPass.value || '').trim();
+          const saveCreds = !!(elSave && elSave.checked);
+
+          // assemble base URL
+          const proto = https ? 'https://' : 'http://';
+          const hostPort = port ? (host + ':' + port) : host;
+          let baseUrl = proto + hostPort;
+          if (user) {
+            // include credentials in URL for quick replication (encode them)
+            const cred = encodeURIComponent(user) + (pass ? ':' + encodeURIComponent(pass) : '');
+            baseUrl = proto + cred + '@' + hostPort;
+          }
+
+          setStatus('Starting sync...');
+          try {
+            // persist parts (optionally password)
+            localStorage.setItem('pouchSyncHost', host);
+            localStorage.setItem('pouchSyncPort', port);
+            localStorage.setItem('pouchSyncHttps', https ? '1' : '0');
+            localStorage.setItem('pouchSyncUser', user || '');
+            localStorage.setItem('pouchSyncSaveCreds', saveCreds ? '1' : '0');
+            if (saveCreds && pass) localStorage.setItem('pouchSyncPass', pass);
+            else localStorage.removeItem('pouchSyncPass');
+
+            await window.initPouchSync(baseUrl);
+            setStatus('Sync running');
+          } catch (err) {
+            console.error(err);
+            setStatus('Error starting: ' + (err && err.message ? err.message : String(err)));
+          }
+        });
+
+        stopBtn && stopBtn.addEventListener('click', () => {
+          window.stopPouchSync && window.stopPouchSync();
+          setStatus('Sync stopped');
+        });
+
+        importBtn && importBtn.addEventListener('click', () => {
+          (async () => {
+            try {
+              const evDb = new PouchDB('events');
+              const prDb = new PouchDB('profile');
+              const evs = (await evDb.allDocs({ include_docs: true })).rows.map(r => r.doc);
+              const prs = (await prDb.allDocs({ include_docs: true })).rows.map(r => r.doc);
+              window.dispatchEvent(new CustomEvent('pouch-sync:import', { detail: { events: evs, profile: prs } }));
+              setStatus('Imported local pouch data');
+            } catch (e) { console.error(e); setStatus('Import failed: ' + (e && e.message ? e.message : String(e))); }
+          })();
+        });
+
+        // merge incoming docs into localStorage structures used by the app
+        document.addEventListener('pouch-sync:import', (ev) => {
+          const { events = [], profile = [] } = ev.detail || {};
+          try {
+            // merge events by _id into localStorage 'events' array
+            const localEvents = JSON.parse(localStorage.getItem('events') || '[]');
+            const map = {};
+            localEvents.forEach(item => { if (item && item._id) map[item._id] = item; });
+            events.forEach(d => { if (d && d._id) map[d._id] = Object.assign({}, map[d._id] || {}, d); });
+            const mergedEvents = Object.values(map);
+            localStorage.setItem('events', JSON.stringify(mergedEvents));
+
+            // profile: merge first profile doc fields into localStorage keys used by app
+            if (profile && profile.length) {
+              const p = profile[0];
+              if (p.name) localStorage.setItem('userName', p.name);
+              if (p.home) localStorage.setItem('userHome', p.home);
+              if (p.jobs) localStorage.setItem('jobs', JSON.stringify(p.jobs));
+            }
+
+            // update UI hooks
+            if (window.updateHeaderFromProfile) window.updateHeaderFromProfile();
+            window.dispatchEvent(new CustomEvent('app:data:updated'));
+            setStatus('Imported ' + events.length + ' events, ' + profile.length + ' profile docs');
+          } catch (err) {
+            console.error(err);
+            setStatus('Import error: ' + (err && err.message ? err.message : String(err)));
+          }
+        });
+
+        document.addEventListener('pouch-sync:error', (e) => { setStatus('Sync error: ' + (e.detail && (e.detail.message || e.detail) ? (e.detail.message || e.detail) : 'unknown')); });
+        document.addEventListener('pouch-sync:active', () => setStatus('Sync active'));
+        document.addEventListener('pouch-sync:paused', () => setStatus('Sync paused'));
+
+        // try to auto-start if the user saved a URL
+        (async function autoStartSaved() {
+          const host = localStorage.getItem('pouchSyncHost');
+          if (host) {
+            try {
+              const port = localStorage.getItem('pouchSyncPort') || '';
+              const https = localStorage.getItem('pouchSyncHttps') === '1';
+              const user = localStorage.getItem('pouchSyncUser') || '';
+              const pass = localStorage.getItem('pouchSyncPass') || '';
+              const proto = https ? 'https://' : 'http://';
+              const hostPort = port ? (host + ':' + port) : host;
+              let base = proto + hostPort;
+              if (user) base = proto + encodeURIComponent(user) + (pass ? ':' + encodeURIComponent(pass) : '') + '@' + hostPort;
+              await window.initPouchSync(base);
+              setStatus('Sync running');
+            } catch (e) { setStatus('Auto-start failed'); }
+          }
+        })();
+      })();
+
     })();
   </script>
+
+  <!-- ADDED: tasks UI script -->
+  <script src="./tasks.js"></script>
 </body>
 </html>

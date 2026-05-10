@@ -1,0 +1,241 @@
+// Minimal shared helpers used by other view scripts
+(function () {
+  function loadEvents(storageKey = 'events') {
+    try {
+      return JSON.parse(localStorage.getItem(storageKey) || '[]') || [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // --- Edit modal helpers/wiring ---
+  function hideEditModal() {
+    const m = document.getElementById('editModal');
+    if (!m) return;
+    m.classList.add('hidden');
+  }
+  function showEditModal() {
+    const m = document.getElementById('editModal');
+    if (!m) return;
+    if (!m.classList.contains('hidden')) return; // already visible
+    m.classList.remove('hidden');
+    // focus first input
+    setTimeout(() => {
+      const el = document.getElementById('editText');
+      if (el && el.focus) try { el.focus(); } catch(_) {}
+    }, 0);
+  }
+  function wireEditModalOnce() {
+    const m = document.getElementById('editModal');
+    if (!m || m.dataset.wired === '1') return;
+    m.dataset.wired = '1';
+    const cancel = document.getElementById('cancelEdit');
+    if (cancel) cancel.addEventListener('click', (e) => { e.preventDefault(); hideEditModal(); });
+    // click outside panel closes
+    m.addEventListener('click', (e) => {
+      if (e.target === m) hideEditModal();
+    });
+    // escape closes
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !m.classList.contains('hidden')) hideEditModal();
+    });
+  }
+  document.addEventListener('DOMContentLoaded', wireEditModalOnce);
+
+  function openEditModalFill(ev) {
+    // populate existing edit modal if present; otherwise log
+    const editModal = document.getElementById('editModal');
+    if (!editModal) {
+      console.log('openEditModalFill:', ev);
+      return;
+    }
+    const setIf = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.value = value || '';
+    };
+    setIf('editKind', 'event');
+    setIf('editEventId', ev.id || '');
+    setIf('editText', ev.title || '');
+    setIf('editDate', ev.date || '');
+    setIf('editTime', ev.startTime || ev.time || '');
+    setIf('editEndTime', ev.endTime || '');
+    setIf('editEmoji', ev.emoji || '');
+    setIf('editRepeat', ev.repeat || 'none');
+    setIf('editRepeatUntil', ev.repeatUntil || '');
+    setIf('editRepeatInterval', ev.repeatInterval || 1);
+    setIf('editRepeatUnit', ev.repeatUnit || 'days');
+    setIf('editABWeek', ev.abWeek || 'a');
+    try {
+      const rep = document.getElementById('editRepeat');
+      if (rep) rep.dispatchEvent(new Event('change'));
+    } catch (_) {}
+    // --- copy job/category info (if present) into the main event form so it is visible/editable ---
+    try {
+      const mainCat = document.getElementById('eventCategory');
+      const mainJobId = document.getElementById('eventJobId');
+      const mainJobName = document.getElementById('eventJobName');
+      const mainJobRate = document.getElementById('eventJobRate');
+      const mainJobUnit = document.getElementById('eventJobUnit');
+      const mainJobEmoji = document.getElementById('eventJobEmoji');
+      const mainJobLocation = document.getElementById('eventJobLocation');
+      if (mainCat) {
+        const catVal = ev.eventCategory || ev.category || '';
+        if (catVal) mainCat.value = catVal;
+      }
+      if (mainJobId) {
+        const jid = ev.eventJobId || ev.jobId || ev.job || '';
+        if (jid) mainJobId.value = jid;
+      }
+      // snapshot fields copied if present on the event object
+      if (mainJobName && (ev.eventJobName || ev.jobName || ev.job_name)) mainJobName.value = ev.eventJobName || ev.jobName || ev.job_name || '';
+      if (mainJobRate && (ev.eventJobRate || ev.jobRate || ev.job_rate)) mainJobRate.value = ev.eventJobRate || ev.jobRate || ev.job_rate || '';
+      if (mainJobUnit && (ev.eventJobUnit || ev.jobUnit || ev.job_unit)) mainJobUnit.value = ev.eventJobUnit || ev.jobUnit || ev.job_unit || '';
+      if (mainJobEmoji && (ev.eventJobEmoji || ev.jobEmoji || ev.job_emoji)) mainJobEmoji.value = ev.eventJobEmoji || ev.jobEmoji || ev.job_emoji || '';
+      if (mainJobLocation && (ev.eventJobLocation || ev.jobLocation || ev.job_location)) mainJobLocation.value = ev.eventJobLocation || ev.jobLocation || ev.job_location || '';
+      // ensure events-view job selector updates UI (if its script is loaded)
+      if (window && window.dispatchEvent) window.dispatchEvent(new CustomEvent('app:data:updated'));
+    } catch (e) { /* ignore */ }
+    showEditModal();
+  }
+
+  // date helpers
+  function parseISO(d) { return d ? new Date(d + 'T00:00:00') : null; }
+  function toISODate(dt) { return dt.toISOString().slice(0,10); }
+  function addDaysISO(dateISO, days) {
+    const dt = parseISO(dateISO);
+    dt.setDate(dt.getDate() + days);
+    return toISODate(dt);
+  }
+
+  function startOfWeekMonday(dateISO) {
+    const dt = parseISO(dateISO);
+    const dow = dt.getDay();
+    const mondayOffset = dow === 0 ? -6 : (1 - dow);
+    dt.setDate(dt.getDate() + mondayOffset);
+    return toISODate(dt);
+  }
+
+  function addMonthsISO(dateISO, count) {
+    const dt = parseISO(dateISO);
+    const day = dt.getDate();
+    dt.setMonth(dt.getMonth() + count);
+    if (dt.getDate() < day) dt.setDate(0);
+    return toISODate(dt);
+  }
+
+  function addYearsISO(dateISO, count) {
+    const dt = parseISO(dateISO);
+    const day = dt.getDate();
+    dt.setFullYear(dt.getFullYear() + count);
+    if (dt.getDate() < day) dt.setDate(0);
+    return toISODate(dt);
+  }
+
+  function minDateISO(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    return a <= b ? a : b;
+  }
+
+  // expandEvents(startISO, endISO): returns occurrences (including non-repeating) whose date falls within [startISO,endISO]
+  // Each occurrence is a shallow clone of the base event with .occurrenceDate and ._baseId set to original id.
+  function expandEvents(startISO, endISO, storageKey = 'events') {
+    const start = parseISO(startISO);
+    const end = parseISO(endISO);
+    if (!start || !end) return [];
+    const events = loadEvents(storageKey);
+    const out = [];
+    events.forEach(ev => {
+      if (!ev || !ev.date) return;
+      const baseDate = ev.date;
+      const repeat = (ev.repeat || 'none'); // expected value strings from UI
+      const until = ev.repeatUntil || null; // optional YYYY-MM-DD
+      const capUntil = addYearsISO(baseDate, 2);
+      const effectiveEnd = minDateISO(endISO, minDateISO(until, capUntil));
+
+      // helper to push occurrence if in range
+      const pushIfInRange = (dISO) => {
+        const dt = parseISO(dISO);
+        if (dt >= start && dt <= end) {
+          const occ = Object.assign({}, ev);
+          occ.occurrenceDate = dISO;
+          occ.date = dISO; // make date property be the occurrence date for downstream code
+          occ._baseId = ev.id || ev._id || null;
+          out.push(occ);
+        }
+      };
+
+      // non repeating -> push if in range
+      if (!repeat || repeat === 'none') {
+        pushIfInRange(baseDate);
+        return;
+      }
+
+      if (repeat === 'weekday_ab') {
+        const startDow = parseISO(baseDate).getDay();
+        if (startDow === 0 || startDow === 6) return;
+        const firstPattern = (String(ev.abWeek || 'a').toLowerCase() === 'b') ? 'b' : 'a';
+        const mondays = startOfWeekMonday(baseDate);
+        const aDays = [1,3,5];
+        const bDays = [2,4];
+        let weekIndex = 0;
+        while (weekIndex < 200) {
+          const weekStart = addDaysISO(mondays, weekIndex * 7);
+          if (weekStart > effectiveEnd) break;
+          const useA = (firstPattern === 'a') ? (weekIndex % 2 === 0) : (weekIndex % 2 !== 0);
+          const dayList = useA ? aDays : bDays;
+          dayList.forEach((weekdayNum) => {
+            const occ = addDaysISO(weekStart, weekdayNum - 1);
+            if (occ < baseDate) return;
+            if (occ > effectiveEnd) return;
+            pushIfInRange(occ);
+          });
+          weekIndex += 1;
+        }
+        return;
+      }
+
+      // repeating: iterate from baseDate to end, advancing according to rule, stop at repeatUntil if present
+      let d = baseDate;
+      const maxLoop = 2000; // safety cap
+      let loops = 0;
+      while (true) {
+        if (loops++ > maxLoop) break;
+        // stop if beyond end or beyond repeatUntil
+        if (d > effectiveEnd) break;
+        // push occurrence if >= start and <= end
+        pushIfInRange(d);
+        // advance
+        if (repeat === 'daily') d = addDaysISO(d, 1);
+        else if (repeat === '2day') d = addDaysISO(d, 2);
+        else if (repeat === 'weekly') d = addDaysISO(d, 7);
+        else if (repeat === 'monthly') {
+          d = addMonthsISO(d, 1);
+        } else if (repeat === 'custom') {
+          const n = Math.max(1, Math.min(30, parseInt(ev.repeatInterval, 10) || 1));
+          const unit = ['days','weeks','months','years'].includes(ev.repeatUnit) ? ev.repeatUnit : 'days';
+          if (unit === 'days') d = addDaysISO(d, n);
+          else if (unit === 'weeks') d = addDaysISO(d, n * 7);
+          else if (unit === 'months') d = addMonthsISO(d, n);
+          else d = addYearsISO(d, n);
+        } else {
+          // unknown rule: break
+          break;
+        }
+        // stop when d built beyond reasonable date
+        if (parseISO(d) > parseISO('2100-01-01')) break;
+      }
+    });
+    // sort by date asc
+    out.sort((a,b) => (a.date||'').localeCompare(b.date||''));
+    return out;
+  }
+
+  // expose
+  window.appUtils = window.appUtils || {};
+  window.appUtils.loadEvents = loadEvents;
+  window.appUtils.openEditModalFill = openEditModalFill;
+  window.appUtils.expandEvents = expandEvents;
+  window.appUtils.hideEditModal = hideEditModal;
+  window.appUtils.showEditModal = showEditModal;
+})();
