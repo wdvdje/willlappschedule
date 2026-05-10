@@ -1,25 +1,15 @@
 (function () {
-  const storage = window.appStorage || {
-    getItem: function (key, fallback) {
-      const fb = (typeof fallback === 'undefined') ? '' : fallback;
-      try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
-    },
-    setItem: function (key, value) {
-      try { localStorage.setItem(key, value == null ? '' : String(value)); } catch (_) {}
-    },
-    removeItem: function (key) {
-      try { localStorage.removeItem(key); } catch (_) {}
-    },
-    getJSON: function (key, fallback) {
-      try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
-    }
-  };
-
   const loadEvents = (window.appUtils && window.appUtils.loadEvents) ? window.appUtils.loadEvents : function () {
-    try { return storage.getJSON('events', []) || []; } catch (e) { return []; }
+    try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (e) { return []; }
   };
 
-  const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
+  // Dynamic lookup so that expandEvents is available even if utils.js loads after this script
+  function expandEvents(startISO, endISO) {
+    if (window.appUtils && typeof window.appUtils.expandEvents === 'function') {
+      return window.appUtils.expandEvents(startISO, endISO);
+    }
+    return null;
+  }
 
   function getTodayDateStr() {
     const d = new Date();
@@ -69,7 +59,15 @@
     editBtn.className = 'small-btn';
     editBtn.textContent = 'Edit';
     editBtn.type = 'button';
-    editBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); openEdit(ev); });
+    editBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof window.editEvent === 'function') {
+        window.editEvent(ev._baseId || ev.id, ev.occurrenceDate);
+      } else {
+        openEdit(ev);
+      }
+    });
     actions.appendChild(editBtn);
 
     li.appendChild(emojiSpan);
@@ -90,7 +88,7 @@
 
   // Jobs helpers
   function loadJobs() {
-    try { return storage.getJSON('jobs', []) || []; } catch (_) { return []; }
+    try { return JSON.parse(localStorage.getItem('jobs') || '[]') || []; } catch (_) { return []; }
   }
   function jobSelectEl() { return document.getElementById('eventJobId'); }
   function jobRowEl() { return document.getElementById('eventJobRow'); }
@@ -161,7 +159,7 @@
     const today = getTodayDateStr();
     const past30 = (new Date(new Date(today + 'T00:00:00').getTime() - (30*24*60*60*1000))).toISOString().slice(0,10);
     const future365 = (new Date(new Date(today + 'T00:00:00').getTime() + (365*24*60*60*1000))).toISOString().slice(0,10);
-    const events = expandEvents ? expandEvents(past30, future365) : loadEvents().slice();
+    const events = expandEvents(past30, future365) ?? loadEvents().slice();
 
     // events already sorted by expandEvents, but ensure stable sort
     events.sort((a,b) => {
@@ -224,7 +222,7 @@
   // Header + profile status wiring
   function resolveProfileName() {
     // try a few common keys and inputs
-    let name = storage.getItem('userName', '') || storage.getItem('settingsFullName', '') || storage.getItem('profileName', '') || '';
+    let name = localStorage.getItem('userName') || localStorage.getItem('settingsFullName') || localStorage.getItem('profileName') || '';
     if (!name) {
       const inputs = ['userName', 'settingsFullName', 'settingsName', 'settingsFullName'];
       for (const id of inputs) {
@@ -236,11 +234,11 @@
   }
 
   function updateHeaderAndProfileStatus() {
-    const header = document.getElementById('appHeader');
+    const headerTitle = document.getElementById('appHeaderTitle');
     const profileStatus = document.getElementById('profileStatus');
     const name = resolveProfileName();
-    if (header) {
-      header.textContent = name ? `${name}'s Planner` : '📅 TimeScape Planner';
+    if (headerTitle) {
+      headerTitle.textContent = name ? `${name}'s Planner` : '📅 TimeScape Planner';
     }
     if (profileStatus) {
       profileStatus.textContent = name ? `Name set: ${name}` : 'Name not set';
@@ -257,7 +255,7 @@
       saveBtn.addEventListener('click', (e) => {
         e.preventDefault();
         const v = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
-        if (v) storage.setItem('userName', v);
+        if (v) localStorage.setItem('userName', v);
         updateHeaderAndProfileStatus();
         // notify other tabs
         try { window.dispatchEvent(new Event('storage')); } catch (e) {}
@@ -267,7 +265,7 @@
     if (clearBtn) {
       clearBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        storage.removeItem('userName');
+        localStorage.removeItem('userName');
         if (nameInput) nameInput.value = '';
         updateHeaderAndProfileStatus();
         try { window.dispatchEvent(new Event('storage')); } catch (e) {}

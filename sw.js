@@ -1,5 +1,5 @@
 /* Service worker: offline shell caching + push notifications */
-const CACHE_VERSION = 'ts-cache-v1';
+const CACHE_VERSION = 'ts-cache-v4';
 const CORE_ASSETS = [
   './',
   './index.html',
@@ -16,10 +16,14 @@ const CORE_ASSETS = [
   './daily-view.js',
   './tasks.js',
   './notifications.js',
-  './push.js'
+  './push.js',
+  './gist-sync.js',
+  './calendar-advanced.js',
+  './desktop.js'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => cache.addAll(CORE_ASSETS)).catch(() => undefined)
   );
@@ -78,7 +82,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_VERSION).then((cache) => cache.put(req, copy)).catch(() => undefined);
           return res;
         })
-        .catch(() => caches.match('./index.html'));
+        .catch(() => new Response('Network error', { status: 503, statusText: 'Service Unavailable' }));
     })
   );
 });
@@ -96,21 +100,68 @@ self.addEventListener('push', (event) => {
   const tag = payload.tag || ('ts-' + Date.now());
   const data = payload.data || {};
 
+  // iOS 26 / web push: notification actions for quick interaction
+  const actions = [];
+  if (data.url || payload.url) {
+    actions.push({ action: 'open', title: 'Open' });
+  }
+  if (payload.snoozeUrl || data.snoozeUrl) {
+    actions.push({ action: 'snooze', title: 'Snooze 10m' });
+  }
+  actions.push({ action: 'dismiss', title: 'Dismiss' });
+
   const opts = {
     body,
     icon,
     badge: payload.badge || icon,
     tag,
-    data,
+    data: Object.assign({}, data, { url: data.url || payload.url || '/' }),
     renotify: !!payload.renotify,
+    vibrate: payload.vibrate || [100, 50, 100],
+    requireInteraction: !!payload.requireInteraction,
+    silent: !!payload.silent,
   };
+
+  // Only add actions if browser supports them (not iOS < 16.4)
+  if (actions.length) {
+    try { opts.actions = actions; } catch (_) {}
+  }
 
   event.waitUntil(self.registration.showNotification(title, opts));
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const target = event.notification.data && event.notification.data.url ? event.notification.data.url : '/';
+
+  const action = event.action || 'open';
+  const notifData = event.notification.data || {};
+  const target = notifData.url || '/';
+
+  // Handle snooze action: re-schedule the notification in 1 minute
+  // (Service workers may be suspended; short delays are more reliable)
+  if (action === 'snooze') {
+    const SNOOZE_DELAY = 60 * 1000; // 1 minute — reliable within SW lifetime
+    event.waitUntil(
+      new Promise((resolve) => {
+        setTimeout(() => {
+          self.registration.showNotification(event.notification.title, {
+            body: event.notification.body,
+            icon: event.notification.icon,
+            badge: event.notification.badge,
+            tag: event.notification.tag + '-snoozed',
+            data: notifData,
+            vibrate: [100, 50, 100],
+          }).then(resolve).catch(resolve);
+        }, SNOOZE_DELAY);
+      })
+    );
+    return;
+  }
+
+  // 'dismiss' — notification is already closed above
+  if (action === 'dismiss') return;
+
+  // 'open' or default — focus existing window or open new one
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
       for (const client of clientList) {

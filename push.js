@@ -6,22 +6,6 @@
   const SW_PATH = './sw.js';
   const LS_KEY = 'pushSubscription';
 
-  function getBridge() {
-    return window.platformBridge || null;
-  }
-
-  const storage = window.appStorage || {
-    setJSON: function (key, value) {
-      try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { return false; }
-    },
-    getJSON: function (key, fallback) {
-      try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
-    },
-    removeItem: function (key) {
-      try { localStorage.removeItem(key); } catch (_) {}
-    }
-  };
-
   // helpers
   function el(id){ return document.getElementById(id); }
   function log(){ try { console.log.apply(console, arguments); } catch(e){} }
@@ -39,11 +23,11 @@
 
   // store subscription locally
   function saveLocal(sub) {
-    try { storage.setJSON(LS_KEY, sub); } catch(e){}
+    try { localStorage.setItem(LS_KEY, JSON.stringify(sub)); } catch(e){}
   }
-  function clearLocal() { storage.removeItem(LS_KEY); }
+  function clearLocal() { localStorage.removeItem(LS_KEY); }
   function getLocal() {
-    try { return storage.getJSON(LS_KEY, null); } catch(e){ return null; }
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || 'null'); } catch(e){ return null; }
   }
 
   // post subscription to server (if configured)
@@ -62,16 +46,6 @@
 
   // register service worker
   async function registerSW() {
-    const bridge = getBridge();
-    if (bridge && typeof bridge.registerServiceWorker === 'function') {
-      try {
-        const handled = await bridge.registerServiceWorker(SW_PATH);
-        if (handled && !('serviceWorker' in navigator)) return null;
-      } catch (_) {
-        // Fall through to browser registration when available.
-      }
-    }
-
     if (!('serviceWorker' in navigator)) return null;
     try {
       const reg = await navigator.serviceWorker.register(SW_PATH);

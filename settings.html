@@ -2,19 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="description" content="TimeScape Planner Settings — customise your profile, notification preferences, sync options, and app appearance." />
+  <meta name="keywords" content="settings, preferences, profile, notifications, sync, planner" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="TimeScape Planner — Settings" />
+  <meta property="og:description" content="Customise your profile, notifications, sync options, and app appearance." />
+  <meta property="og:image" content="assets/icon.svg" />
   <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./assets/app.css" />
+  <link rel="stylesheet" href="./assets/ios-native.css" />
   <style>
     /* ADDED: center only the User Profile and Jobs headings on settings page */
     #userProfile h3, #userJobs h3 { text-align: center; }
   </style>
+  <!-- Resolve og:image to absolute URL at runtime -->
+  <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
+  <!-- Redirect to the SPA; noscript fallback for crawlers -->
+  <script>location.replace('./index.html#settings');</script>
+  <noscript><meta http-equiv="refresh" content="0;url=./index.html#settings" /></noscript>
 </head>
 <body>
-  <header id="appHeader">📅 TimeScape Planner</header>
+  <header id="appHeader">
+    <a href="index.html#inbox" class="header-btn" aria-label="Inbox"><span>📥</span><span style="font-size:0.75rem">Inbox</span></a>
+    <span style="flex:1;text-align:center">📅 TimeScape Planner</span>
+    <a href="index.html#settings" class="header-btn" aria-label="Settings"><span>⚙️</span><span style="font-size:0.75rem">Settings</span></a>
+  </header>
 
   <main style="max-width:640px;margin:18px auto;padding:12px;">
     <h2 style="text-align:center">Settings</h2>
@@ -43,54 +62,74 @@
       <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
     </section>
 
-    <!-- Jobs -->
+    <!-- Jobs: now managed on the Work page -->
     <section id="userJobs" style="margin-top:18px">
       <h3>Jobs</h3>
+      <p style="color:#666;font-size:0.9rem">Jobs are now managed on the <a href="index.html#work" style="color:#4a90e2">💼 Work</a> page.</p>
+    </section>
 
-      <!-- Saved Jobs -->
-      <div id="savedJobs" style="margin-top:8px">
-        <h4>Saved Jobs</h4>
-        <ul id="jobList" style="list-style:none;padding:0;margin:8px 0;">
-          <!-- ... populated by JS ... -->
-        </ul>
+    <!-- School A/B Schedule -->
+    <section id="schoolABSection" style="margin-top:18px">
+      <h3 style="text-align:center">🏫 School A/B Schedule</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Enable A/B day labels on the calendar. Set any date you know is an A or B day — the calendar will automatically label every other school day going forward and backward.</p>
+
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <label style="font-weight:600;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="abEnabled" />
+          Show A/B labels on calendar
+        </label>
       </div>
 
-      <!-- Add / Edit Job -->
-      <div id="addJob" style="margin-top:16px">
-        <h4>Add Job</h4>
-        <input id="jobId" type="hidden" />
-        <label for="jobName" style="display:block;margin-top:6px;font-weight:600">Job name</label>
-        <input id="jobName" type="text" placeholder="e.g. Lawn mowing" />
-
-        <label for="jobEmoji" style="display:block;margin-top:6px;font-weight:600">Emoji</label>
-        <input id="jobEmoji" type="text" placeholder="e.g. 🚜" />
-
-        <label for="jobLocation" style="display:block;margin-top:6px;font-weight:600">Location</label>
-        <div class="places-suggestions" style="position:relative">
-          <input id="jobLocation" type="text" placeholder="Address or area" autocomplete="off" />
-          <div id="jobLocationList" class="suggestions-list" style="display:none"></div>
-        </div>
-
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <div style="flex:1">
-            <label for="jobRate" style="display:block;font-weight:600">Rate</label>
-            <input id="jobRate" type="text" placeholder="e.g. 25.00" />
+      <div id="abConfigFields" style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <div style="flex:1;min-width:140px">
+            <label for="abAnchorDate" style="display:block;font-weight:600;margin-bottom:2px">Anchor date</label>
+            <input id="abAnchorDate" type="date" />
           </div>
-          <div style="width:140px">
-            <label for="jobUnit" style="display:block;font-weight:600">Unit</label>
-            <select id="jobUnit">
-              <option value="hour">hour</option>
-              <option value="job">job</option>
-              <option value="day">day</option>
+          <div style="width:110px">
+            <label for="abAnchorLabel" style="display:block;font-weight:600;margin-bottom:2px">This date is…</label>
+            <select id="abAnchorLabel" style="width:100%">
+              <option value="A">Day A</option>
+              <option value="B">Day B</option>
             </select>
           </div>
         </div>
-
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
-          <button id="clearJobBtn" class="small-btn">Clear</button>
-        </div>
+        <p style="color:#888;font-size:0.82rem;margin:0">Federal holidays and any custom off-days you add below are automatically skipped when computing the A/B sequence.</p>
       </div>
+
+      <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+        <button id="saveABBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save</button>
+        <button id="clearABBtn" class="small-btn">Clear</button>
+        <span id="abStatus" style="font-size:0.9rem;color:#27ae60;margin-left:6px"></span>
+      </div>
+    </section>
+
+    <!-- Off-Days / Holidays -->
+    <section id="userOffDays" style="margin-top:18px">
+      <h3 style="text-align:center">Off-Days / Holidays</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Add custom off-days (e.g. company holidays, personal days off). These will be skipped by the A/B weekday repeat pattern when "Skip holidays" is checked.</p>
+      <p style="color:#888;font-size:0.85rem;margin:0 0 8px">Federal holidays (MLK Day, Presidents' Day, Memorial Day, Juneteenth, Independence Day, Labor Day, Columbus Day, Veterans Day, Thanksgiving, Christmas, New Year's) are already included automatically.</p>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <input id="offDayDate" type="date" style="flex:1" />
+        <input id="offDayLabel" type="text" placeholder="Label (optional)" style="flex:1" />
+        <button id="addOffDayBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+      </div>
+      <ul id="offDaysList" style="list-style:none;padding:0;margin:8px 0;"></ul>
+    </section>
+
+    <!-- Active Hours -->
+    <section id="activeHoursSection" style="margin-top:18px">
+      <h3 style="text-align:center">Active Hours</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Set your productive day window. The "Day Elapsed" ring on the dashboard will track progress within these hours instead of the full 24-hour day.</p>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap">
+        <label style="font-weight:600">Start</label>
+        <select id="dayStartHour" style="width:110px"></select>
+        <label style="font-weight:600">End</label>
+        <select id="dayEndHour" style="width:110px"></select>
+        <button id="saveActiveHoursBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save</button>
+        <button id="resetActiveHoursBtn" class="small-btn">Reset</button>
+      </div>
+      <div id="activeHoursStatus" style="margin-top:6px;color:#666;font-size:0.9rem"></div>
     </section>
 
     <!-- Task categories -->
@@ -104,10 +143,63 @@
       <div id="categoriesList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
     </section>
 
+    <!-- Domain Colors -->
+    <section id="domainColorsSection" style="margin-top:18px">
+      <h3 style="text-align:center">Domain Colors</h3>
+      <p style="color:#666;font-size:0.9rem;margin:4px 0 12px">Customize the accent colors used for each domain on the calendar and throughout the app.</p>
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">💼 Work</label>
+          <input id="dcWork" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcWorkHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">🏡 Home</label>
+          <input id="dcHome" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcHomeHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">👤 Personal</label>
+          <input id="dcPersonal" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcPersonalHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <label style="font-weight:600;width:90px">🎉 Holiday</label>
+          <input id="dcHoliday" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+          <span id="dcHolidayHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+        <button id="saveDomainColorsBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save colors</button>
+        <button id="resetDomainColorsBtn" class="small-btn">Reset to defaults</button>
+        <span id="domainColorStatus" style="font-size:0.9rem;color:#27ae60;margin-left:8px"></span>
+      </div>
+    </section>
+
     <!-- Push notifications settings -->
     <section id="pushSettings" style="margin-top:18px">
-      <h3>Push notifications</h3>
-      <label for="pushVapidKey" style="display:block;font-weight:600;margin-top:8px">VAPID Public Key (base64)</label>
+      <h3 style="text-align:center">🔔 Push Notifications</h3>
+
+      <!-- iOS install prompt -->
+      <div id="iosInstallGuide" class="ios-push-prompt" style="display:none">
+        <div class="ios-push-prompt-icon">📲</div>
+        <div class="ios-push-prompt-text">
+          <b>Add to Home Screen for notifications</b>
+          <small>On iOS, open this page in Safari, tap the Share button (⬆), then choose <strong>Add to Home Screen</strong>. Launch from there to enable push notifications.</small>
+        </div>
+      </div>
+
+      <!-- Permission status prompt -->
+      <div id="iosPermPrompt" class="ios-push-prompt" style="display:none">
+        <div class="ios-push-prompt-icon">🔔</div>
+        <div class="ios-push-prompt-text">
+          <b>Notifications not yet enabled</b>
+          <small>Allow notifications to receive reminders and event alerts even when the app is in the background.</small>
+        </div>
+        <button id="requestPermBtn" class="ios-push-prompt-btn">Allow</button>
+      </div>
+
+      <label for="pushVapidKey" style="display:block;font-weight:600;margin-top:12px">VAPID Public Key (base64)</label>
       <input id="pushVapidKey" type="text" placeholder="BEl... (optional for testing)" />
 
       <label for="pushServerUrl" style="display:block;font-weight:600;margin-top:8px">Push server URL (optional)</label>
@@ -116,10 +208,42 @@
       <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
         <button id="subscribePushBtn" class="small-btn" style="background:#4a90e2;color:#fff">Subscribe</button>
         <button id="unsubscribePushBtn" class="small-btn">Unsubscribe</button>
-        <div id="pushStatus" style="margin-left:8px;color:#666">Not subscribed</div>
+        <div id="pushStatus" style="margin-left:8px;color:#666">Checking…</div>
       </div>
-      <div style="margin-top:8px;color:#666;font-size:0.9rem">Tip: supply a public VAPID key if you use a push server that requires VAPID.</div>
+      <div style="margin-top:8px;color:#666;font-size:0.9rem">Tip: supply a public VAPID key if you use a push server that requires VAPID. On iOS 16.4+, the app must be installed to the Home Screen.</div>
     </section>
+    <script>
+    (function () {
+      function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      }
+      function isStandalone() {
+        return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+      }
+      var installGuide = document.getElementById('iosInstallGuide');
+      var permPrompt   = document.getElementById('iosPermPrompt');
+      var reqBtn       = document.getElementById('requestPermBtn');
+
+      if (isIOS() && !isStandalone() && installGuide) {
+        installGuide.style.display = 'flex';
+      } else if ('Notification' in window && Notification.permission === 'default' && permPrompt) {
+        permPrompt.style.display = 'flex';
+      }
+
+      if (reqBtn) {
+        reqBtn.addEventListener('click', function () {
+          Notification.requestPermission().then(function (perm) {
+            if (permPrompt) permPrompt.style.display = 'none';
+            var statusEl = document.getElementById('pushStatus');
+            if (statusEl) statusEl.textContent = perm === 'granted' ? 'Permission granted ✅' : 'Permission ' + perm;
+            if (perm === 'granted' && window.pushClient && typeof window.pushClient.registerSW === 'function') {
+              window.pushClient.registerSW();
+            }
+          }).catch(function () {});
+        });
+      }
+    })();
+    </script>
 
     <section id="dataBackupSettings" style="margin-top:18px">
       <h3>Data Backup</h3>
@@ -137,11 +261,11 @@
   </main>
 
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-    <a href="#events" class="r-item" data-view="events"><span>📅</span><span class="r-label">Events</span></a>
-    <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
-    <a href="#calendar" class="r-item r-center" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
-    <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
-    <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
+    <a href="#personal" class="r-item" data-view="personal"><span>👤</span><span class="r-label">Personal</span></a>
+    <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
+    <a href="#home" class="r-item" data-view="home"><span>🏡</span><span class="r-label">Home</span></a>
+    <a href="#work" class="r-item" data-view="work"><span>💼</span><span class="r-label">Work</span></a>
   </nav>
 
   <!-- REPLACED: Always navigate to a cache-busted index.html so the latest build loads -->
@@ -157,7 +281,7 @@
           e.preventDefault();
           // always load fresh index with the requested view
           location.href = 'index.html?_=' + Date.now() + '#' + view;
-        }, { passive: true });
+        });
       });
     })();
   </script>
@@ -168,5 +292,207 @@
   <script src="./notifications.js"></script>
   <!-- ADDED: tasks manager (handles categories too) -->
   <script src="./tasks.js"></script>
+  <script>
+    // School A/B Schedule settings
+    (function () {
+      function getABCfg() {
+        try { return JSON.parse(localStorage.getItem('schoolABSchedule') || '{}'); } catch (_) { return {}; }
+      }
+      function setABCfg(cfg) {
+        localStorage.setItem('schoolABSchedule', JSON.stringify(cfg));
+      }
+
+      var enabledChk  = document.getElementById('abEnabled');
+      var anchorDate  = document.getElementById('abAnchorDate');
+      var anchorLabel = document.getElementById('abAnchorLabel');
+      var configFields = document.getElementById('abConfigFields');
+      var statusEl    = document.getElementById('abStatus');
+
+      function loadUI() {
+        var cfg = getABCfg();
+        if (enabledChk)  enabledChk.checked  = !!cfg.enabled;
+        if (anchorDate)  anchorDate.value     = cfg.anchorDate  || '';
+        if (anchorLabel) anchorLabel.value    = cfg.anchorLabel || 'A';
+        toggleFields();
+      }
+
+      function toggleFields() {
+        if (configFields) configFields.style.opacity = (enabledChk && enabledChk.checked) ? '1' : '0.45';
+      }
+
+      if (enabledChk) enabledChk.addEventListener('change', toggleFields);
+
+      var saveBtn = document.getElementById('saveABBtn');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', function () {
+          var enabled = enabledChk ? enabledChk.checked : false;
+          var anchor  = anchorDate  ? anchorDate.value.trim()   : '';
+          var label   = anchorLabel ? anchorLabel.value         : 'A';
+          if (enabled && !anchor) {
+            if (statusEl) { statusEl.textContent = 'Please choose an anchor date.'; statusEl.style.color = '#e74c3c'; }
+            if (anchorDate) anchorDate.focus();
+            return;
+          }
+          setABCfg({ enabled: enabled, anchorDate: anchor, anchorLabel: label });
+          if (statusEl) { statusEl.textContent = 'Saved!'; statusEl.style.color = '#27ae60'; }
+          setTimeout(function () { if (statusEl) statusEl.textContent = ''; }, 2000);
+        });
+      }
+
+      var clearBtn = document.getElementById('clearABBtn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+          localStorage.removeItem('schoolABSchedule');
+          loadUI();
+          if (statusEl) { statusEl.textContent = 'Cleared.'; statusEl.style.color = '#666'; }
+          setTimeout(function () { if (statusEl) statusEl.textContent = ''; }, 2000);
+        });
+      }
+
+      loadUI();
+    })();
+
+    // Off-Days management
+    (function () {
+      function getOffDays() {
+        try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; }
+      }
+      function setOffDays(list) {
+        localStorage.setItem('userOffDays', JSON.stringify(list));
+      }
+      function escapeText(s) { var d = document.createElement('span'); d.textContent = s; return d.innerHTML; }
+      function renderOffDays() {
+        var ul = document.getElementById('offDaysList');
+        if (!ul) return;
+        var days = getOffDays();
+        if (!days.length) { ul.innerHTML = '<li style="color:#999;font-size:0.9rem">No custom off-days added yet.</li>'; return; }
+        ul.innerHTML = '';
+        days.forEach(function(entry, i) {
+          var li = document.createElement('li');
+          li.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #eee';
+          var dateStr = typeof entry === 'string' ? entry : (entry.date || '');
+          var label = (typeof entry === 'object' && entry.label) ? entry.label : '';
+
+          var dateSpan = document.createElement('span');
+          dateSpan.style.fontWeight = '600';
+          dateSpan.textContent = dateStr;
+          li.appendChild(dateSpan);
+
+          if (label) {
+            var labelSpan = document.createElement('span');
+            labelSpan.style.color = '#666';
+            labelSpan.textContent = label;
+            li.appendChild(labelSpan);
+          }
+
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'small-btn';
+          removeBtn.dataset.idx = i;
+          removeBtn.style.cssText = 'margin-left:auto;background:#e74c3c;color:#fff;padding:2px 8px;font-size:0.8rem';
+          removeBtn.textContent = 'Remove';
+          li.appendChild(removeBtn);
+
+          ul.appendChild(li);
+        });
+        ul.querySelectorAll('button[data-idx]').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            var idx = parseInt(btn.dataset.idx, 10);
+            var list = getOffDays();
+            list.splice(idx, 1);
+            setOffDays(list);
+            renderOffDays();
+          });
+        });
+      }
+      var addBtn = document.getElementById('addOffDayBtn');
+      if (addBtn) {
+        addBtn.addEventListener('click', function() {
+          var dateInp = document.getElementById('offDayDate');
+          var labelInp = document.getElementById('offDayLabel');
+          var date = dateInp ? dateInp.value : '';
+          if (!date) { if (dateInp) dateInp.focus(); return; }
+          var label = labelInp ? labelInp.value.trim() : '';
+          var list = getOffDays();
+          // Store as date string for the skip logic, but keep label for display
+          list.push({ date: date, label: label });
+          // Sort by date
+          list.sort(function(a, b) {
+            var da = typeof a === 'string' ? a : a.date;
+            var db = typeof b === 'string' ? b : b.date;
+            return da < db ? -1 : da > db ? 1 : 0;
+          });
+          setOffDays(list);
+          if (dateInp) dateInp.value = '';
+          if (labelInp) labelInp.value = '';
+          renderOffDays();
+        });
+      }
+      renderOffDays();
+    })();
+
+    // Active Hours management
+    (function () {
+      function populateHourSelect(id, minVal, maxVal, savedVal) {
+        var sel = document.getElementById(id);
+        if (!sel) return;
+        sel.innerHTML = '';
+        for (var h = minVal; h <= maxVal; h++) {
+          var opt = document.createElement('option');
+          opt.value = h;
+          var label;
+          if (h === 0) label = '12:00 AM';
+          else if (h < 12) label = h + ':00 AM';
+          else if (h === 12) label = '12:00 PM';
+          else if (h === 24) label = '12:00 AM (next day)';
+          else label = (h - 12) + ':00 PM';
+          opt.textContent = label;
+          if (h === savedVal) opt.selected = true;
+          sel.appendChild(opt);
+        }
+      }
+      var savedStart = parseInt(localStorage.getItem('dayStartHour') || '', 10);
+      var savedEnd = parseInt(localStorage.getItem('dayEndHour') || '', 10);
+      if (isNaN(savedStart) || savedStart < 0 || savedStart > 23) savedStart = 0;
+      if (isNaN(savedEnd) || savedEnd < 1 || savedEnd > 24) savedEnd = 24;
+      if (savedEnd <= savedStart) { savedStart = 0; savedEnd = 24; }
+      populateHourSelect('dayStartHour', 0, 23, savedStart);
+      populateHourSelect('dayEndHour', 1, 24, savedEnd);
+      var statusEl = document.getElementById('activeHoursStatus');
+      function showStatus() {
+        var s = parseInt(document.getElementById('dayStartHour').value, 10);
+        var e = parseInt(document.getElementById('dayEndHour').value, 10);
+        if (statusEl) {
+          if (s === 0 && e === 24) {
+            statusEl.textContent = 'Using full 24-hour day (default).';
+          } else {
+            statusEl.textContent = 'Active window: ' + (e - s) + ' hours.';
+          }
+        }
+      }
+      showStatus();
+      var saveBtn = document.getElementById('saveActiveHoursBtn');
+      if (saveBtn) saveBtn.addEventListener('click', function() {
+        var s = parseInt(document.getElementById('dayStartHour').value, 10);
+        var e = parseInt(document.getElementById('dayEndHour').value, 10);
+        if (e <= s) {
+          if (statusEl) { statusEl.textContent = 'End hour must be after start hour.'; statusEl.style.color = '#e74c3c'; }
+          return;
+        }
+        localStorage.setItem('dayStartHour', s);
+        localStorage.setItem('dayEndHour', e);
+        if (statusEl) { statusEl.textContent = 'Active hours saved!'; statusEl.style.color = '#27ae60'; }
+        setTimeout(function(){ showStatus(); if(statusEl) statusEl.style.color='#666'; }, 2000);
+      });
+      var resetBtn = document.getElementById('resetActiveHoursBtn');
+      if (resetBtn) resetBtn.addEventListener('click', function() {
+        localStorage.removeItem('dayStartHour');
+        localStorage.removeItem('dayEndHour');
+        populateHourSelect('dayStartHour', 0, 23, 0);
+        populateHourSelect('dayEndHour', 1, 24, 24);
+        if (statusEl) { statusEl.textContent = 'Reset to full 24-hour day.'; statusEl.style.color = '#27ae60'; }
+        setTimeout(function(){ showStatus(); if(statusEl) statusEl.style.color='#666'; }, 2000);
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -210,22 +210,30 @@
     return svg;
   }
 
-  /** Build a pw-card with a header (no collapse toggle). */
+  /** Build a pw-card with a collapsible header (matches app.js buildPWCard). */
   function makePwCard(id, storageKey, headerHTML, buildBodyFn) {
     var card = document.createElement('div');
     card.className = 'pw-card';
     card.id = id;
 
+    var collapsed = sp(storageKey + '_collapsed', false);
     var header = document.createElement('div');
     header.className = 'pw-header';
-    header.innerHTML = headerHTML;
+    header.innerHTML = headerHTML + '<span class="pw-chevron">' + (collapsed ? '▸' : '▾') + '</span>';
     card.appendChild(header);
 
     var body = document.createElement('div');
     body.className = 'pw-body';
+    body.style.display = collapsed ? 'none' : '';
     buildBodyFn(body);
     card.appendChild(body);
 
+    header.addEventListener('click', function () {
+      var now = body.style.display === 'none';
+      body.style.display = now ? '' : 'none';
+      header.querySelector('.pw-chevron').textContent = now ? '▾' : '▸';
+      sk(storageKey + '_collapsed', !now);
+    });
     return card;
   }
 
@@ -305,39 +313,6 @@
         });
         body.appendChild(goalRow);
 
-        // Macro goals expander (Phase 3)
-        var macroExpander = document.createElement('div');
-        macroExpander.className = 'dmeal-macro-expander';
-        var macroGoalsCurrent = (function () {
-          try { return JSON.parse(localStorage.getItem('personalMacroGoals')) || { protein: 150, carbs: 200, fat: 65 }; }
-          catch (_) { return { protein: 150, carbs: 200, fat: 65 }; }
-        }());
-        macroExpander.innerHTML =
-          '<button class="dmeal-macro-toggle app-fv-link-btn" style="font-size:0.78rem">⚙️ Set macro goals ▸</button>' +
-          '<div class="dmeal-macro-goals-panel" style="display:none">' +
-            '<label style="font-size:0.76rem">P(g)<input type="number" class="app-fv-num-small dmg-protein" value="' + macroGoalsCurrent.protein + '" min="0"/></label>' +
-            '<label style="font-size:0.76rem">C(g)<input type="number" class="app-fv-num-small dmg-carbs"   value="' + macroGoalsCurrent.carbs   + '" min="0"/></label>' +
-            '<label style="font-size:0.76rem">F(g)<input type="number" class="app-fv-num-small dmg-fat"     value="' + macroGoalsCurrent.fat     + '" min="0"/></label>' +
-            '<button class="app-fv-save-btn dmg-save" style="font-size:0.76rem;padding:4px 10px">Save</button>' +
-          '</div>';
-        var toggleBtn = macroExpander.querySelector('.dmeal-macro-toggle');
-        var goalsPanel = macroExpander.querySelector('.dmeal-macro-goals-panel');
-        toggleBtn.addEventListener('click', function () {
-          var open = goalsPanel.style.display !== 'none';
-          goalsPanel.style.display = open ? 'none' : 'flex';
-          toggleBtn.textContent = (open ? '⚙️ Set macro goals ▸' : '⚙️ Set macro goals ▾');
-        });
-        macroExpander.querySelector('.dmg-save').addEventListener('click', function () {
-          var goals = {
-            protein: parseInt(macroExpander.querySelector('.dmg-protein').value, 10) || 150,
-            carbs:   parseInt(macroExpander.querySelector('.dmg-carbs').value,   10) || 200,
-            fat:     parseInt(macroExpander.querySelector('.dmg-fat').value,      10) || 65
-          };
-          localStorage.setItem('personalMacroGoals', JSON.stringify(goals));
-          renderDeskMeal();
-        });
-        body.appendChild(macroExpander);
-
         // View All Items button (bucket-like view)
         body.appendChild(buildMealViewAllBtn());
       });
@@ -358,29 +333,12 @@
     var weekGoal = goal * 7;
     var maxCal  = Math.max.apply(null, dayCals.concat([1]));
 
-    // Weekly macro totals
-    var weekP = 0, weekC = 0, weekF = 0;
-    days.forEach(function (wd) {
-      var day = allMeals[wd.iso] || {};
-      MEAL_TYPES.forEach(function (mt) {
-        var m = day[mt.key] || {};
-        weekP += parseInt(m.protein, 10) || 0;
-        weekC += parseInt(m.carbs,   10) || 0;
-        weekF += parseInt(m.fat,     10) || 0;
-      });
-    });
-
     var el = document.createElement('div');
     el.className = 'dmeal-summary';
     el.innerHTML =
       '<div class="dmeal-summary-stat"><div class="dmeal-summary-val">' + total + '</div><div class="dmeal-summary-lbl">Total cal</div></div>' +
       '<div class="dmeal-summary-stat"><div class="dmeal-summary-val">' + avg + '</div><div class="dmeal-summary-lbl">Avg/day</div></div>' +
-      '<div class="dmeal-summary-stat"><div class="dmeal-summary-val">' + weekGoal + '</div><div class="dmeal-summary-lbl">Week goal</div></div>' +
-      (weekP || weekC || weekF
-        ? '<div class="dmeal-summary-stat"><div class="dmeal-summary-val" style="font-size:0.72rem;color:#e74c3c">P ' + weekP + 'g</div><div class="dmeal-summary-lbl">Week protein</div></div>' +
-          '<div class="dmeal-summary-stat"><div class="dmeal-summary-val" style="font-size:0.72rem;color:#f39c12">C ' + weekC + 'g</div><div class="dmeal-summary-lbl">Week carbs</div></div>' +
-          '<div class="dmeal-summary-stat"><div class="dmeal-summary-val" style="font-size:0.72rem;color:#9b59b6">F ' + weekF + 'g</div><div class="dmeal-summary-lbl">Week fat</div></div>'
-        : '');
+      '<div class="dmeal-summary-stat"><div class="dmeal-summary-val">' + weekGoal + '</div><div class="dmeal-summary-lbl">Week goal</div></div>';
 
     var spark = document.createElement('div');
     spark.className = 'dmeal-spark';
@@ -407,14 +365,11 @@
     hdr.innerHTML = esc(wd.short) + '<span class="dmeal-date">' + esc(wd.label) + '</span>';
     col.appendChild(hdr);
 
-    var dayMeals = allMeals[wd.iso] || {};
-    var totalCal = 0, totalP = 0, totalC = 0, totalF = 0;
+    var dayMeals  = allMeals[wd.iso] || {};
+    var totalCal  = 0;
     MEAL_TYPES.forEach(function (mt) {
       var m = dayMeals[mt.key] || { name: '', calories: 0 };
       totalCal += parseInt(m.calories, 10) || 0;
-      totalP   += parseInt(m.protein,  10) || 0;
-      totalC   += parseInt(m.carbs,    10) || 0;
-      totalF   += parseInt(m.fat,      10) || 0;
       col.appendChild(buildMealSlot(wd, mt, m));
     });
 
@@ -425,30 +380,6 @@
     bar.title     = totalCal + ' cal (' + pct + '%)';
     bar.innerHTML = '<div class="dmeal-cal-bar-fill" style="width:' + pct + '%;background:' + color + '"></div>';
     col.appendChild(bar);
-
-    // P/C/F mini-bars (only if any macro data exists)
-    if (totalP || totalC || totalF) {
-      var macroGoals = (function () {
-        try { return JSON.parse(localStorage.getItem('personalMacroGoals')) || { protein: 150, carbs: 200, fat: 65 }; }
-        catch (_) { return { protein: 150, carbs: 200, fat: 65 }; }
-      }());
-      var miniWrap = document.createElement('div');
-      miniWrap.className = 'dmeal-macro-mini';
-      [
-        { val: totalP, tgt: macroGoals.protein, color: '#e74c3c', lbl: 'P' },
-        { val: totalC, tgt: macroGoals.carbs,   color: '#f39c12', lbl: 'C' },
-        { val: totalF, tgt: macroGoals.fat,      color: '#9b59b6', lbl: 'F' }
-      ].forEach(function (m) {
-        var mpct = m.tgt > 0 ? Math.min(100, Math.round(m.val / m.tgt * 100)) : 0;
-        var row = document.createElement('div');
-        row.className = 'dmeal-macro-mini-row';
-        row.title = m.lbl + ': ' + m.val + 'g (' + mpct + '% of goal)';
-        row.innerHTML = '<span class="dmeal-macro-mini-lbl">' + m.lbl + '</span>' +
-          '<div class="dmeal-macro-mini-bar"><div style="width:' + mpct + '%;background:' + m.color + ';height:100%;border-radius:2px"></div></div>';
-        miniWrap.appendChild(row);
-      });
-      col.appendChild(miniWrap);
-    }
     return col;
   }
 
@@ -638,7 +569,7 @@
         item.draggable = true;
         item.innerHTML =
           '<div class="dmeal-fav-name">' + esc(fav.name) + '</div>' +
-          '<div class="dmeal-fav-cal">' + (fav.calories ? fav.calories + ' cal' : '') + (fav.protein ? ' · P' + fav.protein + 'g' : '') + '</div>' +
+          '<div class="dmeal-fav-cal">' + (fav.calories ? fav.calories + ' cal' : '') + '</div>' +
           '<button class="dmeal-fav-del" title="Remove">✕</button>';
 
         item.addEventListener('dragstart', function (e) {
@@ -656,41 +587,6 @@
           setFavs(fs);
           renderDeskMeal();
         });
-        sidebar.appendChild(item);
-      });
-    }
-
-    // From Recipes section (Phase 4)
-    var recFavs = (function () {
-      try { return (JSON.parse(localStorage.getItem('personalRecipes')) || []).filter(function (r) { return r && r.favorite; }); }
-      catch (_) { return []; }
-    }());
-    if (recFavs.length) {
-      var recTitle = document.createElement('div');
-      recTitle.style.cssText = 'font-size:0.72rem;font-weight:700;color:var(--ios-text-3,#aaa);text-transform:uppercase;margin-top:10px;padding-top:8px;border-top:1px solid #eee;';
-      recTitle.textContent = '📖 From Recipes';
-      sidebar.appendChild(recTitle);
-      recFavs.forEach(function (r) {
-        var item = document.createElement('div');
-        item.className = 'dmeal-fav-item';
-        item.draggable = true;
-        var mealData = {
-          name:     r.name || '',
-          calories: r.totals ? (r.totals.calories || 0) : 0,
-          protein:  r.totals ? (r.totals.protein  || 0) : 0,
-          carbs:    r.totals ? (r.totals.carbs    || 0) : 0,
-          fat:      r.totals ? (r.totals.fat      || 0) : 0
-        };
-        item.innerHTML =
-          '<div class="dmeal-fav-name">' + esc((r.emoji || '🍽️') + ' ' + r.name) + '</div>' +
-          '<div class="dmeal-fav-cal">' + (mealData.calories ? mealData.calories + ' cal' : '') + '</div>';
-        item.addEventListener('dragstart', function (e) {
-          var src = { isFav: true, mealData: mealData };
-          _mealDragSrc = src;
-          e.dataTransfer.effectAllowed = 'copy';
-          e.dataTransfer.setData('text/plain', JSON.stringify(src));
-        });
-        item.addEventListener('dragend', function () { _mealDragSrc = null; });
         sidebar.appendChild(item);
       });
     }
@@ -808,219 +704,6 @@
   //  2.  DAILY ROUTINE TIMELINE
   // ===========================================================================
 
-  // ── Routine Template Library ──────────────────────────────────────────────
-  var ROUTINE_TEMPLATES = [
-    {
-      name: 'Morning Productivity',
-      emoji: '☀️',
-      startTime: '07:00',
-      steps: [
-        { text: 'Wake up & stretch', duration: 5,  notes: 'Full-body stretch for 5 mins' },
-        { text: 'Drink a glass of water', duration: 2, notes: '' },
-        { text: 'Brush teeth & wash face', duration: 5, notes: '' },
-        { text: 'Morning journal / gratitude', duration: 10, notes: 'Write 3 things you\'re grateful for' },
-        { text: 'Review today\'s schedule', duration: 5, notes: '' },
-        { text: 'Exercise / walk', duration: 20, notes: '' },
-        { text: 'Healthy breakfast', duration: 15, notes: '' },
-        { text: 'Get dressed', duration: 10, notes: '' }
-      ]
-    },
-    {
-      name: 'Evening Wind-down',
-      emoji: '🌙',
-      startTime: '21:00',
-      steps: [
-        { text: 'Tidy up workspace', duration: 10, notes: '' },
-        { text: 'Tomorrow\'s to-do list', duration: 5,  notes: 'Write 3 priorities for tomorrow' },
-        { text: 'No screens after this point', duration: 0,  notes: 'Put phone on charger' },
-        { text: 'Shower / bath', duration: 15, notes: '' },
-        { text: 'Skincare routine', duration: 5, notes: '' },
-        { text: 'Read (not phone)', duration: 20, notes: '' },
-        { text: 'Lights out', duration: 0, notes: '' }
-      ]
-    },
-    {
-      name: 'Workout Prep',
-      emoji: '💪',
-      startTime: '06:00',
-      steps: [
-        { text: 'Pre-workout meal / snack', duration: 5, notes: '' },
-        { text: 'Pack gym bag', duration: 5, notes: 'Shoes, water bottle, towel' },
-        { text: 'Dynamic warm-up', duration: 10, notes: 'Leg swings, arm circles, hip openers' },
-        { text: 'Review workout plan', duration: 3, notes: '' },
-        { text: 'Head to gym', duration: 0, notes: '' }
-      ]
-    },
-    {
-      name: 'Focus Session',
-      emoji: '🎯',
-      startTime: '09:00',
-      steps: [
-        { text: 'Close all distracting tabs / apps', duration: 2, notes: '' },
-        { text: 'Set a single goal for this session', duration: 2, notes: '' },
-        { text: 'Put phone on Do Not Disturb', duration: 1, notes: '' },
-        { text: 'Deep work block', duration: 50, notes: 'Pomodoro: 50 min focused work' },
-        { text: 'Short break', duration: 10, notes: 'Stand up, breathe, walk around' },
-        { text: 'Review progress', duration: 5, notes: '' }
-      ]
-    },
-    {
-      name: 'Midday Reset',
-      emoji: '🌤️',
-      startTime: '12:00',
-      steps: [
-        { text: 'Step away from screen', duration: 5, notes: 'Eyes need a break' },
-        { text: 'Lunch break', duration: 30, notes: 'Eat away from your desk' },
-        { text: 'Short walk', duration: 10, notes: '' },
-        { text: 'Check messages & email', duration: 10, notes: 'Batch-process inbox' },
-        { text: 'Afternoon priorities', duration: 5, notes: 'Pick top 3 tasks for afternoon' }
-      ]
-    },
-    {
-      name: 'Digital Detox',
-      emoji: '🧘',
-      startTime: '20:00',
-      steps: [
-        { text: 'Log off social media', duration: 2, notes: '' },
-        { text: 'Meditate or breathe', duration: 10, notes: 'Box breathing: 4-4-4-4' },
-        { text: 'Reflect on the day', duration: 5, notes: 'What went well? What to improve?' },
-        { text: 'Herbal tea', duration: 10, notes: '' },
-        { text: 'Stretch / yoga', duration: 15, notes: '' }
-      ]
-    }
-  ];
-
-  function openTemplateLibrary() {
-    var existing = document.getElementById('droutineTemplateModal');
-    if (existing) { existing.remove(); return; }
-
-    var overlay = document.createElement('div');
-    overlay.id = 'droutineTemplateModal';
-    overlay.style.cssText =
-      'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:3000;' +
-      'display:flex;align-items:center;justify-content:center';
-
-    var modal = document.createElement('div');
-    modal.style.cssText =
-      'background:#fff;border-radius:14px;max-width:600px;width:94%;' +
-      'max-height:85vh;overflow-y:auto;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,0.2)';
-
-    var hdr = document.createElement('div');
-    hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:14px';
-    hdr.innerHTML = '<div style="font-weight:700;font-size:1.1rem">📚 Routine Template Library</div>';
-    var closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕';
-    closeBtn.style.cssText = 'background:none;border:none;font-size:1.2rem;cursor:pointer;color:#888';
-    closeBtn.addEventListener('click', function () { overlay.remove(); });
-    hdr.appendChild(closeBtn);
-    modal.appendChild(hdr);
-
-    var desc = document.createElement('p');
-    desc.style.cssText = 'color:#666;font-size:0.82rem;margin:0 0 14px';
-    desc.textContent = 'Choose a template to import as a new routine phase. You can customize it after importing.';
-    modal.appendChild(desc);
-
-    ROUTINE_TEMPLATES.forEach(function (tpl) {
-      var card = document.createElement('div');
-      card.style.cssText =
-        'border:1.5px solid #e8edf5;border-radius:10px;padding:12px;margin-bottom:10px;cursor:pointer;transition:all 0.18s';
-      card.addEventListener('mouseenter', function () { card.style.borderColor = '#4a90e2'; card.style.background = '#f0f6ff'; });
-      card.addEventListener('mouseleave', function () { card.style.borderColor = '#e8edf5'; card.style.background = ''; });
-
-      var titleRow = document.createElement('div');
-      titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:6px';
-      titleRow.innerHTML =
-        '<span style="font-weight:700">' + tpl.emoji + ' ' + esc(tpl.name) + '</span>' +
-        '<span style="font-size:0.75rem;color:#888">' + tpl.steps.length + ' steps · ' +
-        tpl.steps.reduce(function (s, st) { return s + (st.duration || 0); }, 0) + ' min</span>';
-      card.appendChild(titleRow);
-
-      var stepList = document.createElement('div');
-      stepList.style.cssText = 'display:flex;flex-direction:column;gap:3px';
-      tpl.steps.slice(0, 5).forEach(function (s) {
-        var row = document.createElement('div');
-        row.style.cssText = 'font-size:0.78rem;color:#555;display:flex;gap:6px;align-items:center';
-        row.innerHTML = '<span style="color:#bbb">•</span><span>' + esc(s.text) + '</span>' +
-          (s.duration ? '<span style="color:#aaa;margin-left:auto;font-size:0.72rem">' + s.duration + 'm</span>' : '');
-        stepList.appendChild(row);
-      });
-      if (tpl.steps.length > 5) {
-        var more = document.createElement('div');
-        more.style.cssText = 'font-size:0.72rem;color:#aaa;padding-left:14px';
-        more.textContent = '+ ' + (tpl.steps.length - 5) + ' more steps';
-        stepList.appendChild(more);
-      }
-      card.appendChild(stepList);
-
-      var importBtn = document.createElement('button');
-      importBtn.className = 'btn-primary';
-      importBtn.style.cssText =
-        'margin-top:10px;border:none;' +
-        'border-radius:20px;padding:6px 18px;font-size:0.82rem;cursor:pointer;transition:background 0.2s';
-      importBtn.textContent = '⬇ Import as New Phase';
-      importBtn.addEventListener('mouseenter', function () { importBtn.style.background = 'var(--ios-accent-dk,#0062cc)'; });
-      importBtn.addEventListener('mouseleave', function () { importBtn.style.background = ''; });
-      importBtn.addEventListener('click', function () {
-        var ps = getPhases();
-        ps.push({
-          id: 'phase_' + Date.now(),
-          name: tpl.name,
-          emoji: tpl.emoji,
-          startTime: tpl.startTime,
-          steps: tpl.steps.map(function (s) { return JSON.parse(JSON.stringify(s)); })
-        });
-        savePhases(ps);
-        overlay.remove();
-        renderDeskRoutine();
-      });
-      card.appendChild(importBtn);
-      modal.appendChild(card);
-    });
-
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
-  }
-
-  // ── Copy / Export Today's Routine ────────────────────────────────────────
-  function copyRoutineToClipboard() {
-    var phases = getPhases();
-    var t = todayISO();
-    var log = getRouLog();
-    var lines = ['# Daily Routine — ' + t, ''];
-    phases.forEach(function (phase) {
-      lines.push('## ' + (phase.emoji || '') + ' ' + phase.name + (phase.startTime ? ' (' + phase.startTime + ')' : ''));
-      (phase.steps || []).forEach(function (s, si) {
-        var doneArr = (log[t] && log[t][phase.id]) ? log[t][phase.id] : [];
-        var isDone = doneArr.indexOf(si) >= 0;
-        lines.push((isDone ? '- [x] ' : '- [ ] ') + (s.text || '') + (s.duration ? ' (' + s.duration + ' min)' : ''));
-        if (s.notes) lines.push('      ↳ ' + s.notes);
-      });
-      lines.push('');
-    });
-    var text = lines.join('\n');
-    try {
-      navigator.clipboard.writeText(text).then(function () {
-        alert('Routine copied to clipboard as Markdown!');
-      }).catch(function () {
-        promptFallbackCopy(text);
-      });
-    } catch (_) {
-      promptFallbackCopy(text);
-    }
-  }
-
-  function promptFallbackCopy(text) {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    ta.style.cssText = 'position:fixed;left:-9999px';
-    document.body.appendChild(ta);
-    ta.select();
-    try { document.execCommand('copy'); alert('Routine copied!'); }
-    catch (_) { prompt('Copy the routine below:', text); }
-    ta.remove();
-  }
-
   function renderDeskRoutine() {
     var section = document.getElementById('personalRoutineSection');
     if (!section) return;
@@ -1034,55 +717,6 @@
       '<div class="pw-header-title">📋 Daily Routines</div>' +
       '<span style="font-size:0.75rem;color:#888;margin-right:6px">Multi-phase Timeline</span>',
       function (body) {
-        // ── Toolbar row (Focus Mode, Templates, Export) ──
-        var toolbar = document.createElement('div');
-        toolbar.className = 'droutine-toolbar';
-
-        var focusBtn = document.createElement('button');
-        focusBtn.className = 'droutine-toolbar-btn droutine-focus-btn';
-        focusBtn.innerHTML = '▶ Start Focus Mode';
-        focusBtn.title = 'Enter full-screen focus mode for this routine';
-        focusBtn.addEventListener('click', function () {
-          if (window.routineFocus) window.routineFocus.open();
-          else alert('Focus mode not loaded yet — please refresh.');
-        });
-        toolbar.appendChild(focusBtn);
-
-        var tplBtn = document.createElement('button');
-        tplBtn.className = 'droutine-toolbar-btn';
-        tplBtn.textContent = '📚 Templates';
-        tplBtn.title = 'Browse and import pre-built routine templates';
-        tplBtn.addEventListener('click', openTemplateLibrary);
-        toolbar.appendChild(tplBtn);
-
-        var exportBtn = document.createElement('button');
-        exportBtn.className = 'droutine-toolbar-btn';
-        exportBtn.textContent = '📋 Copy Routine';
-        exportBtn.title = "Copy today's routine as Markdown";
-        exportBtn.addEventListener('click', copyRoutineToClipboard);
-        toolbar.appendChild(exportBtn);
-
-        var statsToggle = document.createElement('button');
-        statsToggle.className = 'droutine-toolbar-btn';
-        statsToggle.textContent = '📊 Stats';
-        statsToggle.title = 'Show/hide routine analytics';
-        statsToggle.addEventListener('click', function () {
-          var statsSection = document.getElementById('personalRoutineStatsSection');
-          if (!statsSection) return;
-          var isHidden = statsSection.classList.contains('hidden');
-          if (isHidden) {
-            statsSection.classList.remove('hidden');
-            if (window.routineAnalytics) window.routineAnalytics.renderStats();
-            statsToggle.textContent = '📊 Hide Stats';
-          } else {
-            statsSection.classList.add('hidden');
-            statsToggle.textContent = '📊 Stats';
-          }
-        });
-        toolbar.appendChild(statsToggle);
-
-        body.appendChild(toolbar);
-
         var phasesRow = document.createElement('div');
         phasesRow.className = 'droutine-phases';
 
@@ -1113,12 +747,6 @@
       });
 
     section.appendChild(card);
-
-    // Render the Stats section if it was previously open
-    var statsSection = document.getElementById('personalRoutineStatsSection');
-    if (statsSection && !statsSection.classList.contains('hidden')) {
-      if (window.routineAnalytics) window.routineAnalytics.renderStats();
-    }
   }
 
   function buildRoutinePhaseCol(phase, pi, phaseLog, allPhases) {
@@ -1129,25 +757,6 @@
     var doneCount = phaseLog.filter(function (i) { return i < steps.length; }).length;
     var totalDur  = steps.reduce(function (s, st) { return s + (parseInt(st.duration, 10) || 0); }, 0);
     var pct       = steps.length > 0 ? Math.round((doneCount / steps.length) * 100) : 0;
-
-    /* Day-of-week indicator (if scheduled) */
-    if (phase.days && phase.days.length) {
-      var DOW_LABELS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-      var todayDow = new Date().getDay();
-      var dowRow = document.createElement('div');
-      dowRow.style.cssText = 'display:flex;gap:3px;padding:3px 0 4px;flex-wrap:wrap';
-      [0,1,2,3,4,5,6].forEach(function (d) {
-        var pill = document.createElement('span');
-        pill.style.cssText =
-          'font-size:0.64rem;padding:1px 5px;border-radius:10px;font-weight:600;' +
-          (phase.days.indexOf(d) >= 0
-            ? (d === todayDow ? 'background:#4a90e2;color:#fff;' : 'background:#d6e8ff;color:#2568c3;')
-            : 'background:#f0f0f0;color:#ccc;');
-        pill.textContent = DOW_LABELS[d];
-        dowRow.appendChild(pill);
-      });
-      col.appendChild(dowRow);
-    }
 
     // Phase header
     var hdr = document.createElement('div');
@@ -1165,17 +774,6 @@
         (phase.startTime ? (totalDur ? ' · ' : '') + phase.startTime : '') +
       '</div>';
     hdr.appendChild(meta);
-
-    /* Quick Focus button */
-    var focusPhaseBtn = document.createElement('button');
-    focusPhaseBtn.className = 'droutine-phase-focus-btn';
-    focusPhaseBtn.textContent = '▶';
-    focusPhaseBtn.title = 'Start Focus Mode for this phase';
-    focusPhaseBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      if (window.routineFocus) window.routineFocus.open({ phaseIdx: pi });
-    });
-    hdr.appendChild(focusPhaseBtn);
 
     var menuBtn = document.createElement('button');
     menuBtn.className   = 'droutine-phase-menu-btn';
@@ -1260,8 +858,6 @@
       e.stopPropagation();
       toggleStepDone(phase.id, si, cb.checked);
       renderDeskRoutine();
-      /* Refresh analytics if visible */
-      window.dispatchEvent(new CustomEvent('app:data:updated'));
     });
 
     var textEl = document.createElement('span');
@@ -1271,30 +867,6 @@
     var durEl = document.createElement('span');
     durEl.className = 'droutine-node-dur';
     if (step.duration > 0) durEl.textContent = step.duration + 'm';
-
-    /* Streak badge */
-    var streakBadge = document.createElement('span');
-    streakBadge.className = 'droutine-streak-badge';
-    var streak = 0;
-    try {
-      if (window.routineAnalytics && typeof window.routineAnalytics.calcStepStreak === 'function') {
-        streak = window.routineAnalytics.calcStepStreak(phase.id, si);
-      }
-    } catch (_) {}
-    if (streak >= 2) {
-      streakBadge.textContent = '🔥' + streak;
-      streakBadge.title = streak + '-day streak on this step';
-    }
-
-    /* Edit button (notes / sub-tasks) */
-    var editBtn = document.createElement('button');
-    editBtn.className   = 'droutine-node-edit';
-    editBtn.textContent = '✏️';
-    editBtn.title       = 'Edit notes & sub-tasks';
-    editBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      openStepEditor(step, si, pi, phase);
-    });
 
     var delBtn = document.createElement('button');
     delBtn.className   = 'droutine-node-del';
@@ -1317,7 +889,7 @@
     });
 
     top.appendChild(handle); top.appendChild(cb); top.appendChild(textEl);
-    top.appendChild(durEl); top.appendChild(streakBadge); top.appendChild(editBtn); top.appendChild(delBtn);
+    top.appendChild(durEl); top.appendChild(delBtn);
     card.appendChild(top);
 
     if (step.notes) {
@@ -1326,41 +898,6 @@
       notes.textContent = step.notes;
       card.appendChild(notes);
     }
-
-    /* Sub-tasks (mini-checklist) */
-    if (step.subTasks && step.subTasks.length) {
-      var subWrap = document.createElement('div');
-      subWrap.style.cssText = 'padding-left:18px;margin-top:4px;display:flex;flex-direction:column;gap:3px';
-      var t = todayISO(), log = getRouLog();
-      var subKey = phase.id + '_sub_' + si;
-      var subDone = (log[t] && log[t][subKey]) ? log[t][subKey] : [];
-      step.subTasks.forEach(function (st, sti) {
-        var subLabel = document.createElement('label');
-        subLabel.style.cssText = 'display:flex;align-items:center;gap:5px;font-size:0.75rem;cursor:pointer';
-        var subCb = document.createElement('input');
-        subCb.type = 'checkbox';
-        subCb.checked = subDone.indexOf(sti) >= 0;
-        subCb.style.accentColor = '#4a90e2';
-        subCb.addEventListener('change', function (e) {
-          e.stopPropagation();
-          var l = getRouLog();
-          var today = todayISO();
-          if (!l[today]) l[today] = {};
-          if (!l[today][subKey]) l[today][subKey] = [];
-          if (subCb.checked) {
-            if (l[today][subKey].indexOf(sti) < 0) l[today][subKey].push(sti);
-          } else {
-            l[today][subKey] = l[today][subKey].filter(function (i) { return i !== sti; });
-          }
-          setRouLog(l);
-        });
-        subLabel.appendChild(subCb);
-        subLabel.appendChild(document.createTextNode(st));
-        subWrap.appendChild(subLabel);
-      });
-      card.appendChild(subWrap);
-    }
-
     node.appendChild(card);
 
     // Drag-and-drop reorder
@@ -1399,116 +936,6 @@
     return node;
   }
 
-  /**
-   * Opens a modal for editing a step's notes and sub-tasks.
-   */
-  function openStepEditor(step, si, pi, phase) {
-    var existing = document.getElementById('droutineStepEditorModal');
-    if (existing) existing.remove();
-
-    var overlay = document.createElement('div');
-    overlay.id = 'droutineStepEditorModal';
-    overlay.style.cssText =
-      'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:3000;' +
-      'display:flex;align-items:center;justify-content:center';
-
-    var panel = document.createElement('div');
-    panel.style.cssText =
-      'background:#fff;border-radius:14px;padding:20px;max-width:420px;width:94%;' +
-      'box-shadow:0 8px 32px rgba(0,0,0,0.18);max-height:85vh;overflow-y:auto';
-
-    var title = document.createElement('div');
-    title.style.cssText = 'font-weight:700;font-size:1rem;margin-bottom:12px';
-    title.textContent = '✏️ Edit step: ' + (step.text || '');
-    panel.appendChild(title);
-
-    /* Notes */
-    var notesLabel = document.createElement('label');
-    notesLabel.style.cssText = 'display:block;font-weight:600;font-size:0.82rem;margin-bottom:4px';
-    notesLabel.textContent = 'Notes / hints';
-    panel.appendChild(notesLabel);
-    var notesIn = document.createElement('textarea');
-    notesIn.rows = 3;
-    notesIn.style.cssText = 'width:100%;box-sizing:border-box;border:1px solid #ddd;border-radius:8px;padding:8px;font-size:0.85rem;resize:vertical';
-    notesIn.value = step.notes || '';
-    panel.appendChild(notesIn);
-
-    /* Sub-tasks */
-    var subLabel = document.createElement('div');
-    subLabel.style.cssText = 'font-weight:600;font-size:0.82rem;margin:12px 0 6px';
-    subLabel.textContent = 'Sub-tasks (mini checklist)';
-    panel.appendChild(subLabel);
-
-    var subTasks = (step.subTasks || []).slice();
-    var subContainer = document.createElement('div');
-    subContainer.style.cssText = 'display:flex;flex-direction:column;gap:5px;margin-bottom:8px';
-
-    function renderSubItems() {
-      subContainer.innerHTML = '';
-      subTasks.forEach(function (st, sti) {
-        var row = document.createElement('div');
-        row.style.cssText = 'display:flex;gap:6px;align-items:center';
-        var inp = document.createElement('input');
-        inp.type = 'text';
-        inp.value = st;
-        inp.style.cssText = 'flex:1;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:0.82rem';
-        inp.addEventListener('input', function () { subTasks[sti] = inp.value; });
-        var delSub = document.createElement('button');
-        delSub.style.cssText = 'background:none;border:none;cursor:pointer;color:#e74c3c;font-size:1rem';
-        delSub.textContent = '✕';
-        delSub.addEventListener('click', function () {
-          subTasks.splice(sti, 1);
-          renderSubItems();
-        });
-        row.appendChild(inp); row.appendChild(delSub);
-        subContainer.appendChild(row);
-      });
-    }
-    renderSubItems();
-    panel.appendChild(subContainer);
-
-    var addSubBtn = document.createElement('button');
-    addSubBtn.style.cssText = 'background:#f0f6ff;border:1px dashed #4a90e2;color:#4a90e2;border-radius:8px;padding:5px 12px;font-size:0.8rem;cursor:pointer;width:100%;margin-bottom:14px';
-    addSubBtn.textContent = '＋ Add sub-task';
-    addSubBtn.addEventListener('click', function () {
-      subTasks.push('');
-      renderSubItems();
-      var inputs = subContainer.querySelectorAll('input[type="text"]');
-      if (inputs.length) inputs[inputs.length - 1].focus();
-    });
-    panel.appendChild(addSubBtn);
-
-    /* Buttons */
-    var btnRow = document.createElement('div');
-    btnRow.style.cssText = 'display:flex;gap:8px;justify-content:flex-end';
-
-    var cancelBtn = document.createElement('button');
-    cancelBtn.style.cssText = 'background:#eee;border:none;border-radius:8px;padding:7px 14px;cursor:pointer';
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.addEventListener('click', function () { overlay.remove(); });
-
-    var saveBtn = document.createElement('button');
-    saveBtn.className = 'btn-primary';
-    saveBtn.style.cssText = 'border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-weight:600';
-    saveBtn.textContent = 'Save';
-    saveBtn.addEventListener('click', function () {
-      var ps = getPhases();
-      ps[pi].steps[si].notes    = notesIn.value.trim();
-      ps[pi].steps[si].subTasks = subTasks.filter(function (s) { return s.trim(); });
-      savePhases(ps);
-      overlay.remove();
-      renderDeskRoutine();
-    });
-
-    btnRow.appendChild(cancelBtn); btnRow.appendChild(saveBtn);
-    panel.appendChild(btnRow);
-
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
-    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
-    notesIn.focus();
-  }
-
   function showPhaseMenu(phase, pi, allPhases, anchor) {
     var existing = document.getElementById('droutinePhaseMenu');
     if (existing) { existing.remove(); return; }
@@ -1517,10 +944,10 @@
     menu.id = 'droutinePhaseMenu';
     menu.style.cssText =
       'position:fixed;background:#fff;border:1.5px solid #e0e6f0;border-radius:8px;' +
-      'box-shadow:0 4px 18px rgba(0,0,0,0.14);z-index:1600;min-width:185px;overflow:hidden;';
+      'box-shadow:0 4px 18px rgba(0,0,0,0.14);z-index:1600;min-width:165px;overflow:hidden;';
     var rect = anchor.getBoundingClientRect();
     menu.style.top  = (rect.bottom + 4) + 'px';
-    menu.style.left = Math.min(rect.left, window.innerWidth - 195) + 'px';
+    menu.style.left = Math.min(rect.left, window.innerWidth - 175) + 'px';
 
     [
       ['✏️ Rename',       function () {
@@ -1532,13 +959,6 @@
         var t = prompt('Start time (HH:MM):', phase.startTime || '');
         if (t === null) return;
         var ps = getPhases(); ps[pi].startTime = t.trim(); savePhases(ps); renderDeskRoutine();
-      }],
-      ['📅 Schedule days', function () {
-        showDayOfWeekPicker(phase, pi);
-      }],
-      ['▶ Focus on this phase', function () {
-        if (window.routineFocus) window.routineFocus.open({ phaseIdx: pi });
-        else alert('Focus mode not loaded — please refresh.');
       }],
       ['🗑️ Delete phase', function () {
         if (!confirm('Delete "' + phase.name + '" and all its steps?')) return;
@@ -1561,93 +981,6 @@
         if (!menu.contains(ev.target)) { menu.remove(); document.removeEventListener('mousedown', close); }
       });
     }, 0);
-  }
-
-  /**
-   * Shows a popover allowing the user to pick which days of the week
-   * this phase should be active (empty = every day).
-   */
-  function showDayOfWeekPicker(phase, pi) {
-    var existing = document.getElementById('droutineDowPicker');
-    if (existing) { existing.remove(); return; }
-
-    var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-    var overlay = document.createElement('div');
-    overlay.id = 'droutineDowPicker';
-    overlay.style.cssText =
-      'position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:2500;' +
-      'display:flex;align-items:center;justify-content:center';
-
-    var panel = document.createElement('div');
-    panel.style.cssText =
-      'background:#fff;border-radius:12px;padding:18px;width:300px;' +
-      'box-shadow:0 6px 24px rgba(0,0,0,0.2);';
-
-    var title = document.createElement('div');
-    title.style.cssText = 'font-weight:700;font-size:0.95rem;margin-bottom:6px';
-    title.textContent = '📅 Active days for "' + phase.name + '"';
-    panel.appendChild(title);
-
-    var hint = document.createElement('div');
-    hint.style.cssText = 'font-size:0.77rem;color:#888;margin-bottom:12px';
-    hint.textContent = 'Leave all unchecked to show every day.';
-    panel.appendChild(hint);
-
-    var currentDays = (phase.days && Array.isArray(phase.days)) ? phase.days.slice() : [];
-
-    var grid = document.createElement('div');
-    grid.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px';
-    var checkboxes = [];
-    DAYS.forEach(function (name, dow) {
-      var label = document.createElement('label');
-      label.style.cssText =
-        'display:flex;flex-direction:column;align-items:center;gap:3px;' +
-        'padding:6px 10px;border:1.5px solid #dde;border-radius:8px;cursor:pointer;' +
-        'font-size:0.78rem;font-weight:600;transition:all 0.15s;';
-      var cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.checked = currentDays.indexOf(dow) >= 0;
-      cb.style.accentColor = '#4a90e2';
-      cb.addEventListener('change', function () {
-        label.style.borderColor = cb.checked ? '#4a90e2' : '#dde';
-        label.style.background  = cb.checked ? '#eef4ff' : '';
-      });
-      if (cb.checked) { label.style.borderColor = '#4a90e2'; label.style.background = '#eef4ff'; }
-      checkboxes.push({ dow: dow, cb: cb });
-      label.appendChild(cb);
-      label.appendChild(document.createTextNode(name));
-      grid.appendChild(label);
-    });
-    panel.appendChild(grid);
-
-    var btns = document.createElement('div');
-    btns.style.cssText = 'display:flex;gap:8px;justify-content:flex-end';
-
-    var cancelBtn = document.createElement('button');
-    cancelBtn.style.cssText = 'background:#eee;border:none;border-radius:8px;padding:7px 14px;cursor:pointer';
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.addEventListener('click', function () { overlay.remove(); });
-
-    var saveBtn = document.createElement('button');
-    saveBtn.className = 'btn-primary';
-    saveBtn.style.cssText = 'border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-weight:600';
-    saveBtn.textContent = 'Save';
-    saveBtn.addEventListener('click', function () {
-      var selected = checkboxes.filter(function (x) { return x.cb.checked; }).map(function (x) { return x.dow; });
-      var ps = getPhases();
-      ps[pi].days = selected;
-      savePhases(ps);
-      overlay.remove();
-      renderDeskRoutine();
-    });
-
-    btns.appendChild(cancelBtn);
-    btns.appendChild(saveBtn);
-    panel.appendChild(btns);
-
-    overlay.appendChild(panel);
-    document.body.appendChild(overlay);
-    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.remove(); });
   }
 
   /** Returns array of ISO date strings for every day in the current month. */
@@ -2249,9 +1582,9 @@
   // ---------------------------------------------------------------------------
   function buildMealViewAllBtn() {
     var btn = document.createElement('button');
-    btn.className = 'dmeal-view-all-btn btn-primary';
+    btn.className = 'dmeal-view-all-btn';
     btn.textContent = '📋 View All Items';
-    btn.style.cssText = 'margin-top:8px;border:none;border-radius:8px;padding:6px 14px;font-size:0.82rem;cursor:pointer;width:100%';
+    btn.style.cssText = 'margin-top:8px;background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:0.82rem;cursor:pointer;width:100%';
     btn.addEventListener('click', function () {
       openMealBucketModal();
     });
@@ -2478,275 +1811,12 @@
     try { renderDeskMeal();    } catch (e) { console.warn('[dp] meal failed', e); }
     try { renderDeskRoutine(); } catch (e) { console.warn('[dp] routine failed', e); }
     try { renderDeskGym();     } catch (e) { console.warn('[dp] gym failed', e); }
+    try { initToggleAllWidgets(); } catch (e) { console.warn('[dp] toggle-all failed', e); }
     try { initLayoutPicker();  } catch (e) { console.warn('[dp] layout-picker failed', e); }
-    try { patchTodayRoutineWidget(); } catch (e) { console.warn('[dp] today-widget failed', e); }
   }
 
   // Keep backward-compatible alias
   var renderDesktopPersonalWidgets = renderAdvancedPersonalWidgets;
-
-  // ---------------------------------------------------------------------------
-  // UPGRADED TODAY WIDGET — shows next undone step + Start Routine button
-  // ---------------------------------------------------------------------------
-  function patchTodayRoutineWidget() {
-    if (window._dpTodayWidgetPatched) return;
-    if (typeof window.renderTodayRoutinePreview !== 'function') return;
-
-    window.renderTodayRoutinePreview = function () {
-      var el = document.getElementById('todayRoutinePreviewContent');
-      if (!el) return;
-
-      var phases = getPhases();
-      var todayDow = new Date().getDay();
-      var activePhasesToday = phases.filter(function (ph) {
-        if (!ph.days || !ph.days.length) return true;
-        return ph.days.indexOf(todayDow) >= 0;
-      });
-
-      if (!activePhasesToday.length) {
-        el.innerHTML = '<span style="font-size:0.82rem;color:var(--ios-text-3)">No routines scheduled for today.</span>';
-        return;
-      }
-
-      var t = todayISO(), log = getRouLog();
-      var totalSteps = 0, totalDone = 0;
-      var nextStep = null, nextPhaseName = '', nextPhaseIdx = -1;
-
-      activePhasesToday.forEach(function (phase, pi) {
-        var steps = phase.steps || [];
-        var doneArr = (log[t] && log[t][phase.id]) ? log[t][phase.id] : [];
-        totalSteps += steps.length;
-        totalDone  += doneArr.filter(function (i) { return i < steps.length; }).length;
-        if (!nextStep) {
-          for (var si = 0; si < steps.length; si++) {
-            if (doneArr.indexOf(si) < 0) {
-              nextStep = steps[si];
-              nextPhaseName = (phase.emoji || '') + ' ' + phase.name;
-              nextPhaseIdx = pi;
-              break;
-            }
-          }
-        }
-      });
-
-      var pct = totalSteps > 0 ? Math.round(totalDone / totalSteps * 100) : 0;
-
-      el.innerHTML = '';
-
-      var barWrap = document.createElement('div');
-      barWrap.className = 'tdp-routine-bar-wrap';
-      barWrap.innerHTML =
-        '<div style="font-size:0.78rem;color:var(--ios-text-3);margin-bottom:4px">' +
-        totalDone + '/' + totalSteps + ' steps done (' + pct + '%)</div>' +
-        '<div class="tdp-routine-bar"><div class="tdp-routine-bar-fill" style="width:' + pct + '%"></div></div>';
-      el.appendChild(barWrap);
-
-      if (nextStep) {
-        var nextEl = document.createElement('div');
-        nextEl.style.cssText =
-          'display:flex;align-items:center;justify-content:space-between;' +
-          'margin-top:7px;padding:5px 8px;background:rgba(74,144,226,0.08);' +
-          'border-radius:8px;gap:6px;';
-        nextEl.innerHTML =
-          '<div style="flex:1;overflow:hidden">' +
-          '<div style="font-size:0.7rem;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
-          esc(nextPhaseName) + '</div>' +
-          '<div style="font-size:0.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' +
-          '▶ ' + esc(nextStep.text || '') + '</div>' +
-          '</div>';
-
-        var doneQuickBtn = document.createElement('button');
-        doneQuickBtn.style.cssText =
-          'background:#27ae60;color:#fff;border:none;border-radius:14px;' +
-          'padding:4px 10px;font-size:0.75rem;cursor:pointer;white-space:nowrap;flex-shrink:0';
-        doneQuickBtn.textContent = '✓ Done';
-        doneQuickBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          /* Find actual phase & step index */
-          activePhasesToday.forEach(function (phase) {
-            var steps = phase.steps || [];
-            steps.forEach(function (s, si) {
-              if (s === nextStep) toggleStepDone(phase.id, si, true);
-            });
-          });
-          window.dispatchEvent(new CustomEvent('app:data:updated'));
-          /* Re-render this widget */
-          window.renderTodayRoutinePreview();
-        });
-        nextEl.appendChild(doneQuickBtn);
-        el.appendChild(nextEl);
-      } else if (totalSteps > 0) {
-        var allDoneEl = document.createElement('div');
-        allDoneEl.style.cssText = 'font-size:0.82rem;color:#27ae60;margin-top:6px;font-weight:600';
-        allDoneEl.textContent = '🎉 All routines complete today!';
-        el.appendChild(allDoneEl);
-      }
-
-      /* Start Routine button */
-      var startBtn = document.createElement('button');
-      startBtn.className = 'btn-primary';
-      startBtn.style.cssText =
-        'margin-top:8px;width:100%;border:none;' +
-        'border-radius:18px;padding:7px 0;font-size:0.82rem;font-weight:600;cursor:pointer;' +
-        'transition:background 0.2s;';
-      startBtn.textContent = '▶ Start Focus Mode';
-      startBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (window.routineFocus) {
-          var pIdx = nextPhaseIdx >= 0 ? nextPhaseIdx : 0;
-          window.routineFocus.open({ phaseIdx: pIdx });
-        }
-      });
-      el.appendChild(startBtn);
-    };
-
-    window._dpTodayWidgetPatched = true;
-    /* Refresh immediately if widget container exists */
-    if (typeof window.renderTodayRoutinePreview === 'function') {
-      try { window.renderTodayRoutinePreview(); } catch (_) {}
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Smart Suggest banner — nudges user when a routine phase start time is near
-  // ---------------------------------------------------------------------------
-  function checkSmartSuggest() {
-    var phases = getPhases();
-    var now = new Date();
-    var todayDow = now.getDay();
-    var t = todayISO(), log = getRouLog();
-
-    phases.forEach(function (phase) {
-      if (!phase.startTime) return;
-      /* Filter by scheduled days */
-      if (phase.days && phase.days.length && phase.days.indexOf(todayDow) < 0) return;
-      /* Already fully done? */
-      var steps = phase.steps || [];
-      if (!steps.length) return;
-      var doneArr = (log[t] && log[t][phase.id]) ? log[t][phase.id] : [];
-      var allDone = doneArr.filter(function (i) { return i < steps.length; }).length >= steps.length;
-      if (allDone) return;
-
-      var parts = phase.startTime.split(':');
-      var startH = parseInt(parts[0], 10), startM = parseInt(parts[1], 10) || 0;
-      var startMin = startH * 60 + startM;
-      var nowMin   = now.getHours() * 60 + now.getMinutes();
-      var diff     = startMin - nowMin;
-      /* Nudge if within a 5-minute window before start time */
-      if (diff >= 1 && diff <= 6) {
-        showSmartSuggestBanner(phase, diff);
-      }
-    });
-  }
-
-  function showSmartSuggestBanner(phase, minutesUntil) {
-    var bannerId = 'smartSuggestBanner_' + phase.id;
-    if (document.getElementById(bannerId)) return; /* Already shown */
-
-    var banner = document.createElement('div');
-    banner.id = bannerId;
-    banner.style.cssText =
-      'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);' +
-      'background:linear-gradient(135deg,#4a90e2,#7b68ee);color:#fff;' +
-      'border-radius:14px;padding:12px 18px;z-index:5000;' +
-      'box-shadow:0 4px 20px rgba(0,0,0,0.25);display:flex;align-items:center;' +
-      'gap:12px;max-width:380px;width:90%;animation:smartSuggestSlideUp 0.4s ease;';
-
-    var msg = document.createElement('div');
-    msg.style.flex = '1';
-    msg.innerHTML =
-      '<div style="font-weight:700;font-size:0.9rem">' + esc((phase.emoji || '') + ' ' + phase.name) + ' starting in ' + minutesUntil + ' min</div>' +
-      '<div style="font-size:0.75rem;opacity:0.85">Time to get ready!</div>';
-    banner.appendChild(msg);
-
-    var startBtn = document.createElement('button');
-    startBtn.style.cssText = 'background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.4);color:#fff;border-radius:12px;padding:5px 12px;cursor:pointer;font-size:0.8rem;white-space:nowrap';
-    startBtn.textContent = '▶ Start';
-    startBtn.addEventListener('click', function () {
-      banner.remove();
-      if (window.routineFocus) {
-        var phases = getPhases();
-        var pi = phases.indexOf(phase);
-        window.routineFocus.open({ phaseIdx: Math.max(0, pi) });
-      }
-    });
-    banner.appendChild(startBtn);
-
-    var dismissBtn = document.createElement('button');
-    dismissBtn.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.7);font-size:1.1rem;cursor:pointer;padding:0 2px';
-    dismissBtn.textContent = '✕';
-    dismissBtn.addEventListener('click', function () { banner.remove(); });
-    banner.appendChild(dismissBtn);
-
-    /* Auto-dismiss after 20 seconds */
-    setTimeout(function () { if (banner.parentNode) banner.remove(); }, 20000);
-
-    document.body.appendChild(banner);
-  }
-
-  /* Inject keyframes for slide-up animation */
-  if (!document.getElementById('dpSmartSuggestStyles')) {
-    var ssStyle = document.createElement('style');
-    ssStyle.id = 'dpSmartSuggestStyles';
-    ssStyle.textContent =
-      '@keyframes smartSuggestSlideUp {' +
-      '  from { opacity:0; transform:translateX(-50%) translateY(20px); }' +
-      '  to   { opacity:1; transform:translateX(-50%) translateY(0); }' +
-      '}' +
-      /* Toolbar styles */
-      '.droutine-toolbar {' +
-      '  display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;' +
-      '}' +
-      '.droutine-toolbar-btn {' +
-      '  background:#f0f6ff;border:1.5px solid #d0e4ff;color:#2568c3;' +
-      '  border-radius:18px;padding:5px 12px;font-size:0.8rem;cursor:pointer;' +
-      '  transition:all 0.18s;' +
-      '}' +
-      '.droutine-toolbar-btn:hover {' +
-      '  background:#d0e4ff;border-color:#4a90e2;' +
-      '}' +
-      '.droutine-focus-btn {' +
-      '  background:linear-gradient(135deg,#4a90e2,#7b68ee);' +
-      '  border-color:#4a90e2;color:#fff;font-weight:700;' +
-      '}' +
-      '.droutine-focus-btn:hover {' +
-      '  background:linear-gradient(135deg,#2568c3,#5a4ace);' +
-      '}' +
-      /* Streak badge */
-      '.droutine-streak-badge {' +
-      '  font-size:0.7rem;color:#e67e22;font-weight:700;' +
-      '  white-space:nowrap;cursor:default;' +
-      '}' +
-      /* Phase focus button */
-      '.droutine-phase-focus-btn {' +
-      '  background:rgba(74,144,226,0.12);border:1px solid rgba(74,144,226,0.3);' +
-      '  color:#4a90e2;border-radius:50%;width:24px;height:24px;' +
-      '  display:flex;align-items:center;justify-content:center;' +
-      '  font-size:0.65rem;cursor:pointer;flex-shrink:0;' +
-      '  transition:all 0.18s;' +
-      '}' +
-      '.droutine-phase-focus-btn:hover {' +
-      '  background:#4a90e2;color:#fff;' +
-      '}' +
-      /* Edit button on step nodes */
-      '.droutine-node-edit {' +
-      '  background:none;border:none;cursor:pointer;opacity:0;font-size:0.78rem;' +
-      '  transition:opacity 0.18s;' +
-      '}' +
-      '.droutine-node:hover .droutine-node-edit { opacity:1; }' +
-      /* Stats section wrapper */
-      '#personalRoutineStatsSection {' +
-      '  padding: 0 0 8px;' +
-      '}';
-    document.head.appendChild(ssStyle);
-  }
-
-  /* Start smart-suggest check — runs once a minute */
-  if (!window._dpSmartSuggestTimer) {
-    window._dpSmartSuggestTimer = true;
-    checkSmartSuggest();
-    setInterval(checkSmartSuggest, 60000);
-  }
 
   /**
    * Patches window.renderPersonalWidgets so that the enhanced (advanced)
@@ -2798,8 +1868,6 @@
   var _tryCount = 0;
   function tryInit() {
     initAdvancedPersonal();
-    /* Also patch the Today widget whenever renderTodayRoutinePreview is available */
-    try { patchTodayRoutineWidget(); } catch (_) {}
     if (!window._dpPatched && _tryCount++ < 50) {
       setTimeout(tryInit, 100);
     } else if (window._dpPatched) {
@@ -2815,9 +1883,5 @@
   } else {
     setTimeout(tryInit, 50);
   }
-
-  // Expose advanced render functions so app.js fullscreen views can use them
-  window.renderDeskRoutineWidget = renderDeskRoutine;
-  window.renderDeskGymWidget     = renderDeskGym;
 
 })();

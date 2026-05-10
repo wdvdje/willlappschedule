@@ -539,8 +539,8 @@
      7. MINI-MONTH NAVIGATOR  (inline, below calendar grid)
   ══════════════════════════════════════════════════════════ */
   function injectMiniMonthSection() {
-    /* Mini month navigator has been removed per design update */
-    return;
+    var calPage = document.getElementById('page-calendar');
+    if (!calPage || document.getElementById('miniMonthNav')) return;
 
     var section = document.createElement('div');
     section.id = 'miniMonthNav';
@@ -902,7 +902,7 @@
       '  <option value="">System default (' + (Intl.DateTimeFormat().resolvedOptions().timeZone || 'local') + ')</option>',
       '</select>',
       '<div style="display:flex;gap:8px;margin-top:8px">',
-      '  <button id="dtTzSave" class="small-btn btn-primary">Save timezone</button>',
+      '  <button id="dtTzSave" class="small-btn" style="background:#4a90e2;color:#fff">Save timezone</button>',
       '  <button id="dtTzClear" class="small-btn">Reset to system</button>',
       '</div>',
       '<div id="dtTzStatus" style="margin-top:6px;font-size:0.85rem;color:#666"></div>'
@@ -989,9 +989,13 @@
   window.addEventListener('view:show', function (e) {
     var view = e.detail && e.detail.view;
     if (view === 'calendar' || view === 'today') {
+      showMiniMonthNav();
       setTimeout(function () {
+        try { refreshMiniMonths(); } catch (_) {}
         if (isDesktop()) try { wireDragCreate(); } catch (_) {}
       }, 80);
+    } else {
+      hideMiniMonthNav();
     }
     if (view === 'tasks' && isDesktop()) {
       setTimeout(function () { try { injectPomLaunchBtn(); } catch (_) {} }, 80);
@@ -1008,6 +1012,7 @@
     try { applyHeatmap(); }        catch (_) {}
     try { detectConflicts(); }     catch (_) {}
     try { applyMultiDaySpans(); }  catch (_) {}
+    try { refreshMiniMonths(); }   catch (_) {}
   });
 
   window.matchMedia('(min-width: 901px)').addEventListener('change', function (mq) {

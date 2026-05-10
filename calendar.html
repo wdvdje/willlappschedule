@@ -2,17 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="theme-color" content="#4a90e2" />
+  <meta name="description" content="TimeScape Planner Calendar — view and manage your monthly and weekly schedule at a glance." />
+  <meta name="keywords" content="calendar, schedule, planner, monthly view, weekly view, iOS" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="TimeScape Planner — Calendar" />
+  <meta property="og:description" content="View and manage your monthly and weekly schedule at a glance." />
+  <meta property="og:image" content="assets/icon.svg" />
   <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <title>TimeScape Planner — Calendar</title>
   <link rel="stylesheet" href="./assets/app.css" />
+  <link rel="stylesheet" href="./assets/ios-native.css" />
+  <!-- Resolve og:image to absolute URL at runtime -->
+  <script>try{var _b=new URL('assets/icon.svg',location.href).href;var _m=document.querySelector('meta[property="og:image"]');if(_m)_m.setAttribute('content',_b);}catch(e){}</script>
+  <!-- Redirect to the SPA; noscript fallback for crawlers -->
+  <script>location.replace('./index.html#calendar');</script>
+  <noscript><meta http-equiv="refresh" content="0;url=./index.html#calendar" /></noscript>
 </head>
 <body>
-  <header>📅 TimeScape Planner</header>
+  <header>
+    <a href="index.html#inbox" class="header-btn" aria-label="Inbox"><span>📥</span><span style="font-size:0.75rem">Inbox</span></a>
+    <span style="flex:1;text-align:center">📅 TimeScape Planner</span>
+    <button type="button" class="header-btn" id="headerAddItemBtn" aria-label="Add Item"><span>＋</span><span class="header-btn-label">Add</span></button>
+    <a href="index.html#settings" class="header-btn" aria-label="Settings"><span>⚙️</span><span style="font-size:0.75rem">Settings</span></a>
+  </header>
 
   <div class="calendar-controls">
     <button id="prevBtn">&lt;</button>
@@ -22,7 +42,7 @@
 
   <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
 
-  <div id="selectedDateArea" style="max-width:540px;margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
+  <div id="selectedDateArea" style="margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
     <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
     <div id="dayTopBars"></div>
   </div>
@@ -30,16 +50,32 @@
   <section class="dashboard">
     <h2>📊 Dashboard</h2>
     <p id="summaryStats"></p>
-    <div style="display:flex;align-items:center;gap:12px">
-      <div class="progress" id="progressRing" title="Overall progress"></div>
-      <div style="display:flex;flex-direction:column;align-items:flex-start">
-        <div style="font-size:0.95rem;color:#444;">Selected day</div>
-        <div class="progress" id="dayProgressRing" title="Selected-day progress"></div>
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:8px;justify-content:center">
+      <div class="progress-ring-wrap" id="completionRingWrap" title="Completion">
+        <svg viewBox="0 0 44 44">
+          <circle class="ring-bg" cx="22" cy="22" r="18"/>
+          <circle class="ring-fg" id="completionRingFg" cx="22" cy="22" r="18"
+                  stroke="#4a90e2" stroke-dasharray="113.1" stroke-dashoffset="113.1"
+                  transform="rotate(-90 22 22)"/>
+          <text class="ring-pct" id="completionRingPct" x="22" y="22">0%</text>
+        </svg>
+        <span class="ring-label">Completed</span>
+      </div>
+      <div class="progress-ring-wrap" id="dayElapsedRingWrap" title="Day elapsed">
+        <svg viewBox="0 0 44 44">
+          <circle class="ring-bg" cx="22" cy="22" r="18"/>
+          <circle class="ring-fg" id="dayElapsedRingFg" cx="22" cy="22" r="18"
+                  stroke="#e67e22" stroke-dasharray="113.1" stroke-dashoffset="113.1"
+                  transform="rotate(-90 22 22)"/>
+          <text class="ring-pct" id="dayElapsedRingPct" x="22" y="22">0%</text>
+        </svg>
+        <span class="ring-label">Day Elapsed</span>
       </div>
     </div>
+    <div class="weekly-salary" id="weeklySalaryDisplay"></div>
   </section>
 
-  <div id="reminderBar" aria-live="polite" style="max-width:540px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>
+  <div id="reminderBar" aria-live="polite" style="margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>
 
   <!-- edit modal (present on every page so edits work anywhere) -->
   <div id="editModal" role="dialog" aria-modal="true">
@@ -105,6 +141,7 @@
             <div style="flex:1">
               <label for="editPreBuffer">Pre-buffer</label>
               <select id="editPreBuffer">
+                <option value="0">None</option>
                 <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
                 <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
                 <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
@@ -114,6 +151,7 @@
             <div style="width:140px">
               <label for="editPostBuffer">Post-buffer</label>
               <select id="editPostBuffer">
+                <option value="0">None</option>
                 <option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option>
                 <option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option>
                 <option value="35">35 min</option><option value="40">40 min</option><option value="45">45 min</option>
@@ -125,7 +163,7 @@
 
         <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
           <button type="button" id="cancelEdit" class="small-btn">Cancel</button>
-          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
+          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:10px">Save</button>
         </div>
       </form>
     </div>
@@ -133,13 +171,15 @@
 
   <!-- bottom ribbon navigation -->
   <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-    <a href="index.html#events" class="r-item"><span>📅</span><span class="r-label">Events</span></a>
-    <a href="index.html#reminders" class="r-item"><span>🔔</span><span class="r-label">Reminders</span></a>
-    <a href="index.html#calendar" class="r-item r-center"><span>🗓️</span><span class="r-label">Calendar</span></a>
-    <a href="index.html#tasks" class="r-item"><span>✅</span><span class="r-label">Tasks</span></a>
-    <a href="index.html#settings" class="r-item"><span>⚙️</span><span class="r-label">Settings</span></a>
+    <a href="index.html#personal" class="r-item"><span>👤</span><span class="r-label">Personal</span></a>
+    <a href="index.html#calendar" class="r-item"><span>🗓️</span><span class="r-label">Calendar</span></a>
+    <a href="index.html#today" class="r-item r-center"><span>🏠</span><span class="r-label">Today</span></a>
+    <a href="index.html#home" class="r-item"><span>🏡</span><span class="r-label">Home</span></a>
+    <a href="index.html#work" class="r-item"><span>💼</span><span class="r-label">Work</span></a>
   </nav>
 
+
+  <script src="./utils.js"></script>
   <script src="./assets/app.js"></script>
 </body>
 </html>

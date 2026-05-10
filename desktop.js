@@ -199,11 +199,62 @@
   }
 
   function refreshEarnings() {
-    // The weekly salary display widget has been replaced by the Budget preview widget.
-    // Refresh the budget preview if available.
-    if (typeof window.renderTodayBudgetPreview === 'function') {
-      try { window.renderTodayBudgetPreview(); } catch (_) {}
+    var body = document.getElementById('dtEarningsBody');
+    if (!body) return;
+    var result = calcEarnings();
+    var fmt    = function (d) { return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+
+    // Update the panel title to reflect which week is shown
+    var titleEl = document.getElementById('dtEarningsTitle');
+    if (titleEl) {
+      var todayRange = weekRange();
+      var isSameWeek = result.range.start.getTime() === todayRange.start.getTime();
+      titleEl.textContent = isSameWeek
+        ? "💼 This Week's Job Earnings"
+        : '💼 Job Earnings: ' + fmt(result.range.start) + ' – ' + fmt(result.range.end);
     }
+
+    if (!result.items.length) {
+      body.innerHTML = '<span style="color:#aaa">No job events this week (' +
+        fmt(result.range.start) + '–' + fmt(result.range.end) +
+        '). Add events on the <b>Work</b> page or with <b>job</b> category to track earnings.</span>';
+      return;
+    }
+
+    var html = result.items.map(function (item) {
+      var e = item.ev;
+      var earnStr = item.earnings != null ? '$' + item.earnings.toFixed(2) : '—';
+      var hrsStr  = item.hours  != null ? item.hours.toFixed(1) + 'h ' : '';
+      return '<div style="display:flex;gap:8px;align-items:center;' +
+             'padding:4px 0;border-bottom:1px solid #f5f5f5">' +
+             '<span style="flex:1"><b>' + esc(e.title || '') + '</b> ' +
+             '<small style="color:#888">' + esc(e.date || '') +
+             (e.time ? ' ' + esc(e.time) : '') + '</small></span>' +
+             (hrsStr ? '<small style="color:#666">' + hrsStr + '</small>' : '') +
+             '<b style="color:#27ae60">' + earnStr + '</b></div>';
+    }).join('');
+
+    if (result.total > 0) {
+      html += '<div style="margin-top:8px;font-weight:700;color:#27ae60">' +
+              'Total: $' + result.total.toFixed(2) + '</div>';
+    }
+    body.innerHTML = html;
+  }
+
+  function injectEarningsPanel() {
+    var dash = document.querySelector('.dashboard');
+    if (!dash || document.getElementById('dtEarningsPanel')) return;
+
+    var panel = document.createElement('div');
+    panel.id = 'dtEarningsPanel';
+    panel.style.cssText = 'margin:12px auto 0;padding:12px;background:#fff;' +
+                          'border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,0.06);' +
+                          'text-align:left;max-width:640px';
+    panel.innerHTML = '<h4 id="dtEarningsTitle" style="margin:0 0 8px;color:#333;font-size:0.95rem">' +
+                      "💼 This Week's Job Earnings</h4>" +
+                      '<div id="dtEarningsBody" style="font-size:0.88rem;color:#555"></div>';
+    dash.appendChild(panel);
+    refreshEarnings();
   }
 
   // ---------------------------------------------------------------------------
@@ -645,6 +696,7 @@
 
   var DESKTOP_ELEMENTS = {
     'dtCsvBtns':       'flex',
+    'dtEarningsPanel': 'block',
     'dtTaskBar':       'flex',
     'dtBulkToggle':    'inline-block',
     'dtAgendaSidebar': 'block',
@@ -819,7 +871,7 @@
   function initDesktop() {
     if (!isDesktop()) return;
     injectCsvButtons();
-    refreshEarnings();
+    injectEarningsPanel();
     injectTaskBar();
     injectBulkTaskBar();
     initWeekViewDnd();
@@ -835,7 +887,7 @@
     if (view === 'tasks')    { injectTaskBar(); injectBulkTaskBar(); if (_bulkMode) schedApply(); }
     if (view === 'settings') { injectCsvButtons(); }
     if (view === 'calendar' || view === 'today') {
-      refreshEarnings();
+      injectEarningsPanel(); refreshEarnings();
       /* Only show the fixed agenda sidebar if the integrated upcoming panel is NOT present */
       if (!document.getElementById('calUpcomingPanel')) {
         injectAgendaSidebar(); refreshAgenda();

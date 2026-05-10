@@ -1,29 +1,41 @@
 /* Core helpers and storage */
 const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const weekdayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-const storage = window.appStorage || {
-  getItem: function (key, fallback) {
-    const fb = (typeof fallback === 'undefined') ? '' : fallback;
-    try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
-  },
-  setItem: function (key, value) {
-    try { localStorage.setItem(key, value == null ? '' : String(value)); } catch (_) {}
-  },
-  removeItem: function (key) {
-    try { localStorage.removeItem(key); } catch (_) {}
-  },
-  getJSON: function (key, fallback) {
-    try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
-  },
-  setJSON: function (key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { return false; }
-  }
-};
 
 function pad2(n){ return n<10 ? '0'+n : ''+n; }
+
+/* ── Haptic feedback helper (uses navigator.vibrate where available) ── */
+function haptic(pattern) {
+  try {
+    if (navigator.vibrate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      navigator.vibrate(pattern || 30);
+    }
+  } catch (_) {}
+}
+/* Preset patterns */
+haptic.complete = function() { haptic([30, 20, 30]); };
+haptic.delete   = function() { haptic(60); };
+haptic.timer    = function() { haptic([60, 40, 60, 40, 120]); };
+function generateTaskId(){ return 'task:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2); }
 function safeParseStorage(key, fallback){
-  try{ const raw = storage.getItem(key, ''); if (!raw) return fallback; return JSON.parse(raw); }
-  catch(e){ console.warn('LocalStorage parse failed for', key, e); try{ storage.removeItem(key); }catch(_){} return fallback; }
+  try{ const raw = localStorage.getItem(key); if (!raw) return fallback; return JSON.parse(raw); }
+  catch(e){ console.warn('LocalStorage parse failed for', key, e); try{ localStorage.removeItem(key); }catch(_){} return fallback; }
+}
+
+/* ----- Domain color preferences ----- */
+const DOMAIN_COLOR_DEFAULTS = { work: '#4a90e2', home: '#27ae60', personal: '#9b59b6', holiday: '#e74c3c' };
+
+function getDomainColors() {
+  const stored = safeParseStorage('domainColors', {});
+  return Object.assign({}, DOMAIN_COLOR_DEFAULTS, stored);
+}
+
+function hexToRgba(hex, alpha) {
+  if (!hex || hex[0] !== '#' || hex.length < 7) return 'rgba(0,0,0,' + alpha + ')';
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
 }
 function remindersToMap(input){
   const map = {};
@@ -34,7 +46,10 @@ function remindersToMap(input){
       const date = normalizeDate(r.date || r.reminderDate || '');
       if (!date) { console.warn('Skipping malformed reminder (missing date)', r); return; }
       if (!map[date]) map[date] = [];
-      map[date].push({ text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' });
+      const ro = { text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' };
+      if (r.domain) ro.domain = r.domain;
+      if (r.bucketId !== undefined) ro.bucketId = r.bucketId;
+      map[date].push(ro);
     });
     return map;
   }
@@ -46,7 +61,10 @@ function remindersToMap(input){
       map[date] = [];
       arr.forEach((r)=>{
         if (!r || typeof r !== 'object') return;
-        map[date].push({ text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' });
+        const ro = { text: (r.text || r.title || '').toString(), time: r.time || '', notify: r.notify || r.reminderNotify || 'none' };
+        if (r.domain) ro.domain = r.domain;
+        if (r.bucketId !== undefined) ro.bucketId = r.bucketId;
+        map[date].push(ro);
       });
     });
   }
@@ -56,17 +74,56 @@ function getReminders(){
   const parsed = safeParseStorage('reminders', {});
   const mapped = remindersToMap(parsed);
   if (JSON.stringify(parsed) !== JSON.stringify(mapped)) {
-    try { storage.setJSON('reminders', mapped); } catch (_) {}
+    try { localStorage.setItem('reminders', JSON.stringify(mapped)); } catch (_) {}
   }
   return mapped;
 }
-function setReminders(v){ storage.setJSON('reminders', remindersToMap(v)); }
+function setReminders(v){ localStorage.setItem('reminders', JSON.stringify(remindersToMap(v))); }
 function getTasks(){ return safeParseStorage('tasks', []); }
-function setTasks(v){ storage.setJSON('tasks', v); }
+function setTasks(v){ localStorage.setItem('tasks', JSON.stringify(v)); }
 function getEvents(){ return safeParseStorage('events', []); }
-function setEvents(v){ storage.setJSON('events', v); }
+function setEvents(v){ localStorage.setItem('events', JSON.stringify(v)); }
+/* Return expanded (recurring-aware) events for the given date range.
+   Falls back to getEvents() if expandEvents is not available yet. */
+function getExpandedEvents(startISO, endISO){
+  if (window.appUtils && typeof window.appUtils.expandEvents === 'function'){
+    return window.appUtils.expandEvents(startISO, endISO);
+  }
+  // fallback: return raw events filtered to the range
+  return getEvents().filter(function(e){
+    var d = normalizeDate(e.date);
+    return d >= startISO && d <= endISO;
+  });
+}
 function getJobs(){ return safeParseStorage('jobs', []); }
-function setJobs(v){ storage.setJSON('jobs', v); }
+function setJobs(v){ localStorage.setItem('jobs', JSON.stringify(v)); }
+function getInbox(){ return safeParseStorage('inbox', []); }
+function setInbox(v){ localStorage.setItem('inbox', JSON.stringify(v)); }
+
+/* Bucket storage: personalBuckets / homeBuckets (work uses jobs) */
+function getBuckets(domain) {
+  if (domain === 'work') {
+    return getJobs().map(function(j) {
+      return { id: j.id, name: j.name, emoji: j.emoji || '💼', collapsed: false };
+    });
+  }
+  return safeParseStorage(domain + 'Buckets', []);
+}
+function setBuckets(domain, v) {
+  if (domain === 'work') return;
+  localStorage.setItem(domain + 'Buckets', JSON.stringify(v));
+}
+function nextBucketId(domain) {
+  const buckets = getBuckets(domain);
+  if (!buckets.length) return 1;
+  return Math.max.apply(null, buckets.map(function(b) { return b.id || 0; })) + 1;
+}
+function persistBucketCollapse(domain, bucketId, collapsed) {
+  if (domain === 'work') return;
+  const buckets = getBuckets(domain);
+  const b = buckets.find(function(x) { return x.id === bucketId; });
+  if (b) { b.collapsed = collapsed; setBuckets(domain, buckets); }
+}
 
 function showAppError(msg){
   try{
@@ -124,7 +181,7 @@ function migrateConsistencyData(){
     const remRaw = safeParseStorage('reminders', {});
     const remMap = remindersToMap(remRaw);
     if (JSON.stringify(remRaw) !== JSON.stringify(remMap)) {
-      storage.setJSON('reminders', remMap);
+      localStorage.setItem('reminders', JSON.stringify(remMap));
     }
 
     // Normalize events for buffers, recurrence, and time aliases.
@@ -156,7 +213,7 @@ function migrateConsistencyData(){
       if (ev.postBuffer !== normPost) { ev.postBuffer = normPost; eventChanged = true; }
 
       const repeat = (ev.repeat || 'none').toString();
-      if (!['none','daily','2day','weekly','monthly','custom','weekday_ab'].includes(repeat)) {
+      if (!['none','daily','2day','weekday','weekly','monthly','custom','weekday_ab'].includes(repeat)) {
         ev.repeat = 'none';
         eventChanged = true;
       }
@@ -175,9 +232,14 @@ function migrateConsistencyData(){
       if (ev.repeat === 'weekday_ab') {
         const ab = (ev.abWeek || 'a').toString().toLowerCase() === 'b' ? 'b' : 'a';
         if (ev.abWeek !== ab) { ev.abWeek = ab; eventChanged = true; }
+        if (ev.abSkipHolidays !== undefined && typeof ev.abSkipHolidays !== 'boolean') {
+          ev.abSkipHolidays = !!ev.abSkipHolidays; eventChanged = true;
+        }
       }
     }
     if (eventChanged) setEvents(events);
+
+    migrateDomainField();
   } catch (e) {
     console.warn('Consistency migration failed', e);
   }
@@ -228,7 +290,7 @@ function getHoliday(mmdd, year){
 }
 
 /* app state */
-let selectedMonth, selectedYear, selectedDay;
+var selectedMonth, selectedYear, selectedDay;
 
 /* UI helpers */
 function escapeHTML(s){ return (s+'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -259,104 +321,19 @@ function hourToLabel(h){
 }
 
 function getEventsForDateKey(dateKey){
-  // returns events (with normalized times) for the given YYYY-MM-DD
-  return getEvents().filter(ev => normalizeDate(ev.date) === dateKey && (ev.time || ev.endTime));
+  // returns expanded events (with normalized times) for the given YYYY-MM-DD
+  return getExpandedEvents(dateKey, dateKey).filter(ev => ev.time || ev.endTime);
 }
 
-/* Updated renderDailyViewForDay:
-   - If partKey not provided or invalid, compute the part that contains the current hour.
-   - Color hour-label background to match the calendar day (weekday/weekend theme).
-   - Show events for the date, placing them in any hour they overlap; display start–end in 24h.
-*/
+/* renderDailyViewForDay:
+   Delegates to the calendar-style timeline renderer in daily-view.js.
+   Sets the date and triggers a re-render of the vertical timeline view. */
 function renderDailyViewForDay(year, monthIndex, day, partKey){
-  const container = document.getElementById('dailyView');
-  if(!container) return;
   const dateKey = `${year}-${pad2(monthIndex+1)}-${pad2(day)}`;
-  const events = getEventsForDateKey(dateKey);
-
-  // Determine part: if explicit valid partKey given (morning/day/night) use it,
-  // otherwise pick the part containing current hour (so no 'auto' behavior needed)
-  let part = DAY_PARTS[partKey];
-  if(!part){
-    const now = new Date();
-    // use current hour (local) for selecting the part
-    const curHour = (now.getFullYear()===year && now.getMonth()===monthIndex && now.getDate()===day) ? now.getHours() : new Date().getHours();
-    partKey = determinePartFromHour(curHour);
-    part = DAY_PARTS[partKey];
+  // Delegate to daily-view.js timeline renderer
+  if (typeof window.dailyViewSetDate === 'function') {
+    window.dailyViewSetDate(dateKey);
   }
-
-  // Build hours array interpreted as numbers (use 24..25 for 00:00 next day if needed)
-  const hours = [];
-  for(let h = part.start; h < part.end; h++){
-    hours.push(h);
-  }
-
-  // Determine theme color for this date (match calendar cell)
-  const dt = new Date(year, monthIndex, day);
-  const dow = dt.getDay();
-  const theme = themes[monthIndex] || themes[0];
-  const labelBg = (dow===0 || dow===6) ? theme.weekend : theme.weekday;
-
-  // render
-  container.innerHTML = '';
-  const wrapper = document.createElement('div');
-  wrapper.className = 'daily-view';
-  hours.forEach(h => {
-    const row = document.createElement('div');
-    row.className = 'hour-row';
-    if (isCurrentHourForDate(year, monthIndex, day, h)) row.classList.add('current');
-
-    const label = document.createElement('div');
-    label.className = 'hour-label';
-    label.textContent = hourToLabel(h);
-    // style label background to match calendar day color
-    label.style.background = labelBg;
-    label.style.borderRadius = '6px';
-    label.style.padding = '6px';
-    label.style.color = '#000';
-    row.appendChild(label);
-
-    const eventsCell = document.createElement('div');
-    eventsCell.className = 'hour-events';
-
-    // list events overlapping this hour
-    events.forEach(ev=>{
-      const start = parseTimeToFloat(ev.time); // e.g., "09:30" -> 9.5
-      const end = parseTimeToFloat(ev.endTime) || start;
-      if (start == null) return; // skip untimed events in daily view
-      let s = start, e = end;
-      // treat end <= start as next-day end
-      if (e <= s) e = e + 24;
-
-      // hour cell represents [h, h+1)
-      if ( (s < h+1) && (e > h) ){
-        const evb = document.createElement('div');
-        evb.className = 'event-block' + ( (s < h || e > h+1) ? ' continues' : '' );
-
-        // show start–end if end present
-        const timeSpan = document.createElement('span'); timeSpan.className='event-time';
-        const startLabel = ev.time ? ev.time : '';
-        const endLabel = ev.endTime ? ('–' + ev.endTime) : '';
-        timeSpan.textContent = startLabel + endLabel;
-
-        evb.appendChild(timeSpan);
-        const title = document.createElement('span'); title.textContent = ' ' + (ev.emoji ? ev.emoji + ' ' : '') + (ev.title||'');
-        evb.appendChild(title);
-
-        // attach edit on click
-        evb.addEventListener('click', ()=> { editEvent(ev.id); });
-        eventsCell.appendChild(evb);
-      }
-    });
-
-    row.appendChild(eventsCell);
-    wrapper.appendChild(row);
-  });
-
-  container.appendChild(wrapper);
-
-  const info = document.getElementById('dailyViewInfo');
-  if(info) info.textContent = `${capitalize(partKey)} view (${hourToLabel(hours[0])} – ${hourToLabel(hours[hours.length-1])})`;
 }
 
 function determinePartFromHour(hour){
@@ -383,98 +360,159 @@ function isCurrentHourForDate(year, monthIndex, day, hourCell){
   return cmpHour === mapped;
 }
 
-/* ---------- Jobs: storage and UI ---------- */
+/* ---------- Jobs: storage and UI (modal-based, on Work page) ---------- */
 
-/* render saved jobs list */
-function renderJobs(){
-  try{
-    const list = document.getElementById('jobList');
-    if (!list) return;
-    list.innerHTML = '';
-    const jobs = getJobs();
-    jobs.forEach(job=>{
-      const li = document.createElement('li');
-      li.className = 'job-item';
-      li.dataset.jobId = job.id;
+/* Temporary storage for off-days being edited in the modal */
+var _jobModalOffDays = [];
 
-      const bullet = document.createElement('span');
-      bullet.className = 'job-bullet';
-      bullet.textContent = job.emoji || '🧾';
-
-      const content = document.createElement('div');
-      content.className = 'job-content';
-      const locHtml = job.location ? ` — <a href="${osmSearchUrl(job.location)}" target="_blank">${escapeHTML(job.location)}</a>` : '';
-      content.innerHTML = `<b>${escapeHTML(job.name)}</b> <small style="color:#666">(${escapeHTML(job.rate||'')}${job.unit?(' /'+escapeHTML(job.unit)):""})</small>${locHtml}`;
-
-      const controls = document.createElement('span');
-      controls.className = 'job-controls';
-      const editBtn = document.createElement('button'); editBtn.className='small-btn'; editBtn.textContent='Edit';
-      editBtn.addEventListener('click', ()=> editJob(job.id));
-      const delBtn = document.createElement('button'); delBtn.className='small-btn'; delBtn.textContent='Delete';
-      delBtn.addEventListener('click', ()=> { if(confirm('Delete job?')) deleteJob(job.id); });
-      controls.appendChild(editBtn); controls.appendChild(delBtn);
-
-      li.appendChild(bullet);
-      li.appendChild(content);
-      li.appendChild(controls);
-      list.appendChild(li);
-    });
-  }catch(e){ console.warn('renderJobs failed', e); }
-}
-
-/* save job from Add Job form (create or update) */
-function saveJobFromUI(){
-  try{
-    const idField = document.getElementById('jobId');
-    const name = (document.getElementById('jobName')||{}).value.trim();
-    if (!name){ alert('Enter a job name'); return; }
-    const emoji = (document.getElementById('jobEmoji')||{}).value.trim();
-    const location = (document.getElementById('jobLocation')||{}).value.trim();
-    const rate = (document.getElementById('jobRate')||{}).value.trim();
-    const unit = (document.getElementById('jobUnit')||{}).value;
-
-    let jobs = getJobs();
-    if (idField && idField.value){
-      const id = parseInt(idField.value,10);
-      const idx = jobs.findIndex(j=>j.id===id);
-      if (idx!==-1){
-        jobs[idx] = Object.assign({}, jobs[idx], {name, emoji, location, rate, unit});
+function showJobModal(jobId) {
+  try {
+    var modal = document.getElementById('jobModal');
+    if (!modal) return;
+    clearJobForm();
+    if (jobId !== undefined && jobId !== null) {
+      var jobs = getJobs();
+      var job = jobs.find(function(j) { return j.id === jobId; });
+      if (job) {
+        document.getElementById('jobId').value = job.id;
+        document.getElementById('jobName').value = job.name || '';
+        document.getElementById('jobEmoji').value = job.emoji || '';
+        document.getElementById('jobLocation').value = job.location || '';
+        document.getElementById('jobRate').value = job.rate || '';
+        document.getElementById('jobUnit').value = job.unit || 'hour';
+        var otHoursEl = document.getElementById('jobOvertimeHours');
+        var otMultEl  = document.getElementById('jobOvertimeMultiplier');
+        if (otHoursEl) otHoursEl.value = job.overtimeHours != null ? job.overtimeHours : '';
+        if (otMultEl)  otMultEl.value  = job.overtimeMultiplier != null ? job.overtimeMultiplier : '';
+        _jobModalOffDays = Array.isArray(job.offDays) ? job.offDays.slice() : [];
+        var ppTypeEl = document.getElementById('jobPayPeriodType');
+        var ppStartEl = document.getElementById('jobPayPeriodStart');
+        if (ppTypeEl) ppTypeEl.value = (job.payPeriod && job.payPeriod.type) || '';
+        if (ppStartEl) ppStartEl.value = (job.payPeriod && job.payPeriod.startDate) || '';
+        var heading = document.getElementById('jobModalHeading');
+        if (heading) heading.textContent = 'Edit Job';
       }
     } else {
-      const nid = jobs.length ? Math.max(...jobs.map(j=>j.id))+1 : 1;
-      jobs.push({ id: nid, name, emoji, location, rate, unit });
+      _jobModalOffDays = [];
+      var heading = document.getElementById('jobModalHeading');
+      if (heading) heading.textContent = 'Add Job';
+    }
+    renderJobOffDaysList();
+    modal.classList.remove('hidden');
+    setTimeout(function() {
+      var nameInput = document.getElementById('jobName');
+      if (nameInput) nameInput.focus();
+    }, 50);
+  } catch(e) { console.warn('showJobModal failed', e); }
+}
+
+function hideJobModal() {
+  var modal = document.getElementById('jobModal');
+  if (modal) { modal.classList.add('hidden'); }
+}
+
+function renderJobOffDaysList() {
+  var ul = document.getElementById('jobOffDaysList');
+  if (!ul) return;
+  if (!_jobModalOffDays.length) {
+    ul.innerHTML = '<li style="color:#999;font-size:0.85rem">No days off added for this job.</li>';
+    return;
+  }
+  ul.innerHTML = '';
+  _jobModalOffDays.forEach(function(entry, i) {
+    var li = document.createElement('li');
+    li.style.cssText = 'display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid #f0f0f0;font-size:0.9rem';
+    var dateStr = typeof entry === 'string' ? entry : (entry.date || '');
+    var label = (typeof entry === 'object' && entry.label) ? entry.label : '';
+    var dateSpan = document.createElement('span');
+    dateSpan.style.fontWeight = '600';
+    dateSpan.textContent = dateStr;
+    li.appendChild(dateSpan);
+    if (label) {
+      var labelSpan = document.createElement('span');
+      labelSpan.style.color = '#666';
+      labelSpan.textContent = label;
+      li.appendChild(labelSpan);
+    }
+    var removeBtn = document.createElement('button');
+    removeBtn.className = 'small-btn';
+    removeBtn.style.cssText = 'margin-left:auto;background:#e74c3c;color:#fff;padding:2px 8px;font-size:0.78rem';
+    removeBtn.textContent = 'Remove';
+    removeBtn.addEventListener('click', function() {
+      _jobModalOffDays.splice(i, 1);
+      renderJobOffDaysList();
+    });
+    li.appendChild(removeBtn);
+    ul.appendChild(li);
+  });
+}
+
+/* render saved jobs list (no-op now — jobs render as buckets on work page) */
+function renderJobs(){
+  try { renderDomainPage('work'); } catch(e) { console.warn('renderJobs failed', e); }
+}
+
+/* save job from modal form (create or update) */
+function saveJobFromUI(){
+  try{
+    var idField = document.getElementById('jobId');
+    var name = (document.getElementById('jobName')||{}).value.trim();
+    if (!name){ alert('Enter a job name'); return; }
+    var emoji = (document.getElementById('jobEmoji')||{}).value.trim();
+    var location = (document.getElementById('jobLocation')||{}).value.trim();
+    var rate = (document.getElementById('jobRate')||{}).value.trim();
+    var unit = (document.getElementById('jobUnit')||{}).value;
+    var offDays = _jobModalOffDays.slice();
+    var overtimeHoursRaw = (document.getElementById('jobOvertimeHours')||{}).value;
+    var overtimeMultRaw  = (document.getElementById('jobOvertimeMultiplier')||{}).value;
+    var overtimeHours      = overtimeHoursRaw      ? parseFloat(overtimeHoursRaw)      : null;
+    var overtimeMultiplier = overtimeMultRaw  ? parseFloat(overtimeMultRaw)  : null;
+
+    var jobs = getJobs();
+    if (idField && idField.value){
+      var id = parseInt(idField.value,10);
+      var idx = jobs.findIndex(function(j){ return j.id===id; });
+      if (idx!==-1){
+        jobs[idx] = Object.assign({}, jobs[idx], {name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier, payPeriod: { type: document.getElementById('jobPayPeriodType').value, startDate: document.getElementById('jobPayPeriodStart').value }});
+      }
+    } else {
+      var nid = jobs.length ? Math.max.apply(null, jobs.map(function(j){ return j.id; }))+1 : 1;
+      jobs.push({ id: nid, name: name, emoji: emoji, location: location, rate: rate, unit: unit, offDays: offDays, overtimeHours: overtimeHours, overtimeMultiplier: overtimeMultiplier, payPeriod: { type: document.getElementById('jobPayPeriodType').value, startDate: document.getElementById('jobPayPeriodStart').value } });
     }
     setJobs(jobs);
-    renderJobs();
-    // clear form
+    hideJobModal();
     clearJobForm();
+    renderJobs();
+    renderCategoryFilterBar();
   }catch(e){ console.warn('saveJobFromUI failed', e); alert('Save failed'); }
 }
 
-/* populate form for editing */
+/* populate modal for editing */
 function editJob(id){
-  try{
-    const jobs = getJobs();
-    const job = jobs.find(j=>j.id===id);
-    if (!job) return;
-    document.getElementById('jobId').value = job.id;
-    document.getElementById('jobName').value = job.name || '';
-    document.getElementById('jobEmoji').value = job.emoji || '';
-    document.getElementById('jobLocation').value = job.location || '';
-    document.getElementById('jobRate').value = job.rate || '';
-    document.getElementById('jobUnit').value = job.unit || 'hour';
-    // mark inputs as user-editable to avoid being overwritten by profile UI
-    const homeInput = document.getElementById('jobLocation'); if (homeInput) homeInput.dataset.userset = '1';
-  }catch(e){ console.warn('editJob failed', e); }
+  showJobModal(id);
 }
 
 /* delete job */
 function deleteJob(id){
   try{
-    let jobs = getJobs();
-    jobs = jobs.filter(j=>j.id !== id);
+    if (!confirm('Delete this job? Its items will be moved to Uncategorized.')) return;
+    // Move items referencing this job to uncategorized
+    var evs = getEvents();
+    evs.forEach(function(ev) { if (ev.bucketId === id && getDomainOfItem(ev) === 'work') delete ev.bucketId; });
+    setEvents(evs);
+    var tasks = getTasks();
+    tasks.forEach(function(t) { if (t.bucketId === id && getDomainOfItem(t) === 'work') delete t.bucketId; });
+    setTasks(tasks);
+    var rmap = getReminders();
+    Object.keys(rmap).forEach(function(dk) {
+      (rmap[dk] || []).forEach(function(r) { if (r.bucketId === id && getDomainOfItem(r) === 'work') delete r.bucketId; });
+    });
+    setReminders(rmap);
+    var jobs = getJobs();
+    jobs = jobs.filter(function(j){ return j.id !== id; });
     setJobs(jobs);
     renderJobs();
+    renderCategoryFilterBar();
   }catch(e){ console.warn('deleteJob failed', e); }
 }
 
@@ -486,6 +524,16 @@ function clearJobForm(){
     document.getElementById('jobLocation').value = '';
     document.getElementById('jobRate').value = '';
     document.getElementById('jobUnit').value = 'hour';
+    var otHours = document.getElementById('jobOvertimeHours');
+    var otMult  = document.getElementById('jobOvertimeMultiplier');
+    if (otHours) otHours.value = '';
+    if (otMult)  otMult.value  = '';
+    _jobModalOffDays = [];
+    var ppType = document.getElementById('jobPayPeriodType');
+    var ppStart = document.getElementById('jobPayPeriodStart');
+    if (ppType) ppType.value = '';
+    if (ppStart) ppStart.value = '';
+    renderJobOffDaysList();
   }catch(e){ /* ignore */ }
 }
 
@@ -493,11 +541,34 @@ function clearJobForm(){
 (function wireJobsUI(){
   try{
     document.addEventListener('DOMContentLoaded', function(){
-      const saveBtn = document.getElementById('saveJobBtn');
-      const clearBtn = document.getElementById('clearJobBtn');
+      var saveBtn = document.getElementById('saveJobBtn');
+      var cancelBtn = document.getElementById('cancelJobBtn');
+      var addWorkBtn = document.getElementById('addWorkJobBtn');
+      var addOffDayBtn = document.getElementById('addJobOffDayBtn');
       if (saveBtn) saveBtn.addEventListener('click', function(e){ e.preventDefault(); saveJobFromUI(); });
-      if (clearBtn) clearBtn.addEventListener('click', function(e){ e.preventDefault(); if (confirm('Clear job form?')) clearJobForm(); });
-      renderJobs();
+      if (cancelBtn) cancelBtn.addEventListener('click', function(e){ e.preventDefault(); hideJobModal(); });
+      if (addWorkBtn) addWorkBtn.addEventListener('click', function(){ showJobModal(); });
+      if (addOffDayBtn) addOffDayBtn.addEventListener('click', function() {
+        var dateInp = document.getElementById('jobOffDayDate');
+        var labelInp = document.getElementById('jobOffDayLabel');
+        var date = dateInp ? dateInp.value : '';
+        if (!date) { if (dateInp) dateInp.focus(); return; }
+        var label = labelInp ? labelInp.value.trim() : '';
+        _jobModalOffDays.push({ date: date, label: label });
+        _jobModalOffDays.sort(function(a, b) {
+          var da = typeof a === 'string' ? a : a.date;
+          var db = typeof b === 'string' ? b : b.date;
+          return da < db ? -1 : da > db ? 1 : 0;
+        });
+        if (dateInp) dateInp.value = '';
+        if (labelInp) labelInp.value = '';
+        renderJobOffDaysList();
+      });
+      // Click outside modal to close
+      var modal = document.getElementById('jobModal');
+      if (modal) {
+        modal.addEventListener('click', function(e) { if (e.target === modal) hideJobModal(); });
+      }
     });
   }catch(e){ console.warn('wireJobsUI failed', e); }
 })();
@@ -524,9 +595,15 @@ function generateCalendar(){
   const today = new Date();
   const isCurMonth = today.getFullYear()===selectedYear && today.getMonth()===selectedMonth;
   const reminders = getReminders();
-  const events = getEvents();
+  const monthStart = selectedYear+'-'+pad2(selectedMonth+1)+'-01';
+  const monthEnd   = selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(daysInMonth);
+  const events = getExpandedEvents(monthStart, monthEnd);
 
-  for (let i=0;i<start;i++) calendarEl.appendChild(document.createElement('div'));
+  for (let i=0;i<start;i++) {
+    const ec = document.createElement('div');
+    ec.className = 'day day-empty';
+    calendarEl.appendChild(ec);
+  }
 
   const theme = themes[selectedMonth] || themes[0];
 
@@ -553,28 +630,178 @@ function generateCalendar(){
     else if (dayEvents.length) cell.title = dayEvents.map(e=>`${e.time||''} ${e.title}`).join('\n');
 
     const indicators = [];
-    dayEvents.forEach(ev => indicators.push({kind:'event', emoji: ev.emoji || '📌', title: (ev.time?`[${ev.time}] `:'') + (ev.title||''), id: ev.id}));
-    if (h) indicators.push({kind:'holiday', emoji: h.emoji || '🏳️', title: h.name});
-    if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
-    if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
+    dayEvents.forEach(ev => {
+      const domain = (typeof getDomainOfItem === 'function') ? getDomainOfItem(ev) : 'personal';
+      indicators.push({kind:'event', emoji: ev.emoji || '📌', title: (ev.time?`[${ev.time}] `:'') + (ev.title||''), id: ev.id, domain: domain, shortTitle: ev.title || ''});
+    });
+    if (h) indicators.push({kind:'holiday', emoji: h.emoji || '🏳️', title: h.name, domain: 'holiday', shortTitle: h.name});
+    if (dayReminders.length) indicators.push({kind:'reminder', emoji: '🔔', title: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayReminders.length} reminder${dayReminders.length>1?'s':''}`});
+    if (dayTasks.length) indicators.push({kind:'task', emoji: '✅', title: `${dayTasks.length} task${dayTasks.length>1?'s':''}`, domain: 'personal', shortTitle: `${dayTasks.length} task${dayTasks.length>1?'s':''}`});
 
     const emojiRow = cell.querySelector('.emoji-row');
     const count = Math.max(1, indicators.length);
     const size = Math.max(12, Math.floor(28 / Math.sqrt(count)));
+    const _domainColors = getDomainColors();
     indicators.forEach(ind=>{
       const sp = document.createElement('span');
       sp.className = 'event-preview ' + (ind.kind || '');
-      sp.textContent = ind.emoji || '';
+      sp.dataset.domain = ind.domain || 'personal';
+      sp.dataset.shortTitle = ind.shortTitle || '';
       sp.title = ind.title || '';
-      sp.style.fontSize = size + 'px';
       if (ind.kind === 'event' && ind.id) sp.dataset.eventId = ind.id;
+
+      /* Mobile: emoji only (default) */
+      const emojiSpan = document.createElement('span');
+      emojiSpan.className = 'ep-emoji';
+      emojiSpan.textContent = ind.emoji || '';
+      sp.appendChild(emojiSpan);
+
+      /* Desktop: title label (hidden on mobile via CSS) */
+      const labelSpan = document.createElement('span');
+      labelSpan.className = 'ep-label';
+      labelSpan.textContent = ind.shortTitle || '';
+      sp.appendChild(labelSpan);
+
+      sp.style.fontSize = size + 'px';
+      const domColor = _domainColors[ind.domain] || '#9b59b6';
+      sp.dataset.domainColor = domColor;
       emojiRow.appendChild(sp);
     });
 
     cell.addEventListener('click', ()=> showReminders(day));
+
+    /* Mobile long-press: show daily summary modal */
+    (function(dayNum, cellEl){
+      var LONG_PRESS_MS = 500;
+      var MOBILE_MAX_PX = 900;
+      var _lpTimer = null;
+      var _lpFired = false;
+      cellEl.addEventListener('touchstart', function(e){
+        _lpFired = false;
+        var isMobile = window.innerWidth <= MOBILE_MAX_PX;
+        if (!isMobile) return;
+        _lpTimer = setTimeout(function(){
+          _lpFired = true;
+          showMobileDailySummary(selectedYear, selectedMonth, dayNum);
+        }, LONG_PRESS_MS);
+      }, {passive: true});
+      cellEl.addEventListener('touchend', function(e){
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+        if (_lpFired) { e.preventDefault(); }
+      });
+      cellEl.addEventListener('touchmove', function(){
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+      }, {passive: true});
+      cellEl.addEventListener('touchcancel', function(){
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+      }, {passive: true});
+    })(day, cell);
+
     if (selectedDay === day) cell.classList.add('selected');
     calendarEl.appendChild(cell);
   }
+  const totalCells = start + daysInMonth;
+  const remainder = totalCells % 7;
+  if (remainder !== 0) {
+    for (let i = 0; i < 7 - remainder; i++) {
+      const ec = document.createElement('div');
+      ec.className = 'day day-empty';
+      calendarEl.appendChild(ec);
+    }
+  }
+}
+
+/* ── Mobile daily summary modal (long-press) ── */
+function showMobileDailySummary(year, month, day){
+  var existing = document.getElementById('mobileDaySummaryModal');
+  if (existing) existing.remove();
+
+  var ymd = year + '-' + pad2(month + 1) + '-' + pad2(day);
+  var dateObj = new Date(year, month, day);
+  var dateTitle = dateObj.toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+  // Gather data
+  var events = getExpandedEvents(ymd, ymd);
+  var tasks = getTasks().filter(function(t){ return normalizeDate(t.date) === ymd; });
+  var reminders = getReminders();
+  var dayReminders = reminders[ymd] || [];
+  var mmdd = pad2(month + 1) + '-' + pad2(day);
+  var holiday = (typeof getHoliday === 'function') ? getHoliday(mmdd, year) : null;
+  var domainColors = getDomainColors();
+
+  // Build content
+  var html = '';
+
+  if (holiday) {
+    html += '<div class="mds-section mds-holiday"><span>' + (holiday.emoji || '🏳️') + ' ' + escapeHTML(holiday.name) + '</span></div>';
+  }
+
+  // Events
+  if (events.length) {
+    html += '<div class="mds-section"><div class="mds-section-title">📅 Events</div>';
+    events.forEach(function(ev){
+      var domain = (typeof getDomainOfItem === 'function') ? getDomainOfItem(ev) : 'personal';
+      var color = domainColors[domain] || '#9b59b6';
+      var time = ev.time ? ('<span class="mds-time">' + escapeHTML(ev.time) + (ev.endTime ? ' – ' + escapeHTML(ev.endTime) : '') + '</span>') : '';
+      html += '<div class="mds-item" style="border-left-color:' + color + '">' +
+        (ev.emoji ? '<span class="mds-emoji">' + ev.emoji + '</span>' : '') +
+        '<div class="mds-item-body">' +
+        '<span class="mds-item-title">' + escapeHTML(ev.title || 'Untitled') + '</span>' +
+        time +
+        '</div></div>';
+    });
+    html += '</div>';
+  }
+
+  // Tasks
+  if (tasks.length) {
+    html += '<div class="mds-section"><div class="mds-section-title">✅ Tasks</div>';
+    tasks.forEach(function(t){
+      var done = t.done || t.completed;
+      html += '<div class="mds-item mds-task' + (done ? ' mds-done' : '') + '">' +
+        '<span class="mds-check">' + (done ? '☑' : '☐') + '</span>' +
+        '<span class="mds-item-title">' + escapeHTML(t.text || t.title || '') + '</span>' +
+        (t.time ? '<span class="mds-time">' + escapeHTML(t.time) + '</span>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Reminders
+  if (dayReminders.length) {
+    html += '<div class="mds-section"><div class="mds-section-title">🔔 Reminders</div>';
+    dayReminders.forEach(function(r){
+      var done = r.done;
+      html += '<div class="mds-item mds-reminder' + (done ? ' mds-done' : '') + '">' +
+        '<span class="mds-item-title">' + escapeHTML(r.text || r.title || '') + '</span>' +
+        (r.time ? '<span class="mds-time">' + escapeHTML(r.time) + '</span>' : '') +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  if (!events.length && !tasks.length && !dayReminders.length && !holiday) {
+    html += '<div class="mds-empty">No events, tasks, or reminders for this day.</div>';
+  }
+
+  // Create modal
+  var overlay = document.createElement('div');
+  overlay.id = 'mobileDaySummaryModal';
+  overlay.className = 'mobile-day-summary-modal';
+  overlay.innerHTML =
+    '<div class="mds-card">' +
+      '<div class="mds-header">' +
+        '<span class="mds-title">' + escapeHTML(dateTitle) + '</span>' +
+        '<button class="mds-close" aria-label="Close">&times;</button>' +
+      '</div>' +
+      '<div class="mds-body">' + html + '</div>' +
+    '</div>';
+
+  document.body.appendChild(overlay);
+
+  // Close handlers
+  overlay.querySelector('.mds-close').addEventListener('click', function(){ overlay.remove(); });
+  overlay.addEventListener('click', function(e){ if (e.target === overlay) overlay.remove(); });
 }
 
 /* show reminders + events for a selected day */
@@ -591,40 +818,41 @@ function showReminders(day){
   const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
   const reminders = getReminders();
   const items = reminders[key] || [];
-  const events = getEvents().filter(e=>normalizeDate(e.date)===key);
-
-  const untimed = events.filter(e=>!e.time).slice().sort((a,b)=> (a.title||'').localeCompare(b.title||''));
-  const timed = events.filter(e=>e.time).slice().sort((a,b)=>{
-    if (a.time === b.time) return (a.title||'').localeCompare(b.title||'');
-    return (a.time||'').localeCompare(b.time||'');
-  });
-  const eventsSorted = untimed.concat(timed);
 
   const rd = document.getElementById('selectedDateLong');
   if (rd){
     rd.textContent = new Date(selectedYear, selectedMonth, day).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     rd.style.display = 'block';
+    /* Share-day button (Web Share API) */
+    var existShareBtn = rd.parentNode && rd.parentNode.querySelector('#shareDayBtn');
+    if (!existShareBtn && navigator.share && rd.parentNode) {
+      var shareDayBtn = document.createElement('button');
+      shareDayBtn.id = 'shareDayBtn';
+      shareDayBtn.className = 'small-btn';
+      shareDayBtn.title = 'Share this day';
+      shareDayBtn.textContent = '↗ Share day';
+      shareDayBtn.style.cssText = 'margin-left:8px;font-size:0.78rem;vertical-align:middle';
+      shareDayBtn.addEventListener('click', function() { shareDaySchedule(selectedYear, selectedMonth, day); });
+      rd.insertAdjacentElement('afterend', shareDayBtn);
+    }
   }
 
   const mmdd = pad2(selectedMonth+1)+'-'+pad2(day);
   const h = getHoliday(mmdd, selectedYear);
 
   const holidayHTML = h ? `<div class="reminder-bar" style="background:#ffe5e3;border-left:4px solid #c0392b;color:#c0392b"><b>${h.emoji} ${h.name}</b></div>` : '';
-  const eventsHTML = eventsSorted.length ? `<div class="reminder-bar" style="background:#eef6ff;border-left:4px solid #4a90e2;color:#234"><b>Events:</b><div class="events-list">${eventsSorted.map(ev=>{
-    const timePart = ev.time ? `[${escapeHTML(ev.time)}] ` : '';
-    const emojiPart = ev.emoji ? `${ev.emoji} ` : '';
-    const locationPart = ev.location ? ` @ <a href="${osmSearchUrl(ev.location)}" target="_blank">${escapeHTML(ev.location)}</a>` : '';
-    const bufferPart = (ev.preBuffer||0) || (ev.postBuffer||0) ? ` <small style="color:#555">(${ev.preBuffer||0}m pre / ${ev.postBuffer||0}m post)</small>` : '';
-    return `<div class="r-event">${timePart}${emojiPart}<b>${escapeHTML(ev.title)}</b>${locationPart}${bufferPart}<span class="r-actions"><button class="small-btn" onclick="editEvent(${ev.id})">Edit</button><button class="small-btn" onclick="deleteEvent(${ev.id})">Delete</button></span></div>`;
-  }).join('')}</div></div>` : '';
 
   const ribbons = document.getElementById('dayTopBars');
-  if (ribbons) ribbons.innerHTML = holidayHTML + eventsHTML;
+  if (ribbons) ribbons.innerHTML = holidayHTML;
 
   const reminderArea = document.getElementById('reminderBar');
   if (reminderArea){
     if (items.length){
-      reminderArea.innerHTML = `<div class="reminder-bar"><b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${items.map((r,i)=>`<li>${r.time?`[${r.time}] `:''}${escapeHTML(r.text)} <span class="item-controls"><button class="small-btn" onclick="editReminder(${day},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button></span></li>`).join('')}</ul></div>`;
+      reminderArea.innerHTML = `<div class="reminder-bar"><b>Reminders for ${monthNames[selectedMonth]} ${day}, ${selectedYear}:</b><ul>${items.map((r,i)=>{
+        const checked = r.done ? 'checked' : '';
+        const doneStyle = r.done ? ' style="text-decoration:line-through;opacity:0.7"' : '';
+        return `<li><input type="checkbox" ${checked} onchange="toggleReminderDone(${day},${i},this.checked)"><span${doneStyle}>${r.time?`[${r.time}] `:''}${escapeHTML(r.text)}</span> <span class="item-controls"><button class="small-btn" onclick="editReminder(${day},${i})">Edit</button><button class="small-btn" onclick="deleteReminder(${day},${i})">Delete</button></span></li>`;
+      }).join('')}</ul></div>`;
     } else {
       reminderArea.innerHTML = '';
     }
@@ -632,14 +860,17 @@ function showReminders(day){
 
   updateDayProgress(day);
 
+  /* Refresh weather widget for new selected week */
+  if (typeof renderDashboardWeather === 'function') {
+    try { renderDashboardWeather(); } catch(_){}
+  }
+
   if (selectedYear != null && selectedMonth != null && day){
-    const sel = document.getElementById('dayPartSelect');
-    const part = (sel && sel.value && sel.value !== 'auto') ? sel.value : 'auto';
-    renderDailyViewForDay(selectedYear, selectedMonth, day, part);
+    renderDailyViewForDay(selectedYear, selectedMonth, day);
     const container = document.getElementById('dailyView');
     if(container){
-      const current = container.querySelector('.hour-row.current');
-      if(current) current.scrollIntoView({ behavior:'smooth', block:'center' });
+      const nowLine = container.querySelector('.dv-now-line');
+      if(nowLine) nowLine.scrollIntoView({ behavior:'smooth', block:'center' });
     }
   }
 }
@@ -700,7 +931,23 @@ function editReminder(day,index){
   document.getElementById('editText').value = item.text||'';
   document.getElementById('editDate').value = key;
   document.getElementById('editTime').value = item.time || '';
+  const itemDomain = item.domain || 'personal';
+  const editItemDomainEl = document.getElementById('editItemDomain');
+  if (editItemDomainEl) editItemDomainEl.value = itemDomain;
+  populateBucketSelect(document.getElementById('editBucket'), itemDomain, item.bucketId);
+  const bRow = document.getElementById('editBucketRow');
+  if (bRow) bRow.style.display = 'block';
   showModalFieldsFor('reminder'); openEditModal('Edit Reminder');
+}
+function toggleReminderDone(day, index, done){
+  const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
+  const r = getReminders();
+  if (!r[key] || !r[key][index]) return;
+  r[key][index].done = !!done;
+  setReminders(r);
+  if (done) haptic.complete();
+  showReminders(day);
+  updateCompletionRing();
 }
 
 /* Tasks list management */
@@ -710,10 +957,19 @@ function loadTasks(){
   if (!list) return;
   list.innerHTML = '';
   const pmap = {'1':'!','2':'!!','3':'!!!'};
+  if (!tasks.length) {
+    const empty = document.createElement('li');
+    empty.className = 'empty-state-msg';
+    empty.innerHTML = '<span style="font-size:2rem;display:block;margin-bottom:8px">✅</span><strong>No tasks yet</strong><br><span style="color:#888;font-size:0.9rem">Tap <b>＋ Add</b> to create your first task.</span>';
+    empty.style.cssText = 'list-style:none;text-align:center;padding:32px 16px;color:#555';
+    list.appendChild(empty);
+    updateProgress(tasks); updateDashboard(tasks); updateDayProgress(selectedDay);
+    return;
+  }
   tasks.forEach((t,i)=>{
     const li = document.createElement('li');
     const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = !!t.done;
-    cb.addEventListener('change', ()=>{ const all=getTasks(); all[i].done = cb.checked; setTasks(all); updateProgress(all); updateDashboard(all); updateDayProgress(selectedDay); loadTasks(); });
+    cb.addEventListener('change', ()=>{ const all=getTasks(); all[i].done = cb.checked; setTasks(all); updateProgress(all); updateDashboard(all); updateDayProgress(selectedDay); if(cb.checked) haptic.complete(); loadTasks(); });
     const taskTitle = t.title || t.text || '';
     const span = document.createElement('span'); span.innerHTML = ` ${escapeHTML(taskTitle)} ${t.date?`[${t.date}]`:''} ${t.time?`[${t.time}]`:''} Priority:${pmap[t.priority]||t.priority}`; span.className = `category-${t.category||''}`;
     const editBtn = document.createElement('button'); editBtn.className='small-btn'; editBtn.textContent='Edit'; editBtn.addEventListener('click', ()=> editTask(i));
@@ -733,7 +989,7 @@ function addTask(e){
   const date = normalizeDate(document.getElementById('taskDate') ? document.getElementById('taskDate').value : '');
   const time = document.getElementById('taskTime') ? document.getElementById('taskTime').value : '';
   const priority = document.getElementById('taskPriority') ? document.getElementById('taskPriority').value : '2';
-  const tasks = getTasks(); tasks.push({title:text,category,done:false,date,time,priority}); setTasks(tasks);
+  const tasks = getTasks(); tasks.push({id:generateTaskId(),title:text,category,done:false,date,time,priority}); setTasks(tasks);
   if (textEl) textEl.value=''; if (document.getElementById('taskDate')) document.getElementById('taskDate').value=''; if (document.getElementById('taskTime')) document.getElementById('taskTime').value='';
   loadTasks();
 }
@@ -749,6 +1005,12 @@ function editTask(i){
   document.getElementById('editTime').value = t.time||'';
   document.getElementById('editCategory').value = t.category||'work';
   document.getElementById('editPriority').value = t.priority||'2';
+  const itemDomain = t.domain || getDomainOfItem(t);
+  const editItemDomainEl = document.getElementById('editItemDomain');
+  if (editItemDomainEl) editItemDomainEl.value = itemDomain;
+  populateBucketSelect(document.getElementById('editBucket'), itemDomain, t.bucketId);
+  const bRow = document.getElementById('editBucketRow');
+  if (bRow) bRow.style.display = 'block';
   showModalFieldsFor('task'); openEditModal('Edit Task');
 }
 
@@ -785,6 +1047,15 @@ function renderEvents(){
 
   const combined = upcoming.map(x=>x.ev).concat(past.map(x=>x.ev));
 
+  if (!combined.length) {
+    var empty = document.createElement('li');
+    empty.className = 'empty-state-msg';
+    empty.innerHTML = '<span style="font-size:2rem;display:block;margin-bottom:8px">📅</span><strong>No events yet</strong><br><span style="color:#888;font-size:0.9rem">Tap the <b>＋ Add</b> button to create your first event.</span>';
+    empty.style.cssText = 'list-style:none;text-align:center;padding:32px 16px;color:#555';
+    list.appendChild(empty);
+    return;
+  }
+
   combined.forEach(e=>{
     const li = document.createElement('li');
     li.className = 'event-item';
@@ -807,7 +1078,14 @@ function renderEvents(){
     actions.className = 'item-controls';
     const editBtn = document.createElement('button'); editBtn.className='small-btn'; editBtn.textContent='Edit'; editBtn.addEventListener('click', ()=> editEvent(e.id));
     const delBtn = document.createElement('button'); delBtn.className='small-btn'; delBtn.textContent='Delete'; delBtn.addEventListener('click', ()=> deleteEvent(e.id));
-    actions.appendChild(editBtn); actions.appendChild(delBtn);
+    /* Single-event ICS download */
+    const icsBtn = document.createElement('button'); icsBtn.className='small-btn'; icsBtn.textContent='📅'; icsBtn.title='Add to Apple Calendar'; icsBtn.addEventListener('click', ()=> downloadSingleEventICS(e));
+    /* Web Share */
+    if (navigator.share) {
+      const shareBtn = document.createElement('button'); shareBtn.className='small-btn'; shareBtn.textContent='↗'; shareBtn.title='Share event'; shareBtn.addEventListener('click', ()=> shareEvent(e));
+      actions.appendChild(shareBtn);
+    }
+    actions.appendChild(icsBtn); actions.appendChild(editBtn); actions.appendChild(delBtn);
 
     li.appendChild(bullet);
     li.appendChild(content);
@@ -861,6 +1139,8 @@ function readRepeatPayload(prefix, eventDate){
       throw new Error('A/B weekday pattern requires a weekday start date.');
     }
     payload.abWeek = (abEl && (abEl.value || '').toLowerCase() === 'b') ? 'b' : 'a';
+    const skipEl = document.getElementById(prefix + 'ABSkipHolidays');
+    payload.abSkipHolidays = skipEl ? skipEl.checked : false;
   }
 
   return payload;
@@ -879,6 +1159,134 @@ function wireRepeatControls(){
   }
 }
 
+/* ─── Advanced Item Specifications helpers ─── */
+var _advSpecCounter = 0;
+
+function buildAdvSpecRow(spec) {
+  spec = spec || {};
+  var idx = _advSpecCounter++;
+  var div = document.createElement('div');
+  div.className = 'adv-spec-row';
+  div.dataset.advIdx = idx;
+  div.style.cssText = 'border:1px solid #ccc;border-radius:8px;padding:8px;margin-top:6px;position:relative;';
+
+  div.innerHTML =
+    '<button type="button" class="adv-spec-remove" style="position:absolute;top:4px;right:6px;background:none;border:none;font-size:1.1em;cursor:pointer;color:#e74c3c" title="Remove">&times;</button>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+      '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">Start time</label><input type="time" class="advSpec-time" value="' + (spec.time || '') + '" style="width:100%"></div>' +
+      '<div style="flex:1;min-width:120px"><label style="font-size:0.85em">End time</label><input type="time" class="advSpec-endTime" value="' + (spec.endTime || '') + '" style="width:100%"></div>' +
+      '<div style="min-width:100px"><label style="font-size:0.85em">Pre-buffer</label><select class="advSpec-preBuffer" style="width:100%"><option value="0"' + ((spec.preBuffer || 0) === 0 ? ' selected' : '') + '>None</option><option value="5"' + (parseInt(spec.preBuffer,10) === 5 ? ' selected' : '') + '>5 min</option><option value="10"' + (parseInt(spec.preBuffer,10) === 10 ? ' selected' : '') + '>10 min</option><option value="15"' + (parseInt(spec.preBuffer,10) === 15 ? ' selected' : '') + '>15 min</option><option value="20"' + (parseInt(spec.preBuffer,10) === 20 ? ' selected' : '') + '>20 min</option><option value="25"' + (parseInt(spec.preBuffer,10) === 25 ? ' selected' : '') + '>25 min</option><option value="30"' + (parseInt(spec.preBuffer,10) === 30 ? ' selected' : '') + '>30 min</option></select></div>' +
+      '<div style="min-width:100px"><label style="font-size:0.85em">Post-buffer</label><select class="advSpec-postBuffer" style="width:100%"><option value="0"' + ((spec.postBuffer || 0) === 0 ? ' selected' : '') + '>None</option><option value="5"' + (parseInt(spec.postBuffer,10) === 5 ? ' selected' : '') + '>5 min</option><option value="10"' + (parseInt(spec.postBuffer,10) === 10 ? ' selected' : '') + '>10 min</option><option value="15"' + (parseInt(spec.postBuffer,10) === 15 ? ' selected' : '') + '>15 min</option><option value="20"' + (parseInt(spec.postBuffer,10) === 20 ? ' selected' : '') + '>20 min</option><option value="25"' + (parseInt(spec.postBuffer,10) === 25 ? ' selected' : '') + '>25 min</option><option value="30"' + (parseInt(spec.postBuffer,10) === 30 ? ' selected' : '') + '>30 min</option></select></div>' +
+    '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px">' +
+      '<label style="min-width:60px;margin:0;font-size:0.85em">Repeat</label>' +
+      '<select class="advSpec-repeat" style="width:160px">' +
+        '<option value="none"' + (spec.repeat === 'none' || !spec.repeat ? ' selected' : '') + '>None</option>' +
+        '<option value="daily"' + (spec.repeat === 'daily' ? ' selected' : '') + '>Every day</option>' +
+        '<option value="2day"' + (spec.repeat === '2day' ? ' selected' : '') + '>Every 2 days</option>' +
+        '<option value="weekday"' + (spec.repeat === 'weekday' ? ' selected' : '') + '>Every weekday (Mon-Fri)</option>' +
+        '<option value="weekly"' + (spec.repeat === 'weekly' ? ' selected' : '') + '>Every week</option>' +
+        '<option value="monthly"' + (spec.repeat === 'monthly' ? ' selected' : '') + '>Every month</option>' +
+        '<option value="custom"' + (spec.repeat === 'custom' ? ' selected' : '') + '>Custom interval</option>' +
+        '<option value="weekday_ab"' + (spec.repeat === 'weekday_ab' ? ' selected' : '') + '>A/B weekday pattern</option>' +
+      '</select>' +
+      '<label style="min-width:40px;margin:0;font-size:0.85em">Until</label>' +
+      '<input type="date" class="advSpec-repeatUntil" value="' + (spec.repeatUntil || '') + '" style="width:150px">' +
+    '</div>' +
+    '<div class="advSpec-customRow" style="' + (spec.repeat === 'custom' ? 'display:flex;' : 'display:none;') + 'gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+      '<label style="min-width:60px;margin:0;font-size:0.85em">Every</label>' +
+      '<input type="number" class="advSpec-repeatInterval" min="1" max="30" value="' + (spec.repeatInterval || 1) + '" style="width:70px">' +
+      '<select class="advSpec-repeatUnit" style="width:110px">' +
+        '<option value="days"' + (spec.repeatUnit === 'days' || !spec.repeatUnit ? ' selected' : '') + '>Days</option>' +
+        '<option value="weeks"' + (spec.repeatUnit === 'weeks' ? ' selected' : '') + '>Weeks</option>' +
+        '<option value="months"' + (spec.repeatUnit === 'months' ? ' selected' : '') + '>Months</option>' +
+        '<option value="years"' + (spec.repeatUnit === 'years' ? ' selected' : '') + '>Years</option>' +
+      '</select>' +
+    '</div>' +
+    '<div class="advSpec-abRow" style="' + (spec.repeat === 'weekday_ab' ? 'display:flex;' : 'display:none;') + 'gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">' +
+      '<label style="min-width:100px;margin:0;font-size:0.85em">Start template</label>' +
+      '<select class="advSpec-abWeek" style="width:190px">' +
+        '<option value="a"' + (spec.abWeek === 'a' || !spec.abWeek ? ' selected' : '') + '>A week (Mon/Wed/Fri)</option>' +
+        '<option value="b"' + (spec.abWeek === 'b' ? ' selected' : '') + '>B week (Tue/Thu)</option>' +
+      '</select>' +
+      '<label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer;font-size:0.85em"><input type="checkbox" class="advSpec-abSkipHolidays"' + (spec.abSkipHolidays ? ' checked' : '') + '> Skip holidays</label>' +
+    '</div>';
+
+  // Wire repeat change handler for this row
+  var repSel = div.querySelector('.advSpec-repeat');
+  repSel.addEventListener('change', function() {
+    var mode = repSel.value;
+    var cr = div.querySelector('.advSpec-customRow');
+    var ar = div.querySelector('.advSpec-abRow');
+    if (cr) cr.style.display = mode === 'custom' ? 'flex' : 'none';
+    if (ar) ar.style.display = mode === 'weekday_ab' ? 'flex' : 'none';
+  });
+
+  // Wire remove button
+  div.querySelector('.adv-spec-remove').addEventListener('click', function() {
+    div.remove();
+  });
+
+  return div;
+}
+
+function readAdvancedSpecs(containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return [];
+  var rows = container.querySelectorAll('.adv-spec-row');
+  var specs = [];
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var time = row.querySelector('.advSpec-time').value || '';
+    var endTime = row.querySelector('.advSpec-endTime').value || '';
+    var repeat = row.querySelector('.advSpec-repeat').value || 'none';
+    var repeatUntil = row.querySelector('.advSpec-repeatUntil').value || '';
+    var spec = { time: time, endTime: endTime, repeat: repeat, repeatUntil: repeatUntil };
+    var preEl = row.querySelector('.advSpec-preBuffer');
+    var postEl = row.querySelector('.advSpec-postBuffer');
+    spec.preBuffer = preEl ? (parseInt(preEl.value, 10) || 0) : 0;
+    spec.postBuffer = postEl ? (parseInt(postEl.value, 10) || 0) : 0;
+    if (repeat === 'custom') {
+      var n = parseInt(row.querySelector('.advSpec-repeatInterval').value, 10);
+      spec.repeatInterval = Number.isFinite(n) ? Math.max(1, Math.min(30, n)) : 1;
+      spec.repeatUnit = row.querySelector('.advSpec-repeatUnit').value || 'days';
+    }
+    if (repeat === 'weekday_ab') {
+      spec.abWeek = row.querySelector('.advSpec-abWeek').value || 'a';
+      spec.abSkipHolidays = row.querySelector('.advSpec-abSkipHolidays').checked || false;
+    }
+    specs.push(spec);
+  }
+  return specs;
+}
+
+function populateAdvancedSpecs(containerId, specs) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  if (!Array.isArray(specs)) return;
+  for (var i = 0; i < specs.length; i++) {
+    container.appendChild(buildAdvSpecRow(specs[i]));
+  }
+}
+
+function wireAdvancedSpecButtons() {
+  var addBtn = document.getElementById('eventAddAdvSpec');
+  if (addBtn) {
+    addBtn.addEventListener('click', function() {
+      var list = document.getElementById('eventAdvSpecList');
+      if (list) list.appendChild(buildAdvSpecRow());
+    });
+  }
+  var editAddBtn = document.getElementById('editAddAdvSpec');
+  if (editAddBtn) {
+    editAddBtn.addEventListener('click', function() {
+      var list = document.getElementById('editAdvSpecList');
+      if (list) list.appendChild(buildAdvSpecRow());
+    });
+  }
+}
+
 /* Add event */
 function addEvent(e){
   if (e && e.preventDefault) e.preventDefault();
@@ -887,6 +1295,7 @@ function addEvent(e){
   if (!title || !date) { alert('Event needs a title and date'); return; }
   const time = document.getElementById('eventTime') ? document.getElementById('eventTime').value || '' : '';
   const endTime = document.getElementById('eventEndTime') ? document.getElementById('eventEndTime').value || '' : '';
+  const endDate = normalizeDate(document.getElementById('eventEndDate') ? document.getElementById('eventEndDate').value : '');
   const location = document.getElementById('eventLocation') ? document.getElementById('eventLocation').value.trim() : '';
   const emoji = document.getElementById('eventEmoji') ? document.getElementById('eventEmoji').value.trim() : '';
   const pre = parseBufferMinutes(document.getElementById('eventPreBuffer') ? document.getElementById('eventPreBuffer').value : 0);
@@ -900,49 +1309,116 @@ function addEvent(e){
     return;
   }
 
+  const category = document.getElementById('eventCategory') ? document.getElementById('eventCategory').value || 'event' : 'event';
+  const jobId = document.getElementById('eventJobId') ? document.getElementById('eventJobId').value || '' : '';
+  const jobName = document.getElementById('eventJobName') ? document.getElementById('eventJobName').value || '' : '';
+  const jobRate = document.getElementById('eventJobRate') ? document.getElementById('eventJobRate').value || '' : '';
+  const jobUnit = document.getElementById('eventJobUnit') ? document.getElementById('eventJobUnit').value || '' : '';
+
   const evs = getEvents();
   const id = evs.length ? Math.max(...evs.map(e=>e.id))+1 : 1;
-  evs.push(Object.assign({
-    id,title,date,time,startTime:time,endTime,location,emoji,preBuffer:pre,postBuffer:post
-  }, repeatPayload));
+  const newEvent = Object.assign({
+    id,title,date,time,startTime:time,endTime,endDate,location,emoji,category,preBuffer:pre,postBuffer:post
+  }, repeatPayload);
+  if (category === 'job') {
+    if (jobId) newEvent.jobId = jobId;
+    if (jobName) newEvent.jobName = jobName;
+    if (jobRate) newEvent.jobRate = jobRate;
+    if (jobUnit) newEvent.jobUnit = jobUnit;
+  }
+  // Read advanced item specifications (additional time/repeat schedules)
+  var advSpecs = readAdvancedSpecs('eventAdvSpecList');
+  if (advSpecs.length) newEvent.advancedSpecs = advSpecs;
+  evs.push(newEvent);
   setEvents(evs);
   if (document.getElementById('eventTitle')) document.getElementById('eventTitle').value='';
   if (document.getElementById('eventDate')) document.getElementById('eventDate').value='';
   if (document.getElementById('eventTime')) document.getElementById('eventTime').value='';
   if (document.getElementById('eventEndTime')) document.getElementById('eventEndTime').value='';
+  if (document.getElementById('eventEndDate')) document.getElementById('eventEndDate').value='';
   if (document.getElementById('eventLocation')) document.getElementById('eventLocation').value='';
   if (document.getElementById('eventEmoji')) document.getElementById('eventEmoji').value='';
+  if (document.getElementById('eventCategory')) document.getElementById('eventCategory').value='event';
+  if (document.getElementById('eventJobId')) document.getElementById('eventJobId').value='';
+  if (document.getElementById('eventJobName')) document.getElementById('eventJobName').value='';
+  if (document.getElementById('eventJobRate')) document.getElementById('eventJobRate').value='';
+  if (document.getElementById('eventJobUnit')) document.getElementById('eventJobUnit').value='';
+  if (document.getElementById('eventJobRow')) document.getElementById('eventJobRow').style.display='none';
   if (document.getElementById('eventRepeat')) document.getElementById('eventRepeat').value='none';
   if (document.getElementById('eventRepeatUntil')) document.getElementById('eventRepeatUntil').value='';
   if (document.getElementById('eventRepeatInterval')) document.getElementById('eventRepeatInterval').value='1';
   if (document.getElementById('eventRepeatUnit')) document.getElementById('eventRepeatUnit').value='days';
   if (document.getElementById('eventABWeek')) document.getElementById('eventABWeek').value='a';
+  if (document.getElementById('eventABSkipHolidays')) document.getElementById('eventABSkipHolidays').checked=false;
+  // Clear advanced specs list
+  var advSpecListEl = document.getElementById('eventAdvSpecList');
+  if (advSpecListEl) advSpecListEl.innerHTML = '';
   syncRepeatUI('event');
   renderEvents(); generateCalendar();
 }
 
 /* delete/edit events */
 function deleteEvent(id){ if(!confirm('Delete this event?')) return; let evs=getEvents(); evs = evs.filter(e=>e.id!==id); setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
-function editEvent(id){
+function editEvent(id, occurrenceDate){
   const evs = getEvents(); const idx = evs.findIndex(e=>e.id===id); if (idx===-1) return;
   const e = evs[idx];
+  const isRepeating = e.repeat && e.repeat !== 'none';
+
+  // When an occurrence date is provided for a repeating event, ask user which scope to edit
+  let editingThisOccurrence = false;
+  if (occurrenceDate && isRepeating) {
+    const editAll = confirm('This is a repeating event. Edit all events in the series?\n\nOK = Edit all events\nCancel = Edit just this occurrence');
+    editingThisOccurrence = !editAll;
+  }
+
+  // If editing a specific occurrence that already has an exception, pre-fill from it
+  const exc = editingThisOccurrence && e.repeatExceptions && e.repeatExceptions[occurrenceDate] ? e.repeatExceptions[occurrenceDate] : null;
+  const eff = exc ? Object.assign({}, e, exc) : e;
+
   document.getElementById('editKind').value='event';
   document.getElementById('editEventId').value = id;
-  document.getElementById('editText').value = e.title || '';
-  document.getElementById('editDate').value = e.date || '';
-  document.getElementById('editTime').value = e.time || '';
-  document.getElementById('editEndTime').value = e.endTime || '';
-  document.getElementById('editLocation').value = e.location || '';
-  document.getElementById('editEmoji').value = e.emoji || '';
-  document.getElementById('editPreBuffer').value = parseBufferMinutes(e.preBuffer || 5);
-  document.getElementById('editPostBuffer').value = parseBufferMinutes(e.postBuffer || 5);
-  document.getElementById('editRepeat').value = e.repeat || 'none';
-  document.getElementById('editRepeatUntil').value = e.repeatUntil || '';
-  document.getElementById('editRepeatInterval').value = e.repeatInterval || 1;
-  document.getElementById('editRepeatUnit').value = e.repeatUnit || 'days';
-  document.getElementById('editABWeek').value = e.abWeek || 'a';
-  syncRepeatUI('edit');
-  showModalFieldsFor('event'); openEditModal('Edit Event');
+  document.getElementById('editText').value = eff.title || '';
+  document.getElementById('editDate').value = editingThisOccurrence ? (occurrenceDate || eff.date || '') : (e.date || '');
+  document.getElementById('editTime').value = eff.time || '';
+  document.getElementById('editEndTime').value = eff.endTime || '';
+  if (document.getElementById('editEndDate')) document.getElementById('editEndDate').value = editingThisOccurrence ? '' : (e.endDate || '');
+  document.getElementById('editLocation').value = eff.location || '';
+  document.getElementById('editEmoji').value = eff.emoji || '';
+  if (document.getElementById('editCategory')) document.getElementById('editCategory').value = eff.category || 'event';
+  document.getElementById('editPreBuffer').value = parseBufferMinutes(eff.preBuffer || 0);
+  document.getElementById('editPostBuffer').value = parseBufferMinutes(eff.postBuffer || 0);
+
+  // Store the occurrence date (empty string = editing all)
+  const occEl = document.getElementById('editOccurrenceDate');
+  if (occEl) occEl.value = editingThisOccurrence ? (occurrenceDate || '') : '';
+
+  // Show/hide repeat section and advanced specs based on editing mode
+  const repSection = document.getElementById('editRepeatSection');
+  if (repSection) repSection.style.display = editingThisOccurrence ? 'none' : '';
+  const advSection = document.getElementById('editAdvancedSpecs');
+  if (advSection) advSection.style.display = editingThisOccurrence ? 'none' : '';
+
+  if (!editingThisOccurrence) {
+    document.getElementById('editRepeat').value = e.repeat || 'none';
+    document.getElementById('editRepeatUntil').value = e.repeatUntil || '';
+    document.getElementById('editRepeatInterval').value = e.repeatInterval || 1;
+    document.getElementById('editRepeatUnit').value = e.repeatUnit || 'days';
+    document.getElementById('editABWeek').value = e.abWeek || 'a';
+    var editSkipHol = document.getElementById('editABSkipHolidays');
+    if (editSkipHol) editSkipHol.checked = !!e.abSkipHolidays;
+    syncRepeatUI('edit');
+    // Populate advanced item specifications in edit modal
+    populateAdvancedSpecs('editAdvSpecList', e.advancedSpecs || []);
+  } else {
+    populateAdvancedSpecs('editAdvSpecList', []);
+  }
+  const itemDomain = e.domain || getDomainOfItem(e);
+  const editItemDomainEl = document.getElementById('editItemDomain');
+  if (editItemDomainEl) editItemDomainEl.value = itemDomain;
+  populateBucketSelect(document.getElementById('editBucket'), itemDomain, e.bucketId);
+  const bRow = document.getElementById('editBucketRow');
+  if (bRow) bRow.style.display = 'block';
+  showModalFieldsFor('event'); openEditModal(editingThisOccurrence ? 'Edit This Occurrence' : 'Edit Event');
 }
 
 /* modal helpers */
@@ -951,7 +1427,7 @@ function closeEditModal(){ const m = document.getElementById('editModal'); if (m
 function showModalFieldsFor(kind){
   const loc = document.getElementById('editLocation'), emoji = document.getElementById('editEmoji'), category = document.getElementById('editCategory'), priority = document.getElementById('editPriority');
   if (!loc || !emoji || !category || !priority) return;
-  if (kind==='event'){ loc.parentElement.style.display='block'; emoji.parentElement.style.display='block'; category.parentElement.style.display='none'; priority.parentElement.style.display='none'; }
+  if (kind==='event'){ loc.parentElement.style.display='block'; emoji.parentElement.style.display='block'; category.parentElement.style.display='block'; priority.parentElement.style.display='none'; }
   else if (kind==='task'){ loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='block'; priority.parentElement.style.display='block'; }
   else { loc.parentElement.style.display='none'; emoji.parentElement.style.display='none'; category.parentElement.style.display='none'; priority.parentElement.style.display='none'; }
 }
@@ -969,6 +1445,34 @@ function saveEditHandler(e){
   if (kind === 'event'){
     const id = parseInt(document.getElementById('editEventId').value,10);
     const evs = getEvents(); const idx = evs.findIndex(x=>x.id===id); if (idx===-1){ closeEditModal(); return; }
+
+    // Handle single-occurrence edit: save as exception rather than modifying base event
+    const occEl = document.getElementById('editOccurrenceDate');
+    const occDate = occEl ? occEl.value.trim() : '';
+    if (occDate) {
+      const before = Object.assign({}, evs[idx]);
+      if (!evs[idx].repeatExceptions) evs[idx].repeatExceptions = {};
+      const exc = {
+        title: text, time: time, startTime: time, endTime: endTime,
+        location: document.getElementById('editLocation').value.trim(),
+        emoji: document.getElementById('editEmoji').value.trim(),
+        preBuffer: parseBufferMinutes(document.getElementById('editPreBuffer').value),
+        postBuffer: parseBufferMinutes(document.getElementById('editPostBuffer').value)
+      };
+      const excCatEl = document.getElementById('editCategory');
+      if (excCatEl) exc.category = excCatEl.value || 'event';
+      evs[idx].repeatExceptions[occDate] = exc;
+      setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
+      pushUndo({ label: 'Edit to occurrence of "' + evs[idx].title + '" undone.', undo: function() {
+        const cur = getEvents(); const ci = cur.findIndex(function(x){ return x.id === before.id; });
+        if (ci !== -1) { cur[ci] = before; setEvents(cur); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
+      }});
+      closeEditModal();
+      return;
+    }
+
+    /* Capture snapshot for undo */
+    const before = Object.assign({}, evs[idx]);
     let repeatPayload;
     try {
       repeatPayload = readRepeatPayload('edit', date);
@@ -977,6 +1481,9 @@ function saveEditHandler(e){
       return;
     }
     evs[idx].title = text; evs[idx].date = date; evs[idx].time = time; evs[idx].startTime = time; evs[idx].endTime = endTime; evs[idx].location = document.getElementById('editLocation').value.trim(); evs[idx].emoji = document.getElementById('editEmoji').value.trim();
+    var editCatEl = document.getElementById('editCategory');
+    if (editCatEl) evs[idx].category = editCatEl.value || 'event';
+    evs[idx].endDate = normalizeDate(document.getElementById('editEndDate') ? document.getElementById('editEndDate').value : '') || '';
     evs[idx].preBuffer = parseBufferMinutes(document.getElementById('editPreBuffer').value);
     evs[idx].postBuffer = parseBufferMinutes(document.getElementById('editPostBuffer').value);
     evs[idx].repeat = repeatPayload.repeat;
@@ -987,44 +1494,971 @@ function saveEditHandler(e){
       delete evs[idx].abWeek;
     } else if (repeatPayload.repeat === 'weekday_ab') {
       evs[idx].abWeek = repeatPayload.abWeek;
+      evs[idx].abSkipHolidays = repeatPayload.abSkipHolidays || false;
       delete evs[idx].repeatInterval;
       delete evs[idx].repeatUnit;
     } else {
       delete evs[idx].repeatInterval;
       delete evs[idx].repeatUnit;
       delete evs[idx].abWeek;
+      delete evs[idx].abSkipHolidays;
     }
+    const editBucketEl = document.getElementById('editBucket');
+    if (editBucketEl) {
+      const bval = editBucketEl.value;
+      if (bval) evs[idx].bucketId = parseInt(bval, 10);
+      else delete evs[idx].bucketId;
+    }
+    // Save advanced item specifications
+    var editAdvSpecs = readAdvancedSpecs('editAdvSpecList');
+    if (editAdvSpecs.length) evs[idx].advancedSpecs = editAdvSpecs;
+    else delete evs[idx].advancedSpecs;
     setEvents(evs); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay);
+    pushUndo({ label: 'Edit to event "' + text + '" undone.', undo: function() {
+      const cur = getEvents(); const ci = cur.findIndex(function(x){ return x.id === before.id; });
+      if (ci !== -1) { cur[ci] = before; setEvents(cur); renderEvents(); generateCalendar(); if (selectedDay) showReminders(selectedDay); }
+    }});
     closeEditModal();
     return;
   } else if (kind==='task'){
     const idx = parseInt(document.getElementById('editTaskIndex').value,10);
     const tasks = getTasks(); if (!tasks[idx]) { closeEditModal(); return; }
+    const beforeTask = Object.assign({}, tasks[idx]);
     tasks[idx].title = text; tasks[idx].date = date; tasks[idx].time = time; tasks[idx].category = document.getElementById('editCategory').value; tasks[idx].priority = document.getElementById('editPriority').value;
+    const editBucketElT = document.getElementById('editBucket');
+    if (editBucketElT) {
+      const bvalT = editBucketElT.value;
+      if (bvalT) tasks[idx].bucketId = parseInt(bvalT, 10);
+      else delete tasks[idx].bucketId;
+    }
     setTasks(tasks); loadTasks();
+    pushUndo({ label: 'Edit to task "' + text + '" undone.', undo: function() {
+      const cur = getTasks(); const ci = cur.findIndex(function(t){ return t.id === beforeTask.id; });
+      if (ci !== -1) { cur[ci] = beforeTask; setTasks(cur); loadTasks(); }
+    }});
   } else if (kind==='reminder'){
     const origKey = document.getElementById('editReminderKey').value;
     const ridx = parseInt(document.getElementById('editReminderIndex').value,10);
     const r = getReminders(); const arr = r[origKey] || []; const item = arr[ridx]; if (!item){ closeEditModal(); return; }
+    const beforeReminder = Object.assign({}, item);
+    const beforeKey = origKey;
     const newDate = date || origKey;
     arr.splice(ridx,1); if (!arr.length) delete r[origKey];
     if (!r[newDate]) r[newDate]=[];
-    r[newDate].push({text,time});
+    const newR = {text,time};
+    const editItemDomainEl2 = document.getElementById('editItemDomain');
+    if (editItemDomainEl2 && editItemDomainEl2.value) newR.domain = editItemDomainEl2.value;
+    const editBucketElR = document.getElementById('editBucket');
+    if (editBucketElR && editBucketElR.value) newR.bucketId = parseInt(editBucketElR.value, 10);
+    r[newDate].push(newR);
     setReminders(r);
     const parts = newDate.split('-');
     if (parts.length===3){ selectedYear = parseInt(parts[0],10); selectedMonth = parseInt(parts[1],10)-1; selectedDay = parseInt(parts[2],10); }
     generateCalendar(); showReminders(selectedDay);
+    pushUndo({ label: 'Edit to reminder "' + text + '" undone.', undo: function() {
+      const cur = getReminders();
+      /* Remove the edited version */
+      if (cur[newDate]) { cur[newDate] = cur[newDate].filter(function(x){ return x.text !== newR.text || x.time !== newR.time; }); if (!cur[newDate].length) delete cur[newDate]; }
+      /* Restore original */
+      if (!cur[beforeKey]) cur[beforeKey] = [];
+      cur[beforeKey].splice(ridx, 0, beforeReminder);
+      setReminders(cur);
+      const bp = beforeKey.split('-');
+      if (bp.length===3){ selectedYear=parseInt(bp[0],10); selectedMonth=parseInt(bp[1],10)-1; selectedDay=parseInt(bp[2],10); }
+      generateCalendar(); showReminders(selectedDay);
+    }});
   }
   closeEditModal();
+  refreshVisibleDomainPages();
 }
 
 /* progress & dashboard */
+const RING_CIRCUMFERENCE = 2 * Math.PI * 18; // ~113.1
+
+function setRing(fgId, pctId, percent, color){
+  const fg = document.getElementById(fgId);
+  const pctEl = document.getElementById(pctId);
+  if (fg) {
+    const offset = RING_CIRCUMFERENCE - (percent / 100) * RING_CIRCUMFERENCE;
+    // Use setAttribute for reliable SVG rendering across all platforms
+    // (iOS WebKit standalone PWA mode may ignore style-based SVG properties)
+    fg.setAttribute('stroke-dasharray', String(RING_CIRCUMFERENCE));
+    fg.setAttribute('stroke-dashoffset', String(offset));
+    fg.setAttribute('stroke', color);
+  }
+  if (pctEl) pctEl.textContent = Math.round(percent) + '%';
+}
+
+function getTodayISO(){
+  const d = new Date();
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+}
+
+/* --- Off-day detection helper --- */
+const OFF_DAY_LABEL = '—';
+
+/* Returns the date string the dashboard rings should use.
+   Prefers the daily-view's selected date, falls back to today. */
+function getViewedDateISO(){
+  if (typeof window.dailyViewGetDate === 'function') {
+    var d = window.dailyViewGetDate();
+    if (d && typeof d === 'string') return d;
+  }
+  return getTodayISO();
+}
+
+function isOffDay(dateStr){
+  if (!dateStr) dateStr = getTodayISO();
+  const yr = parseInt(dateStr.split('-')[0], 10);
+
+  // Check federal holidays
+  function nthWeekday(year, month, weekday, nth) {
+    var count = 0;
+    for (var day = 1; day <= 31; day++) {
+      var dt = new Date(year, month, day);
+      if (dt.getMonth() !== month) break;
+      if (dt.getDay() === weekday) {
+        count++;
+        if (count === nth) return day;
+      }
+    }
+    return 1;
+  }
+  function lastWeekday(year, month, weekday) {
+    var last = new Date(year, month + 1, 0);
+    return last.getDate() - ((7 + last.getDay() - weekday) % 7);
+  }
+  var federalHolidays = [
+    yr+'-01-01', yr+'-06-19', yr+'-07-04', yr+'-11-11', yr+'-12-25',
+    yr+'-01-'+pad2(nthWeekday(yr,0,1,3)),
+    yr+'-02-'+pad2(nthWeekday(yr,1,1,3)),
+    yr+'-05-'+pad2(lastWeekday(yr,4,1)),
+    yr+'-09-'+pad2(nthWeekday(yr,8,1,1)),
+    yr+'-10-'+pad2(nthWeekday(yr,9,1,2)),
+    yr+'-11-'+pad2(nthWeekday(yr,10,4,4))
+  ];
+  if (federalHolidays.indexOf(dateStr) !== -1) return true;
+
+  // Check user-defined off-days
+  try {
+    var userOffDays = JSON.parse(localStorage.getItem('userOffDays') || '[]');
+    if (Array.isArray(userOffDays)) {
+      for (var i = 0; i < userOffDays.length; i++) {
+        var entry = userOffDays[i];
+        var entryDate = typeof entry === 'string' ? entry : (entry && entry.date ? entry.date : '');
+        if (entryDate === dateStr) return true;
+      }
+    }
+  } catch(_) {}
+
+  return false;
+}
+
+/* --- Active hours helpers --- */
+function getActiveHours(){
+  var start = parseInt(localStorage.getItem('dayStartHour') || '', 10);
+  var end = parseInt(localStorage.getItem('dayEndHour') || '', 10);
+  if (isNaN(start) || start < 0 || start > 23) start = 0;
+  if (isNaN(end) || end < 1 || end > 24) end = 24;
+  if (end <= start) { start = 0; end = 24; }
+  return { start: start, end: end };
+}
+
+/* Ring 1: tasks + reminders + events completion for the viewed date */
+function updateCompletionRing(){
+  const wrap = document.getElementById('completionRingWrap');
+  const labelEl = wrap ? wrap.querySelector('.ring-label') : null;
+  const viewDate = getViewedDateISO();
+  const todayStr = getTodayISO();
+
+  // Off-day: show gray ring with "Off Day"
+  if (isOffDay(viewDate)) {
+    setRing('completionRingFg', 'completionRingPct', 0, '#999');
+    const pctEl = document.getElementById('completionRingPct');
+    if (pctEl) pctEl.textContent = OFF_DAY_LABEL;
+    if (wrap) wrap.title = 'This day is an off day';
+    if (labelEl) labelEl.textContent = 'Off Day';
+    return;
+  }
+  if (labelEl) labelEl.textContent = 'Completed';
+
+  const isFuture = viewDate > todayStr;
+  const isPast = viewDate < todayStr;
+
+  // Tasks for this date
+  const tasks = getTasks().filter(t => t.date && normalizeDate(t.date) === viewDate);
+  const tasksDone = tasks.filter(t => t.done).length;
+  // Reminders for this date
+  const rems = getReminders();
+  const dateReminders = rems[viewDate] || [];
+  const remDone = dateReminders.filter(r => r.done).length;
+  // Events for this date
+  const dateEvents = getExpandedEvents(viewDate, viewDate);
+
+  let eventsDone = 0;
+  if (isPast) {
+    // Past day: all events are considered done
+    eventsDone = dateEvents.length;
+  } else if (isFuture) {
+    // Future day: no events are done yet
+    eventsDone = 0;
+  } else {
+    // Today: use current time to determine which events are done
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    dateEvents.forEach(ev => {
+      // If event has an end time, use it
+      const endStr = ev.endTime || '';
+      if (endStr) {
+        const parts = endStr.match(/(\d{1,2}):(\d{2})/);
+        if (parts) {
+          const endMins = parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
+          if (nowMins >= endMins) eventsDone++;
+          return;
+        }
+      }
+      // No end time: if event has a start time, consider done once start time has passed
+      const startStr = ev.time || '';
+      if (startStr) {
+        const sp = startStr.match(/(\d{1,2}):(\d{2})/);
+        if (sp) {
+          const startMins = parseInt(sp[1], 10) * 60 + parseInt(sp[2], 10);
+          if (nowMins >= startMins) eventsDone++;
+          return;
+        }
+      }
+      // No start or end time (all-day event): treat as done at end of day
+      if (nowMins >= 1439) eventsDone++;
+    });
+  }
+
+  const total = tasks.length + dateReminders.length + dateEvents.length;
+  const done = tasksDone + remDone + eventsDone;
+  const pct = total ? Math.round((done / total) * 100) : (isFuture ? 0 : 100);
+  const color = pct === 100 ? '#27ae60' : '#4a90e2';
+  setRing('completionRingFg', 'completionRingPct', pct, color);
+  if (wrap) wrap.title = done + '/' + total + ' items done';
+}
+
+/* Ring 2: percent of active day elapsed */
+function updateDayElapsedRing(){
+  const wrap = document.getElementById('dayElapsedRingWrap');
+  const labelEl = wrap ? wrap.querySelector('.ring-label') : null;
+  const viewDate = getViewedDateISO();
+  const todayStr = getTodayISO();
+
+  // Off-day: show gray ring with "Off Day"
+  if (isOffDay(viewDate)) {
+    setRing('dayElapsedRingFg', 'dayElapsedRingPct', 0, '#999');
+    const pctEl = document.getElementById('dayElapsedRingPct');
+    if (pctEl) pctEl.textContent = OFF_DAY_LABEL;
+    if (wrap) wrap.title = 'This day is an off day';
+    if (labelEl) labelEl.textContent = 'Off Day';
+    return;
+  }
+  if (labelEl) labelEl.textContent = 'Day Elapsed';
+
+  const active = getActiveHours();
+  const totalActive = active.end - active.start;
+  let pct;
+
+  if (viewDate > todayStr) {
+    // Future day: 0% elapsed
+    pct = 0;
+  } else if (viewDate < todayStr) {
+    // Past day: 100% elapsed
+    pct = 100;
+  } else {
+    // Today: use current time
+    const now = new Date();
+    const decimalHours = now.getHours() + now.getMinutes() / 60;
+    if (decimalHours <= active.start) {
+      pct = 0;
+    } else if (decimalHours >= active.end) {
+      pct = 100;
+    } else {
+      pct = Math.round(((decimalHours - active.start) / totalActive) * 100);
+    }
+  }
+  const color = pct >= 75 ? '#e74c3c' : pct >= 50 ? '#e67e22' : '#f1c40f';
+  setRing('dayElapsedRingFg', 'dayElapsedRingPct', pct, color);
+  if (viewDate === todayStr) {
+    const now = new Date();
+    const decimalHours = now.getHours() + now.getMinutes() / 60;
+    const elapsed = Math.max(0, decimalHours - active.start);
+    const elH = Math.floor(elapsed);
+    const elM = Math.round((elapsed - elH) * 60);
+    if (wrap) wrap.title = elH + 'h ' + elM + 'm of ' + totalActive + 'h active day elapsed';
+  } else if (viewDate < todayStr) {
+    if (wrap) wrap.title = 'Past day – fully elapsed';
+  } else {
+    if (wrap) wrap.title = 'Future day – not yet started';
+  }
+}
+
+/* Weekly salary display removed – earnings are shown in the Work page widget */
+function updateWeeklySalary(){
+  var el = document.getElementById('weeklySalaryDisplay');
+  if (el) { el.innerHTML = ''; el.onclick = null; }
+}
+
+/* ── Dashboard Weather Widget (Open-Meteo, no API key) ─────── */
+var _dashWeatherCache = null;
+var _dashWeatherCacheDate = null;
+var _dashWeatherUnit = '°C';
+var _DASH_WMO_EMOJI = {
+  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+  45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌦️',55:'🌦️',
+  61:'🌧️',63:'🌧️',65:'🌧️',
+  71:'🌨️',73:'🌨️',75:'🌨️',77:'🌨️',
+  80:'🌦️',81:'🌦️',82:'⛈️',
+  85:'🌨️',86:'🌨️',
+  95:'⛈️',96:'⛈️',99:'⛈️'
+};
+var _DASH_WMO_DESC = {
+  0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',
+  45:'Fog',48:'Depositing fog',
+  51:'Light drizzle',53:'Moderate drizzle',55:'Dense drizzle',
+  61:'Light rain',63:'Moderate rain',65:'Heavy rain',
+  71:'Light snow',73:'Moderate snow',75:'Heavy snow',77:'Snow grains',
+  80:'Light showers',81:'Moderate showers',82:'Violent showers',
+  85:'Light snow showers',86:'Heavy snow showers',
+  95:'Thunderstorm',96:'Thunderstorm w/ hail',99:'Severe thunderstorm'
+};
+
+function renderDashboardWeather(){
+  var section = document.getElementById('weatherWidgetSection');
+  var container = document.getElementById('weatherWidgetContent');
+  if (!section || !container) return;
+
+  /* Determine the week of the selected day (Sun–Sat) */
+  var selY = selectedYear != null ? selectedYear : new Date().getFullYear();
+  var selM = selectedMonth != null ? selectedMonth : new Date().getMonth();
+  var selD = selectedDay || new Date().getDate();
+  var selDate = new Date(selY, selM, selD);
+  var selISO = selY + '-' + pad2(selM + 1) + '-' + pad2(selD);
+
+  /* If we have cached data, render immediately */
+  if (_dashWeatherCache) {
+    _renderWeatherCards(container, section, selDate, selISO);
+  }
+
+  /* Fetch fresh data if needed */
+  var today = getTodayISO();
+  if (_dashWeatherCacheDate === today && _dashWeatherCache) return;
+  if (!navigator.geolocation) {
+    container.innerHTML = '<p class="weather-widget-note">Location access is needed for weather data.</p>';
+    section.style.display = '';
+    return;
+  }
+
+  /* Detect if user likely prefers Fahrenheit (US locale) */
+  var _useFahrenheit = /^en-US/i.test(navigator.language || '');
+  var tempUnit = _useFahrenheit ? '&temperature_unit=fahrenheit' : '';
+
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat = pos.coords.latitude.toFixed(4);
+    var lon = pos.coords.longitude.toFixed(4);
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
+      '&daily=weathercode,temperature_2m_max,temperature_2m_min&forecast_days=16&timezone=auto' + tempUnit;
+    fetch(url).then(function(r){ return r.json(); }).then(function(data){
+      if (!data.daily) return;
+      _dashWeatherCache = {};
+      _dashWeatherCacheDate = today;
+      _dashWeatherUnit = _useFahrenheit ? '°F' : '°C';
+      var dates = data.daily.time || [];
+      var codes = data.daily.weathercode || [];
+      var highs = data.daily.temperature_2m_max || [];
+      var lows  = data.daily.temperature_2m_min || [];
+      for (var i = 0; i < dates.length; i++){
+        _dashWeatherCache[dates[i]] = {
+          emoji: _DASH_WMO_EMOJI[codes[i]] || '🌡️',
+          desc:  _DASH_WMO_DESC[codes[i]] || '',
+          high:  Math.round(highs[i]),
+          low:   Math.round(lows[i])
+        };
+      }
+      _renderWeatherCards(container, section, selDate, selISO);
+    }).catch(function(){ /* silent fail */ });
+  }, function(){
+    container.innerHTML = '<p class="weather-widget-note">Enable location access to see weather.</p>';
+    section.style.display = '';
+  }, { timeout: 8000 });
+}
+
+function _renderWeatherCards(container, section, selDate, selISO){
+  if (!_dashWeatherCache) return;
+  var dow = selDate.getDay();
+  var weekStart = new Date(selDate);
+  weekStart.setDate(selDate.getDate() - dow);
+
+  var todayISO = getTodayISO();
+  var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var html = '<div class="weather-week-grid">';
+  var hasAny = false;
+
+  for (var i = 0; i < 7; i++){
+    var d = new Date(weekStart);
+    d.setDate(weekStart.getDate() + i);
+    var iso = d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+    var w = _dashWeatherCache[iso];
+    var cls = 'weather-day-card';
+    if (iso === selISO) cls += ' wdc-selected';
+    if (iso === todayISO) cls += ' wdc-today';
+
+    html += '<div class="' + cls + '">';
+    html += '<div class="weather-day-name">' + dayNames[d.getDay()] + '</div>';
+    html += '<div class="weather-day-date">' + (d.getMonth()+1) + '/' + d.getDate() + '</div>';
+    if (w){
+      hasAny = true;
+      html += '<div class="weather-day-icon">' + w.emoji + '</div>';
+      html += '<div class="weather-day-high">' + w.high + _dashWeatherUnit + '</div>';
+      html += '<div class="weather-day-low">' + w.low + _dashWeatherUnit + '</div>';
+      html += '<div class="weather-day-desc">' + escapeHTML(w.desc) + '</div>';
+    } else {
+      html += '<div class="weather-day-icon">—</div>';
+      html += '<div class="weather-day-high">—</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '<p class="weather-widget-note">Powered by Open-Meteo · Temperatures in ' + _dashWeatherUnit + '</p>';
+
+  if (hasAny){
+    container.innerHTML = html;
+    section.style.display = '';
+  }
+}
+
+/* ── Work Page Earnings – state ──────────────────────────────── */
+var _workEarningsMode = 'week';   // 'week' | 'month'
+var _workEarningsOffset = 0;      // 0=current, -1=prev, +1=next
+var _workEarningsExpanded = {};   // { [jobKey]: bool }
+var _workEarningsSettingsOpen = false;
+var DEFAULT_OT_MULTIPLIER = 1.5;
+
+function getEarningsSettings(){
+  return safeParseStorage('earningsSettings', { weeklyGoal: 0, monthlyGoal: 0, taxRate: 0 });
+}
+function setEarningsSettings(v){ localStorage.setItem('earningsSettings', JSON.stringify(v)); }
+
+/* ── HTML escape helper ─────────────────────────────────────── */
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ── Core earnings computation for any date range ────────────── */
+function computeEarningsForRange(startISO, endISO){
+  var jobs = getJobs();
+  var jobById = {}, jobByName = {};
+  jobs.forEach(function(j){
+    if (j.id != null) jobById[j.id] = j;
+    if (j.name) jobByName[j.name.toLowerCase()] = j;
+  });
+
+  var events = getExpandedEvents(startISO, endISO);
+
+  // Pass 1: collect per-job raw events
+  var rawByJob = {};
+  events.forEach(function(ev){
+    var cat = (ev.category || 'event').toLowerCase();
+    var isJobCat  = (cat === 'job');
+    var isWorkBkt = ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
+    if (!isJobCat && !isWorkBkt) return;
+
+    var job = null;
+    var jid = ev.jobId || ev.eventJobId;
+    if (jid != null){
+      var id = typeof jid === 'number' ? jid : parseInt(jid, 10);
+      job = jobById[id] || null;
+    }
+    if (!job && ev.bucketId != null) job = jobById[ev.bucketId] || null;
+    if (!job && ev.jobName)          job = jobByName[(ev.jobName||'').toLowerCase()] || null;
+    if (!job && ev.jobRate)          job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour', name: ev.title || 'Unknown', emoji: '' };
+    if (!job) return;
+
+    var rate = parseFloat(ev.jobRate || ev.eventJobRate || job.rate) || 0;
+    var unit = ev.jobUnit || ev.eventJobUnit || job.unit || 'hour';
+    var evHours = 0, flatEarnings = 0;
+
+    if (unit === 'job' || unit === 'day'){
+      flatEarnings = rate;
+    } else {
+      var sStr = ev.startTime || ev.time || '';
+      var eStr = ev.endTime || '';
+      if (sStr && eStr){
+        var sp = sStr.match(/(\d{1,2}):(\d{2})/);
+        var ep = eStr.match(/(\d{1,2}):(\d{2})/);
+        if (sp && ep){
+          var sm = parseInt(sp[1],10)*60+parseInt(sp[2],10);
+          var em = parseInt(ep[1],10)*60+parseInt(ep[2],10);
+          if (em <= sm) em += 1440;
+          evHours = (em - sm) / 60;
+          flatEarnings = rate * evHours;
+        }
+      }
+    }
+    if (flatEarnings <= 0 && evHours <= 0) return;
+
+    var jobKey = (job.id != null) ? 'id_'+job.id : 'name_'+(job.name||'').toLowerCase();
+    if (!rawByJob[jobKey]) rawByJob[jobKey] = { job: job, rate: rate, unit: unit, items: [] };
+    rawByJob[jobKey].items.push({ ev: ev, hours: evHours, flatEarnings: flatEarnings, rate: rate });
+  });
+
+  // Build day map
+  var DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var startDate = new Date(startISO + 'T12:00:00');
+  var endDate   = new Date(endISO   + 'T12:00:00');
+  var dayMap = {};
+  for (var d = new Date(startDate); d <= endDate; d.setDate(d.getDate()+1)){
+    var iso = d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+    dayMap[iso] = { iso: iso, label: DAY_NAMES[d.getDay()]+' '+(d.getMonth()+1)+'/'+d.getDate(), earnings: 0, hours: 0 };
+  }
+
+  var totalGross = 0, totalHours = 0;
+  var jobEarnings = {};
+
+  // Pass 2: apply overtime per job and accumulate
+  Object.keys(rawByJob).forEach(function(jobKey){
+    var raw = rawByJob[jobKey];
+    var job = raw.job;
+    var unit = raw.unit;
+    var otThreshold  = parseFloat(job.overtimeHours)      || 0;
+    var otMultiplier = parseFloat(job.overtimeMultiplier) || DEFAULT_OT_MULTIPLIER;
+
+    var je = {
+      name: job.name || 'Unknown', emoji: job.emoji || '💼',
+      location: job.location || '', rate: raw.rate, unit: unit,
+      overtimeMultiplier: otMultiplier,
+      totalEarnings: 0, totalHours: 0,
+      regularHours: 0, overtimeHours: 0,
+      regularEarnings: 0, overtimeEarnings: 0,
+      shifts: 0, shifts_detail: []
+    };
+    jobEarnings[jobKey] = je;
+
+    var accHours = 0;
+    // Sort items by date for correct OT accumulation
+    raw.items.sort(function(a,b){
+      return (normalizeDate(a.ev.date)||'') < (normalizeDate(b.ev.date)||'') ? -1 : 1;
+    });
+
+    raw.items.forEach(function(item){
+      var h = item.hours, r = item.rate;
+      var evEarnings, regH = 0, otH = 0, isOT = false;
+
+      if (unit === 'job' || unit === 'day'){
+        evEarnings = item.flatEarnings;
+        je.regularEarnings += evEarnings;
+      } else if (otThreshold > 0 && h > 0){
+        if (accHours >= otThreshold){
+          otH = h; regH = 0;
+          evEarnings = r * otMultiplier * otH;
+          isOT = true;
+        } else if (accHours + h > otThreshold){
+          regH = otThreshold - accHours; otH = h - regH;
+          evEarnings = r * regH + r * otMultiplier * otH;
+          isOT = (otH > 0);
+        } else {
+          regH = h; otH = 0; evEarnings = r * regH;
+        }
+        je.regularHours    += regH; je.overtimeHours    += otH;
+        je.regularEarnings += r * regH; je.overtimeEarnings += r * otMultiplier * otH;
+      } else {
+        evEarnings = item.flatEarnings;
+        regH = h; je.regularHours += regH; je.regularEarnings += evEarnings;
+      }
+
+      accHours          += h;
+      je.totalEarnings  += evEarnings;
+      je.totalHours     += h;
+      je.shifts         += 1;
+
+      // Assign to day
+      var evDate = normalizeDate(item.ev.date);
+      if (dayMap[evDate]){
+        dayMap[evDate].earnings += evEarnings;
+        dayMap[evDate].hours    += h;
+      }
+
+      var sStr = item.ev.startTime || item.ev.time || '';
+      var eStr = item.ev.endTime || '';
+      var timeRange = (sStr && eStr) ? sStr+'–'+eStr : (sStr||'');
+      je.shifts_detail.push({
+        date: evDate, title: item.ev.title || '',
+        timeRange: timeRange, hours: h, earnings: evEarnings,
+        regularHours: regH, overtimeHours: otH, isOT: isOT
+      });
+
+      totalGross += evEarnings;
+      totalHours += h;
+    });
+  });
+
+  var dayData = Object.keys(dayMap).sort().map(function(k){ return dayMap[k]; });
+  return { totalGross: totalGross, totalHours: totalHours, dayData: dayData, jobEarnings: jobEarnings };
+}
+
+/* ── SVG bar chart ───────────────────────────────────────────── */
+function buildEarningsChart(earningsData, mode, todayStr){
+  var bars;
+  if (mode === 'week'){
+    bars = earningsData.dayData.map(function(d){
+      return { label: d.label.slice(0,3), value: d.earnings, iso: d.iso };
+    });
+  } else {
+    var weekMap = {};
+    earningsData.dayData.forEach(function(d){
+      var dt = new Date(d.iso + 'T12:00:00');
+      var ws = new Date(dt); ws.setDate(dt.getDate() - dt.getDay());
+      var wKey = ws.getFullYear()+'-'+pad2(ws.getMonth()+1)+'-'+pad2(ws.getDate());
+      if (!weekMap[wKey]) weekMap[wKey] = { label: (ws.getMonth()+1)+'/'+ws.getDate(), value: 0, iso: wKey };
+      weekMap[wKey].value += d.earnings;
+    });
+    bars = Object.keys(weekMap).sort().map(function(k){ return weekMap[k]; });
+  }
+
+  var maxVal = 0;
+  bars.forEach(function(b){ if (b.value > maxVal) maxVal = b.value; });
+  if (!bars.length || maxVal <= 0) return '';
+
+  var W = 280, H = 72, PAD_L = 4, PAD_R = 4, PAD_T = 16, PAD_B = 20;
+  var chartH = H - PAD_T - PAD_B;
+  var n = bars.length;
+  var barW = Math.max(4, Math.floor((W - PAD_L - PAD_R) / n) - 3);
+  var gap  = Math.floor((W - PAD_L - PAD_R - n * barW) / (n + 1));
+
+  var svg = '<div class="we-chart-wrap"><svg width="100%" height="'+H+'" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" aria-hidden="true">';
+  bars.forEach(function(b, i){
+    var x = PAD_L + gap + i * (barW + gap);
+    var barH = Math.max(2, Math.round(chartH * (b.value / maxVal)));
+    var y = PAD_T + chartH - barH;
+    var isToday = (b.iso === todayStr);
+    var fill = isToday ? '#4a90e2' : '#a0c4ef';
+    svg += '<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+barH+'" fill="'+fill+'" rx="2"/>';
+    svg += '<text x="'+(x+barW/2)+'" y="'+(H-5)+'" text-anchor="middle" font-size="8" fill="#999">'+escHtml(b.label)+'</text>';
+    if (barH >= 12 && b.value > 0){
+      svg += '<text x="'+(x+barW/2)+'" y="'+(y-3)+'" text-anchor="middle" font-size="8" fill="#27ae60">$'+Math.round(b.value)+'</text>';
+    }
+  });
+  svg += '</svg></div>';
+  return svg;
+}
+
+/* ── CSV export ──────────────────────────────────────────────── */
+function exportEarningsCSV(){
+  try {
+    var todayStr = getTodayISO();
+    var todayDate = new Date(todayStr + 'T12:00:00');
+    var startDate, endDate;
+    if (_workEarningsMode === 'week'){
+      var dow = todayDate.getDay();
+      startDate = new Date(todayDate);
+      startDate.setDate(todayDate.getDate() - dow + (_workEarningsOffset * 7));
+      endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 6);
+    } else {
+      var y = todayDate.getFullYear(), m = todayDate.getMonth() + _workEarningsOffset;
+      while (m < 0){ m += 12; y--; } while (m > 11){ m -= 12; y++; }
+      startDate = new Date(y, m, 1); endDate = new Date(y, m+1, 0);
+    }
+    var sISO = startDate.getFullYear()+'-'+pad2(startDate.getMonth()+1)+'-'+pad2(startDate.getDate());
+    var eISO = endDate.getFullYear()+'-'+pad2(endDate.getMonth()+1)+'-'+pad2(endDate.getDate());
+    var data = computeEarningsForRange(sISO, eISO);
+
+    var rows = ['Date,Job,Location,Time,Hours,Rate,Unit,Regular Hours,Regular Earnings,Overtime Hours,Overtime Earnings,Total Earnings'];
+    Object.keys(data.jobEarnings).forEach(function(key){
+      var je = data.jobEarnings[key];
+      je.shifts_detail.forEach(function(s){
+        rows.push([
+          s.date,
+          '"'+je.name.replace(/"/g,'""')+'"',
+          '"'+(je.location||'').replace(/"/g,'""')+'"',
+          '"'+s.timeRange+'"',
+          s.hours.toFixed(2),
+          je.rate.toFixed(2), je.unit,
+          s.regularHours.toFixed(2), (je.rate * s.regularHours).toFixed(2),
+          s.overtimeHours.toFixed(2), (je.rate * je.overtimeMultiplier * s.overtimeHours).toFixed(2),
+          s.earnings.toFixed(2)
+        ].join(','));
+      });
+    });
+
+    var blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    var url  = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = 'earnings-'+sISO+'--'+eISO+'.csv';
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  } catch(e){ console.warn('exportEarningsCSV error', e); }
+}
+
+/* ── Save inline earnings settings ──────────────────────────── */
+function saveEarningsSettingsFromUI(){
+  var wg = parseFloat((document.getElementById('we-weekly-goal')||{}).value)  || 0;
+  var mg = parseFloat((document.getElementById('we-monthly-goal')||{}).value) || 0;
+  var tr = parseFloat((document.getElementById('we-tax-rate')||{}).value)     || 0;
+  setEarningsSettings({ weeklyGoal: wg, monthlyGoal: mg, taxRate: tr });
+  _workEarningsSettingsOpen = false;
+  renderWorkEarnings();
+}
+
+/* ── Delegated event handler (attached once) ─────────────────── */
+function wireWorkEarningsHandlers(){
+  var section = document.getElementById('workEarningsSection');
+  if (!section || section._weWired) return;
+  section._weWired = true;
+  section.addEventListener('click', function(e){
+    if (e.target.tagName === 'INPUT') return; // let inputs receive focus normally
+
+    var actionBtn = e.target.closest('[data-we-action]');
+    if (actionBtn){
+      var action = actionBtn.dataset.weAction;
+      if      (action === 'prev')            { _workEarningsOffset--; renderWorkEarnings(); }
+      else if (action === 'next')            { _workEarningsOffset++; renderWorkEarnings(); }
+      else if (action === 'today')           { _workEarningsOffset = 0; renderWorkEarnings(); }
+      else if (action === 'mode-week')       { _workEarningsMode = 'week';  _workEarningsOffset = 0; renderWorkEarnings(); }
+      else if (action === 'mode-month')      { _workEarningsMode = 'month'; _workEarningsOffset = 0; renderWorkEarnings(); }
+      else if (action === 'export')          { exportEarningsCSV(); }
+      else if (action === 'toggle-settings') { _workEarningsSettingsOpen = !_workEarningsSettingsOpen; renderWorkEarnings(); }
+      else if (action === 'save-settings')   { saveEarningsSettingsFromUI(); }
+      return;
+    }
+
+    var card = e.target.closest('[data-we-job]');
+    if (card){
+      var key = card.dataset.weJob;
+      _workEarningsExpanded[key] = !_workEarningsExpanded[key];
+      var shifts  = card.querySelector('.earnings-job-shifts');
+      var chevron = card.querySelector('.we-card-chevron');
+      if (shifts)  shifts.classList.toggle('open', !!_workEarningsExpanded[key]);
+      if (chevron) chevron.textContent = _workEarningsExpanded[key] ? '▾' : '▸';
+    }
+  });
+}
+
+/* ── Expanded Job Earnings Analytics (Work page) ─────────────── */
+function renderWorkEarnings(){
+  var container = document.getElementById('workEarningsContent');
+  if (!container) return;
+  try {
+    var todayStr  = getTodayISO();
+    var todayDate = new Date(todayStr + 'T12:00:00');
+    var settings  = getEarningsSettings();
+    var taxRate   = parseFloat(settings.taxRate)  || 0;
+    var goalAmt   = _workEarningsMode === 'week'
+                    ? (parseFloat(settings.weeklyGoal)  || 0)
+                    : (parseFloat(settings.monthlyGoal) || 0);
+
+    /* ── Compute date ranges ───────────────────────────────── */
+    var startDate, endDate, prevStartDate, prevEndDate, periodLabel;
+    var MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    if (_workEarningsMode === 'week'){
+      var dow = todayDate.getDay();
+      startDate = new Date(todayDate);
+      startDate.setDate(todayDate.getDate() - dow + (_workEarningsOffset * 7));
+      endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 6);
+      periodLabel = 'Week of '+(startDate.getMonth()+1)+'/'+startDate.getDate()+' – '+(endDate.getMonth()+1)+'/'+endDate.getDate();
+      prevStartDate = new Date(startDate); prevStartDate.setDate(startDate.getDate() - 7);
+      prevEndDate   = new Date(endDate);   prevEndDate.setDate(endDate.getDate() - 7);
+    } else {
+      var y = todayDate.getFullYear(), m = todayDate.getMonth() + _workEarningsOffset;
+      while (m < 0){ m += 12; y--; } while (m > 11){ m -= 12; y++; }
+      startDate = new Date(y, m, 1); endDate = new Date(y, m+1, 0);
+      periodLabel = MONTH_NAMES[m] + ' ' + y;
+      var pm = m - 1, py = y;
+      if (pm < 0){ pm = 11; py--; }
+      prevStartDate = new Date(py, pm, 1); prevEndDate = new Date(py, pm+1, 0);
+    }
+
+    var startISO     = startDate.getFullYear()+'-'+pad2(startDate.getMonth()+1)+'-'+pad2(startDate.getDate());
+    var endISO       = endDate.getFullYear()+'-'+pad2(endDate.getMonth()+1)+'-'+pad2(endDate.getDate());
+    var prevStartISO = prevStartDate.getFullYear()+'-'+pad2(prevStartDate.getMonth()+1)+'-'+pad2(prevStartDate.getDate());
+    var prevEndISO   = prevEndDate.getFullYear()+'-'+pad2(prevEndDate.getMonth()+1)+'-'+pad2(prevEndDate.getDate());
+
+    var curr = computeEarningsForRange(startISO, endISO);
+    var prev = computeEarningsForRange(prevStartISO, prevEndISO);
+
+    /* ── Build HTML ────────────────────────────────────────── */
+    var html = '';
+    var isCurrentPeriod = (_workEarningsOffset === 0);
+
+    /* Controls bar */
+    html += '<div class="we-controls">';
+    html += '<button class="we-nav-btn" data-we-action="prev">&#8249; Prev</button>';
+    html += '<div class="we-mode-toggle">';
+    html += '<button class="we-mode-btn'+(_workEarningsMode==='week'?' active':'')+'" data-we-action="mode-week">Week</button>';
+    html += '<button class="we-mode-btn'+(_workEarningsMode==='month'?' active':'')+'" data-we-action="mode-month">Month</button>';
+    html += '</div>';
+    if (!isCurrentPeriod) html += '<button class="we-nav-btn" data-we-action="today">Today</button>';
+    html += '<button class="we-nav-btn" data-we-action="next">Next &#8250;</button>';
+    html += '<button class="we-export-btn" data-we-action="export" title="Export CSV">&#8595; CSV</button>';
+    html += '<button class="we-settings-btn" data-we-action="toggle-settings" title="Earnings settings">&#9881;</button>';
+    html += '</div>';
+
+    /* Inline settings panel */
+    if (_workEarningsSettingsOpen){
+      html += '<div class="we-settings-panel">';
+      html += '<strong style="font-size:0.93rem">&#9881; Earnings Settings</strong>';
+      html += '<div class="we-settings-row">';
+      html += '<div><label for="we-weekly-goal">Weekly goal ($)</label><input id="we-weekly-goal" type="number" min="0" step="1" value="'+escHtml(settings.weeklyGoal||'')+'" placeholder="0" /></div>';
+      html += '<div><label for="we-monthly-goal">Monthly goal ($)</label><input id="we-monthly-goal" type="number" min="0" step="1" value="'+escHtml(settings.monthlyGoal||'')+'" placeholder="0" /></div>';
+      html += '<div><label for="we-tax-rate">Tax rate (%)</label><input id="we-tax-rate" type="number" min="0" max="100" step="0.5" value="'+escHtml(settings.taxRate||'')+'" placeholder="0" /></div>';
+      html += '</div>';
+      html += '<button class="we-nav-btn" data-we-action="save-settings" style="margin-top:8px;background:#4a90e2;color:#fff;border-color:#4a90e2">Save</button>';
+      html += '</div>';
+    }
+
+    /* Period label */
+    html += '<div class="work-earnings-week-label">'+escHtml(periodLabel)+'</div>';
+
+    if (curr.totalGross <= 0){
+      html += '<div class="earnings-empty">No job earnings this period. Schedule job events to see earnings here.</div>';
+      container.innerHTML = html;
+      wireWorkEarningsHandlers();
+      return;
+    }
+
+    /* Total */
+    html += '<div class="work-earnings-total">$'+curr.totalGross.toFixed(2)+'</div>';
+
+    /* Comparison badge */
+    if (prev.totalGross > 0){
+      var diff = curr.totalGross - prev.totalGross;
+      var periodWord = _workEarningsMode === 'week' ? 'last week' : 'last month';
+      if (Math.abs(diff) < 0.01){
+        html += '<div class="we-comparison same">Same as '+escHtml(periodWord)+'</div>';
+      } else {
+        var pct = Math.round(Math.abs(diff) / prev.totalGross * 100);
+        if (diff > 0){
+          html += '<div class="we-comparison up">+$'+diff.toFixed(2)+' ('+pct+'%) &#9650; vs '+escHtml(periodWord)+'</div>';
+        } else {
+          html += '<div class="we-comparison down">&#8722;$'+Math.abs(diff).toFixed(2)+' ('+pct+'%) &#9660; vs '+escHtml(periodWord)+'</div>';
+        }
+      }
+    }
+
+    /* Tax estimator */
+    if (taxRate > 0){
+      var taxAmt = curr.totalGross * taxRate / 100;
+      var netAmt = curr.totalGross - taxAmt;
+      html += '<div class="we-tax-line">Est. tax ('+taxRate+'%): <strong>$'+taxAmt.toFixed(2)+'</strong> &nbsp;&#183;&nbsp; Est. net: <strong>$'+netAmt.toFixed(2)+'</strong></div>';
+    }
+
+    /* Goal progress bar */
+    if (goalAmt > 0){
+      var goalPct = Math.min(curr.totalGross / goalAmt * 100, 100);
+      var overGoal = curr.totalGross >= goalAmt;
+      var goalLabel = _workEarningsMode === 'week' ? 'Weekly goal' : 'Monthly goal';
+      html += '<div class="we-goal-bar-wrap">';
+      html += '<div class="we-goal-bar-label"><span>'+escHtml(goalLabel)+'</span><span>$'+curr.totalGross.toFixed(2)+' / $'+goalAmt.toFixed(2)+'</span></div>';
+      html += '<div class="we-goal-bar-outer"><div class="we-goal-bar-inner'+(overGoal?' over':'')+'" style="width:'+goalPct.toFixed(1)+'%"></div></div>';
+      html += '</div>';
+    }
+
+    /* Bar chart */
+    html += buildEarningsChart(curr, _workEarningsMode, todayStr);
+
+    /* Per-day table */
+    html += '<table class="earnings-day-table"><thead><tr><th>Day</th><th class="edt-hours">Hours</th><th class="edt-amount">Earned</th></tr></thead><tbody>';
+    curr.dayData.forEach(function(dd){
+      var isToday = dd.iso === todayStr;
+      html += '<tr'+(isToday?' class="edt-today"':'')+'>'+
+              '<td>'+escHtml(dd.label)+(isToday?' <strong>·</strong>':'')+' </td>'+
+              '<td class="edt-hours">'+(dd.hours > 0 ? dd.hours.toFixed(1)+'h' : '–')+'</td>'+
+              '<td class="edt-amount">'+(dd.earnings > 0 ? '$'+dd.earnings.toFixed(2) : '–')+'</td>'+
+              '</tr>';
+    });
+    html += '</tbody></table>';
+
+    /* Per-job expandable cards */
+    var jobKeys = Object.keys(curr.jobEarnings);
+    if (jobKeys.length > 0){
+      html += '<h4 style="margin:12px 0 8px;font-size:0.95rem;color:#666">By Job</h4>';
+      html += '<div class="earnings-job-cards">';
+      jobKeys.sort(function(a,b){ return curr.jobEarnings[b].totalEarnings - curr.jobEarnings[a].totalEarnings; });
+      jobKeys.forEach(function(key){
+        var je = curr.jobEarnings[key];
+        var isExpanded = !!_workEarningsExpanded[key];
+        var meta;
+        if (je.unit === 'hour'){
+          meta = je.totalHours.toFixed(1)+'h';
+          if (je.overtimeHours > 0){
+            meta += ' ('+je.regularHours.toFixed(1)+'h reg + '+je.overtimeHours.toFixed(1)+'h OT)';
+          }
+          meta += ' · $'+je.rate.toFixed(2)+'/hr · '+je.shifts+' shift'+(je.shifts!==1?'s':'');
+        } else {
+          meta = '$'+je.rate.toFixed(2)+'/'+je.unit+' · '+je.shifts+' shift'+(je.shifts!==1?'s':'');
+        }
+        html += '<div class="earnings-job-card" data-we-job="'+escHtml(key)+'">';
+        html += '<span class="earnings-job-emoji">'+escHtml(je.emoji)+'</span>';
+        html += '<div class="earnings-job-info">';
+        html += '<div class="earnings-job-name">'+escHtml(je.name)+'</div>';
+        html += '<div class="earnings-job-meta">'+escHtml(meta)+'</div>';
+        if (je.overtimeEarnings > 0){
+          html += '<div style="font-size:0.78rem;color:#856404;margin-top:2px">$'+je.regularEarnings.toFixed(2)+' reg + $'+je.overtimeEarnings.toFixed(2)+' OT</div>';
+        }
+        html += '</div>';
+        html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
+        html += '<div class="earnings-job-total">$'+je.totalEarnings.toFixed(2)+'</div>';
+        html += '<span class="we-card-chevron" style="font-size:0.85rem;color:#aaa">'+(isExpanded?'▾':'▸')+'</span>';
+        html += '</div>';
+        html += '<div class="earnings-job-shifts'+(isExpanded?' open':'') +'">';
+        je.shifts_detail.forEach(function(s){
+          html += '<div class="earnings-job-shift-row">';
+          html += '<span style="color:#888;min-width:72px">'+escHtml(s.date)+'</span>';
+          if (s.timeRange) html += '<span style="color:#666">'+escHtml(s.timeRange)+'</span>';
+          if (s.title)     html += '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(s.title)+'</span>';
+          if (s.hours > 0) html += '<span style="color:#888">'+s.hours.toFixed(1)+'h</span>';
+          html += '<span style="font-weight:600;color:#27ae60;margin-left:4px">$'+s.earnings.toFixed(2)+'</span>';
+          if (s.isOT)      html += '<span class="earnings-ot-badge">OT</span>';
+          html += '</div>';
+        });
+        html += '</div>'; // .earnings-job-shifts
+        html += '</div>'; // .earnings-job-card
+      });
+      html += '</div>';
+    }
+
+    /* Earnings by Location */
+    var locationMap = {};
+    jobKeys.forEach(function(key){
+      var je = curr.jobEarnings[key];
+      if (je.location){
+        if (!locationMap[je.location]) locationMap[je.location] = { earnings: 0, hours: 0, jobs: [] };
+        locationMap[je.location].earnings += je.totalEarnings;
+        locationMap[je.location].hours    += je.totalHours;
+        locationMap[je.location].jobs.push(je.name);
+      }
+    });
+    var locKeys = Object.keys(locationMap);
+    if (locKeys.length > 0){
+      html += '<div class="we-location-section">';
+      html += '<h4 style="margin:12px 0 6px;font-size:0.95rem;color:#666">By Location</h4>';
+      locKeys.sort(function(a,b){ return locationMap[b].earnings - locationMap[a].earnings; });
+      locKeys.forEach(function(loc){
+        var ld = locationMap[loc];
+        html += '<div class="we-location-group">';
+        html += '<span class="we-location-name">&#128205; '+escHtml(loc);
+        if (ld.hours > 0) html += ' <span class="we-location-jobs">'+ld.hours.toFixed(1)+'h</span>';
+        html += '</span>';
+        html += '<span class="we-location-jobs">'+escHtml(ld.jobs.join(', '))+'</span>';
+        html += '<span class="we-location-amount">$'+ld.earnings.toFixed(2)+'</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+
+    container.innerHTML = html;
+    wireWorkEarningsHandlers();
+  } catch(e) {
+    container.innerHTML = '<div class="earnings-empty">Unable to calculate earnings.</div>';
+    console.warn('renderWorkEarnings error', e);
+  }
+}
+
+/* Legacy wrappers: updateProgress / updateDashboard / updateDayProgress still called from other code */
 function updateProgress(tasks){
-  const total = tasks.length;
-  const done = tasks.filter(t=>t.done).length;
-  const percent = total ? Math.round((done/total)*100) : 0;
-  const ring = document.getElementById('progressRing');
-  if (ring) { ring.style.borderTopColor = percent===100 ? 'limegreen' : '#4a90e2'; ring.title = percent + '% complete'; ring.style.transform = `rotate(${percent*3.6}deg)`; }
+  updateCompletionRing();
 }
 function updateDashboard(tasks){
   const total = tasks.length;
@@ -1032,24 +2466,13 @@ function updateDashboard(tasks){
   const categories = tasks.reduce((acc,t)=>{ acc[t.category]= (acc[t.category]||0)+1; return acc; },{});
   const summary = document.getElementById('summaryStats');
   if (summary) summary.innerHTML = `Total tasks: ${total}<br>Completed: ${done}<br>Work: ${categories.work||0}, Personal: ${categories.personal||0}, Errands: ${categories.errands||0}`;
+  updateCompletionRing();
+  updateDayElapsedRing();
+  updateWeeklySalary();
 }
 function updateDayProgress(day){
-  const ring = document.getElementById('dayProgressRing');
-  if (!ring) return;
-  if (!day){
-    ring.style.borderTopColor = '#ccc';
-    ring.title = 'No day selected';
-    ring.style.transform = 'rotate(0deg)';
-    return;
-  }
-  const key = `${selectedYear}-${pad2(selectedMonth+1)}-${pad2(day)}`;
-  const tasks = getTasks().filter(t => t.date && normalizeDate(t.date) === key );
-  const total = tasks.length;
-  const done = tasks.filter(t=>t.done).length;
-  const percent = total ? Math.round((done/total)*100) : 0;
-  ring.style.borderTopColor = percent===100 ? 'limegreen' : '#4a90e2';
-  ring.title = percent + '% complete (' + (total) + ' task' + (total!==1 ? 's' : '') + ') on ' + key;
-  ring.style.transform = `rotate(${percent * 3.6}deg)`;
+  updateCompletionRing();
+  updateDayElapsedRing();
 }
 
 /* Keyless autocomplete via OpenStreetMap Nominatim */
@@ -1152,23 +2575,30 @@ function initOverlayInputs(){
 
 /* SPA view switching */
 function showView(view, updateHash = true){
-  view = view || 'calendar';
+  view = view || 'today';
+  /* Ensure modals are closed when switching views */
+  try { hideJobModal(); } catch(_) {}
+  try { var ctm = document.getElementById('choreTemplateModal'); if (ctm) ctm.classList.add('hidden'); } catch(_) {}
   document.querySelectorAll('[id^="page-"]').forEach(p=> p.classList.add('hidden'));
-  const el = document.getElementById('page-'+view) || document.getElementById('page-calendar');
+  const el = document.getElementById('page-'+view) || document.getElementById('page-today');
   if (el) el.classList.remove('hidden');
   document.querySelectorAll('.bottom-ribbon .r-item').forEach(a=>{
     const href = a.getAttribute('href') || '';
     const candidate = (a.dataset && a.dataset.view) ? a.dataset.view : (href.indexOf('#')>-1 ? href.split('#').pop() : '');
     a.classList.toggle('active', candidate === view);
   });
-  if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } }
+  if (view === 'today'){ try{ generateCalendar(); }catch(e){ console.warn(e); } if (selectedDay) try{ showReminders(selectedDay); }catch(e){ console.warn(e); } try{ updateCompletionRing(); updateDayElapsedRing(); }catch(e){ console.warn(e); } try{ renderInboxWidget(); }catch(e){ console.warn(e); } }
+  else if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } try{ renderCalendarSummary(); }catch(e){ console.warn(e); } }
   else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
   else if (view === 'jobs'){ try{ renderJobs(); }catch(e){ console.warn(e); } }
+  else if (view === 'inbox'){ try{ renderInbox(); updateInboxBadge(); }catch(e){ console.warn(e); } }
+  else if (view === 'personal' || view === 'home' || view === 'work'){ try{ renderDomainPage(view); }catch(e){ console.warn(e); } if(view==='work'){ try{ renderWorkEarnings(); }catch(e){ console.warn(e); } } }
   if (updateHash){ const newHash = '#'+view; if (location.hash !== newHash) location.hash = newHash; }
+  try { window.dispatchEvent(new CustomEvent('view:show', { detail: { view: view } })); } catch(_) {}
 }
 window.addEventListener('hashchange', ()=> {
-  const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+  const v = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'today';
   showView(v, false);
 });
 
@@ -1211,21 +2641,13 @@ function attachPageListeners(){
         const isHashOnly = href && href.trim().startsWith('#');
         if (onIndex || isHashOnly){
           ev.preventDefault();
-          showView(targetView || 'calendar');
+          showView(targetView || 'today');
         }
       });
     });
 
-    const sel = document.getElementById('dayPartSelect');
-    if(sel){
-      sel.addEventListener('change', ()=>{
-        if (selectedYear != null && selectedMonth != null && selectedDay != null){
-          const key = sel.value === 'auto' ? 'auto' : sel.value;
-          renderDailyViewForDay(selectedYear, selectedMonth, selectedDay, key);
-        }
-      });
-    }
-  }catch(e){ console.warn('attachPageListeners failed', e); }
+    // dayPartSelect removed – full 24h scrollable view is now used
+    }catch(e){ console.warn('attachPageListeners failed', e); }
 }
 
 /* expose inline handlers */
@@ -1233,36 +2655,32 @@ window.editEvent = editEvent;
 window.deleteEvent = deleteEvent;
 window.editReminder = editReminder;
 window.deleteReminder = deleteReminder;
+window.editTask = editTask;
 window.showView = showView;
 
 /* startup after DOM ready */
 document.addEventListener('DOMContentLoaded', function(){
   try{
+    applyDomainColorCSS();
     migrateConsistencyData();
     const now = new Date();
     selectedMonth = now.getMonth();
     selectedYear = now.getFullYear();
     selectedDay = now.getDate();
     attachPageListeners();
-    const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'calendar';
+    const initial = (location.hash && location.hash.length>1) ? location.hash.slice(1) : 'today';
     try { showView(initial, false); } catch(e){ console.warn('showView failed', e); }
     try{ if (document.getElementById('calendar')) generateCalendar(); }catch(e){ console.warn('generateCalendar init failed',e); }
     try{ if (document.getElementById('calendar')) showReminders(selectedDay); }catch(e){ console.warn('showReminders init failed',e); }
     try{ if (document.getElementById('taskList')) loadTasks(); }catch(e){ console.warn('loadTasks failed', e); }
     try{ if (document.getElementById('eventList')) renderEvents(); }catch(e){ console.warn('renderEvents failed', e); }
-    try{ if (document.getElementById('jobList')) renderJobs(); }catch(e){ console.warn('renderJobs failed', e); }
+    try{ if (document.getElementById('domain-buckets-work')) renderJobs(); }catch(e){ console.warn('renderJobs failed', e); }
     try{ initPlaces(); }catch(e){ console.warn('initPlaces failed', e); }
     try{ initOverlayInputs(); }catch(e){ console.warn('initOverlayInputs failed', e); }
     try{ wireRepeatControls(); }catch(e){ console.warn('wireRepeatControls failed', e); }
+    try{ wireAdvancedSpecButtons(); }catch(e){ console.warn('wireAdvancedSpecButtons failed', e); }
 
-    // set dayPartSelect default to current part if present
-    const sel = document.getElementById('dayPartSelect');
-    if (sel){
-      const now = new Date();
-      const curPart = determinePartFromHour(now.getHours());
-      // If user had a value, we keep it; otherwise set to current
-      if (!sel.value || !DAY_PARTS[sel.value]) sel.value = curPart;
-    }
+    // dayPartSelect removed – full 24h scrollable view is now used
   }catch(err){
     console.error('Init error',err);
     showAppError('Initialization error: ' + (err && err.message || err));
@@ -1274,7 +2692,7 @@ document.addEventListener('DOMContentLoaded', function(){
 /* Read user profile from localStorage */
 function readUserProfile(){
   try{
-    const raw = storage.getItem('USER_PROFILE', '');
+    const raw = localStorage.getItem('USER_PROFILE');
     if (!raw) return { name: '', home: { address:'', placeId:'', lat:null, lng:null } };
     return JSON.parse(raw) || { name: '', home: { address:'', placeId:'', lat:null, lng:null } };
   }catch(e){ return { name: '', home: { address:'', placeId:'', lat:null, lng:null } }; }
@@ -1283,7 +2701,7 @@ function readUserProfile(){
 /* Save profile object */
 function writeUserProfile(profile){
   try{
-    storage.setJSON('USER_PROFILE', profile||{});
+    localStorage.setItem('USER_PROFILE', JSON.stringify(profile||{}));
   }catch(e){ console.warn('writeUserProfile failed', e); }
 }
 
@@ -1350,7 +2768,7 @@ function saveProfileFromUI(){
 /* Clear user profile */
 function clearUserProfile(){
   try{
-    storage.removeItem('USER_PROFILE');
+    localStorage.removeItem('USER_PROFILE');
     updateProfileUI();
     alert('Profile cleared');
   }catch(e){ console.warn('clearUserProfile failed', e); }
@@ -1454,7 +2872,24 @@ function buildExportPayload(){
       reminders: getRemindersForExport(),
       jobs: getJobs(),
       taskCategories: getTaskCategories(),
-      userProfile: readUserProfile()
+      userProfile: readUserProfile(),
+      userOffDays: (function(){ try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; } })(),
+      dayStartHour: localStorage.getItem('dayStartHour') || null,
+      dayEndHour: localStorage.getItem('dayEndHour') || null,
+      personalBuckets: safeParseStorage('personalBuckets', []),
+      homeBuckets: safeParseStorage('homeBuckets', []),
+      domainColors: safeParseStorage('domainColors', {}),
+      personalMeals: safeParseStorage('personalMeals', {}),
+      personalCalorieGoal: localStorage.getItem('personalCalorieGoal') || null,
+      personalSleep: safeParseStorage('personalSleep', {}),
+      personalGym: safeParseStorage('personalGym', {}),
+      personalFocus: safeParseStorage('personalFocus', {}),
+      personalRoutines: safeParseStorage('personalRoutines', {}),
+      personalRoutineLog: safeParseStorage('personalRoutineLog', {}),
+      personalHydration: safeParseStorage('personalHydration', {}),
+      personalMood: safeParseStorage('personalMood', []),
+      personalMealFavorites: safeParseStorage('personalMealFavorites', []),
+      personalMealPrepLog: safeParseStorage('personalMealPrepLog', {})
     }
   };
 }
@@ -1478,6 +2913,70 @@ function downloadJson(filename, data){
   URL.revokeObjectURL(url);
 }
 
+/* ── Single-event ICS download (one tap → Apple Calendar on iOS) ── */
+function downloadSingleEventICS(ev) {
+  function escICS(s){ return (s||'').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
+  function toICSDate(dateStr, timeStr){
+    if (!dateStr) return '';
+    var d = dateStr.replace(/-/g,'');
+    if (!timeStr) return d;
+    return d + 'T' + timeStr.replace(/:/g,'') + '00';
+  }
+  function datePlusOne(dateStr){
+    var d = new Date(dateStr + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    return d.getFullYear() + pad2(d.getMonth()+1) + pad2(d.getDate());
+  }
+  var uid = 'ev-' + (ev.id||Date.now()) + '@timescape.app';
+  var hasTime = !!ev.time;
+  var lines = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TimeScape Planner//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    'UID:' + uid,
+    'SUMMARY:' + escICS((ev.emoji ? ev.emoji + ' ' : '') + (ev.title||''))
+  ];
+  if (hasTime) {
+    lines.push('DTSTART:' + toICSDate(ev.date, ev.time));
+    lines.push('DTEND:' + toICSDate(ev.endDate||ev.date, ev.endTime||ev.time));
+  } else {
+    lines.push('DTSTART;VALUE=DATE:' + (ev.date||'').replace(/-/g,''));
+    lines.push('DTEND;VALUE=DATE:' + (ev.endDate ? ev.endDate.replace(/-/g,'') : datePlusOne(ev.date)));
+  }
+  if (ev.location) lines.push('LOCATION:' + escICS(ev.location));
+  lines.push('END:VEVENT','END:VCALENDAR');
+  var blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = (ev.title||'event').replace(/[^a-z0-9]/gi,'-').toLowerCase() + '.ics';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ── Web Share API ── */
+function shareEvent(ev) {
+  var text = (ev.emoji ? ev.emoji + ' ' : '') + (ev.title||'');
+  if (ev.date) text += '\n📅 ' + ev.date;
+  if (ev.time) text += ' ' + ev.time + (ev.endTime ? '–'+ev.endTime : '');
+  if (ev.location) text += '\n📍 ' + ev.location;
+  navigator.share({ title: ev.title||'Event', text: text }).catch(function(){});
+}
+
+function shareDaySchedule(year, month, day) {
+  var dateKey = year + '-' + pad2(month+1) + '-' + pad2(day);
+  var dateLabel = new Date(year, month, day).toLocaleDateString(undefined,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var lines = [dateLabel, ''];
+  var evs = getEvents().filter(function(e){ return e.date === dateKey; });
+  evs.sort(function(a,b){ return (a.time||'').localeCompare(b.time||''); });
+  evs.forEach(function(e){ lines.push((e.emoji||'📅')+' '+(e.time?e.time+' ':'')+e.title+(e.location?' @ '+e.location:'')); });
+  var reminders = (getReminders()[dateKey]||[]);
+  reminders.forEach(function(r){ lines.push('🔔 '+(r.time?r.time+' ':'')+r.text); });
+  var tasks = getTasks().filter(function(t){ return t.date === dateKey; });
+  tasks.forEach(function(t){ lines.push((t.done?'✅':'⬜')+' '+t.title); });
+  var text = lines.join('\n').trim() || dateLabel;
+  navigator.share({ title: 'Schedule for ' + dateLabel, text: text }).catch(function(){});
+}
+
 function parseImportPayload(parsed){
   if (!parsed || typeof parsed !== 'object') throw new Error('Invalid JSON payload');
   const data = parsed.data && typeof parsed.data === 'object' ? parsed.data : parsed;
@@ -1488,8 +2987,27 @@ function parseImportPayload(parsed){
   const jobs = Array.isArray(data.jobs) ? data.jobs : [];
   const taskCategories = Array.isArray(data.taskCategories) ? data.taskCategories : [];
   const userProfile = (data.userProfile && typeof data.userProfile === 'object') ? data.userProfile : readUserProfile();
+  const personalBuckets = Array.isArray(data.personalBuckets) ? data.personalBuckets : [];
+  const homeBuckets = Array.isArray(data.homeBuckets) ? data.homeBuckets : [];
+  const domainColors = (data.domainColors && typeof data.domainColors === 'object' && !Array.isArray(data.domainColors)) ? data.domainColors : {};
+  const userOffDays = Array.isArray(data.userOffDays) ? data.userOffDays : undefined;
+  const dayStartHour = data.dayStartHour != null ? data.dayStartHour : undefined;
+  const dayEndHour = data.dayEndHour != null ? data.dayEndHour : undefined;
+  const personalMeals = (data.personalMeals && typeof data.personalMeals === 'object' && !Array.isArray(data.personalMeals)) ? data.personalMeals : undefined;
+  const personalCalorieGoal = data.personalCalorieGoal != null ? data.personalCalorieGoal : undefined;
+  const personalSleep = (data.personalSleep && typeof data.personalSleep === 'object' && !Array.isArray(data.personalSleep)) ? data.personalSleep : undefined;
+  const personalGym = (data.personalGym && typeof data.personalGym === 'object' && !Array.isArray(data.personalGym)) ? data.personalGym : undefined;
+  const personalFocus = (data.personalFocus && typeof data.personalFocus === 'object' && !Array.isArray(data.personalFocus)) ? data.personalFocus : undefined;
+  const personalRoutines = (data.personalRoutines && typeof data.personalRoutines === 'object' && !Array.isArray(data.personalRoutines)) ? data.personalRoutines : undefined;
+  const personalRoutineLog = (data.personalRoutineLog && typeof data.personalRoutineLog === 'object' && !Array.isArray(data.personalRoutineLog)) ? data.personalRoutineLog : undefined;
+  const personalHydration = (data.personalHydration && typeof data.personalHydration === 'object' && !Array.isArray(data.personalHydration)) ? data.personalHydration : undefined;
+  const personalMood = Array.isArray(data.personalMood) ? data.personalMood : undefined;
+  const personalMealFavorites = Array.isArray(data.personalMealFavorites) ? data.personalMealFavorites : undefined;
+  const personalMealPrepLog = (data.personalMealPrepLog && typeof data.personalMealPrepLog === 'object' && !Array.isArray(data.personalMealPrepLog)) ? data.personalMealPrepLog : undefined;
 
-  return { events, tasks, reminders, jobs, taskCategories, userProfile };
+  return { events, tasks, reminders, jobs, taskCategories, userProfile, personalBuckets, homeBuckets, domainColors, userOffDays, dayStartHour, dayEndHour,
+    personalMeals, personalCalorieGoal, personalSleep, personalGym, personalFocus, personalRoutines, personalRoutineLog, personalHydration, personalMood,
+    personalMealFavorites, personalMealPrepLog };
 }
 
 function eventKey(x){
@@ -1587,6 +3105,7 @@ function refreshAfterImport(){
   try { loadTasks(); } catch(_) {}
   try { renderJobs(); } catch(_) {}
   try { updateProfileUI(); } catch(_) {}
+  try { renderInboxWidget(); } catch(_) {}
   try { window.dispatchEvent(new CustomEvent('app:data:updated')); } catch(_) {}
   try { window.dispatchEvent(new Event('storage')); } catch(_) {}
 }
@@ -1598,7 +3117,20 @@ function applyImportData(importData, mode){
     setTasks(importData.tasks);
     setRemindersFromArray(importData.reminders);
     setJobs(importData.jobs);
-    storage.setJSON('taskCategories', importData.taskCategories);
+    localStorage.setItem('taskCategories', JSON.stringify(importData.taskCategories));
+    if (Array.isArray(importData.userOffDays)) localStorage.setItem('userOffDays', JSON.stringify(importData.userOffDays));
+    if (importData.dayStartHour != null) localStorage.setItem('dayStartHour', importData.dayStartHour);
+    if (importData.dayEndHour != null) localStorage.setItem('dayEndHour', importData.dayEndHour);
+    if (Array.isArray(importData.personalBuckets)) localStorage.setItem('personalBuckets', JSON.stringify(importData.personalBuckets));
+    if (Array.isArray(importData.homeBuckets)) localStorage.setItem('homeBuckets', JSON.stringify(importData.homeBuckets));
+    if (importData.domainColors && typeof importData.domainColors === 'object' && Object.keys(importData.domainColors).length > 0) localStorage.setItem('domainColors', JSON.stringify(importData.domainColors));
+    // Personal page widget data
+    ['personalMeals', 'personalSleep', 'personalGym', 'personalFocus', 'personalRoutines', 'personalRoutineLog', 'personalHydration', 'personalMealPrepLog'].forEach(function(key) {
+      if (importData[key] && typeof importData[key] === 'object') localStorage.setItem(key, JSON.stringify(importData[key]));
+    });
+    if (Array.isArray(importData.personalMood)) localStorage.setItem('personalMood', JSON.stringify(importData.personalMood));
+    if (Array.isArray(importData.personalMealFavorites)) localStorage.setItem('personalMealFavorites', JSON.stringify(importData.personalMealFavorites));
+    if (importData.personalCalorieGoal != null) localStorage.setItem('personalCalorieGoal', importData.personalCalorieGoal);
     writeUserProfile(importData.userProfile || readUserProfile());
     refreshAfterImport();
     return {
@@ -1655,7 +3187,63 @@ function applyImportData(importData, mode){
   setTasks(mergedTasks.list);
   setRemindersFromArray(mergedReminders.list);
   setJobs(mergedJobs.list);
-  storage.setJSON('taskCategories', mergedCategories.list);
+  localStorage.setItem('taskCategories', JSON.stringify(mergedCategories.list));
+  // Merge user off-days (union of both lists, deduplicated by date)
+  if (Array.isArray(importData.userOffDays)) {
+    var localOffDays = (function(){ try { return JSON.parse(localStorage.getItem('userOffDays') || '[]'); } catch(_) { return []; } })();
+    var seen = {};
+    var merged = [];
+    localOffDays.concat(importData.userOffDays).forEach(function(entry) {
+      var d = typeof entry === 'string' ? entry : (entry && entry.date ? entry.date : '');
+      if (d && !seen[d]) { seen[d] = true; merged.push(entry); }
+    });
+    merged.sort(function(a, b) {
+      var da = typeof a === 'string' ? a : a.date;
+      var db = typeof b === 'string' ? b : b.date;
+      return da < db ? -1 : da > db ? 1 : 0;
+    });
+    localStorage.setItem('userOffDays', JSON.stringify(merged));
+  }
+  // Merge active hours (prefer imported if local has no custom setting)
+  if (importData.dayStartHour != null && !localStorage.getItem('dayStartHour')) localStorage.setItem('dayStartHour', importData.dayStartHour);
+  if (importData.dayEndHour != null && !localStorage.getItem('dayEndHour')) localStorage.setItem('dayEndHour', importData.dayEndHour);
+  // Merge personal/home buckets (union, deduplicated by id)
+  ['personalBuckets', 'homeBuckets'].forEach(function(key) {
+    if (Array.isArray(importData[key]) && importData[key].length) {
+      var local = safeParseStorage(key, []);
+      var seenIds = {};
+      var merged = [];
+      local.concat(importData[key]).forEach(function(b) {
+        if (!b) return;
+        var bid = b.id != null ? b.id : b.name;
+        if (!seenIds[bid]) { seenIds[bid] = true; merged.push(b); }
+      });
+      localStorage.setItem(key, JSON.stringify(merged));
+    }
+  });
+  // Merge domain colors (prefer imported values for keys not already set locally)
+  if (importData.domainColors && typeof importData.domainColors === 'object' && Object.keys(importData.domainColors).length > 0) {
+    var localDC = safeParseStorage('domainColors', {});
+    Object.keys(importData.domainColors).forEach(function(k) {
+      if (!localDC[k]) localDC[k] = importData.domainColors[k];
+    });
+    localStorage.setItem('domainColors', JSON.stringify(localDC));
+  }
+  // Merge personal page widget data (imported wins for object keys not yet set locally; arrays are replaced if non-empty)
+  ['personalMeals', 'personalSleep', 'personalGym', 'personalFocus', 'personalRoutines', 'personalRoutineLog', 'personalHydration', 'personalMealPrepLog'].forEach(function(key) {
+    if (importData[key] && typeof importData[key] === 'object') {
+      if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(importData[key]));
+    }
+  });
+  if (Array.isArray(importData.personalMood) && importData.personalMood.length && !localStorage.getItem('personalMood')) {
+    localStorage.setItem('personalMood', JSON.stringify(importData.personalMood));
+  }
+  if (Array.isArray(importData.personalMealFavorites) && importData.personalMealFavorites.length && !localStorage.getItem('personalMealFavorites')) {
+    localStorage.setItem('personalMealFavorites', JSON.stringify(importData.personalMealFavorites));
+  }
+  if (importData.personalCalorieGoal != null && !localStorage.getItem('personalCalorieGoal')) {
+    localStorage.setItem('personalCalorieGoal', importData.personalCalorieGoal);
+  }
   refreshAfterImport();
 
   return {
@@ -1742,3 +3330,5537 @@ function summarizeImportResult(stats){
     console.warn('wireDataBackupUI failed', e);
   }
 })();
+
+/* ============================================================
+   NEW FEATURES: Category Colours, Filter Bar, Week View,
+   Quick-Add NLP, Search, Undo, Keyboard Shortcuts,
+   Sync Status, Swipe Gestures, Enhanced Dashboard
+   ============================================================ */
+
+/* ----- Category colour map ----- */
+const CAT_COLORS = {
+  work:        '#4a90e2',
+  personal:    '#9b59b6',
+  home:        '#27ae60',
+  errands:     '#e67e22',
+  job:         '#f39c12',
+  appointment: '#16a085',
+  holiday:     '#e74c3c',
+  commitment:  '#8e44ad',
+  event:       '#4a90e2'
+};
+
+/* ----- Active category filter state ----- */
+let activeFilter = 'all';
+let activeFilterBucket = null; // { domain, bucketId } when filtering by a specific bucket
+
+/* Build the category filter bar dynamically from user buckets across all 3 domains */
+function renderCategoryFilterBar() {
+  const bar = document.getElementById('categoryFilterBar');
+  if (!bar) return;
+
+  // Clear and rebuild with grouped sections
+  bar.innerHTML = '';
+
+  // --- Domains section ---
+  var domainsLabel = document.createElement('span');
+  domainsLabel.style.cssText = 'font-size:0.8rem;color:#666;margin-right:2px;font-weight:600';
+  domainsLabel.textContent = 'Domains:';
+  bar.appendChild(domainsLabel);
+
+  // "All" button
+  const allBtn = document.createElement('button');
+  allBtn.className = 'cat-filter-btn' + (activeFilter === 'all' && !activeFilterBucket ? ' active' : '');
+  allBtn.dataset.cat = 'all';
+  allBtn.textContent = 'All';
+  bar.appendChild(allBtn);
+
+  // Domain-level buttons
+  var domains = ['personal', 'home', 'work'];
+  domains.forEach(function(domain) {
+    var meta = DOMAIN_META[domain];
+    if (!meta) return;
+
+    var domBtn = document.createElement('button');
+    domBtn.className = 'cat-filter-btn' + (activeFilter === domain && !activeFilterBucket ? ' active' : '');
+    domBtn.dataset.cat = domain;
+    domBtn.textContent = meta.emoji + ' ' + meta.label;
+    domBtn.style.fontWeight = '600';
+    bar.appendChild(domBtn);
+  });
+
+  // --- Buckets section ---
+  var hasBuckets = false;
+  domains.forEach(function(domain) {
+    var buckets = getBuckets(domain);
+    if (buckets.length) hasBuckets = true;
+  });
+
+  if (hasBuckets) {
+    var bucketsLabel = document.createElement('span');
+    bucketsLabel.style.cssText = 'font-size:0.8rem;color:#666;margin-right:2px;margin-left:6px;font-weight:600';
+    bucketsLabel.textContent = 'Buckets:';
+    bar.appendChild(bucketsLabel);
+
+    domains.forEach(function(domain) {
+      var buckets = getBuckets(domain);
+      buckets.forEach(function(b) {
+        var btn = document.createElement('button');
+        var isActive = activeFilterBucket && activeFilterBucket.domain === domain && activeFilterBucket.bucketId === b.id;
+        btn.className = 'cat-filter-btn' + (isActive ? ' active' : '');
+        btn.dataset.cat = 'bucket';
+        btn.dataset.bucketDomain = domain;
+        btn.dataset.bucketId = String(b.id);
+        btn.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+        btn.style.fontSize = '0.78rem';
+        bar.appendChild(btn);
+      });
+    });
+  }
+
+  // Wire click handlers
+  bar.querySelectorAll('.cat-filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      bar.querySelectorAll('.cat-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+
+      if (btn.dataset.cat === 'bucket') {
+        activeFilter = 'bucket';
+        activeFilterBucket = {
+          domain: btn.dataset.bucketDomain,
+          bucketId: parseInt(btn.dataset.bucketId, 10)
+        };
+      } else {
+        activeFilter = btn.dataset.cat || 'all';
+        activeFilterBucket = null;
+      }
+      generateCalendar();
+      if (selectedDay) showReminders(selectedDay);
+    });
+  });
+}
+
+function wireCategoryFilters(){
+  renderCategoryFilterBar();
+
+  // Wire the Filter toggle button
+  var toggleBtn = document.getElementById('categoryFilterToggle');
+  var bar = document.getElementById('categoryFilterBar');
+  var arrow = document.getElementById('filterArrow');
+  if (toggleBtn && bar) {
+    function handleFilterToggle(e) {
+      e.stopPropagation();
+      if (e.type === 'touchend') e.preventDefault();
+      var isOpen = bar.style.display === 'flex';
+      bar.style.display = isOpen ? 'none' : 'flex';
+      toggleBtn.setAttribute('aria-expanded', String(!isOpen));
+      if (arrow) arrow.textContent = isOpen ? '▸' : '▾';
+    }
+    toggleBtn.addEventListener('click', handleFilterToggle);
+    toggleBtn.addEventListener('touchend', handleFilterToggle);
+  }
+
+  // Wire the View dropdown toggle button
+  var viewToggle = document.getElementById('viewDropdownToggle');
+  var viewBar = document.getElementById('viewDropdownBar');
+  var viewArrow = document.getElementById('viewArrow');
+  if (viewToggle && viewBar) {
+    function handleViewToggle(e) {
+      e.stopPropagation();
+      if (e.type === 'touchend') e.preventDefault();
+      var isOpen = viewBar.style.display === 'flex';
+      viewBar.style.display = isOpen ? 'none' : 'flex';
+      viewToggle.setAttribute('aria-expanded', String(!isOpen));
+      if (viewArrow) viewArrow.textContent = isOpen ? '▸' : '▾';
+    }
+    viewToggle.addEventListener('click', handleViewToggle);
+    viewToggle.addEventListener('touchend', handleViewToggle);
+  }
+
+  // Re-render filter bar when data changes (buckets may have been added/removed)
+  window.addEventListener('app:data:updated', renderCategoryFilterBar);
+  window.addEventListener('storage', function(e) {
+    if (!e.key || e.key.indexOf('Buckets') !== -1 || e.key === 'jobs') {
+      renderCategoryFilterBar();
+    }
+  });
+}
+
+/* Patch generateCalendar to add colour strip and respect activeFilter */
+(function patchGenerateCalendar(){
+  const orig = generateCalendar;
+  generateCalendar = function(){
+    orig();
+    const calendarEl = document.getElementById('calendar');
+    if (!calendarEl) return;
+    const daysInMonth = new Date(selectedYear, selectedMonth+1, 0).getDate();
+    const monthStart = selectedYear+'-'+pad2(selectedMonth+1)+'-01';
+    const monthEnd   = selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(daysInMonth);
+    const events = getExpandedEvents(monthStart, monthEnd);
+    calendarEl.querySelectorAll('.day[data-day]').forEach(cell => {
+      const day = parseInt(cell.dataset.day, 10);
+      const ymd = selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(day);
+      const dayEvents = events.filter(e => normalizeDate(e.date) === ymd);
+
+      if (activeFilter !== 'all') {
+        let hasMatch;
+        if (activeFilter === 'bucket' && activeFilterBucket) {
+          // Filter by specific bucket within a domain
+          hasMatch = dayEvents.some(e => getDomainOfItem(e) === activeFilterBucket.domain && e.bucketId === activeFilterBucket.bucketId);
+        } else {
+          // Filter by domain (personal, home, work)
+          hasMatch = dayEvents.some(e => getDomainOfItem(e) === activeFilter);
+        }
+        cell.style.opacity = hasMatch ? '1' : '0.35';
+      } else {
+        cell.style.opacity = '1';
+      }
+
+      if (!dayEvents.length) return;
+      const catCounts = {};
+      dayEvents.forEach(e => { const c = e.category || 'event'; catCounts[c] = (catCounts[c]||0)+1; });
+      const dom = Object.keys(catCounts).sort((a,b)=>catCounts[b]-catCounts[a])[0];
+      const color = CAT_COLORS[dom] || '#4a90e2';
+      cell.style.borderBottom = '3px solid '+color;
+    });
+  };
+})();
+
+/* ----- Enhanced dashboard ----- */
+(function patchUpdateDashboard(){
+  const orig = updateDashboard;
+  updateDashboard = function(tasks){
+    orig(tasks);
+    try{
+      const todayStr = new Date().toISOString().slice(0,10);
+      const todayEvents = getExpandedEvents(todayStr, todayStr);
+      const weekEnd = new Date(); weekEnd.setDate(weekEnd.getDate()+7);
+      const weekEndStr = weekEnd.toISOString().slice(0,10);
+      const weekEvents = getExpandedEvents(todayStr, weekEndStr);
+      const pending = tasks.filter(t => !t.done).length;
+      const catMap = {};
+      todayEvents.forEach(e => { const c = e.category||'event'; catMap[c]=(catMap[c]||0)+1; });
+      const catStr = Object.keys(catMap).map(c=>c+':'+catMap[c]).join(', ');
+      const summary = document.getElementById('summaryStats');
+      if (summary){
+        const extra = '<br><span style="color:#4a90e2">Today: '+todayEvents.length+' event'+(todayEvents.length!==1?'s':'')+
+          (catStr ? ' ('+catStr+')' : '')+
+          '</span><br><span style="color:#666">Next 7 days: '+weekEvents.length+' events \u00b7 '+pending+' task'+(pending!==1?'s':'')+' pending</span>';
+        summary.innerHTML += extra;
+      }
+    }catch(e){ /* ignore */ }
+  };
+})();
+
+/* ----- Week view ----- */
+let currentCalView = 'month';
+
+function getWeekStart(year, month, day){
+  const d = new Date(year, month, day);
+  const dow = d.getDay();
+  d.setDate(d.getDate() - dow);
+  return d;
+}
+
+function renderWeekView(){
+  const container = document.getElementById('weekView');
+  if (!container) return;
+  const ws = getWeekStart(selectedYear, selectedMonth, selectedDay || 1);
+  const today = new Date();
+  const todayStr = today.getFullYear()+'-'+pad2(today.getMonth()+1)+'-'+pad2(today.getDate());
+  const we = new Date(ws); we.setDate(ws.getDate()+6);
+  const weekStartISO = ws.getFullYear()+'-'+pad2(ws.getMonth()+1)+'-'+pad2(ws.getDate());
+  const weekEndISO   = we.getFullYear()+'-'+pad2(we.getMonth()+1)+'-'+pad2(we.getDate());
+  const allEvents = getExpandedEvents(weekStartISO, weekEndISO);
+  const allTasks = getTasks();
+  const allReminders = getReminders();
+
+  const isDesk = window.matchMedia && window.matchMedia('(min-width: 901px)').matches;
+
+  function buildCol(i) {
+    const d = new Date(ws); d.setDate(ws.getDate()+i);
+    const ymd = d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+    const isToday = ymd === todayStr;
+    const isSelected = d.getFullYear()===selectedYear && d.getMonth()===selectedMonth && d.getDate()===(selectedDay||0);
+    const theme = themes[d.getMonth()] || themes[0];
+    const isWknd = d.getDay()===0||d.getDay()===6;
+
+    const col = document.createElement('div');
+    col.className = 'week-col';
+    col.style.background = isWknd ? theme.weekend : theme.weekday;
+    col.style.borderRadius = '8px'; col.style.padding = '4px';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'week-col-header'+(isToday?' today':'')+(isSelected?' selected':'');
+    hdr.textContent = weekdayNames[d.getDay()]+' '+d.getDate();
+    hdr.style.cursor = 'pointer';
+    (function(dd){ hdr.addEventListener('click', () => {
+      selectedYear=dd.getFullYear(); selectedMonth=dd.getMonth(); selectedDay=dd.getDate();
+      renderWeekView(); showReminders(selectedDay);
+    }); })(d);
+    col.appendChild(hdr);
+
+    allEvents.filter(e=>normalizeDate(e.date)===ymd).forEach(ev=>{
+      const chip=document.createElement('div'); chip.className='week-chip event';
+      chip.style.borderLeftColor=CAT_COLORS[ev.category||'event']||'#4a90e2';
+      chip.textContent=(ev.emoji||'')+' '+(ev.time?ev.time+' ':'')+( ev.title||'');
+      chip.title=ev.title||'';
+      (function(evCopy){ chip.addEventListener('click',e=>{ e.stopPropagation(); editEvent(evCopy.id, evCopy.occurrenceDate); }); })(ev);
+      col.appendChild(chip);
+    });
+    allTasks.filter(t=>normalizeDate(t.date)===ymd).forEach(t=>{
+      const chip=document.createElement('div'); chip.className='week-chip task';
+      chip.textContent='\u2705 '+(t.title||t.text||'');
+      col.appendChild(chip);
+    });
+    const rems=allReminders[ymd]||[];
+    if(rems.length){ const chip=document.createElement('div'); chip.className='week-chip reminder'; chip.textContent='\uD83D\uDD14 '+rems.length+' reminder'+(rems.length>1?'s':''); col.appendChild(chip); }
+
+    return col;
+  }
+
+  container.innerHTML='';
+
+  if (isDesk) {
+    /* Desktop: 4 days on first row (left), 3 days on second row (right) */
+    const wrapper = document.createElement('div');
+    wrapper.className = 'week-grid-wrapper';
+    const row1 = document.createElement('div');
+    row1.className = 'week-row-split week-row-first';
+    const row2 = document.createElement('div');
+    row2.className = 'week-row-split week-row-second';
+    for (let i = 0; i < 7; i++) {
+      const col = buildCol(i);
+      if (i < 4) row1.appendChild(col);
+      else row2.appendChild(col);
+    }
+    wrapper.appendChild(row1);
+    wrapper.appendChild(row2);
+    container.appendChild(wrapper);
+  } else {
+    /* Mobile: original 7-column grid */
+    const grid = document.createElement('div');
+    grid.className = 'week-grid';
+    for (let i = 0; i < 7; i++) {
+      grid.appendChild(buildCol(i));
+    }
+    container.appendChild(grid);
+  }
+
+  const ws2=new Date(ws); ws2.setDate(ws2.getDate()+6);
+  const ml=document.getElementById('monthLabel');
+  if(ml) ml.textContent=monthNames[ws.getMonth()]+' '+ws.getDate()+' \u2013 '+monthNames[ws2.getMonth()]+' '+ws2.getDate()+', '+ws2.getFullYear();
+}
+
+function wireViewToggle(){
+  const monthBtn=document.getElementById('viewMonthBtn');
+  const weekBtn=document.getElementById('viewWeekBtn');
+  const calEl=document.getElementById('calendar');
+  const weekEl=document.getElementById('weekView');
+  if(!monthBtn||!weekBtn) return;
+
+  function setView(v){
+    currentCalView=v;
+    monthBtn.classList.toggle('active',v==='month');
+    weekBtn.classList.toggle('active',v==='week');
+    if(calEl) calEl.style.display=v==='month'?'':'none';
+    if(weekEl) weekEl.style.display=v==='week'?'':'none';
+    if(v==='month') generateCalendar(); else renderWeekView();
+  }
+
+  monthBtn.addEventListener('click',()=>setView('month'));
+  weekBtn.addEventListener('click',()=>setView('week'));
+}
+
+/* ----- Quick-add NLP ----- */
+function parseQuickAdd(text){
+  if(!text||!text.trim()) return null;
+  let s=text.trim();
+
+  let category='';
+  let domain='';
+  s=s.replace(/[#@](work|personal|home|errands|appointment|job|holiday|event|commitment)\b/gi,(m,c)=>{ const val=c.toLowerCase(); category=val; if(val==='work'||val==='home'||val==='personal') domain=val; return ''; }).trim();
+
+  let time='';
+  s=s.replace(/\bat\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i,(m,hh,mm,ap)=>{
+    let h=parseInt(hh,10); const min=parseInt(mm||'0',10);
+    if(ap&&ap.toLowerCase()==='pm'&&h<12) h+=12;
+    if(ap&&ap.toLowerCase()==='am'&&h===12) h=0;
+    time=pad2(h)+':'+pad2(min); return '';
+  }).trim();
+
+  const now2=new Date();
+  let date='';
+  const todayStr2=now2.getFullYear()+'-'+pad2(now2.getMonth()+1)+'-'+pad2(now2.getDate());
+  function addDays2(n){ const d=new Date(now2); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+
+  if(/\btoday\b/i.test(s)){ date=todayStr2; s=s.replace(/\btoday\b/i,'').trim(); }
+  else if(/\btomorrow\b/i.test(s)){ date=addDays2(1); s=s.replace(/\btomorrow\b/i,'').trim(); }
+  else if(/\bnext\s+(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i.test(s)){
+    s=s.replace(/\bnext\s+(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i,(m,wd)=>{
+      const days={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+      const target=days[wd.slice(0,3).toLowerCase()];
+      let diff=target-now2.getDay(); if(diff<=0) diff+=7;
+      date=addDays2(diff); return '';
+    }).trim();
+  }
+  else if(/\b(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i.test(s)){
+    s=s.replace(/\b(mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?|sun(?:day)?)\b/i,(m,wd)=>{
+      const days={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+      const target=days[wd.slice(0,3).toLowerCase()];
+      let diff=target-now2.getDay(); if(diff<=0) diff+=7;
+      date=addDays2(diff); return '';
+    }).trim();
+  } else {
+    const mNames=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+    const mMatch=s.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})\b/i);
+    if(mMatch){ const mo=mNames.indexOf(mMatch[1].toLowerCase())+1; date=now2.getFullYear()+'-'+pad2(mo)+'-'+pad2(parseInt(mMatch[2],10)); s=s.replace(mMatch[0],'').trim(); }
+    else{
+      const slashMatch=s.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+      if(slashMatch){ date=now2.getFullYear()+'-'+pad2(parseInt(slashMatch[1],10))+'-'+pad2(parseInt(slashMatch[2],10)); s=s.replace(slashMatch[0],'').trim(); }
+    }
+  }
+
+  const title=s.replace(/\s+/g,' ').trim()||text.trim();
+
+  /* Smart auto-sort: detect kind as event, task, reminder, or unsorted */
+  const lower=text.toLowerCase();
+  const reminderKeywords=/\b(remind\s*(me)?|don'?t\s+forget|do\s+not\s+forget|remember\s+to|note\s+to\s+self|reminder)\b/i;
+  const eventKeywords=/\b(meeting|appointment|dinner|lunch|breakfast|party|conference|call|interview|date night|flight|reservation|game|concert|class|lecture|webinar|session|check-?in|stand-?up|sync)\b/i;
+  const taskKeywords=/\b(buy|fix|clean|finish|complete|submit|send|write|prepare|review|update|organize|schedule|book|cancel|pay|return|pick\s+up|drop\s+off|do|make|create|build|install|setup|set\s+up)\b/i;
+
+  let kind;
+  if(reminderKeywords.test(lower)){
+    kind='reminder';
+  } else if(date && time){
+    kind='event';
+  } else if(date && eventKeywords.test(lower)){
+    kind='event';
+  } else if(date){
+    kind='event';
+  } else if(!date && time && eventKeywords.test(lower)){
+    kind='event';
+  } else if(!date && taskKeywords.test(lower)){
+    kind='task';
+  } else if(!date && eventKeywords.test(lower)){
+    kind='event';
+  } else {
+    kind='unsorted';
+  }
+
+  return { title, date:date||'', time, category, domain, kind };
+}
+
+function wireQuickAdd(){
+  const input=document.getElementById('quickAddInput');
+  const btn=document.getElementById('quickAddBtn');
+  const prev=document.getElementById('quickAddPreview');
+  if(!input) return;
+
+  let _quickAddKindOverride='';
+
+  function kindIcon(k){ return {event:'\uD83D\uDCC5',task:'\u2705',reminder:'\uD83D\uDD14',unsorted:'\uD83D\uDCE5'}[k]||'\u2753'; }
+  function kindLabel(k){ return {event:'Event',task:'Task',reminder:'Reminder',unsorted:'Inbox (unsorted)'}[k]||k; }
+
+  function showPreview(){
+    const parsed=parseQuickAdd(input.value);
+    if(!parsed||!input.value.trim()){ prev.style.display='none'; _quickAddKindOverride=''; return; }
+    const effectiveKind=_quickAddKindOverride||parsed.kind;
+    prev.style.display='block';
+    const icon=kindIcon(effectiveKind);
+    const catHtml=parsed.category?'<span style="background:'+(CAT_COLORS[parsed.category]||'#ccc')+';color:#fff;padding:1px 6px;border-radius:10px;font-size:0.8rem">'+escapeHTML(parsed.category)+'</span>':'';
+
+    const kinds=['event','task','reminder','unsorted'];
+    const kindBtns=kinds.map(function(k){
+      const active=k===effectiveKind;
+      return '<button data-qakind="'+k+'" style="border:'+(active?'2px solid #4a90e2':'1px solid #ccc')+';background:'+(active?'#e8f2fe':'#fff')+';border-radius:12px;padding:2px 8px;font-size:0.78rem;cursor:pointer;margin:0 2px">'+kindIcon(k)+' '+kindLabel(k)+'</button>';
+    }).join('');
+
+    prev.innerHTML=icon+' <b>'+escapeHTML(parsed.title)+'</b>'+(parsed.date?' '+parsed.date:'')+(parsed.time?' '+parsed.time:'')+(catHtml?' '+catHtml:'')+
+      '<div style="margin-top:4px;font-size:0.8rem;color:#555">Sort as: '+kindBtns+'</div>';
+
+    prev.querySelectorAll('[data-qakind]').forEach(function(b){
+      b.addEventListener('click',function(e){
+        e.preventDefault();
+        _quickAddKindOverride=b.dataset.qakind;
+        showPreview();
+      });
+    });
+  }
+
+  input.addEventListener('input',function(){ _quickAddKindOverride=''; showPreview(); });
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); doQuickAdd(); } });
+  if(btn) btn.addEventListener('click',doQuickAdd);
+
+  function doQuickAdd(){
+    const parsed=parseQuickAdd(input.value);
+    if(!parsed||!parsed.title) return;
+    const effectiveKind=_quickAddKindOverride||parsed.kind;
+    let addedLabel='';
+
+    if(effectiveKind==='event'){
+      const evs=getEvents();
+      const id=evs.length?Math.max.apply(null,evs.map(function(e){return e.id;}))+1:1;
+      evs.push({ id, title:parsed.title, date:parsed.date||new Date().toISOString().slice(0,10), time:parsed.time, endTime:'', location:'', emoji:'', category:parsed.category||'event', domain:parsed.domain||'personal', repeat:'none', repeatUntil:'', preBuffer:0, postBuffer:0 });
+      setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+      addedLabel='\uD83D\uDCC5 Event added!';
+    } else if(effectiveKind==='reminder'){
+      const dateKey=parsed.date||new Date().toISOString().slice(0,10);
+      const rems=getReminders();
+      if(!rems[dateKey]) rems[dateKey]=[];
+      rems[dateKey].push({ text:parsed.title, time:parsed.time||'', notify:'none', domain:parsed.domain||'personal' });
+      setReminders(rems); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+      addedLabel='\uD83D\uDD14 Reminder added for '+dateKey+'!';
+    } else if(effectiveKind==='task'){
+      const tasks=getTasks();
+      tasks.push({ id:generateTaskId(), title:parsed.title, category:parsed.category||'', domain:parsed.domain||'personal', done:false, date:parsed.date||'', time:parsed.time||'', priority:'2' });
+      setTasks(tasks); try{ loadTasks(); }catch(_){}
+      addedLabel='\u2705 Task added!';
+    } else {
+      /* unsorted → inbox */
+      const inbox=getInbox();
+      inbox.push({ title:parsed.title, date:parsed.date||'', time:parsed.time||'', category:parsed.category||'', created:new Date().toISOString() });
+      setInbox(inbox);
+      updateInboxBadge();
+      addedLabel='\uD83D\uDCE5 Added to Inbox — sort it when you\'re ready!';
+    }
+
+    input.value=''; prev.style.display='none'; _quickAddKindOverride='';
+    showUndoToast(addedLabel);
+  }
+}
+
+/* ----- Inbox badge & rendering ----- */
+function updateInboxBadge(){
+  const label=document.getElementById('inboxNavLabel');
+  if(!label) return;
+  const viewDate = getViewedDateISO();
+  const todayISO = getTodayISO();
+  const tasks = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) === viewDate && !t.done; });
+  const rems = (getReminders()[viewDate] || []).filter(function(r){ return !r.done; });
+  const dailyCount = tasks.length + rems.length;
+  const unsortedCount = getInbox().length;
+  const overdueCount = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) < todayISO && !t.done; }).length;
+  const total = dailyCount + unsortedCount + overdueCount;
+  label.textContent = total > 0 ? 'Inbox (' + total + ')' : 'Inbox';
+}
+
+/* Render daily items (tasks + reminders + events for viewed day) in the inbox */
+function renderInboxDailyItems(){
+  const list = document.getElementById('inboxDailyList');
+  const empty = document.getElementById('inboxDailyEmpty');
+  const heading = document.getElementById('inboxDailyHeading');
+  if (!list) return;
+
+  const viewDate = getViewedDateISO();
+  const todayStr = getTodayISO();
+
+  // Update heading to reflect the viewed date
+  if (heading) {
+    if (viewDate === todayStr) {
+      heading.textContent = '\uD83D\uDCCB Today\u2019s Items';
+    } else {
+      var d = new Date(viewDate + 'T12:00:00');
+      heading.textContent = '\uD83D\uDCCB Items for ' + d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+  }
+
+  // Get tasks for this date
+  const tasks = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) === viewDate; });
+  // Get reminders for this date
+  const allRems = getReminders();
+  const dateReminders = allRems[viewDate] || [];
+  // Get calendar events for this date (timed events)
+  var dateEvents = [];
+  try {
+    dateEvents = getEvents().filter(function(ev){
+      return ev.date && normalizeDate(ev.date) === viewDate;
+    });
+    // sort by time
+    dateEvents.sort(function(a, b){ return (a.time || '').localeCompare(b.time || ''); });
+  } catch(_) {}
+
+  if (tasks.length === 0 && dateReminders.length === 0 && dateEvents.length === 0) {
+    list.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  var html = '';
+
+  // Render calendar events
+  dateEvents.forEach(function(ev, evIdx){
+    var timePart = ev.time ? ' <span style="color:#888;font-size:0.85rem">[' + escapeHTML(ev.time) + (ev.endTime ? '–' + escapeHTML(ev.endTime) : '') + ']</span>' : '';
+    var locPart = ev.location ? ' <span style="color:#888;font-size:0.82rem">\uD83D\uDCCD ' + escapeHTML(ev.location) + '</span>' : '';
+    var driveId = ev.location ? 'inbox-drive-' + evIdx : '';
+    var drivePart = ev.location ? ' <span id="' + driveId + '" style="color:#2980b9;font-size:0.82rem;margin-left:4px"></span>' : '';
+    html += '<div style="background:#eaf3fb;border:1px solid #4a90e2;border-radius:10px;padding:10px 14px;margin-bottom:8px">'
+      + '<div style="font-weight:600">\uD83D\uDCC5 ' + escapeHTML(ev.emoji || '') + ' ' + escapeHTML(ev.title || '') + timePart + '</div>'
+      + '<div style="font-size:0.85rem;color:#555;margin-top:2px">' + locPart + drivePart + '</div>'
+      + '</div>';
+  });
+
+  // Render tasks
+  tasks.forEach(function(t){
+    var checked = t.done ? 'checked' : '';
+    var doneStyle = t.done ? 'text-decoration:line-through;opacity:0.6' : '';
+    var timePart = t.time ? ' <span style="color:#888;font-size:0.85rem">[' + escapeHTML(t.time) + ']</span>' : '';
+    var priorityMap = {'1':'!','2':'!!','3':'!!!'};
+    var prioLabel = t.priority ? ' <span style="color:#e74c3c;font-size:0.8rem">' + (priorityMap[t.priority] || '') + '</span>' : '';
+    html += '<div style="background:#e8f8ef;border:1px solid #27ae60;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+      + '<input type="checkbox" ' + checked + ' onchange="toggleInboxTaskDone(\'' + escapeHTML(t.id) + '\',this.checked)" style="width:18px;height:18px;cursor:pointer;flex-shrink:0">'
+      + '<div style="flex:1;' + doneStyle + '">'
+      + '<span style="font-weight:600">\u2705 ' + escapeHTML(t.title || '') + '</span>' + timePart + prioLabel
+      + '</div></div>';
+  });
+
+  // Render reminders
+  dateReminders.forEach(function(r, idx){
+    var checked = r.done ? 'checked' : '';
+    var doneStyle = r.done ? 'text-decoration:line-through;opacity:0.6' : '';
+    var timePart = r.time ? ' <span style="color:#888;font-size:0.85rem">[' + escapeHTML(r.time) + ']</span>' : '';
+    html += '<div style="background:#fef5e8;border:1px solid #e67e22;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+      + '<input type="checkbox" ' + checked + ' onchange="toggleInboxReminderDone(\'' + escapeHTML(viewDate) + '\',' + idx + ',this.checked)" style="width:18px;height:18px;cursor:pointer;flex-shrink:0">'
+      + '<div style="flex:1;' + doneStyle + '">'
+      + '<span style="font-weight:600">\uD83D\uDD14 ' + escapeHTML(r.text || r.title || '') + '</span>' + timePart
+      + '</div></div>';
+  });
+
+  list.innerHTML = html;
+
+  // Async: populate driving times for events with locations (rate-limited to 1 req/s per Nominatim policy)
+  var profile = readUserProfile();
+  if (profile.home && typeof profile.home.lat === 'number' && typeof profile.home.lng === 'number') {
+    var eventsWithLocation = dateEvents.filter(function(ev){ return !!ev.location; });
+    eventsWithLocation.forEach(function(ev, i){
+      var driveId = 'inbox-drive-' + dateEvents.indexOf(ev);
+      setTimeout(function(){
+        var el = document.getElementById(driveId);
+        if (!el) return;
+        el.textContent = '\u23F3';
+        inboxFetchDrivingTime(profile.home.lat, profile.home.lng, ev.location).then(function(mins){
+          if (el && mins !== null) {
+            el.textContent = '\uD83D\uDE97 ~' + mins + ' min from home';
+          } else if (el) {
+            el.textContent = '';
+          }
+        }).catch(function(){ if (el) el.textContent = ''; });
+      }, i * 1100); // stagger by 1.1 s to respect Nominatim 1 req/s limit
+    });
+  }
+}
+
+/* Geocode an address string via Nominatim, returning {lat, lng} or null */
+function inboxGeocodeAddress(address){
+  var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=' + encodeURIComponent(address);
+  return fetch(url, {
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': 'TimeScapePlanner/1.0 (https://github.com/wdvdje/willlappschedule)'
+    }
+  }).then(function(r){
+    if (!r.ok) return null;
+    return r.json();
+  }).then(function(results){
+    if (!results || !results.length) return null;
+    var lat = parseFloat(results[0].lat);
+    var lng = parseFloat(results[0].lon);
+    if (!isFinite(lat) || !isFinite(lng)) return null;
+    return { lat: lat, lng: lng };
+  }).catch(function(){ return null; });
+}
+
+/* Fetch driving duration in minutes via OSRM between two lat/lng pairs */
+function inboxFetchDrivingTime(fromLat, fromLng, toAddress){
+  return inboxGeocodeAddress(toAddress).then(function(dest){
+    if (!dest) return null;
+    var url = 'https://router.project-osrm.org/route/v1/driving/'
+      + fromLng + ',' + fromLat + ';'
+      + dest.lng + ',' + dest.lat
+      + '?overview=false';
+    return fetch(url, { headers: { 'Accept': 'application/json' } })
+      .then(function(r){
+        if (!r.ok) return null;
+        return r.json();
+      }).then(function(data){
+        if (!data || !data.routes || !data.routes.length) return null;
+        var secs = data.routes[0].duration;
+        return Math.ceil(secs / 60);
+      }).catch(function(){ return null; });
+  });
+}
+
+/* Render overdue tasks (incomplete tasks past their due date) in the inbox */
+function renderInboxOverdueTasks(){
+  var listEl = document.getElementById('inboxOverdueList');
+  var emptyEl = document.getElementById('inboxOverdueEmpty');
+  var headingEl = document.getElementById('inboxOverdueHeading');
+  if (!listEl) return;
+
+  var todayISO = getTodayISO();
+  var overdue = getTasks().filter(function(t){
+    return t.date && normalizeDate(t.date) < todayISO && !t.done;
+  }).sort(function(a, b){ return (a.date || '').localeCompare(b.date || ''); });
+
+  if (headingEl) headingEl.style.display = overdue.length > 0 ? 'block' : 'none';
+  if (emptyEl) emptyEl.style.display = overdue.length === 0 ? 'block' : 'none';
+
+  if (overdue.length === 0) { listEl.innerHTML = ''; return; }
+
+  var html = '';
+  overdue.forEach(function(t){
+    var today = new Date(todayISO + 'T12:00:00');
+    var due = new Date(t.date + 'T12:00:00');
+    var daysAgo = Math.round((today - due) / 86400000);
+    var agoLabel = daysAgo === 1 ? 'yesterday' : daysAgo + ' days ago';
+    var priorityMap = {'1':'!','2':'!!','3':'!!!'};
+    var prioLabel = t.priority ? ' <span style="color:#e74c3c;font-size:0.8rem">' + (priorityMap[t.priority] || '') + '</span>' : '';
+    html += '<div style="background:#fdf0f0;border:1px solid #e74c3c;border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">'
+      + '<input type="checkbox" onchange="toggleInboxTaskDone(\'' + escapeHTML(t.id) + '\',this.checked)" style="width:18px;height:18px;cursor:pointer;flex-shrink:0">'
+      + '<div style="flex:1">'
+      + '<span style="font-weight:600">' + escapeHTML(t.title || '') + '</span>' + prioLabel
+      + ' <span style="color:#c0392b;font-size:0.82rem">· due ' + escapeHTML(agoLabel) + '</span>'
+      + '</div>'
+      + '<button class="small-btn" onclick="deleteOverdueTask(\'' + escapeHTML(t.id) + '\')" style="flex-shrink:0">Delete</button>'
+      + '</div>';
+  });
+  listEl.innerHTML = html;
+}
+
+/* Delete a task from the overdue list */
+function deleteOverdueTask(id){
+  var tasks = getTasks().filter(function(t){ return String(t.id) !== String(id); });
+  setTasks(tasks);
+  renderInboxOverdueTasks();
+  updateInboxBadge();
+  try { renderInboxWidget(); } catch(_){}
+}
+window.deleteOverdueTask = deleteOverdueTask;
+
+
+/* Render inbox preview widget on the Today dashboard */
+function renderInboxWidget(){
+  const container = document.getElementById('inboxWidgetList');
+  if (!container) return;
+
+  const todayStr = getTodayISO();
+
+  // Get tasks for today
+  const tasks = getTasks().filter(function(t){ return t.date && normalizeDate(t.date) === todayStr; });
+  // Get reminders for today
+  const allRems = getReminders();
+  const todayReminders = allRems[todayStr] || [];
+
+  if (tasks.length === 0 && todayReminders.length === 0) {
+    container.innerHTML = '<p class="inbox-widget-empty">🎉 Nothing scheduled for today!</p>';
+    return;
+  }
+
+  var html = '';
+
+  // Render tasks
+  tasks.forEach(function(t){
+    var checked = t.done ? 'checked' : '';
+    var doneClass = t.done ? ' done' : '';
+    var timePart = t.time ? ' <span class="item-meta">[' + escapeHTML(t.time) + ']</span>' : '';
+    var priorityMap = {'1':'!','2':'!!','3':'!!!'};
+    var prioLabel = t.priority ? ' <span style="color:#e74c3c;font-size:0.78rem">' + (priorityMap[t.priority] || '') + '</span>' : '';
+    html += '<div class="inbox-widget-item task-item">'
+      + '<input type="checkbox" ' + checked + ' onchange="toggleInboxWidgetTaskDone(\'' + escapeHTML(t.id) + '\',this.checked)">'
+      + '<div class="item-content">'
+      + '<span class="item-title' + doneClass + '">✅ ' + escapeHTML(t.title || '') + '</span>' + timePart + prioLabel
+      + '</div></div>';
+  });
+
+  // Render reminders
+  todayReminders.forEach(function(r, idx){
+    var checked = r.done ? 'checked' : '';
+    var doneClass = r.done ? ' done' : '';
+    var timePart = r.time ? ' <span class="item-meta">[' + escapeHTML(r.time) + ']</span>' : '';
+    html += '<div class="inbox-widget-item reminder-item">'
+      + '<input type="checkbox" ' + checked + ' onchange="toggleInboxWidgetReminderDone(\'' + escapeHTML(todayStr) + '\',' + idx + ',this.checked)">'
+      + '<div class="item-content">'
+      + '<span class="item-title' + doneClass + '">🔔 ' + escapeHTML(r.text || r.title || '') + '</span>' + timePart
+      + '</div></div>';
+  });
+
+  container.innerHTML = html;
+}
+window.renderInboxWidget = renderInboxWidget;
+
+/* Toggle task done state from inbox widget on dashboard */
+function toggleInboxWidgetTaskDone(taskId, done){
+  const tasks = getTasks();
+  for (var i = 0; i < tasks.length; i++){
+    if (tasks[i] && String(tasks[i].id) === String(taskId)){
+      tasks[i].done = !!done;
+      break;
+    }
+  }
+  setTasks(tasks);
+  renderInboxWidget();
+  renderInboxDailyItems();
+  renderInboxOverdueTasks();
+  updateInboxBadge();
+  updateCompletionRing();
+  if (typeof window.dailyViewRefresh === 'function') try { window.dailyViewRefresh(); } catch(_){}
+  if (typeof loadTasks === 'function') try { loadTasks(); } catch(_){}
+}
+window.toggleInboxWidgetTaskDone = toggleInboxWidgetTaskDone;
+
+/* Toggle reminder done state from inbox widget on dashboard */
+function toggleInboxWidgetReminderDone(dateKey, index, done){
+  const r = getReminders();
+  if (r[dateKey] && r[dateKey][index]){
+    r[dateKey][index].done = !!done;
+    setReminders(r);
+  }
+  renderInboxWidget();
+  renderInboxDailyItems();
+  updateInboxBadge();
+  updateCompletionRing();
+  if (typeof window.dailyViewRefresh === 'function') try { window.dailyViewRefresh(); } catch(_){}
+  if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined') try { showReminders(selectedDay); } catch(_){}
+}
+window.toggleInboxWidgetReminderDone = toggleInboxWidgetReminderDone;
+
+/* Toggle task done state from inbox */
+function toggleInboxTaskDone(taskId, done){
+  const tasks = getTasks();
+  for (var i = 0; i < tasks.length; i++){
+    if (tasks[i] && String(tasks[i].id) === String(taskId)){
+      tasks[i].done = !!done;
+      break;
+    }
+  }
+  setTasks(tasks);
+  renderInboxOverdueTasks();
+  renderInboxDailyItems();
+  try { renderInboxWidget(); } catch(_){}
+  updateInboxBadge();
+  updateCompletionRing();
+  // Re-render daily view and task list if visible
+  if (typeof window.dailyViewRefresh === 'function') try { window.dailyViewRefresh(); } catch(_){}
+  if (typeof loadTasks === 'function') try { loadTasks(); } catch(_){}
+}
+window.toggleInboxTaskDone = toggleInboxTaskDone;
+
+/* Toggle reminder done state from inbox */
+function toggleInboxReminderDone(dateKey, index, done){
+  const r = getReminders();
+  if (r[dateKey] && r[dateKey][index]){
+    r[dateKey][index].done = !!done;
+    setReminders(r);
+  }
+  renderInboxDailyItems();
+  try { renderInboxWidget(); } catch(_){}
+  updateInboxBadge();
+  updateCompletionRing();
+  // Re-render daily view and reminder bar if visible
+  if (typeof window.dailyViewRefresh === 'function') try { window.dailyViewRefresh(); } catch(_){}
+  if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined') try { showReminders(selectedDay); } catch(_){}
+}
+window.toggleInboxReminderDone = toggleInboxReminderDone;
+
+/* Render unsorted inbox items */
+function renderInbox(){
+  renderInboxOverdueTasks();
+  renderInboxDailyItems();
+
+  const list=document.getElementById('inboxList');
+  const empty=document.getElementById('inboxEmpty');
+  if(!list) return;
+  const inbox=getInbox();
+  if(!inbox.length){ list.innerHTML=''; if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+
+  list.innerHTML=inbox.map(function(item,i){
+    const datePart=item.date?' <span style="color:#888;font-size:0.85rem">'+escapeHTML(item.date)+'</span>':'';
+    const timePart=item.time?' <span style="color:#888;font-size:0.85rem">'+escapeHTML(item.time)+'</span>':'';
+    const catPart=item.category?'<span style="background:'+(CAT_COLORS[item.category]||'#ccc')+';color:#fff;padding:1px 6px;border-radius:10px;font-size:0.75rem;margin-left:4px">'+escapeHTML(item.category)+'</span>':'';
+    var typeLabel = '';
+    if (item.type === 'event') typeLabel = '<span style="background:#4a90e2;color:#fff;padding:1px 6px;border-radius:10px;font-size:0.75rem;margin-left:4px">📅 Event</span>';
+    else if (item.type === 'task') typeLabel = '<span style="background:#27ae60;color:#fff;padding:1px 6px;border-radius:10px;font-size:0.75rem;margin-left:4px">✅ Task</span>';
+    else if (item.type === 'reminder') typeLabel = '<span style="background:#e67e22;color:#fff;padding:1px 6px;border-radius:10px;font-size:0.75rem;margin-left:4px">🔔 Reminder</span>';
+
+    var actionButtons = '';
+    if (item.type) {
+      /* Type is already known — show domain assignment buttons */
+      actionButtons =
+        '<button onclick="sortInboxItemToDomain('+i+',\'personal\')" style="border:1px solid #9b59b6;background:#f3e8fa;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">👤 Personal</button>'
+        +'<button onclick="sortInboxItemToDomain('+i+',\'home\')" style="border:1px solid #27ae60;background:#e8f8ef;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">🏡 Home</button>'
+        +'<button onclick="sortInboxItemToDomain('+i+',\'work\')" style="border:1px solid #4a90e2;background:#e8f2fe;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">💼 Work</button>';
+    } else {
+      /* Type is unknown — show type selection buttons */
+      actionButtons =
+        '<button onclick="sortInboxItem('+i+',\'event\')" style="border:1px solid #4a90e2;background:#e8f2fe;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\uD83D\uDCC5 Event</button>'
+        +'<button onclick="sortInboxItem('+i+',\'task\')" style="border:1px solid #27ae60;background:#e8f8ef;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\u2705 Task</button>'
+        +'<button onclick="sortInboxItem('+i+',\'reminder\')" style="border:1px solid #e67e22;background:#fef5e8;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\uD83D\uDD14 Reminder</button>';
+    }
+    actionButtons += '<button onclick="deleteInboxItem('+i+')" style="border:1px solid #e74c3c;background:#fde8e8;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:0.82rem">\u274C Delete</button>';
+
+    var headerLabel = item.type ? ' <span style="font-size:0.82rem;color:#666">Choose domain:</span>' : '';
+
+    return '<div style="background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">'
+      +'<div style="margin-bottom:6px"><b>'+escapeHTML(item.title)+'</b>'+typeLabel+datePart+timePart+catPart+'</div>'
+      +headerLabel
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'
+      +actionButtons
+      +'</div></div>';
+  }).join('');
+}
+
+function sortInboxItem(index,kind){
+  const inbox=getInbox();
+  if(index<0||index>=inbox.length) return;
+  const item=inbox[index];
+  inbox.splice(index,1);
+  setInbox(inbox);
+
+  if(kind==='event'){
+    const evs=getEvents();
+    const id=evs.length?Math.max.apply(null,evs.map(function(e){return e.id;}))+1:1;
+    var ev={ id:id, title:item.title, date:item.date||new Date().toISOString().slice(0,10), time:item.time||'', endTime:item.endTime||'', location:item.location||'', emoji:item.emoji||'', category:item.category||'event', repeat:'none', repeatUntil:'', preBuffer:0, postBuffer:0 };
+    if (item.advancedSpecs && item.advancedSpecs.length) ev.advancedSpecs = item.advancedSpecs;
+    evs.push(ev);
+    setEvents(evs);
+    showUndoToast('\uD83D\uDCC5 Sorted as Event!');
+  } else if(kind==='reminder'){
+    const dateKey=item.date||new Date().toISOString().slice(0,10);
+    const rems=getReminders();
+    if(!rems[dateKey]) rems[dateKey]=[];
+    rems[dateKey].push({ text:item.title, time:item.time||'', notify:'none', emoji:item.emoji||'' });
+    setReminders(rems);
+    showUndoToast('\uD83D\uDD14 Sorted as Reminder!');
+  } else {
+    const tasks=getTasks();
+    tasks.push({ id:generateTaskId(), title:item.title, category:item.category||'', done:false, date:item.date||'', time:item.time||'', priority:item.priority||'2', emoji:item.emoji||'' });
+    setTasks(tasks);
+    showUndoToast('\u2705 Sorted as Task!');
+  }
+
+  updateInboxBadge(); renderInbox();
+  try{ generateCalendar(); }catch(_){}
+  try{ if(selectedDay) showReminders(selectedDay); }catch(_){}
+  try{ renderEvents(); }catch(_){}
+  try{ loadTasks(); }catch(_){}
+  refreshVisibleDomainPages();
+}
+window.sortInboxItem=sortInboxItem;
+
+/* Sort an inbox item that already has a type into a specific domain */
+function sortInboxItemToDomain(index, domain) {
+  var inbox = getInbox();
+  if (index < 0 || index >= inbox.length) return;
+  var item = inbox[index];
+  var kind = item.type || 'event';
+  inbox.splice(index, 1);
+  setInbox(inbox);
+
+  if (kind === 'event') {
+    var evs = getEvents();
+    var id = evs.length ? Math.max.apply(null, evs.map(function(e) { return e.id; })) + 1 : 1;
+    var ev = { id: id, title: item.title, date: item.date || new Date().toISOString().slice(0, 10), time: item.time || '', startTime: item.time || '', endTime: item.endTime || '', location: item.location || '', emoji: item.emoji || '', category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
+    if (item.advancedSpecs && item.advancedSpecs.length) ev.advancedSpecs = item.advancedSpecs;
+    evs.push(ev);
+    setEvents(evs);
+    showUndoToast('\uD83D\uDCC5 Event added to ' + (DOMAIN_META[domain] ? DOMAIN_META[domain].label : domain) + '!');
+  } else if (kind === 'reminder') {
+    var dateKey = item.date || new Date().toISOString().slice(0, 10);
+    var rems = getReminders();
+    if (!rems[dateKey]) rems[dateKey] = [];
+    rems[dateKey].push({ text: item.title, time: item.time || '', notify: 'none', domain: domain, emoji: item.emoji || '' });
+    setReminders(rems);
+    showUndoToast('\uD83D\uDD14 Reminder added to ' + (DOMAIN_META[domain] ? DOMAIN_META[domain].label : domain) + '!');
+  } else {
+    var tasks = getTasks();
+    tasks.push({ id: generateTaskId(), title: item.title, category: domain, domain: domain, done: false, date: item.date || '', time: item.time || '', priority: item.priority || '2', emoji: item.emoji || '' });
+    setTasks(tasks);
+    showUndoToast('\u2705 Task added to ' + (DOMAIN_META[domain] ? DOMAIN_META[domain].label : domain) + '!');
+  }
+
+  updateInboxBadge(); renderInbox();
+  try { generateCalendar(); } catch(_) {}
+  try { if (selectedDay) showReminders(selectedDay); } catch(_) {}
+  try { renderEvents(); } catch(_) {}
+  try { loadTasks(); } catch(_) {}
+  refreshVisibleDomainPages();
+}
+window.sortInboxItemToDomain = sortInboxItemToDomain;
+
+function deleteInboxItem(index){
+  const inbox=getInbox();
+  if(index<0||index>=inbox.length) return;
+  const removed=inbox.splice(index,1)[0];
+  setInbox(inbox);
+  updateInboxBadge(); renderInbox();
+  pushUndo({ label:'Inbox item "'+removed.title+'" deleted.', undo:function(){ const cur=getInbox(); cur.push(removed); setInbox(cur); updateInboxBadge(); renderInbox(); } });
+}
+window.deleteInboxItem=deleteInboxItem;
+
+window._focusQuickAdd=function(){ const i=document.getElementById('quickAddInput'); if(i){ showView('today'); i.focus(); i.select(); } };
+
+/* ----- Search modal ----- */
+function openSearch(){
+  const modal=document.getElementById('searchModal'); if(!modal) return;
+  modal.style.display='flex';
+  const inp=document.getElementById('searchInput'); if(inp){ inp.value=''; inp.focus(); }
+  renderSearchResults('');
+}
+function closeSearch(){ const modal=document.getElementById('searchModal'); if(modal) modal.style.display='none'; }
+
+function renderSearchResults(q){
+  const container=document.getElementById('searchResults'); if(!container) return;
+  const term=(q||'').toLowerCase().trim();
+  if(!term){ container.innerHTML='<div class="empty-msg">Start typing to search\u2026</div>'; return; }
+  const events=getEvents().filter(e=>(e.title||'').toLowerCase().includes(term)||(e.location||'').toLowerCase().includes(term)||(e.date||'').includes(term));
+  const tasks=getTasks().filter(t=>(t.title||t.text||'').toLowerCase().includes(term)||(t.date||'').includes(term));
+  const remArr=[];
+  const rmap=getReminders();
+  Object.keys(rmap).forEach(function(dk){ (rmap[dk]||[]).forEach(function(r){ if((r.text||'').toLowerCase().includes(term)||dk.includes(term)) remArr.push(Object.assign({},r,{date:dk})); }); });
+  if(!events.length&&!tasks.length&&!remArr.length){ container.innerHTML='<div class="empty-msg">No results found.</div>'; return; }
+
+  // Build results using DOM to avoid inline onclick (security best practice)
+  container.innerHTML='';
+
+  function makeItem(titleHtml, subText, kindLabel){ // returns element
+    const row=document.createElement('div'); row.className='search-result-item';
+    const body=document.createElement('div');
+    const t=document.createElement('div'); t.className='search-result-title'; t.innerHTML=titleHtml;
+    const s=document.createElement('div'); s.className='search-result-sub'; s.textContent=subText;
+    body.appendChild(t); body.appendChild(s);
+    const badge=document.createElement('span'); badge.className='search-result-kind'; badge.textContent=kindLabel;
+    row.appendChild(body); row.appendChild(badge);
+    return row;
+  }
+
+  if(events.length){
+    const hdr=document.createElement('div'); hdr.className='search-section-header'; hdr.textContent='Events ('+events.length+')'; container.appendChild(hdr);
+    events.slice(0,10).forEach(function(ev){
+      const col=CAT_COLORS[ev.category||'event']||'#4a90e2';
+      const titleHtml='<span style="color:'+col+'">'+(ev.emoji||'\uD83D\uDCCC')+'</span> '+escapeHTML(ev.title||'');
+      const sub=[(ev.date||''),(ev.time||''),(ev.location?'@ '+ev.location:'')].filter(Boolean).join(' ');
+      const row=makeItem(titleHtml,sub,'event');
+      const yr=parseInt((ev.date||'').slice(0,4),10)||selectedYear;
+      const mo=parseInt((ev.date||'').slice(5,7),10)-1;
+      const dy=parseInt((ev.date||'').slice(8,10),10)||1;
+      row.addEventListener('click',function(){ closeSearch(); selectedYear=yr; selectedMonth=mo; selectedDay=dy; showView('calendar'); generateCalendar(); showReminders(dy); });
+      container.appendChild(row);
+    });
+  }
+  if(tasks.length){
+    const hdr=document.createElement('div'); hdr.className='search-section-header'; hdr.textContent='Tasks ('+tasks.length+')'; container.appendChild(hdr);
+    tasks.slice(0,10).forEach(function(t){
+      const titleHtml=(t.done?'\u2705':'\u2B1C')+' '+escapeHTML(t.title||t.text||'');
+      const sub=[(t.date||''),(t.category?'\u00b7 '+t.category:'')].filter(Boolean).join(' ');
+      const row=makeItem(titleHtml,sub,'task');
+      row.addEventListener('click',function(){ closeSearch(); showView('tasks'); });
+      container.appendChild(row);
+    });
+  }
+  if(remArr.length){
+    const hdr=document.createElement('div'); hdr.className='search-section-header'; hdr.textContent='Reminders ('+remArr.length+')'; container.appendChild(hdr);
+    remArr.slice(0,10).forEach(function(r){
+      const row=makeItem('\uD83D\uDD14 '+escapeHTML(r.text||''),[(r.date||''),(r.time||'')].filter(Boolean).join(' '),'reminder');
+      row.addEventListener('click',function(){ closeSearch(); showView('reminders'); });
+      container.appendChild(row);
+    });
+  }
+}
+
+function wireSearch(){
+  const inp=document.getElementById('searchInput');
+  const closeBtn=document.getElementById('closeSearchBtn');
+  const modal=document.getElementById('searchModal');
+  if(!inp) return;
+  inp.addEventListener('input',function(){ renderSearchResults(inp.value); });
+  if(closeBtn) closeBtn.addEventListener('click',closeSearch);
+  if(modal) modal.addEventListener('click',function(e){ if(e.target===modal) closeSearch(); });
+}
+
+window.openSearch=openSearch; window.closeSearch=closeSearch;
+
+/* ----- Undo toast ----- */
+const UNDO_TIMEOUT_MS=6000;
+const undoStack=[];
+let _undoTimer=null;
+
+function pushUndo(action){
+  undoStack.push(action);
+  showUndoToast(action.label||'Item deleted.');
+}
+function showUndoToast(msg){
+  const toast=document.getElementById('undoToast'); const msgEl=document.getElementById('undoMessage');
+  if(!toast) return;
+  if(_undoTimer) clearTimeout(_undoTimer);
+  if(msgEl) msgEl.textContent=msg;
+  toast.classList.add('visible'); toast.style.opacity='1'; toast.style.pointerEvents='auto';
+  _undoTimer=setTimeout(hideUndoToast,UNDO_TIMEOUT_MS);
+}
+function hideUndoToast(){ const t=document.getElementById('undoToast'); if(t){ t.classList.remove('visible'); t.style.opacity='0'; t.style.pointerEvents='none'; } }
+function doUndo(){
+  const action=undoStack.pop(); if(!action){ hideUndoToast(); return; }
+  try{ action.undo(); }catch(e){ console.warn('Undo failed',e); }
+  try{ generateCalendar(); }catch(_){} try{ if(selectedDay) showReminders(selectedDay); }catch(_){}
+  try{ renderEvents(); }catch(_){} try{ loadTasks(); }catch(_){} hideUndoToast();
+  refreshVisibleDomainPages();
+}
+function wireUndoBtn(){ const btn=document.getElementById('undoBtn'); if(btn) btn.addEventListener('click',doUndo); }
+
+/* Patch delete functions for undo support */
+(function patchDeleteFunctions(){
+  const origDE=deleteEvent;
+  deleteEvent=function(id, occurrenceDate){
+    const item=getEvents().find(function(e){ return e.id===id; });
+    if(!item){ origDE(id); return; }
+    const isRepeating = item.repeat && item.repeat !== 'none';
+
+    if(occurrenceDate && isRepeating){
+      // Ask user: delete just this occurrence, or the whole series
+      const deleteAll=confirm('This is a repeating event.\n\nOK = Delete all events in the series\nCancel = Delete just this occurrence');
+      if(deleteAll){
+        if(!confirm('Delete all events in the series "' + (item.title||'') + '"?')) return;
+        haptic.delete();
+        setEvents(getEvents().filter(function(e){ return e.id!==id; }));
+        renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+        pushUndo({ label:'Event series "'+item.title+'" deleted.', undo:function(){ const cur=getEvents(); cur.push(item); setEvents(cur); } });
+      } else {
+        // Mark this single occurrence as skipped
+        haptic.delete();
+        const evs=getEvents(); const idx=evs.findIndex(function(e){ return e.id===id; });
+        if(idx!==-1){
+          if(!evs[idx].repeatExceptions) evs[idx].repeatExceptions={};
+          evs[idx].repeatExceptions[occurrenceDate]={_skipped:true};
+          const capturedBefore=Object.assign({},evs[idx]);
+          const capturedOccDate=occurrenceDate;
+          setEvents(evs); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+          pushUndo({ label:'Removed occurrence of "'+item.title+'" on '+occurrenceDate+'.', undo:function(){
+            const cur=getEvents(); const ci=cur.findIndex(function(e){ return e.id===capturedBefore.id; });
+            if(ci!==-1){ if(cur[ci].repeatExceptions) delete cur[ci].repeatExceptions[capturedOccDate]; setEvents(cur); renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay); }
+          }});
+        }
+      }
+      return;
+    }
+
+    if(!confirm('Delete this event?')) return;
+    haptic.delete();
+    setEvents(getEvents().filter(function(e){ return e.id!==id; }));
+    renderEvents(); generateCalendar(); if(selectedDay) showReminders(selectedDay);
+    pushUndo({ label:'Event "'+item.title+'" deleted.', undo:function(){ const cur=getEvents(); cur.push(item); setEvents(cur); } });
+  };
+  window.deleteEvent=deleteEvent;
+
+  const origDT=deleteTask;
+  deleteTask=function(i){
+    const tasks=getTasks(); const item=tasks[i];
+    if(!item){ origDT(i); return; }
+    if(!confirm('Delete this task?')) return;
+    haptic.delete();
+    setTasks(tasks.filter(function(_,idx){ return idx!==i; }));
+    try{ loadTasks(); }catch(_){}
+    const capturedIdx=i;
+    pushUndo({ label:'Task "'+(item.title||item.text)+'" deleted.', undo:function(){ const cur=getTasks(); cur.splice(capturedIdx,0,item); setTasks(cur); } });
+  };
+  window.deleteTask=deleteTask;
+
+  const origDR=deleteReminder;
+  deleteReminder=function(day,index){
+    const key=selectedYear+'-'+pad2(selectedMonth+1)+'-'+pad2(day);
+    const r=getReminders(); const item=r[key]&&r[key][index];
+    if(!item){ origDR(day,index); return; }
+    if(!confirm('Delete this reminder?')) return;
+    haptic.delete();
+    r[key].splice(index,1); if(!r[key].length) delete r[key];
+    setReminders(r); showReminders(day); generateCalendar();
+    pushUndo({ label:'Reminder "'+item.text+'" deleted.', undo:function(){ const cur=getReminders(); if(!cur[key]) cur[key]=[]; cur[key].splice(index,0,item); setReminders(cur); } });
+  };
+  window.deleteReminder=deleteReminder;
+})();
+
+/* ----- Keyboard shortcuts ----- */
+function wireKeyboardShortcuts(){
+  var VIEWS=['personal','calendar','today','home','work'];
+  document.addEventListener('keydown',function(e){
+    const tag=document.activeElement&&document.activeElement.tagName;
+    const inInput=tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT';
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openSearch(); return; }
+    if(e.key==='Escape'){ closeSearch(); closeEditModal(); hideUndoToast(); const sh=document.getElementById('shortcutHints'); if(sh) sh.style.display='none'; return; }
+    if(inInput) return;
+    if(e.key==='?'){ const sh=document.getElementById('shortcutHints'); if(sh) sh.style.display=sh.style.display==='none'?'block':'none'; return; }
+    if(e.key==='n'||e.key==='N'||e.key==='/'){ e.preventDefault(); window._focusQuickAdd&&window._focusQuickAdd(); return; }
+    if(e.key==='t'||e.key==='T'){ const now3=new Date(); selectedYear=now3.getFullYear(); selectedMonth=now3.getMonth(); selectedDay=now3.getDate(); generateCalendar(); showReminders(selectedDay); return; }
+    if(e.key==='ArrowLeft'){ const b=document.getElementById('prevBtn'); if(b) b.click(); return; }
+    if(e.key==='ArrowRight'){ const b=document.getElementById('nextBtn'); if(b) b.click(); return; }
+    const n=parseInt(e.key,10); if(n>=1&&n<=5){ showView(VIEWS[n-1]); return; }
+  });
+}
+
+/* ----- Sync status bar ----- */
+function wireSyncStatusBar(){
+}
+
+/* ----- Swipe to navigate months ----- */
+function wireCalendarSwipe(){
+  const page=document.getElementById('page-calendar'); if(!page) return;
+  let startX=null;
+  page.addEventListener('touchstart',function(e){ startX=e.touches[0].clientX; },{passive:true});
+  page.addEventListener('touchend',function(e){
+    if(startX==null) return;
+    const dx=e.changedTouches[0].clientX-startX; startX=null;
+    if(Math.abs(dx)<50) return;
+    const btn=dx<0?document.getElementById('nextBtn'):document.getElementById('prevBtn');
+    if(btn) btn.click();
+  },{passive:true});
+}
+
+/* ----- Morning Briefing ----- */
+function wireMorningBriefing(){
+  const enableEl=document.getElementById('morningBriefingEnabled');
+  const timeEl=document.getElementById('morningBriefingTime');
+  const saveBtn=document.getElementById('saveMorningBriefingBtn');
+  const statusEl=document.getElementById('morningBriefingStatus');
+  if(enableEl) enableEl.checked=localStorage.getItem('morningBriefingEnabled')==='1';
+  if(timeEl&&localStorage.getItem('morningBriefingTime')) timeEl.value=localStorage.getItem('morningBriefingTime');
+  if(saveBtn) saveBtn.addEventListener('click',function(){
+    const enabled=!!(enableEl&&enableEl.checked);
+    const bt=(timeEl&&timeEl.value)||'08:00';
+    localStorage.setItem('morningBriefingEnabled',enabled?'1':'0');
+    localStorage.setItem('morningBriefingTime',bt);
+    scheduleMorningBriefing();
+    var msg = enabled ? 'Briefing set for '+bt+' daily.' : 'Morning briefing disabled.';
+    // Inform iOS PWA users about limitations
+    if(enabled && _isIOSPWA()){
+      msg += ' Note: on iOS, the app must be open at the scheduled time to deliver the notification.';
+    }
+    if(statusEl) statusEl.textContent=msg;
+  });
+  scheduleMorningBriefing();
+}
+
+/* Detect iOS standalone PWA mode */
+function _isIOSPWA(){
+  var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  return isIOS && isStandalone;
+}
+
+var BRIEFING_CATCHUP_WINDOW_MS = 30 * 60 * 1000; // 30 minutes
+
+function _fireMorningBriefing(){
+  try{
+    var ts=new Date().toISOString().slice(0,10);
+    var evCount=getExpandedEvents(ts,ts).length;
+    var tkCount=getTasks().filter(function(t){ return !t.done&&normalizeDate(t.date)===ts; }).length;
+    var body=evCount+' event'+(evCount!==1?'s':'')+', '+tkCount+' task'+(tkCount!==1?'s':'')+' today';
+    if('Notification' in window&&Notification.permission==='granted'){
+      navigator.serviceWorker.getRegistration().then(function(reg){
+        if(reg&&reg.showNotification) reg.showNotification('\u2600\uFE0F Good morning! TimeScape',{body:body,tag:'morning-briefing'});
+        else try{ new Notification('\u2600\uFE0F Good morning! TimeScape',{body:body}); }catch(_){}
+      }).catch(function(){ try{ new Notification('\u2600\uFE0F Good morning! TimeScape',{body:body}); }catch(_){} });
+    }
+  }catch(_){}
+}
+
+function scheduleMorningBriefing(){
+  if(localStorage.getItem('morningBriefingEnabled')!=='1') return;
+  var bt=localStorage.getItem('morningBriefingTime')||'08:00';
+  var parts=bt.split(':'); var hh=parseInt(parts[0],10)||8; var mm=parseInt(parts[1],10)||0;
+  var now4=new Date();
+  var target=new Date(now4.getFullYear(),now4.getMonth(),now4.getDate(),hh,mm,0,0);
+
+  // If we just resumed past the target time (e.g. iOS PWA waking up), fire immediately
+  var firedKey = 'morningBriefingFired_' + now4.toISOString().slice(0,10);
+  if(target<=now4){
+    var diff = now4.getTime()-target.getTime();
+    // Fire if within a 30-minute window and not already fired today
+    if(diff < BRIEFING_CATCHUP_WINDOW_MS && !localStorage.getItem(firedKey)){
+      localStorage.setItem(firedKey, '1');
+      _fireMorningBriefing();
+    }
+    target.setDate(target.getDate()+1);
+  }
+  var delay=target.getTime()-now4.getTime();
+  if(delay>0x7FFFFFFF) return; // setTimeout max delay (~24.8 days); will reschedule on next app open
+  clearTimeout(window._morningBriefingTimer);
+  window._morningBriefingTimer=setTimeout(function(){
+    var todayKey = 'morningBriefingFired_' + new Date().toISOString().slice(0,10);
+    if(!localStorage.getItem(todayKey)){
+      localStorage.setItem(todayKey, '1');
+      _fireMorningBriefing();
+    }
+    setTimeout(scheduleMorningBriefing,60000);
+  },delay);
+}
+
+// Re-check morning briefing when app resumes from background (important for iOS PWA)
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden) scheduleMorningBriefing();
+});
+
+/* ============================================================
+   DOMAIN PAGES: Personal, Home, Work
+   ============================================================ */
+
+/* Domain metadata */
+const DOMAIN_META = {
+  personal: { label: 'Personal', emoji: '👤', color: '#9b59b6' },
+  home:     { label: 'Home',     emoji: '🏡', color: '#27ae60' },
+  work:     { label: 'Work',     emoji: '💼', color: '#4a90e2' }
+};
+
+/* Inject/update a <style> element to apply stored domain color preferences */
+function applyDomainColorCSS() {
+  const c = getDomainColors();
+  const css = [
+    '.event-preview[data-domain="work"]{--domain-color:' + c.work + ';--domain-bg:' + hexToRgba(c.work, 0.10) + '}',
+    '.event-preview[data-domain="home"]{--domain-color:' + c.home + ';--domain-bg:' + hexToRgba(c.home, 0.10) + '}',
+    '.event-preview[data-domain="personal"]{--domain-color:' + c.personal + ';--domain-bg:' + hexToRgba(c.personal, 0.10) + '}',
+    '.event-preview[data-domain="holiday"]{--domain-color:' + c.holiday + ';--domain-bg:' + hexToRgba(c.holiday, 0.10) + '}',
+    '.event-preview.reminder{--domain-color:' + c.personal + ';--domain-bg:' + hexToRgba(c.personal, 0.10) + '}',
+    '.event-preview.task{--domain-color:' + c.home + ';--domain-bg:' + hexToRgba(c.home, 0.10) + '}'
+  ].join('\n');
+  let el = document.getElementById('domainColorStyle');
+  if (!el) { el = document.createElement('style'); el.id = 'domainColorStyle'; document.head.appendChild(el); }
+  el.textContent = css;
+  // Sync mutable runtime objects so inline-styled JS also picks up the custom colors
+  CAT_COLORS.work = c.work; CAT_COLORS.home = c.home; CAT_COLORS.personal = c.personal; CAT_COLORS.holiday = c.holiday;
+  DOMAIN_META.work.color = c.work; DOMAIN_META.home.color = c.home; DOMAIN_META.personal.color = c.personal;
+}
+
+/* Wire the domain-color editor UI (settings page) */
+function wireDomainColorEditor() {
+  var DEFAULTS = DOMAIN_COLOR_DEFAULTS;
+
+  function updateHexLabels() {
+    var ids = { work: 'dcWork', home: 'dcHome', personal: 'dcPersonal', holiday: 'dcHoliday' };
+    Object.keys(ids).forEach(function (key) {
+      var inp = document.getElementById(ids[key]);
+      var lbl = document.getElementById(ids[key] + 'Hex');
+      if (inp && lbl) lbl.textContent = inp.value.toUpperCase();
+    });
+  }
+
+  function populateInputs(colors) {
+    var inp;
+    if ((inp = document.getElementById('dcWork')))     inp.value = colors.work;
+    if ((inp = document.getElementById('dcHome')))     inp.value = colors.home;
+    if ((inp = document.getElementById('dcPersonal'))) inp.value = colors.personal;
+    if ((inp = document.getElementById('dcHoliday')))  inp.value = colors.holiday;
+    updateHexLabels();
+  }
+
+  ['dcWork', 'dcHome', 'dcPersonal', 'dcHoliday'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', updateHexLabels);
+  });
+
+  var saveBtn  = document.getElementById('saveDomainColorsBtn');
+  var resetBtn = document.getElementById('resetDomainColorsBtn');
+  var status   = document.getElementById('domainColorStatus');
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function () {
+      var colors = {
+        work:     (document.getElementById('dcWork')     || {}).value || DEFAULTS.work,
+        home:     (document.getElementById('dcHome')     || {}).value || DEFAULTS.home,
+        personal: (document.getElementById('dcPersonal') || {}).value || DEFAULTS.personal,
+        holiday:  (document.getElementById('dcHoliday')  || {}).value || DEFAULTS.holiday
+      };
+      localStorage.setItem('domainColors', JSON.stringify(colors));
+      applyDomainColorCSS();
+      if (status) {
+        status.textContent = '\u2713 Saved!';
+        setTimeout(function () { status.textContent = ''; }, 2500);
+      }
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function () {
+      localStorage.removeItem('domainColors');
+      populateInputs(DEFAULTS);
+      applyDomainColorCSS();
+      if (status) {
+        status.textContent = '\u2713 Reset to defaults';
+        setTimeout(function () { status.textContent = ''; }, 2500);
+      }
+    });
+  }
+
+  populateInputs(getDomainColors());
+}
+
+/* Infer domain from item category (for items without explicit domain field) */
+function inferDomainFromItem(item) {
+  const cat = item && item.category ? String(item.category).toLowerCase() : '';
+  if (cat === 'work' || cat === 'job') return 'work';
+  if (cat === 'home') return 'home';
+  return 'personal';
+}
+
+/* Get the domain of an item, preferring explicit domain field */
+function getDomainOfItem(item) {
+  if (item && item.domain && DOMAIN_META[item.domain]) return item.domain;
+  return inferDomainFromItem(item);
+}
+
+/* Migrate domain field onto existing items that lack it */
+function migrateDomainField() {
+  try {
+    const events = getEvents();
+    let evChanged = false;
+    events.forEach(function(ev) {
+      if (!ev.domain) { ev.domain = inferDomainFromItem(ev); evChanged = true; }
+    });
+    if (evChanged) setEvents(events);
+
+    const tasks = getTasks();
+    let taskChanged = false;
+    tasks.forEach(function(t) {
+      if (!t.domain) { t.domain = inferDomainFromItem(t); taskChanged = true; }
+    });
+    if (taskChanged) setTasks(tasks);
+
+    const rmap = getReminders();
+    let remChanged = false;
+    Object.keys(rmap).forEach(function(dk) {
+      (rmap[dk] || []).forEach(function(r) {
+        if (!r.domain) { r.domain = 'personal'; remChanged = true; }
+      });
+    });
+    if (remChanged) setReminders(rmap);
+  } catch (e) {
+    console.warn('migrateDomainField failed', e);
+  }
+}
+
+/* Refresh domain pages that are currently visible */
+function refreshVisibleDomainPages() {
+  ['personal', 'home', 'work'].forEach(function(d) {
+    const page = document.getElementById('page-' + d);
+    if (page && !page.classList.contains('hidden')) {
+      try { renderDomainPage(d); } catch(e) {}
+    }
+  });
+}
+
+/* Build a domain item element for the domain page list */
+function buildDomainItemEl(item, domain) {
+  const el = document.createElement('div');
+  el.style.cssText = 'background:#fff;border:1px solid #e6e6e6;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px;box-shadow:0 1px 4px rgba(0,0,0,0.05)';
+
+  const typeEmoji = { event: '📅', task: '✅', reminder: '🔔' }[item.type] || '📌';
+
+  const left = document.createElement('div');
+  left.style.cssText = 'flex:1;text-align:left;min-width:0';
+
+  const titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px';
+
+  const typeBadge = document.createElement('span');
+  typeBadge.textContent = typeEmoji;
+  typeBadge.style.fontSize = '1rem';
+
+  const titleEl = document.createElement('b');
+  titleEl.style.wordBreak = 'break-word';
+  titleEl.textContent = item.title || '';
+  if (item.done) titleEl.style.textDecoration = 'line-through';
+
+  titleRow.appendChild(typeBadge);
+  titleRow.appendChild(titleEl);
+
+  const meta2 = document.createElement('div');
+  meta2.style.cssText = 'font-size:0.82rem;color:#666';
+  const prioMap = { '1': '!', '2': '!!', '3': '!!!' };
+  const metaParts = [];
+  if (item.date) metaParts.push(item.date);
+  if (item.time) metaParts.push(item.time + (item.endTime ? '\u2013' + item.endTime : ''));
+  if (item.location) metaParts.push('@ ' + item.location);
+  if (item.priority) metaParts.push('Priority: ' + (prioMap[item.priority] || item.priority));
+  meta2.textContent = metaParts.join(' \u00b7 ');
+
+  left.appendChild(titleRow);
+  if (meta2.textContent) left.appendChild(meta2);
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;flex-direction:column;gap:4px;flex-shrink:0';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'small-btn';
+  editBtn.textContent = 'Edit';
+  editBtn.addEventListener('click', function() {
+    if (item.type === 'event') {
+      try { editEvent(item.data.id); } catch(e) { console.warn(e); }
+    } else if (item.type === 'task') {
+      try { editTask(item.idx); } catch(e) { console.warn(e); }
+    } else if (item.type === 'reminder') {
+      const rparts = item.dateKey.split('-');
+      if (rparts.length === 3) {
+        selectedYear = parseInt(rparts[0], 10);
+        selectedMonth = parseInt(rparts[1], 10) - 1;
+        selectedDay = parseInt(rparts[2], 10);
+      }
+      try { editReminder(parseInt(rparts[2], 10), item.ridx); } catch(e) { console.warn(e); }
+    }
+  });
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'small-btn';
+  delBtn.textContent = 'Delete';
+  delBtn.addEventListener('click', function() {
+    if (item.type === 'event') {
+      try { deleteEvent(item.data.id); } catch(e) { console.warn(e); }
+    } else if (item.type === 'task') {
+      try { deleteTask(item.idx); } catch(e) { console.warn(e); }
+    } else if (item.type === 'reminder') {
+      const rparts = item.dateKey.split('-');
+      if (rparts.length === 3) {
+        selectedYear = parseInt(rparts[0], 10);
+        selectedMonth = parseInt(rparts[1], 10) - 1;
+        selectedDay = parseInt(rparts[2], 10);
+      }
+      try { deleteReminder(parseInt(rparts[2], 10), item.ridx); } catch(e) { console.warn(e); }
+    }
+    try { renderDomainPage(domain); } catch(e) {}
+  });
+
+  actions.appendChild(editBtn);
+  actions.appendChild(delBtn);
+  el.appendChild(left);
+  el.appendChild(actions);
+  return el;
+}
+
+/* Render all items for a domain */
+function renderDomainPage(domain) {
+  /* Delegate to bucket-based rendering if bucket container is present */
+  if (document.getElementById('domain-buckets-' + domain)) {
+    try { renderBucketPage(domain); } catch(e) { console.warn('renderBucketPage failed', e); }
+    return;
+  }
+  const container = document.getElementById('domain-list-' + domain);
+  if (!container) return;
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const items = [];
+
+  getEvents().forEach(function(ev) {
+    if (getDomainOfItem(ev) === domain) {
+      items.push({
+        type: 'event', title: ev.title || '', date: ev.date || '',
+        time: ev.time || '', endTime: ev.endTime || '', location: ev.location || '',
+        sortKey: (ev.date || '9999') + (ev.time || '23:59'), data: ev
+      });
+    }
+  });
+
+  getTasks().forEach(function(t, idx) {
+    if (getDomainOfItem(t) === domain) {
+      items.push({
+        type: 'task', title: t.title || t.text || '', date: t.date || '',
+        time: t.time || '', priority: t.priority, done: !!t.done,
+        sortKey: (t.date || '9999') + (t.time || '23:59'), data: t, idx: idx
+      });
+    }
+  });
+
+  const rmap = getReminders();
+  Object.keys(rmap).forEach(function(dateKey) {
+    (rmap[dateKey] || []).forEach(function(r, ridx) {
+      if (getDomainOfItem(r) === domain) {
+        items.push({
+          type: 'reminder', title: r.text || '', date: dateKey,
+          time: r.time || '', sortKey: dateKey + (r.time || '23:59'),
+          data: r, dateKey: dateKey, ridx: ridx
+        });
+      }
+    });
+  });
+
+  const dated = items.filter(function(i) { return !!i.date; });
+  const undated = items.filter(function(i) { return !i.date; });
+  const upcoming = dated.filter(function(i) { return i.sortKey >= todayStr; })
+    .sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey); });
+  const past = dated.filter(function(i) { return i.sortKey < todayStr; })
+    .sort(function(a, b) { return b.sortKey.localeCompare(a.sortKey); });
+  const sorted = upcoming.concat(undated).concat(past);
+
+  container.innerHTML = '';
+  if (!sorted.length) {
+    container.innerHTML = '<div style="color:#aaa;text-align:center;padding:24px 0">No items yet. Add your first one above!</div>';
+    return;
+  }
+  sorted.forEach(function(item) {
+    container.appendChild(buildDomainItemEl(item, domain));
+  });
+}
+
+/* Add an event to a domain */
+function addDomainEvent(domain) {
+  const titleEl = document.getElementById(domain + '-ev-title');
+  const dateEl  = document.getElementById(domain + '-ev-date');
+  const timeEl  = document.getElementById(domain + '-ev-time');
+  const endEl   = document.getElementById(domain + '-ev-endtime');
+  if (!titleEl) return;
+  const title = titleEl.value.trim();
+  if (!title) { alert('Enter an event title'); return; }
+  const date = normalizeDate(dateEl ? dateEl.value : '') || new Date().toISOString().slice(0, 10);
+  const time = timeEl ? timeEl.value : '';
+  const endTime = endEl ? endEl.value : '';
+  const evs = getEvents();
+  const id = evs.length ? Math.max.apply(null, evs.map(function(e) { return e.id; })) + 1 : 1;
+  evs.push({ id, title, date, time, startTime: time, endTime, location: '', emoji: '', category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 });
+  setEvents(evs);
+  if (titleEl) titleEl.value = '';
+  if (dateEl)  dateEl.value  = '';
+  if (timeEl)  timeEl.value  = '';
+  if (endEl)   endEl.value   = '';
+  generateCalendar();
+  renderDomainPage(domain);
+  showUndoToast('\uD83D\uDCC5 Event added to ' + DOMAIN_META[domain].label + '!');
+}
+
+/* Add a task to a domain */
+function addDomainTask(domain) {
+  const titleEl    = document.getElementById(domain + '-task-title');
+  const dateEl     = document.getElementById(domain + '-task-date');
+  const priorityEl = document.getElementById(domain + '-task-priority');
+  if (!titleEl) return;
+  const title = titleEl.value.trim();
+  if (!title) { alert('Enter a task title'); return; }
+  const date     = normalizeDate(dateEl ? dateEl.value : '') || '';
+  const priority = priorityEl ? priorityEl.value : '2';
+  const tasks = getTasks();
+  tasks.push({ id: generateTaskId(), title, category: '', domain: domain, done: false, date, time: '', priority });
+  setTasks(tasks);
+  if (titleEl) titleEl.value = '';
+  if (dateEl)  dateEl.value  = '';
+  renderDomainPage(domain);
+  try { loadTasks(); } catch(_) {}
+  showUndoToast('\u2705 Task added to ' + DOMAIN_META[domain].label + '!');
+}
+
+/* Add a reminder to a domain */
+function addDomainReminder(domain) {
+  const textEl = document.getElementById(domain + '-rem-text');
+  const dateEl = document.getElementById(domain + '-rem-date');
+  const timeEl = document.getElementById(domain + '-rem-time');
+  if (!textEl) return;
+  const text = textEl.value.trim();
+  if (!text) { alert('Enter reminder text'); return; }
+  const date = normalizeDate(dateEl ? dateEl.value : '') || new Date().toISOString().slice(0, 10);
+  const time = timeEl ? timeEl.value : '';
+  const rmap = getReminders();
+  if (!rmap[date]) rmap[date] = [];
+  rmap[date].push({ text, time, notify: 'none', domain: domain });
+  setReminders(rmap);
+  if (textEl) textEl.value = '';
+  if (dateEl) dateEl.value = '';
+  if (timeEl) timeEl.value = '';
+  generateCalendar();
+  renderDomainPage(domain);
+  showUndoToast('\uD83D\uDD14 Reminder added to ' + DOMAIN_META[domain].label + '!');
+}
+
+/* Wire domain form tabs and add buttons */
+function wireDomainForms() {
+  const domains = ['personal', 'home', 'work'];
+  domains.forEach(function(domain) {
+    const tabContainer = document.querySelector('.domain-type-tabs[data-domain="' + domain + '"]');
+    if (tabContainer) {
+      tabContainer.querySelectorAll('.domain-tab').forEach(function(tab) {
+        tab.addEventListener('click', function() {
+          const type = tab.dataset.type;
+          tabContainer.querySelectorAll('.domain-tab').forEach(function(t) { t.classList.remove('active'); });
+          tab.classList.add('active');
+          ['event', 'task', 'reminder'].forEach(function(t) {
+            const panel = document.getElementById('domain-form-' + domain + '-' + t);
+            if (panel) panel.classList.toggle('hidden', t !== type);
+          });
+        });
+      });
+    }
+
+    document.querySelectorAll('.domain-add-btn[data-domain="' + domain + '"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        const type = btn.dataset.type;
+        if (type === 'event') addDomainEvent(domain);
+        else if (type === 'task') addDomainTask(domain);
+        else if (type === 'reminder') addDomainReminder(domain);
+      });
+    });
+
+    [domain + '-ev-title', domain + '-task-title', domain + '-rem-text'].forEach(function(inputId) {
+      const inp = document.getElementById(inputId);
+      if (!inp) return;
+      const type = inputId.indexOf('-ev-') !== -1 ? 'event' : (inputId.indexOf('-task-') !== -1 ? 'task' : 'reminder');
+      inp.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        if (type === 'event') addDomainEvent(domain);
+        else if (type === 'task') addDomainTask(domain);
+        else if (type === 'reminder') addDomainReminder(domain);
+      });
+    });
+  });
+}
+
+/* ============================================================
+   BUCKET PAGES: Personal, Home, Work — category/bucket grouping
+   ============================================================ */
+
+/* Populate a bucket select element */
+function populateBucketSelect(selectEl, domain, currentBucketId) {
+  if (!selectEl) return;
+  selectEl.innerHTML = '';
+  const noOpt = document.createElement('option');
+  noOpt.value = '';
+  noOpt.textContent = '— Uncategorized —';
+  selectEl.appendChild(noOpt);
+  const buckets = getBuckets(domain);
+  buckets.forEach(function(b) {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+    selectEl.appendChild(opt);
+  });
+  selectEl.value = (currentBucketId !== undefined && currentBucketId !== null) ? String(currentBucketId) : '';
+}
+
+/* Add a new bucket category (Personal or Home) */
+function addBucket(domain) {
+  const name = (prompt('Category name:') || '').trim();
+  if (!name) return;
+  const buckets = getBuckets(domain);
+  if (buckets.some(function(b) { return b.name.toLowerCase() === name.toLowerCase(); })) {
+    alert('A category named "' + name + '" already exists.');
+    return;
+  }
+  const emoji = (prompt('Emoji (optional, e.g. 🏃):') || '').trim();
+  buckets.push({ id: nextBucketId(domain), name: name, emoji: emoji || '', collapsed: false });
+  setBuckets(domain, buckets);
+  renderBucketPage(domain);
+  renderCategoryFilterBar();
+}
+function renameBucket(domain, bucketId) {
+  const buckets = getBuckets(domain);
+  const b = buckets.find(function(x) { return x.id === bucketId; });
+  if (!b) return;
+  const newName = (prompt('Rename category:', b.name) || '').trim();
+  if (!newName) return;
+  const newEmoji = (prompt('Emoji (optional):', b.emoji || '') || '').trim();
+  b.name = newName;
+  b.emoji = newEmoji;
+  setBuckets(domain, buckets);
+  renderBucketPage(domain);
+  renderCategoryFilterBar();
+}
+
+/* Delete a bucket and move its items to Uncategorized */
+function deleteBucket(domain, bucketId) {
+  if (!confirm('Delete this category? Its items will become Uncategorized.')) return;
+  const evs = getEvents();
+  evs.forEach(function(ev) {
+    if (getDomainOfItem(ev) === domain && ev.bucketId === bucketId) delete ev.bucketId;
+  });
+  setEvents(evs);
+  const tasks = getTasks();
+  tasks.forEach(function(t) {
+    if (getDomainOfItem(t) === domain && t.bucketId === bucketId) delete t.bucketId;
+  });
+  setTasks(tasks);
+  const rmap = getReminders();
+  Object.keys(rmap).forEach(function(dk) {
+    (rmap[dk] || []).forEach(function(r) {
+      if (getDomainOfItem(r) === domain && r.bucketId === bucketId) delete r.bucketId;
+    });
+  });
+  setReminders(rmap);
+  const buckets = getBuckets(domain);
+  setBuckets(domain, buckets.filter(function(b) { return b.id !== bucketId; }));
+  renderBucketPage(domain);
+  renderCategoryFilterBar();
+}
+
+/* Build the "Add Item" collapsible panel for a bucket */
+function buildBucketAddArea(domain, bucketId) {
+  const wrapper = document.createElement('div');
+
+  const toggleBtn = document.createElement('button');
+  toggleBtn.type = 'button';
+  toggleBtn.className = 'bucket-add-toggle';
+  toggleBtn.textContent = '＋ Add Item';
+
+  const panel = document.createElement('div');
+  panel.className = 'bucket-add-panel';
+
+  const tabs = document.createElement('div');
+  tabs.className = 'bucket-type-tabs';
+
+  const types = [
+    { key: 'event', label: '📅 Event' },
+    { key: 'task', label: '✅ Task' },
+    { key: 'reminder', label: '🔔 Reminder' }
+  ];
+
+  const forms = {};
+  types.forEach(function(t, i) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bucket-type-tab' + (i === 0 ? ' active' : '');
+    btn.dataset.type = t.key;
+    btn.textContent = t.label;
+    tabs.appendChild(btn);
+
+    const form = document.createElement('div');
+    form.className = 'bucket-item-form';
+    form.style.display = i === 0 ? '' : 'none';
+    form.dataset.type = t.key;
+
+    if (t.key === 'event') {
+      form.innerHTML = [
+        '<input type="text" placeholder="Event title" class="bi-title" style="width:100%;box-sizing:border-box;margin-top:0" />',
+        '<div style="display:flex;gap:6px;margin-top:6px">',
+        '<input type="date" class="bi-date" style="flex:1" />',
+        '<input type="time" class="bi-time" style="flex:1" />',
+        '<input type="time" class="bi-endtime" style="flex:1" title="End time (optional)" />',
+        '</div>',
+        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="event">Add Event</button>'
+      ].join('');
+    } else if (t.key === 'task') {
+      var energyOpts = domain === 'home' ?
+        ('<select class="bi-energy" style="width:110px"><option value="">⚡ Energy</option>' +
+          Object.keys(_ENERGY_LABELS).map(function(k){ return '<option value="'+k+'">'+_ENERGY_LABELS[k]+'</option>'; }).join('') +
+          '</select>') : '';
+      form.innerHTML = [
+        '<input type="text" placeholder="Task title" class="bi-title" style="width:100%;box-sizing:border-box;margin-top:0" />',
+        '<div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">',
+        '<input type="date" class="bi-date" style="flex:1;min-width:110px" />',
+        '<select class="bi-priority" style="width:110px"><option value="1">! Low</option><option value="2" selected>!! Med</option><option value="3">!!! High</option></select>',
+        energyOpts,
+        '</div>',
+        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="task">Add Task</button>'
+      ].join('');
+    } else {
+      form.innerHTML = [
+        '<input type="text" placeholder="Reminder text" class="bi-title" style="width:100%;box-sizing:border-box;margin-top:0" />',
+        '<div style="display:flex;gap:6px;margin-top:6px">',
+        '<input type="date" class="bi-date" style="flex:1" />',
+        '<input type="time" class="bi-time" style="flex:1" />',
+        '</div>',
+        '<button type="button" class="bucket-add-item-btn domain-add-btn" style="margin-top:6px;font-size:0.85rem;padding:6px 10px" data-type="reminder">Add Reminder</button>'
+      ].join('');
+    }
+
+    forms[t.key] = form;
+    panel.appendChild(form);
+  });
+
+  panel.insertBefore(tabs, panel.firstChild);
+
+  tabs.querySelectorAll('.bucket-type-tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      tabs.querySelectorAll('.bucket-type-tab').forEach(function(t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      Object.keys(forms).forEach(function(k) { forms[k].style.display = 'none'; });
+      if (forms[tab.dataset.type]) forms[tab.dataset.type].style.display = '';
+    });
+  });
+
+  panel.querySelectorAll('.bucket-add-item-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const type = btn.dataset.type;
+      if (forms[type]) addItemToBucket(domain, bucketId, type, forms[type]);
+    });
+  });
+
+  panel.querySelectorAll('.bi-title').forEach(function(inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const activeTab = tabs.querySelector('.bucket-type-tab.active');
+      if (!activeTab) return;
+      const type = activeTab.dataset.type;
+      if (forms[type]) addItemToBucket(domain, bucketId, type, forms[type]);
+    });
+  });
+
+  toggleBtn.addEventListener('click', function() {
+    const isOpen = panel.classList.contains('open');
+    panel.classList.toggle('open', !isOpen);
+    toggleBtn.textContent = !isOpen ? '▾ Add Item' : '＋ Add Item';
+    if (!isOpen) {
+      const firstTitle = panel.querySelector('.bucket-item-form:not([style*="none"]) .bi-title');
+      if (firstTitle) setTimeout(function() { firstTitle.focus(); }, 50);
+    }
+  });
+
+  wrapper.appendChild(toggleBtn);
+  wrapper.appendChild(panel);
+  return wrapper;
+}
+
+/* Add an item to a specific bucket */
+function addItemToBucket(domain, bucketId, type, formEl) {
+  const titleInp = formEl.querySelector('.bi-title');
+  const dateInp = formEl.querySelector('.bi-date');
+  const timeInp = formEl.querySelector('.bi-time');
+  const title = titleInp ? titleInp.value.trim() : '';
+  if (!title) { if (titleInp) { titleInp.focus(); titleInp.style.outline = '2px solid #e74c3c'; setTimeout(function() { titleInp.style.outline = ''; }, 1200); } return; }
+  const date = normalizeDate(dateInp ? dateInp.value : '') || '';
+  const time = timeInp ? timeInp.value : '';
+  const bId = (bucketId !== null && bucketId !== undefined) ? bucketId : undefined;
+
+  // For work domain, look up the job to inherit defaults (location, emoji)
+  var jobDefaults = { location: '', emoji: '' };
+  if (domain === 'work' && bId !== undefined) {
+    var matchedJob = getJobs().find(function(j) { return j.id === bId; });
+    if (matchedJob) {
+      jobDefaults.location = matchedJob.location || '';
+      jobDefaults.emoji = matchedJob.emoji || '';
+    }
+  }
+
+  if (type === 'event') {
+    const endTimeInp = formEl.querySelector('.bi-endtime');
+    const endTime = endTimeInp ? endTimeInp.value : '';
+    const evDate = date || new Date().toISOString().slice(0, 10);
+    const evs = getEvents();
+    const id = evs.length ? Math.max.apply(null, evs.map(function(x) { return x.id; })) + 1 : 1;
+    const ev = { id, title, date: evDate, time, startTime: time, endTime, location: jobDefaults.location, emoji: jobDefaults.emoji, category: domain, domain: domain, repeat: 'none', repeatUntil: '', preBuffer: 0, postBuffer: 0 };
+    if (bId !== undefined) ev.bucketId = bId;
+    evs.push(ev);
+    setEvents(evs);
+    try { generateCalendar(); } catch(_) {}
+    showUndoToast('📅 Event added!');
+  } else if (type === 'task') {
+    const priorityEl = formEl.querySelector('.bi-priority');
+    const priority = priorityEl ? priorityEl.value : '2';
+    const energyEl = formEl.querySelector('.bi-energy');
+    const energy = energyEl ? energyEl.value : '';
+    const tasks = getTasks();
+    const t = { id: generateTaskId(), title, category: domain, domain: domain, done: false, date, time, priority, emoji: jobDefaults.emoji };
+    if (domain === 'home' && energy) t.energy = energy;
+    if (bId !== undefined) t.bucketId = bId;
+    tasks.push(t);
+    setTasks(tasks);
+    try { loadTasks(); } catch(_) {}
+    showUndoToast('✅ Task added!');
+  } else if (type === 'reminder') {
+    const rDate = date || new Date().toISOString().slice(0, 10);
+    const rmap = getReminders();
+    if (!rmap[rDate]) rmap[rDate] = [];
+    const rObj = { text: title, time, notify: 'none', domain: domain, emoji: jobDefaults.emoji };
+    if (bId !== undefined) rObj.bucketId = bId;
+    rmap[rDate].push(rObj);
+    setReminders(rmap);
+    try { generateCalendar(); } catch(_) {}
+    showUndoToast('🔔 Reminder added!');
+  }
+
+  if (titleInp) titleInp.value = '';
+  if (dateInp) dateInp.value = '';
+  if (timeInp) timeInp.value = '';
+  const endTimeInp = formEl.querySelector('.bi-endtime');
+  if (endTimeInp) endTimeInp.value = '';
+  renderBucketPage(domain);
+}
+
+/* Build a single item row inside a bucket card */
+function buildBucketItemEl(item, domain) {
+  const el = document.createElement('div');
+  el.className = 'bucket-item';
+  const typeEmoji = { event: '📅', task: '✅', reminder: '🔔' }[item.type] || '📌';
+
+  const left = document.createElement('div');
+  left.style.cssText = 'flex:1;text-align:left;min-width:0';
+
+  const titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:2px';
+
+  /* For home tasks: show a done checkbox */
+  if (domain === 'home' && item.type === 'task') {
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!item.done;
+    cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0;margin-right:2px';
+    cb.title = item.done ? 'Mark as not done' : 'Mark as done';
+    cb.addEventListener('change', function() {
+      const tasks = getTasks();
+      const t = tasks.find(function(x) { return x.id === item.data.id; });
+      if (t) {
+        t.done = cb.checked;
+        setTasks(tasks);
+        if (cb.checked && t.bucketId != null) {
+          try { updateHomeStreak(t.bucketId); } catch(e) {}
+        }
+      }
+      try { renderBucketPage(domain); } catch(e) {}
+    });
+    titleRow.appendChild(cb);
+  }
+
+  const badge = document.createElement('span');
+  badge.textContent = typeEmoji;
+  badge.style.fontSize = '0.9rem';
+
+  const titleEl = document.createElement('b');
+  titleEl.style.cssText = 'word-break:break-word;font-size:0.92rem';
+  titleEl.textContent = item.title || '';
+  if (item.done) titleEl.style.textDecoration = 'line-through';
+
+  titleRow.appendChild(badge);
+  titleRow.appendChild(titleEl);
+
+  /* Energy badge for home tasks */
+  if (domain === 'home' && item.type === 'task' && item.data.energy) {
+    const energyBadge = document.createElement('span');
+    energyBadge.className = 'energy-badge ' + item.data.energy;
+    energyBadge.textContent = _ENERGY_LABELS[item.data.energy] || item.data.energy;
+    titleRow.appendChild(energyBadge);
+  }
+
+  const meta = document.createElement('div');
+  meta.style.cssText = 'font-size:0.78rem;color:#888';
+  const prioMap = {'1':'!','2':'!!','3':'!!!'};
+  const parts = [];
+  if (item.date) parts.push(item.date);
+  if (item.time) parts.push(item.time + (item.endTime ? '–' + item.endTime : ''));
+  if (item.location) parts.push('@ ' + item.location);
+  if (item.priority) parts.push(prioMap[item.priority] || item.priority);
+  /* Show recurrence label for home tasks */
+  if (domain === 'home' && item.type === 'task' && item.data.repeat && item.data.repeat !== 'none') {
+    parts.push('🔁 ' + (_REPEAT_LABELS[item.data.repeat] || item.data.repeat));
+  }
+  meta.textContent = parts.join(' · ');
+
+  left.appendChild(titleRow);
+  if (meta.textContent) left.appendChild(meta);
+
+  /* Sub-steps for home tasks */
+  if (domain === 'home' && item.type === 'task') {
+    const taskData = item.data;
+    const steps = Array.isArray(taskData.steps) ? taskData.steps : [];
+    const stepsWrap = document.createElement('div');
+
+    if (steps.length > 0) {
+      const ul = document.createElement('ul');
+      ul.className = 'steps-list';
+      steps.forEach(function(step, si) {
+        const li = document.createElement('li');
+        if (step.done) li.className = 'done-step';
+        const scb = document.createElement('input');
+        scb.type = 'checkbox';
+        scb.checked = !!step.done;
+        scb.addEventListener('change', function() {
+          toggleTaskStep(taskData.id, si, scb.checked);
+          try { renderBucketPage(domain); } catch(e) {}
+        });
+        const stepText = document.createElement('span');
+        stepText.textContent = step.text;
+        li.appendChild(scb);
+        li.appendChild(stepText);
+        ul.appendChild(li);
+      });
+      stepsWrap.appendChild(ul);
+    }
+
+    /* Add step input row */
+    const stepsAddRow = document.createElement('div');
+    stepsAddRow.className = 'steps-add-row';
+    stepsAddRow.style.display = 'none';
+    const stepInput = document.createElement('input');
+    stepInput.type = 'text';
+    stepInput.className = 'steps-add-input';
+    stepInput.placeholder = 'Add a step…';
+    const stepAddBtn = document.createElement('button');
+    stepAddBtn.className = 'steps-add-btn';
+    stepAddBtn.type = 'button';
+    stepAddBtn.textContent = '＋';
+    stepAddBtn.addEventListener('click', function() {
+      const text = stepInput.value.trim();
+      if (!text) return;
+      var tasks = getTasks();
+      var t = tasks.find(function(x) { return x.id === taskData.id; });
+      if (t) {
+        if (!Array.isArray(t.steps)) t.steps = [];
+        t.steps.push({ text: text, done: false });
+        setTasks(tasks);
+      }
+      try { renderBucketPage(domain); } catch(e) {}
+    });
+    stepInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); stepAddBtn.click(); }
+    });
+    stepsAddRow.appendChild(stepInput);
+    stepsAddRow.appendChild(stepAddBtn);
+    stepsWrap.appendChild(stepsAddRow);
+
+    const toggleStepsBtn = document.createElement('button');
+    toggleStepsBtn.className = 'steps-toggle-btn';
+    toggleStepsBtn.type = 'button';
+    toggleStepsBtn.textContent = steps.length > 0 ? '+ add step' : '+ add steps';
+    toggleStepsBtn.addEventListener('click', function() {
+      const isOpen = stepsAddRow.style.display !== 'none';
+      stepsAddRow.style.display = isOpen ? 'none' : 'flex';
+      if (!isOpen) setTimeout(function() { stepInput.focus(); }, 50);
+    });
+    stepsWrap.appendChild(toggleStepsBtn);
+    left.appendChild(stepsWrap);
+  }
+
+  const actions = document.createElement('div');
+  actions.style.cssText = 'display:flex;flex-direction:column;gap:3px;flex-shrink:0';
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'small-btn';
+  editBtn.textContent = 'Edit';
+  editBtn.style.fontSize = '0.75rem';
+  editBtn.addEventListener('click', function() {
+    if (item.type === 'event') {
+      try { editEvent(item.data.id); } catch(e) { console.warn(e); }
+    } else if (item.type === 'task') {
+      try { editTask(item.idx); } catch(e) { console.warn(e); }
+    } else if (item.type === 'reminder') {
+      const rparts = item.dateKey.split('-');
+      if (rparts.length === 3) {
+        selectedYear = parseInt(rparts[0], 10);
+        selectedMonth = parseInt(rparts[1], 10) - 1;
+        selectedDay = parseInt(rparts[2], 10);
+      }
+      try { editReminder(parseInt(rparts[2], 10), item.ridx); } catch(e) { console.warn(e); }
+    }
+  });
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'small-btn';
+  delBtn.textContent = 'Del';
+  delBtn.style.fontSize = '0.75rem';
+  delBtn.addEventListener('click', function() {
+    if (item.type === 'event') {
+      try { deleteEvent(item.data.id); } catch(e) { console.warn(e); }
+    } else if (item.type === 'task') {
+      try { deleteTask(item.idx); } catch(e) { console.warn(e); }
+    } else if (item.type === 'reminder') {
+      const rparts = item.dateKey.split('-');
+      if (rparts.length === 3) {
+        selectedYear = parseInt(rparts[0], 10);
+        selectedMonth = parseInt(rparts[1], 10) - 1;
+        selectedDay = parseInt(rparts[2], 10);
+      }
+      try { deleteReminder(parseInt(rparts[2], 10), item.ridx); } catch(e) { console.warn(e); }
+    }
+    try { renderBucketPage(domain); } catch(e) {}
+  });
+
+  actions.appendChild(editBtn);
+  actions.appendChild(delBtn);
+  el.appendChild(left);
+  el.appendChild(actions);
+  return el;
+}
+
+/* Build a complete bucket card */
+function buildBucketCard(domain, bucket, items) {
+  const isUncategorized = bucket.id === null;
+
+  const card = document.createElement('div');
+  card.className = 'bucket-card';
+
+  /* Header */
+  const header = document.createElement('div');
+  header.className = 'bucket-header';
+
+  const titleDiv = document.createElement('div');
+  titleDiv.className = 'bucket-title';
+  if (bucket.emoji) {
+    const emSp = document.createElement('span');
+    emSp.textContent = bucket.emoji;
+    titleDiv.appendChild(emSp);
+  }
+  const nameSp = document.createElement('span');
+  nameSp.textContent = bucket.name;
+  titleDiv.appendChild(nameSp);
+  if (items.length) {
+    const cnt = document.createElement('span');
+    cnt.style.cssText = 'font-size:0.75rem;color:#888;font-weight:400;margin-left:4px';
+    cnt.textContent = '(' + items.length + ')';
+    titleDiv.appendChild(cnt);
+  }
+  /* Show streak badge for home domain buckets */
+  if (domain === 'home' && !isUncategorized && bucket.id != null) {
+    try {
+      const streaks = getHomeStreaks();
+      const s = streaks[bucket.id];
+      if (s && s.streak > 0) {
+        const streakBadge = document.createElement('span');
+        streakBadge.className = 'streak-badge';
+        streakBadge.title = s.streak + '-day completion streak';
+        streakBadge.textContent = '🔥 ' + s.streak;
+        titleDiv.appendChild(streakBadge);
+      }
+    } catch(e) {}
+  }
+  header.appendChild(titleDiv);
+
+  if (!isUncategorized) {
+    const editBucketBtn = document.createElement('button');
+    editBucketBtn.type = 'button';
+    editBucketBtn.className = 'small-btn';
+    editBucketBtn.textContent = '✏️';
+    editBucketBtn.title = domain === 'work' ? 'Edit job' : 'Rename';
+    editBucketBtn.style.cssText = 'background:none;border:none;font-size:1rem;cursor:pointer;padding:2px 4px;color:#666';
+    editBucketBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (domain === 'work') { editJob(bucket.id); } else { renameBucket(domain, bucket.id); }
+    });
+
+    const delBucketBtn = document.createElement('button');
+    delBucketBtn.type = 'button';
+    delBucketBtn.className = 'small-btn';
+    delBucketBtn.textContent = '🗑️';
+    delBucketBtn.title = domain === 'work' ? 'Delete job' : 'Delete category';
+    delBucketBtn.style.cssText = 'background:none;border:none;font-size:1rem;cursor:pointer;padding:2px 4px;color:#e74c3c';
+    delBucketBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (domain === 'work') { deleteJob(bucket.id); } else { deleteBucket(domain, bucket.id); }
+    });
+
+    header.appendChild(editBucketBtn);
+    header.appendChild(delBucketBtn);
+  }
+
+  const chevron = document.createElement('span');
+  chevron.className = 'bucket-chevron';
+  chevron.setAttribute('aria-hidden', 'true');
+  chevron.textContent = bucket.collapsed ? '▸' : '▾';
+  header.appendChild(chevron);
+
+  /* Body */
+  const body = document.createElement('div');
+  body.className = 'bucket-body';
+  if (bucket.collapsed) body.style.display = 'none';
+
+  if (!items.length) {
+    const emptyMsg = document.createElement('div');
+    emptyMsg.style.cssText = 'color:#aaa;text-align:center;padding:6px 0 2px;font-size:0.85rem';
+    emptyMsg.textContent = 'No items yet.';
+    body.appendChild(emptyMsg);
+  } else {
+    items.forEach(function(item) { body.appendChild(buildBucketItemEl(item, domain)); });
+  }
+
+  body.appendChild(buildBucketAddArea(domain, bucket.id));
+
+  card.appendChild(header);
+  card.appendChild(body);
+
+  header.addEventListener('click', function() {
+    const isCollapsed = body.style.display === 'none';
+    body.style.display = isCollapsed ? '' : 'none';
+    chevron.textContent = isCollapsed ? '▾' : '▸';
+    if (!isUncategorized) persistBucketCollapse(domain, bucket.id, !isCollapsed);
+  });
+
+  return card;
+}
+
+/* Render the full bucket page for a domain */
+function renderBucketPage(domain) {
+  const container = document.getElementById('domain-buckets-' + domain);
+  if (!container) return;
+
+  /* Home-specific pre-render */
+  if (domain === 'home') {
+    try { renderHomeDashboard(); } catch(e) {}
+    try { renderGroceryList(); } catch(e) {}
+    try { renderHomeEnergyFilter(); } catch(e) {}
+  }
+
+  /* Personal-specific pre-render */
+  if (domain === 'personal') {
+    try { renderPersonalWidgets(); } catch(e) { console.warn('renderPersonalWidgets failed', e); }
+  }
+
+  container.innerHTML = '';
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const itemsByBucket = {};
+  const uncategorized = [];
+
+  function pushItem(bucketId, item) {
+    if (bucketId !== undefined && bucketId !== null) {
+      if (!itemsByBucket[bucketId]) itemsByBucket[bucketId] = [];
+      itemsByBucket[bucketId].push(item);
+    } else {
+      uncategorized.push(item);
+    }
+  }
+
+  getEvents().forEach(function(ev) {
+    if (getDomainOfItem(ev) !== domain) return;
+    pushItem(ev.bucketId, {
+      type: 'event', title: ev.title || '', date: ev.date || '',
+      time: ev.time || '', endTime: ev.endTime || '', location: ev.location || '',
+      sortKey: (ev.date || '9999') + (ev.time || '23:59'), data: ev
+    });
+  });
+
+  getTasks().forEach(function(t, idx) {
+    if (getDomainOfItem(t) !== domain) return;
+    /* Apply energy filter for home domain */
+    if (domain === 'home' && _homeEnergyFilter !== 'all' && t.energy && t.energy !== _homeEnergyFilter) return;
+    pushItem(t.bucketId, {
+      type: 'task', title: t.title || t.text || '', date: t.date || '',
+      time: t.time || '', priority: t.priority, done: !!t.done,
+      sortKey: (t.date || '9999') + (t.time || '23:59'), data: t, idx: idx
+    });
+  });
+
+  const rmap = getReminders();
+  Object.keys(rmap).forEach(function(dateKey) {
+    (rmap[dateKey] || []).forEach(function(r, ridx) {
+      if (getDomainOfItem(r) !== domain) return;
+      pushItem(r.bucketId, {
+        type: 'reminder', title: r.text || '', date: dateKey,
+        time: r.time || '', sortKey: dateKey + (r.time || '23:59'),
+        data: r, dateKey: dateKey, ridx: ridx
+      });
+    });
+  });
+
+  function sortItems(arr) {
+    const dated = arr.filter(function(i) { return !!i.date; });
+    const undated = arr.filter(function(i) { return !i.date; });
+    const upcoming = dated.filter(function(i) { return i.sortKey >= todayStr; })
+      .sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey); });
+    const past = dated.filter(function(i) { return i.sortKey < todayStr; })
+      .sort(function(a, b) { return b.sortKey.localeCompare(a.sortKey); });
+    return upcoming.concat(undated).concat(past);
+  }
+
+  const buckets = getBuckets(domain);
+  const hasContent = buckets.length > 0 || uncategorized.length > 0 || Object.keys(itemsByBucket).length > 0;
+
+  if (!hasContent) {
+    if (domain === 'work') {
+      container.innerHTML = '<div style="color:#aaa;text-align:center;padding:32px 0">No jobs yet. Tap <b>＋ Add Job</b> above to get started.</div>';
+    } else {
+      container.innerHTML = '<div style="color:#aaa;text-align:center;padding:32px 0">No categories yet. Tap <b>＋ Add Category</b> to get started.</div>';
+    }
+    return;
+  }
+
+  buckets.forEach(function(bucket) {
+    const items = sortItems(itemsByBucket[bucket.id] || []);
+    container.appendChild(buildBucketCard(domain, bucket, items));
+  });
+
+  const uncatItems = sortItems(uncategorized);
+  if (uncatItems.length) {
+    container.appendChild(buildBucketCard(domain, { id: null, name: 'Uncategorized', emoji: '📥', collapsed: false }, uncatItems));
+  }
+}
+
+/* Wire bucket page controls */
+function wireBucketPages() {
+  ['personal', 'home'].forEach(function(domain) {
+    const cap = domain.charAt(0).toUpperCase() + domain.slice(1);
+    const btn = document.getElementById('add' + cap + 'BucketBtn');
+    if (btn) btn.addEventListener('click', function() { addBucket(domain); });
+  });
+  wireHomePage();
+}
+
+/* ============================================================
+   HOME PAGE FEATURES: Dashboard, Streaks, Energy Tags,
+   Sub-steps, Chore Templates, Grocery List
+   ============================================================ */
+
+/* ── Grocery List storage ───────────────────────────────────── */
+function getGroceryList() { return safeParseStorage('groceryList', []); }
+function setGroceryList(v) { localStorage.setItem('groceryList', JSON.stringify(v)); }
+function nextGroceryId() {
+  const list = getGroceryList();
+  return list.length ? Math.max.apply(null, list.map(function(i) { return i.id || 0; })) + 1 : 1;
+}
+
+/* ── Home Streak storage ─────────────────────────────────────── */
+function getHomeStreaks() { return safeParseStorage('homeStreaks', {}); }
+function setHomeStreaks(v) { localStorage.setItem('homeStreaks', JSON.stringify(v)); }
+function updateHomeStreak(bucketId) {
+  if (bucketId == null) return;
+  var today = getTodayISO();
+  var streaks = getHomeStreaks();
+  var s = streaks[bucketId] || { lastDone: '', streak: 0 };
+  if (s.lastDone === today) return;
+  var yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+  var yestISO = yesterday.toISOString().slice(0, 10);
+  if (s.lastDone === yestISO) s.streak = (s.streak || 0) + 1;
+  else if (s.lastDone === '') s.streak = 1;
+  else s.streak = 1;
+  s.lastDone = today;
+  streaks[bucketId] = s;
+  setHomeStreaks(streaks);
+}
+
+/* ── Energy filter state ─────────────────────────────────────── */
+var _homeEnergyFilter = 'all';
+
+/* ── Chore templates ─────────────────────────────────────────── */
+var DEFAULT_CHORE_TEMPLATES = [
+  { emoji: '🍽️', name: 'Dishes',               repeat: 'daily',   energy: 'low',    defaultDate: 0 },
+  { emoji: '💊', name: 'Take Medication',       repeat: 'daily',   energy: 'low',    defaultDate: 0 },
+  { emoji: '📬', name: 'Check mail',            repeat: 'daily',   energy: 'low',    defaultDate: 0 },
+  { emoji: '🐾', name: 'Feed pets',             repeat: 'daily',   energy: 'low',    defaultDate: 0 },
+  { emoji: '👕', name: 'Laundry',               repeat: 'weekly',  energy: 'medium', defaultDate: 0 },
+  { emoji: '🧹', name: 'Sweep / Vacuum',        repeat: 'weekly',  energy: 'medium', defaultDate: 0 },
+  { emoji: '🗑️', name: 'Take out trash',       repeat: 'weekly',  energy: 'low',    defaultDate: 0 },
+  { emoji: '🧺', name: 'Put away laundry',      repeat: 'weekly',  energy: 'medium', defaultDate: 0 },
+  { emoji: '🪟', name: 'Wipe surfaces',         repeat: 'weekly',  energy: 'low',    defaultDate: 0 },
+  { emoji: '🛒', name: 'Groceries',             repeat: 'weekly',  energy: 'high',   defaultDate: 0 },
+  { emoji: '🧼', name: 'Clean bathroom',        repeat: 'weekly',  energy: 'high',   defaultDate: 0 },
+  { emoji: '🧽', name: 'Clean kitchen',         repeat: 'weekly',  energy: 'high',   defaultDate: 0 },
+  { emoji: '🌱', name: 'Water plants',          repeat: '2day',    energy: 'low',    defaultDate: 0 },
+  { emoji: '🪣', name: 'Mop floors',            repeat: 'monthly', energy: 'high',   defaultDate: 0 }
+];
+
+var _REPEAT_LABELS = { daily: 'daily', '2day': 'every 2 days', weekday: 'every weekday', weekly: 'weekly', monthly: 'monthly', none: 'once' };
+var _ENERGY_LABELS = { low: '🟢 Low', medium: '🟡 Medium', high: '🔴 High' };
+
+/* ── User-customisable chore template storage ────────────────── */
+var CHORE_TPL_KEY = 'choreTemplatesCustom';
+
+function getChoreTemplates() {
+  var stored = safeParseStorage(CHORE_TPL_KEY, null);
+  if (stored === null) return DEFAULT_CHORE_TEMPLATES.map(function(t) {
+    return { id: generateChoreTplId(), emoji: t.emoji, name: t.name, repeat: t.repeat, energy: t.energy, defaultDate: t.defaultDate, defaultBucketId: undefined };
+  });
+  return stored;
+}
+
+function setChoreTemplates(list) {
+  localStorage.setItem(CHORE_TPL_KEY, JSON.stringify(list));
+}
+
+function generateChoreTplId() {
+  return 'ctpl:' + Date.now().toString(36) + ':' + Math.random().toString(36).slice(2);
+}
+
+/* ── Render Home Dashboard ───────────────────────────────────── */
+function renderHomeDashboard() {
+  var el = document.getElementById('homeDashboard');
+  if (!el) return;
+
+  var today = getTodayISO();
+  var allTasks = getTasks().filter(function(t) { return getDomainOfItem(t) === 'home'; });
+  var todayTasks = allTasks.filter(function(t) { return t.date === today; });
+  var doneTodayCount = todayTasks.filter(function(t) { return t.done; }).length;
+  var totalToday = todayTasks.length;
+  var overdueTasks = allTasks.filter(function(t) {
+    return t.date && t.date < today && !t.done;
+  });
+  var thisWeekEnd = new Date(); thisWeekEnd.setDate(thisWeekEnd.getDate() + 7);
+  var weekEndISO = thisWeekEnd.toISOString().slice(0, 10);
+  var upcomingTasks = allTasks.filter(function(t) {
+    return t.date && t.date > today && t.date <= weekEndISO && !t.done;
+  });
+
+  var pct = totalToday > 0 ? Math.round((doneTodayCount / totalToday) * 100) : 0;
+  var circumference = 113.1;
+  var offset = circumference - (pct / 100) * circumference;
+  var ringColor = pct === 100 ? '#27ae60' : '#4a90e2';
+
+  var html = '<div class="home-dashboard">';
+  html += '<p class="home-dash-title">🏡 Today\'s Chores</p>';
+  html += '<div class="home-dash-stats">';
+  // Progress ring
+  html += '<div class="progress-ring-wrap" style="flex-shrink:0">';
+  html += '<svg viewBox="0 0 44 44" style="width:64px;height:64px">';
+  html += '<circle class="ring-bg" cx="22" cy="22" r="18"/>';
+  html += '<circle class="ring-fg" cx="22" cy="22" r="18" stroke="' + ringColor + '" stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '" transform="rotate(-90 22 22)"/>';
+  html += '<text class="ring-pct" x="22" y="22">' + pct + '%</text>';
+  html += '</svg>';
+  html += '<span class="ring-label">Done</span>';
+  html += '</div>';
+  // Stat pills
+  html += '<div style="display:flex;flex-direction:column;gap:6px;flex:1">';
+  html += '<div style="display:flex;gap:6px">';
+  html += '<div class="home-stat-pill"><span class="home-stat-num done">' + doneTodayCount + '/' + totalToday + '</span><span class="home-stat-label">Today</span></div>';
+  html += '<div class="home-stat-pill"><span class="home-stat-num overdue">' + overdueTasks.length + '</span><span class="home-stat-label">Overdue</span></div>';
+  html += '<div class="home-stat-pill"><span class="home-stat-num">' + upcomingTasks.length + '</span><span class="home-stat-label">This week</span></div>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>'; // home-dash-stats
+
+  // Nudges for overdue tasks
+  if (overdueTasks.length > 0) {
+    html += '<div style="margin-top:8px">';
+    var nudges = overdueTasks.slice(0, 3);
+    nudges.forEach(function(t) {
+      var daysAgo = Math.round((new Date(today) - new Date(t.date)) / 86400000);
+      var label = daysAgo === 1 ? 'yesterday' : daysAgo + ' days ago';
+      html += '<div class="home-nudge"><span class="home-nudge-title">' + (t.emoji || '📋') + ' ' + escapeHTML(t.title || '') + '</span>';
+      html += ' <span style="font-weight:400">was due ' + label + '</span></div>';
+    });
+    if (overdueTasks.length > 3) {
+      html += '<div style="font-size:0.8rem;color:#888;margin-top:2px">…and ' + (overdueTasks.length - 3) + ' more overdue</div>';
+    }
+    html += '</div>';
+  }
+
+  html += '</div>'; // home-dashboard
+  el.innerHTML = html;
+}
+
+/* ── Render Energy Filter Bar ───────────────────────────────── */
+function renderHomeEnergyFilter() {
+  var bar = document.getElementById('homeEnergyFilter');
+  if (!bar) return;
+  bar.innerHTML = '';
+  var filters = [
+    { key: 'all',    label: 'All' },
+    { key: 'low',    label: '🟢 Easy' },
+    { key: 'medium', label: '🟡 Medium' },
+    { key: 'high',   label: '🔴 Hard' }
+  ];
+  filters.forEach(function(f) {
+    var btn = document.createElement('button');
+    btn.className = 'energy-filter-btn' + (_homeEnergyFilter === f.key ? ' active' : '');
+    btn.textContent = f.label;
+    btn.addEventListener('click', function() {
+      _homeEnergyFilter = f.key;
+      renderHomeEnergyFilter();
+      renderBucketPage('home');
+    });
+    bar.appendChild(btn);
+  });
+}
+
+/* ── Render Grocery List ─────────────────────────────────────── */
+function renderGroceryList() {
+  var section = document.getElementById('homeGrocerySection');
+  if (!section) return;
+  var list = getGroceryList();
+  var inCartCount = list.filter(function(i) { return i.inCart; }).length;
+  var pendingCount = list.length - inCartCount;
+  var totalCost = list.reduce(function(sum, i) { return sum + (parseFloat(i.price) || 0); }, 0);
+
+  var el = document.createElement('div');
+  el.className = 'grocery-section';
+
+  // Header
+  var header = document.createElement('div');
+  header.className = 'grocery-header';
+  var headerTitle = document.createElement('div');
+  headerTitle.className = 'grocery-header-title';
+  headerTitle.innerHTML = '🛒 Grocery List <span style="font-size:0.75rem;color:#888;font-weight:400;margin-left:4px">(' + pendingCount + ' pending' + (inCartCount ? ', ' + inCartCount + ' in cart' : '') + (totalCost > 0 ? ' · $' + totalCost.toFixed(2) : '') + ')</span>';
+  var chevron = document.createElement('span');
+  chevron.className = 'bucket-chevron';
+  var isCollapsed = safeParseStorage('groceryCollapsed', false);
+  chevron.textContent = isCollapsed ? '▸' : '▾';
+  header.appendChild(headerTitle);
+  header.appendChild(chevron);
+
+  // Body
+  var body = document.createElement('div');
+  body.className = 'grocery-body';
+  if (isCollapsed) body.style.display = 'none';
+
+  // Add form
+  var addRow = document.createElement('div');
+  addRow.className = 'grocery-add-row';
+  addRow.innerHTML = [
+    '<input type="text" id="groceryItemInput" class="grocery-add-input" placeholder="Item name…" autocomplete="off" />',
+    '<input type="text" id="groceryQtyInput" class="grocery-qty-input" placeholder="Qty" />',
+    '<input type="number" id="groceryPriceInput" class="grocery-price-input" placeholder="Price" min="0" step="0.01" style="width:60px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />',
+    '<select id="grocerySectionSel" class="grocery-section-sel">',
+    '<option value="">Section…</option>',
+    '<option value="Produce">🥦 Produce</option>',
+    '<option value="Dairy">🥛 Dairy</option>',
+    '<option value="Meat">🥩 Meat</option>',
+    '<option value="Bakery">🍞 Bakery</option>',
+    '<option value="Frozen">🧊 Frozen</option>',
+    '<option value="Pantry">🥫 Pantry</option>',
+    '<option value="Beverages">🧃 Beverages</option>',
+    '<option value="Household">🧹 Household</option>',
+    '<option value="Other">📦 Other</option>',
+    '</select>',
+    '<button class="grocery-add-btn" id="groceryAddBtn">＋ Add</button>'
+  ].join('');
+  body.appendChild(addRow);
+
+  // Item list
+  var ul = document.createElement('ul');
+  ul.className = 'grocery-items';
+  if (!list.length) {
+    var empty = document.createElement('li');
+    empty.style.cssText = 'color:#aaa;text-align:center;padding:10px 0;font-size:0.88rem';
+    empty.textContent = 'No items yet.';
+    ul.appendChild(empty);
+  } else {
+    list.forEach(function(item) {
+      var li = document.createElement('li');
+      li.className = 'grocery-item' + (item.inCart ? ' in-cart' : '');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!item.inCart;
+      cb.style.cssText = 'width:16px;height:16px;cursor:pointer;flex-shrink:0';
+      cb.title = item.inCart ? 'Remove from cart' : 'Mark in cart';
+      cb.addEventListener('change', function() {
+        var l = getGroceryList();
+        var idx = l.findIndex(function(x) { return x.id === item.id; });
+        if (idx !== -1) { l[idx].inCart = cb.checked; setGroceryList(l); }
+        renderGroceryList();
+      });
+      var textSpan = document.createElement('span');
+      textSpan.className = 'grocery-item-text';
+      textSpan.textContent = item.text;
+      var qtySpan = document.createElement('span');
+      qtySpan.className = 'grocery-item-qty';
+      qtySpan.textContent = item.qty || '';
+      var priceSpan = document.createElement('span');
+      priceSpan.className = 'grocery-item-price';
+      priceSpan.style.cssText = 'font-size:0.78rem;color:#27ae60;font-weight:600;margin-left:4px;white-space:nowrap';
+      priceSpan.textContent = item.price ? '$' + parseFloat(item.price).toFixed(2) : '';
+      var secSpan = document.createElement('span');
+      secSpan.className = 'grocery-item-section';
+      secSpan.style.display = item.section ? '' : 'none';
+      secSpan.textContent = item.section || '';
+      var delBtn = document.createElement('button');
+      delBtn.className = 'grocery-item-del';
+      delBtn.textContent = '✕';
+      delBtn.title = 'Remove';
+      delBtn.addEventListener('click', function() {
+        var l = getGroceryList();
+        setGroceryList(l.filter(function(x) { return x.id !== item.id; }));
+        renderGroceryList();
+      });
+      li.appendChild(cb);
+      li.appendChild(textSpan);
+      if (item.qty) li.appendChild(qtySpan);
+      if (item.price) li.appendChild(priceSpan);
+      if (item.section) li.appendChild(secSpan);
+      li.appendChild(delBtn);
+      ul.appendChild(li);
+    });
+    if (inCartCount > 0) {
+      var clearBtn = document.createElement('button');
+      clearBtn.className = 'grocery-clear-btn';
+      clearBtn.textContent = 'Clear ' + inCartCount + ' in-cart item' + (inCartCount > 1 ? 's' : '');
+      clearBtn.addEventListener('click', function() {
+        setGroceryList(getGroceryList().filter(function(i) { return !i.inCart; }));
+        renderGroceryList();
+      });
+      body.appendChild(ul);
+      body.appendChild(clearBtn);
+      el.appendChild(header);
+      el.appendChild(body);
+      section.innerHTML = '';
+      section.appendChild(el);
+      wireGroceryList();
+      return;
+    }
+  }
+  body.appendChild(ul);
+  el.appendChild(header);
+  el.appendChild(body);
+  section.innerHTML = '';
+  section.appendChild(el);
+  wireGroceryList();
+
+  // Collapse toggle
+  header.addEventListener('click', function(e) {
+    if (e.target.closest('.grocery-add-row, .grocery-items, .grocery-add-btn')) return;
+    var collapsed = body.style.display === 'none';
+    body.style.display = collapsed ? '' : 'none';
+    chevron.textContent = collapsed ? '▾' : '▸';
+    localStorage.setItem('groceryCollapsed', JSON.stringify(!collapsed));
+  });
+}
+
+function wireGroceryList() {
+  var addBtn = document.getElementById('groceryAddBtn');
+  var inp = document.getElementById('groceryItemInput');
+  var qtyInp = document.getElementById('groceryQtyInput');
+  var priceInp = document.getElementById('groceryPriceInput');
+  var secSel = document.getElementById('grocerySectionSel');
+
+  function doAdd() {
+    var text = inp ? inp.value.trim() : '';
+    if (!text) { if (inp) { inp.focus(); inp.style.outline = '2px solid #e74c3c'; setTimeout(function(){ inp.style.outline=''; }, 1200); } return; }
+    var qty = qtyInp ? qtyInp.value.trim() : '';
+    var price = priceInp ? parseFloat(priceInp.value) || 0 : 0;
+    var section = secSel ? secSel.value : '';
+    var list = getGroceryList();
+    list.push({ id: nextGroceryId(), text: text, qty: qty, price: price, section: section, inCart: false, added: getTodayISO() });
+    setGroceryList(list);
+    renderGroceryList();
+  }
+
+  if (addBtn) addBtn.addEventListener('click', doAdd);
+  if (inp) inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+}
+
+/* ── Chore Template Modal ────────────────────────────────────── */
+var _choreModalMode = 'pick'; // 'pick' or 'manage'
+
+function openChoreTemplateModal() {
+  _choreModalMode = 'pick';
+  renderChoreTemplateModalContent();
+  var modal = document.getElementById('choreTemplateModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function renderChoreTemplateModalContent() {
+  var grid = document.getElementById('choreTemplateGrid');
+  var bucketSel = document.getElementById('choreTemplateBucket');
+  var bucketRow = document.querySelector('.chore-tpl-bucket-row');
+  var titleEl = document.querySelector('.chore-tpl-title');
+  var manageBtn = document.getElementById('choreManagePresetsBtn');
+  // Scroll modal panel to top so title/mode change is visible
+  var panel = document.querySelector('.chore-tpl-panel');
+  if (panel) panel.scrollTop = 0;
+  if (!grid) return;
+
+  var templates = getChoreTemplates();
+  var homeBuckets = getBuckets('home');
+
+  if (_choreModalMode === 'pick') {
+    // --- Pick mode (original behaviour + manage button) ---
+    if (titleEl) titleEl.textContent = '⚡ Quick Chore';
+    if (bucketRow) bucketRow.style.display = 'flex';
+    if (manageBtn) { manageBtn.textContent = '✏️ Manage Presets'; manageBtn.onclick = function() { _choreModalMode = 'manage'; renderChoreTemplateModalContent(); }; }
+
+    // Populate bucket dropdown
+    if (bucketSel) {
+      bucketSel.innerHTML = '<option value="">— Uncategorized —</option>';
+      homeBuckets.forEach(function(b) {
+        var opt = document.createElement('option');
+        opt.value = b.id;
+        opt.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+        bucketSel.appendChild(opt);
+      });
+    }
+
+    // Build template grid
+    grid.innerHTML = '';
+    templates.forEach(function(tpl) {
+      var btn = document.createElement('button');
+      btn.className = 'chore-tpl-item';
+      btn.type = 'button';
+      // Show linked bucket if set
+      var bucketLabel = '';
+      if (tpl.defaultBucketId !== undefined && tpl.defaultBucketId !== null) {
+        var linkedBucket = homeBuckets.find(function(b) { return b.id === tpl.defaultBucketId; });
+        if (linkedBucket) bucketLabel = ' → ' + (linkedBucket.emoji ? linkedBucket.emoji + ' ' : '') + escapeHTML(linkedBucket.name);
+      }
+      btn.innerHTML = '<span class="tpl-emoji">' + tpl.emoji + '</span>' +
+        '<span><span class="tpl-name">' + escapeHTML(tpl.name) + '</span>' +
+        '<span class="tpl-meta">' + (_REPEAT_LABELS[tpl.repeat] || tpl.repeat) + ' · ' + _ENERGY_LABELS[tpl.energy] + (bucketLabel ? bucketLabel : '') + '</span></span>';
+      btn.addEventListener('click', function() {
+        // Use bucket selector override, else template default, else undefined
+        var bId;
+        if (bucketSel && bucketSel.value) {
+          bId = parseInt(bucketSel.value, 10);
+        } else if (tpl.defaultBucketId !== undefined && tpl.defaultBucketId !== null) {
+          bId = tpl.defaultBucketId;
+        }
+        addChoreFromTemplate(tpl, bId);
+        var modal = document.getElementById('choreTemplateModal');
+        if (modal) modal.classList.add('hidden');
+      });
+      grid.appendChild(btn);
+    });
+
+    if (templates.length === 0) {
+      grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:#888;font-size:0.88rem">No presets configured. Tap "✏️ Manage Presets" to add some.</p>';
+    }
+  } else {
+    // --- Manage mode ---
+    if (titleEl) titleEl.textContent = '✏️ Manage Chore Presets';
+    if (bucketRow) bucketRow.style.display = 'none';
+    if (manageBtn) { manageBtn.textContent = '⬅ Back'; manageBtn.onclick = function() { _choreModalMode = 'pick'; renderChoreTemplateModalContent(); }; }
+
+    grid.innerHTML = '';
+
+    // Add new preset row
+    var addRow = document.createElement('div');
+    addRow.className = 'chore-tpl-manage-add';
+    addRow.innerHTML =
+      '<input type="text" id="newChoreTplEmoji" placeholder="😀" maxlength="4" class="chore-tpl-emoji-input" />' +
+      '<input type="text" id="newChoreTplName" placeholder="Chore name…" class="chore-tpl-name-input" />' +
+      '<select id="newChoreTplRepeat" class="chore-tpl-sel">' +
+        '<option value="daily">Daily</option><option value="2day">Every 2 days</option>' +
+        '<option value="weekday">Every weekday</option>' +
+        '<option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option><option value="none">Once</option>' +
+      '</select>' +
+      '<select id="newChoreTplEnergy" class="chore-tpl-sel">' +
+        '<option value="low">🟢 Low</option><option value="medium">🟡 Medium</option><option value="high">🔴 High</option>' +
+      '</select>' +
+      '<select id="newChoreTplBucket" class="chore-tpl-sel"><option value="">No default bucket</option></select>' +
+      '<button type="button" id="addChoreTplBtn" class="chore-tpl-add-btn">+ Add</button>';
+    grid.appendChild(addRow);
+
+    // Populate new-preset bucket dropdown
+    var newBucketSel = addRow.querySelector('#newChoreTplBucket');
+    homeBuckets.forEach(function(b) {
+      var opt = document.createElement('option');
+      opt.value = b.id;
+      opt.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+      newBucketSel.appendChild(opt);
+    });
+
+    addRow.querySelector('#addChoreTplBtn').addEventListener('click', function() {
+      var emoji = (document.getElementById('newChoreTplEmoji').value || '📋').trim();
+      var name = (document.getElementById('newChoreTplName').value || '').trim();
+      if (!name) { document.getElementById('newChoreTplName').focus(); return; }
+      var repeat = document.getElementById('newChoreTplRepeat').value;
+      var energy = document.getElementById('newChoreTplEnergy').value;
+      var bVal = document.getElementById('newChoreTplBucket').value;
+      var tpls = getChoreTemplates();
+      tpls.push({ id: generateChoreTplId(), emoji: emoji, name: name, repeat: repeat, energy: energy, defaultDate: 0, defaultBucketId: bVal ? parseInt(bVal, 10) : undefined });
+      setChoreTemplates(tpls);
+      renderChoreTemplateModalContent();
+    });
+
+    // List existing presets
+    templates.forEach(function(tpl) {
+      var row = document.createElement('div');
+      row.className = 'chore-tpl-manage-row';
+
+      // Bucket label
+      var linkedBucketLabel = 'No default bucket';
+      if (tpl.defaultBucketId !== undefined && tpl.defaultBucketId !== null) {
+        var lb = homeBuckets.find(function(b) { return b.id === tpl.defaultBucketId; });
+        if (lb) linkedBucketLabel = (lb.emoji ? lb.emoji + ' ' : '') + lb.name;
+      }
+
+      row.innerHTML =
+        '<span class="tpl-emoji" style="font-size:1.3rem;flex-shrink:0">' + tpl.emoji + '</span>' +
+        '<span class="chore-tpl-manage-info">' +
+          '<span class="tpl-name">' + escapeHTML(tpl.name) + '</span>' +
+          '<span class="tpl-meta">' + (_REPEAT_LABELS[tpl.repeat] || tpl.repeat) + ' · ' + _ENERGY_LABELS[tpl.energy] + '</span>' +
+          '<span class="tpl-meta" style="color:#4a90e2">🔗 ' + escapeHTML(linkedBucketLabel) + '</span>' +
+        '</span>' +
+        '<button type="button" class="chore-tpl-edit-btn" title="Edit">✏️</button>' +
+        '<button type="button" class="chore-tpl-del-btn" title="Delete">🗑️</button>';
+
+      // Delete
+      row.querySelector('.chore-tpl-del-btn').addEventListener('click', function() {
+        var tpls = getChoreTemplates().filter(function(t) { return t.id !== tpl.id; });
+        setChoreTemplates(tpls);
+        renderChoreTemplateModalContent();
+      });
+
+      // Edit – replace row with inline edit form
+      row.querySelector('.chore-tpl-edit-btn').addEventListener('click', function() {
+        row.innerHTML = '';
+        row.className = 'chore-tpl-manage-edit';
+        row.innerHTML =
+          '<input type="text" class="chore-tpl-emoji-input" value="' + escapeHTML(tpl.emoji) + '" maxlength="4" />' +
+          '<input type="text" class="chore-tpl-name-input" value="' + escapeHTML(tpl.name) + '" />' +
+          '<select class="chore-tpl-sel edit-repeat"></select>' +
+          '<select class="chore-tpl-sel edit-energy"></select>' +
+          '<select class="chore-tpl-sel edit-bucket"><option value="">No default bucket</option></select>' +
+          '<button type="button" class="chore-tpl-save-btn">💾 Save</button>' +
+          '<button type="button" class="chore-tpl-cancel-btn">Cancel</button>';
+
+        // populate selects
+        var repSel = row.querySelector('.edit-repeat');
+        [['daily','Daily'],['2day','Every 2 days'],['weekday','Every weekday'],['weekly','Weekly'],['monthly','Monthly'],['none','Once']].forEach(function(p) {
+          var o = document.createElement('option'); o.value = p[0]; o.textContent = p[1];
+          if (p[0] === tpl.repeat) o.selected = true;
+          repSel.appendChild(o);
+        });
+        var enSel = row.querySelector('.edit-energy');
+        [['low','🟢 Low'],['medium','🟡 Medium'],['high','🔴 High']].forEach(function(p) {
+          var o = document.createElement('option'); o.value = p[0]; o.textContent = p[1];
+          if (p[0] === tpl.energy) o.selected = true;
+          enSel.appendChild(o);
+        });
+        var bkSel = row.querySelector('.edit-bucket');
+        homeBuckets.forEach(function(b) {
+          var o = document.createElement('option'); o.value = b.id; o.textContent = (b.emoji ? b.emoji + ' ' : '') + b.name;
+          if (tpl.defaultBucketId !== undefined && tpl.defaultBucketId !== null && b.id === tpl.defaultBucketId) o.selected = true;
+          bkSel.appendChild(o);
+        });
+
+        row.querySelector('.chore-tpl-save-btn').addEventListener('click', function() {
+          var editedName = (row.querySelector('.chore-tpl-name-input').value || '').trim();
+          if (!editedName) { row.querySelector('.chore-tpl-name-input').focus(); return; }
+          var tpls = getChoreTemplates();
+          var idx = tpls.findIndex(function(t) { return t.id === tpl.id; });
+          if (idx === -1) { renderChoreTemplateModalContent(); return; }
+          tpls[idx].emoji = (row.querySelector('.chore-tpl-emoji-input').value || '📋').trim();
+          tpls[idx].name = editedName;
+          tpls[idx].repeat = repSel.value;
+          tpls[idx].energy = enSel.value;
+          var bv = bkSel.value;
+          tpls[idx].defaultBucketId = bv ? parseInt(bv, 10) : undefined;
+          setChoreTemplates(tpls);
+          renderChoreTemplateModalContent();
+        });
+
+        row.querySelector('.chore-tpl-cancel-btn').addEventListener('click', function() {
+          renderChoreTemplateModalContent();
+        });
+      });
+
+      grid.appendChild(row);
+    });
+
+    if (templates.length === 0) {
+      var emptyMsg = document.createElement('p');
+      emptyMsg.style.cssText = 'text-align:center;color:#888;font-size:0.88rem;margin-top:8px';
+      emptyMsg.textContent = 'No presets yet. Use the form above to add one.';
+      grid.appendChild(emptyMsg);
+    }
+
+    // Reset to defaults button
+    var resetRow = document.createElement('div');
+    resetRow.style.cssText = 'text-align:center;margin-top:12px';
+    var resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'chore-tpl-reset-btn';
+    resetBtn.textContent = '↩ Reset to Defaults';
+    resetBtn.addEventListener('click', function() {
+      if (!confirm('Reset all chore presets to the built-in defaults? Your customisations will be lost.')) return;
+      localStorage.removeItem(CHORE_TPL_KEY);
+      renderChoreTemplateModalContent();
+    });
+    resetRow.appendChild(resetBtn);
+    grid.appendChild(resetRow);
+  }
+}
+
+function addChoreFromTemplate(tpl, bucketId) {
+  var today = getTodayISO();
+  var tasks = getTasks();
+  var newTask = {
+    id: generateTaskId(),
+    title: tpl.name,
+    emoji: tpl.emoji,
+    category: 'home',
+    domain: 'home',
+    done: false,
+    date: today,
+    time: '',
+    priority: '2',
+    energy: tpl.energy,
+    steps: []
+  };
+  if (tpl.repeat !== 'none') newTask.repeat = tpl.repeat;
+  if (bucketId !== undefined && bucketId !== null) newTask.bucketId = bucketId;
+  tasks.push(newTask);
+  setTasks(tasks);
+  try { renderBucketPage('home'); } catch(e) {}
+  showUndoToast(tpl.emoji + ' ' + tpl.name + ' added!');
+}
+
+/* ── Sub-step helpers ────────────────────────────────────────── */
+function saveTaskSteps(taskId, steps) {
+  var tasks = getTasks();
+  var t = tasks.find(function(x) { return x.id === taskId; });
+  if (t) { t.steps = steps; setTasks(tasks); }
+}
+
+function toggleTaskStep(taskId, stepIdx, done) {
+  var tasks = getTasks();
+  var t = tasks.find(function(x) { return x.id === taskId; });
+  if (t && t.steps && t.steps[stepIdx] !== undefined) {
+    t.steps[stepIdx].done = done;
+    setTasks(tasks);
+  }
+}
+
+/* ── Wire Home Page ──────────────────────────────────────────── */
+function wireHomePage() {
+  // Chore template button
+  var tplBtn = document.getElementById('choreTemplateBtn');
+  if (tplBtn) tplBtn.addEventListener('click', openChoreTemplateModal);
+
+  // Chore template modal close
+  var closeBtn = document.getElementById('choreTemplateClose');
+  if (closeBtn) closeBtn.addEventListener('click', function() {
+    var modal = document.getElementById('choreTemplateModal');
+    if (modal) modal.classList.add('hidden');
+  });
+  var modal = document.getElementById('choreTemplateModal');
+  if (modal) modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.classList.add('hidden');
+  });
+}
+
+/* ============================================================
+   PERSONAL PAGE FEATURES: Meal Tracker, Sleep Manager,
+   Gym Planner, Daily Focus, Routines, Hydration, Mood
+   ============================================================ */
+
+/* ── Helper: build collapsible personal widget card ─────────── */
+function buildPWCard(id, emoji, title, renderBody, storageKey) {
+  var card = document.createElement('div');
+  card.className = 'pw-card';
+  card.id = id;
+
+  var header = document.createElement('div');
+  header.className = 'pw-header';
+  var headerTitle = document.createElement('div');
+  headerTitle.className = 'pw-header-title';
+  headerTitle.textContent = emoji + ' ' + title;
+  var chevron = document.createElement('span');
+  chevron.className = 'pw-chevron';
+  var isCollapsed = safeParseStorage(storageKey + '_collapsed', false);
+  chevron.textContent = isCollapsed ? '▸' : '▾';
+  header.appendChild(headerTitle);
+  header.appendChild(chevron);
+
+  var body = document.createElement('div');
+  body.className = 'pw-body';
+  body.style.display = isCollapsed ? 'none' : '';
+
+  renderBody(body);
+
+  card.appendChild(header);
+  card.appendChild(body);
+
+  header.addEventListener('click', function() {
+    var nowCollapsed = body.style.display === 'none';
+    body.style.display = nowCollapsed ? '' : 'none';
+    chevron.textContent = nowCollapsed ? '▾' : '▸';
+    localStorage.setItem(storageKey + '_collapsed', JSON.stringify(!nowCollapsed));
+  });
+
+  return card;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   1. MEAL TRACKER
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalMeals() {
+  var data = safeParseStorage('personalMeals', {});
+  var today = getTodayISO();
+  if (!data[today]) data[today] = { breakfast: { name: '', calories: 0, time: '' }, lunch: { name: '', calories: 0, time: '' }, dinner: { name: '', calories: 0, time: '' }, snacks: { name: '', calories: 0, time: '' } };
+  return data;
+}
+function setPersonalMeals(data) { localStorage.setItem('personalMeals', JSON.stringify(data)); }
+function getCalorieGoal() { return parseInt(localStorage.getItem('personalCalorieGoal') || '2000', 10); }
+function setCalorieGoal(v) { localStorage.setItem('personalCalorieGoal', String(v)); }
+
+/* Track which day of the week is selected in the meal tracker */
+var _mealSelectedDate = null;
+var _MEAL_DAY_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+var _MEAL_DAY_FULL  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+/* Return an array of { iso, label, dayName } for each day (Sun–Sat) of the current week */
+function getMealWeekDays() {
+  var today = new Date();
+  var dow = today.getDay(); // 0=Sun
+  var sun = new Date(today);
+  sun.setDate(today.getDate() - dow);
+  var days = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(sun);
+    d.setDate(sun.getDate() + i);
+    days.push({
+      iso: d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()),
+      label: pad2(d.getMonth() + 1) + '/' + pad2(d.getDate()),
+      dayName: _MEAL_DAY_SHORT[i]
+    });
+  }
+  return days;
+}
+
+/* Check if a day's meals are filled (all 4 meal names non-empty) */
+function isMealDayComplete(allMeals, dateISO) {
+  var day = allMeals[dateISO];
+  if (!day) return 'empty';
+  var keys = ['breakfast', 'lunch', 'dinner', 'snacks'];
+  var filled = 0;
+  keys.forEach(function(k) {
+    if (day[k] && day[k].name && day[k].name.trim()) filled++;
+  });
+  if (filled === 4) return 'complete';
+  if (filled > 0) return 'partial';
+  return 'empty';
+}
+
+/* Ensure an "Eating Tracker" bucket exists in the personal domain; returns its id */
+/* ensureEatingTrackerBucket and syncMealWeekTasks removed —
+   meal data lives in personalMeals localStorage and is displayed
+   within the Meal Planner widget itself, not as separate bucket tasks. */
+
+function renderMealTracker() {
+  var section = document.getElementById('personalMealSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var today = getTodayISO();
+  var weekDays = getMealWeekDays();
+
+  /* Default selected date to today */
+  if (!_mealSelectedDate || !weekDays.some(function(wd) { return wd.iso === _mealSelectedDate; })) {
+    _mealSelectedDate = today;
+  }
+
+  var selectedDate = _mealSelectedDate;
+  var allMeals = getPersonalMeals();
+
+  /* Use in-memory defaults for selected date if no meals saved yet (lazy — only persists on save) */
+  if (!allMeals[selectedDate]) {
+    allMeals[selectedDate] = { breakfast: { name: '', calories: 0, time: '' }, lunch: { name: '', calories: 0, time: '' }, dinner: { name: '', calories: 0, time: '' }, snacks: { name: '', calories: 0, time: '' } };
+  }
+
+  var meals = allMeals[selectedDate];
+  var goal = getCalorieGoal();
+  var mealTypes = [
+    { key: 'breakfast', icon: '🌅', label: 'Breakfast' },
+    { key: 'lunch', icon: '☀️', label: 'Lunch' },
+    { key: 'dinner', icon: '🌙', label: 'Dinner' },
+    { key: 'snacks', icon: '🍎', label: 'Snacks' }
+  ];
+
+  var card = buildPWCard('mealCard', '🍽️', 'Meal Tracker', function(body) {
+    /* ── Day selector ── */
+    var daySelector = document.createElement('div');
+    daySelector.className = 'meal-day-selector';
+    weekDays.forEach(function(wd) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'meal-day-btn' + (wd.iso === selectedDate ? ' active' : '');
+      btn.innerHTML = '<span>' + wd.dayName + '</span><span class="meal-day-label">' + wd.label + '</span>';
+      if (wd.iso === today) btn.title = 'Today';
+      btn.addEventListener('click', function() {
+        _mealSelectedDate = wd.iso;
+        renderMealTracker();
+      });
+      daySelector.appendChild(btn);
+    });
+    body.appendChild(daySelector);
+
+    /* ── Meal rows for selected day ── */
+    var totalCal = 0;
+    mealTypes.forEach(function(mt) {
+      var m = meals[mt.key] || { name: '', calories: 0 };
+      totalCal += (parseInt(m.calories, 10) || 0);
+
+      var row = document.createElement('div');
+      row.className = 'meal-row';
+      row.innerHTML =
+        '<div class="meal-icon">' + mt.icon + '</div>' +
+        '<div class="meal-info">' +
+          '<div class="meal-label">' + mt.label + (m.time ? ' <span style="font-size:0.78rem;color:#888">@ ' + escapeHTML(m.time) + '</span>' : '') + '</div>' +
+          '<div class="meal-name">' + escapeHTML(m.name || 'Not planned') + '</div>' +
+        '</div>' +
+        '<div class="meal-cal">' + (m.calories ? m.calories + ' cal' : '—') + '</div>' +
+        '<button class="meal-edit-btn" data-meal="' + mt.key + '">✏️</button>';
+      body.appendChild(row);
+
+      // Edit panel (hidden by default)
+      var panel = document.createElement('div');
+      panel.className = 'meal-edit-panel';
+      panel.id = 'mealEdit_' + mt.key;
+      panel.style.display = 'none';
+      panel.innerHTML =
+        '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' +
+          '<input type="text" class="meal-name-input" placeholder="What are you eating?" value="' + escapeHTML(m.name || '') + '" />' +
+          '<input type="number" class="meal-cal-input" placeholder="Cal" min="0" value="' + (m.calories || '') + '" />' +
+          '<input type="time" class="meal-time-input" placeholder="Time" value="' + escapeHTML(m.time || '') + '" title="When will you eat?" />' +
+          '<button class="meal-save-btn" data-meal="' + mt.key + '">Save</button>' +
+          '<button class="meal-cancel-btn" data-meal="' + mt.key + '">Cancel</button>' +
+        '</div>';
+      body.appendChild(panel);
+    });
+
+    // Progress bar
+    var pct = goal > 0 ? Math.min(100, Math.round((totalCal / goal) * 100)) : 0;
+    var barColor = pct > 100 ? '#e74c3c' : pct >= 80 ? '#27ae60' : '#4a90e2';
+    var progress = document.createElement('div');
+    progress.className = 'meal-progress';
+    progress.innerHTML =
+      '<div class="meal-progress-bar"><div class="meal-progress-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+      '<div class="meal-progress-text">' + totalCal + ' / ' + goal + ' cal</div>';
+    body.appendChild(progress);
+
+    // Goal setting
+    var goalRow = document.createElement('div');
+    goalRow.className = 'meal-goal-row';
+    goalRow.innerHTML =
+      '<span>🎯 Daily goal:</span>' +
+      '<input type="number" class="meal-goal-input" id="mealGoalInput" value="' + goal + '" min="0" step="50" />' +
+      '<span>cal</span>';
+    body.appendChild(goalRow);
+
+    /* ── Weekly completion status dots ── */
+    var weekStatus = document.createElement('div');
+    weekStatus.className = 'meal-week-status';
+    var completeCount = 0;
+    weekDays.forEach(function(wd) {
+      var status = isMealDayComplete(allMeals, wd.iso);
+      if (status === 'complete') completeCount++;
+      var dot = document.createElement('span');
+      dot.className = 'meal-week-dot ' + status;
+      dot.title = wd.dayName + ': ' + status;
+      weekStatus.appendChild(dot);
+    });
+    var weekLabel = document.createElement('span');
+    weekLabel.className = 'meal-week-label';
+    weekLabel.textContent = completeCount + '/7 days planned';
+    weekStatus.appendChild(weekLabel);
+    body.appendChild(weekStatus);
+
+    // Wire events
+    body.querySelectorAll('.meal-edit-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var key = btn.dataset.meal;
+        var p = document.getElementById('mealEdit_' + key);
+        if (p) p.style.display = p.style.display === 'none' ? 'block' : 'none';
+      });
+    });
+    body.querySelectorAll('.meal-save-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var key = btn.dataset.meal;
+        var panel = document.getElementById('mealEdit_' + key);
+        if (!panel) return;
+        var nameInput = panel.querySelector('.meal-name-input');
+        var calInput = panel.querySelector('.meal-cal-input');
+        var timeInput = panel.querySelector('.meal-time-input');
+        var data = getPersonalMeals();
+        if (!data[selectedDate]) data[selectedDate] = {};
+        data[selectedDate][key] = { name: nameInput.value.trim(), calories: parseInt(calInput.value, 10) || 0, time: timeInput ? timeInput.value : '' };
+        setPersonalMeals(data);
+        renderMealTracker();
+      });
+    });
+    body.querySelectorAll('.meal-cancel-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var key = btn.dataset.meal;
+        var p = document.getElementById('mealEdit_' + key);
+        if (p) p.style.display = 'none';
+      });
+    });
+    var goalInput = body.querySelector('#mealGoalInput');
+    if (goalInput) goalInput.addEventListener('change', function() {
+      setCalorieGoal(parseInt(goalInput.value, 10) || 2000);
+      renderMealTracker();
+    });
+  }, 'pw_meal');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   2. SLEEP / BEDTIME MANAGER
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalSleep() {
+  var data = safeParseStorage('personalSleep', { targetBedtime: '22:30', targetWake: '07:00', log: {} });
+  /* Migrate: ensure per-day schedule exists */
+  if (!data.schedule) {
+    var defaultBed = data.targetBedtime || '22:30';
+    var defaultWake = data.targetWake || '07:00';
+    data.schedule = {};
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(function(day) {
+      data.schedule[day] = { bedtime: defaultBed, wake: defaultWake };
+    });
+    setPersonalSleep(data);
+  }
+  return data;
+}
+function setPersonalSleep(data) { localStorage.setItem('personalSleep', JSON.stringify(data)); }
+
+/* Get the planned wake time for a given date ISO string */
+function getSleepWakeForDate(dateISO) {
+  var sleep = getPersonalSleep();
+  if (!sleep.schedule) return sleep.targetWake || '07:00';
+  var d = new Date(dateISO + 'T12:00:00');
+  var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  var daySchedule = sleep.schedule[dayName];
+  return daySchedule ? daySchedule.wake : (sleep.targetWake || '07:00');
+}
+
+/* Get the planned bedtime for a given date ISO string */
+function getSleepBedtimeForDate(dateISO) {
+  var sleep = getPersonalSleep();
+  if (!sleep.schedule) return sleep.targetBedtime || '22:30';
+  var d = new Date(dateISO + 'T12:00:00');
+  var dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+  var daySchedule = sleep.schedule[dayName];
+  return daySchedule ? daySchedule.bedtime : (sleep.targetBedtime || '22:30');
+}
+
+function renderSleepTracker() {
+  var section = document.getElementById('personalSleepSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var sleep = getPersonalSleep();
+  var today = getTodayISO();
+  var todayLog = sleep.log[today];
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  var card = buildPWCard('sleepCard', '😴', 'Bedtime Manager', function(body) {
+    /* ── Per-day schedule grid ── */
+    var info = document.createElement('div');
+    info.style.cssText = 'font-size:0.82rem;color:#888;margin-bottom:8px';
+    info.textContent = 'Plan when you sleep and wake up each day of the week.';
+    body.appendChild(info);
+
+    var scheduleGrid = document.createElement('div');
+    scheduleGrid.style.cssText = 'display:grid;grid-template-columns:auto 1fr 1fr;gap:4px 8px;align-items:center;margin-bottom:12px';
+
+    /* Header row */
+    var hDay = document.createElement('div');
+    hDay.style.cssText = 'font-weight:600;font-size:0.8rem;color:#888';
+    hDay.textContent = 'Day';
+    var hBed = document.createElement('div');
+    hBed.style.cssText = 'font-weight:600;font-size:0.8rem;color:#888;text-align:center';
+    hBed.textContent = '🌙 Bedtime';
+    var hWake = document.createElement('div');
+    hWake.style.cssText = 'font-weight:600;font-size:0.8rem;color:#888;text-align:center';
+    hWake.textContent = '☀️ Wake';
+    scheduleGrid.appendChild(hDay);
+    scheduleGrid.appendChild(hBed);
+    scheduleGrid.appendChild(hWake);
+
+    DAYS.forEach(function(day) {
+      var ds = sleep.schedule[day] || { bedtime: '22:30', wake: '07:00' };
+      var dayLabel = document.createElement('div');
+      dayLabel.style.cssText = 'font-size:0.85rem;font-weight:600';
+      dayLabel.textContent = day;
+
+      var bedInput = document.createElement('input');
+      bedInput.type = 'time';
+      bedInput.value = ds.bedtime || '22:30';
+      bedInput.style.cssText = 'font-size:0.8rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;width:100%';
+      bedInput.dataset.day = day;
+      bedInput.dataset.field = 'bedtime';
+
+      var wakeInput = document.createElement('input');
+      wakeInput.type = 'time';
+      wakeInput.value = ds.wake || '07:00';
+      wakeInput.style.cssText = 'font-size:0.8rem;border:1px solid #ddd;border-radius:6px;padding:3px 4px;width:100%';
+      wakeInput.dataset.day = day;
+      wakeInput.dataset.field = 'wake';
+
+      scheduleGrid.appendChild(dayLabel);
+      scheduleGrid.appendChild(bedInput);
+      scheduleGrid.appendChild(wakeInput);
+
+      function onScheduleChange() {
+        var s = getPersonalSleep();
+        if (!s.schedule) s.schedule = {};
+        if (!s.schedule[day]) s.schedule[day] = {};
+        s.schedule[day].bedtime = bedInput.value;
+        s.schedule[day].wake = wakeInput.value;
+        setPersonalSleep(s);
+        /* Update routine phase times to match */
+        syncRoutineTimesFromSleep();
+      }
+      bedInput.addEventListener('change', onScheduleChange);
+      wakeInput.addEventListener('change', onScheduleChange);
+    });
+    body.appendChild(scheduleGrid);
+
+    // Status (today's logged sleep)
+    var status = document.createElement('div');
+    status.className = 'sleep-status';
+    if (todayLog) {
+      var actualBed = todayLog.bedtime || '';
+      var actualWake = todayLog.wakeTime || '';
+      var duration = '';
+      if (actualBed && actualWake) {
+        var bedM = timeToMinutes(actualBed);
+        var wakeM = timeToMinutes(actualWake);
+        var diff = wakeM > bedM ? wakeM - bedM : (1440 - bedM) + wakeM;
+        var hrs = Math.floor(diff / 60);
+        var mins = diff % 60;
+        duration = hrs + 'h ' + mins + 'm';
+      }
+      status.innerHTML =
+        '<div class="sleep-status-icon">✅</div>' +
+        '<div class="sleep-status-text">' +
+          '<div class="sleep-status-label">Logged today</div>' +
+          '<div class="sleep-status-detail">Bed: ' + (actualBed || '—') + ' → Wake: ' + (actualWake || '—') + (duration ? ' (' + duration + ')' : '') + '</div>' +
+        '</div>';
+    } else {
+      var todayDay = DAYS[new Date().getDay()];
+      var todaySched = sleep.schedule[todayDay] || { bedtime: '22:30', wake: '07:00' };
+      status.innerHTML =
+        '<div class="sleep-status-icon">🔲</div>' +
+        '<div class="sleep-status-text">' +
+          '<div class="sleep-status-label">Not logged yet</div>' +
+          '<div class="sleep-status-detail">Log your sleep for today</div>' +
+        '</div>' +
+        '<button class="sleep-log-btn" id="sleepLogBtn">Log Sleep</button>';
+    }
+    body.appendChild(status);
+
+    // Log panel (hidden)
+    var todayDayForLog = DAYS[new Date().getDay()];
+    var todaySchedForLog = sleep.schedule[todayDayForLog] || { bedtime: '22:30', wake: '07:00' };
+    var logPanel = document.createElement('div');
+    logPanel.className = 'meal-edit-panel';
+    logPanel.id = 'sleepLogPanel';
+    logPanel.style.display = 'none';
+    logPanel.innerHTML =
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+        '<label style="font-size:0.85rem">Bed:</label>' +
+        '<input type="time" id="sleepActualBed" value="' + (todaySchedForLog.bedtime || '22:30') + '" />' +
+        '<label style="font-size:0.85rem">Wake:</label>' +
+        '<input type="time" id="sleepActualWake" value="' + (todaySchedForLog.wake || '07:00') + '" />' +
+        '<button class="meal-save-btn" id="sleepSaveBtn">Save</button>' +
+        '<button class="meal-cancel-btn" id="sleepCancelBtn">Cancel</button>' +
+      '</div>';
+    body.appendChild(logPanel);
+
+    // Sleep consistency streak
+    var streak = calcSleepStreak(sleep);
+    if (streak > 0) {
+      var streakEl = document.createElement('div');
+      streakEl.className = 'sleep-streak';
+      streakEl.textContent = '🔥 ' + streak + '-day sleep logging streak!';
+      body.appendChild(streakEl);
+    }
+
+    // Wire events
+    var logBtn = body.querySelector('#sleepLogBtn');
+    if (logBtn) logBtn.addEventListener('click', function() {
+      var p = document.getElementById('sleepLogPanel');
+      if (p) p.style.display = 'block';
+    });
+    var saveBtn = body.querySelector('#sleepSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', function() {
+      var s = getPersonalSleep();
+      var actualBed = document.getElementById('sleepActualBed');
+      var actualWake = document.getElementById('sleepActualWake');
+      s.log[today] = { bedtime: actualBed ? actualBed.value : '', wakeTime: actualWake ? actualWake.value : '' };
+      setPersonalSleep(s);
+      renderSleepTracker();
+    });
+    var cancelBtn = body.querySelector('#sleepCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', function() {
+      var p = document.getElementById('sleepLogPanel');
+      if (p) p.style.display = 'none';
+    });
+  }, 'pw_sleep');
+
+  section.appendChild(card);
+}
+
+/**
+ * Sync routine phase start times based on bedtime manager schedule.
+ * Morning routine start time = wake time for the current day.
+ * Evening routine end time = bedtime for the current day, so
+ * evening start time = bedtime - total evening routine duration.
+ * This is stored as a per-day override in the routine data.
+ */
+function syncRoutineTimesFromSleep() {
+  var sleep = getPersonalSleep();
+  if (!sleep.schedule) return;
+  var routines = getPersonalRoutines();
+
+  /* Build per-day routine time overrides */
+  if (!routines.sleepScheduleTimes) routines.sleepScheduleTimes = {};
+  var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  /* Calculate total duration of each routine period */
+  var morningDur = 0, eveningDur = 0;
+  var DEFAULT_STEP_DURATION = 10; /* minutes per step when duration not specified */
+  if (routines.phases && Array.isArray(routines.phases)) {
+    routines.phases.forEach(function(phase) {
+      var dur = (phase.steps || []).reduce(function(s, st) { return s + (parseInt(st.duration, 10) || DEFAULT_STEP_DURATION); }, 0);
+      if (phase.id === 'morning') morningDur = dur;
+      if (phase.id === 'evening') eveningDur = dur;
+    });
+  } else {
+    (routines.morning || []).forEach(function() { morningDur += DEFAULT_STEP_DURATION; });
+    (routines.evening || []).forEach(function() { eveningDur += DEFAULT_STEP_DURATION; });
+  }
+
+  DAYS.forEach(function(day) {
+    var sched = sleep.schedule[day];
+    if (!sched) return;
+    routines.sleepScheduleTimes[day] = {
+      morningStart: sched.wake || '07:00',
+      eveningEnd: sched.bedtime || '22:30'
+    };
+    /* Compute evening start: bedtime minus total evening routine duration */
+    if (sched.bedtime && eveningDur > 0) {
+      var bedMin = timeToMinutes(sched.bedtime);
+      var evStart = bedMin - eveningDur;
+      if (evStart < 0) evStart += 1440;
+      var evH = Math.floor(evStart / 60);
+      var evM = evStart % 60;
+      routines.sleepScheduleTimes[day].eveningStart = pad2(evH) + ':' + pad2(evM);
+    }
+  });
+
+  setPersonalRoutines(routines);
+}
+
+function timeToMinutes(t) {
+  if (!t) return 0;
+  var parts = t.split(':');
+  return (parseInt(parts[0], 10) || 0) * 60 + (parseInt(parts[1], 10) || 0);
+}
+
+function calcSleepStreak(sleep) {
+  var streak = 0;
+  var d = new Date();
+  for (var i = 0; i < 365; i++) {
+    var ds = d.toISOString().slice(0, 10);
+    if (sleep.log[ds]) streak++;
+    else break;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   3. GYM / EXERCISE PLANNER
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalGym() { return safeParseStorage('personalGym', { routines: [], log: {} }); }
+function setPersonalGym(data) { localStorage.setItem('personalGym', JSON.stringify(data)); }
+
+function renderGymPlanner() {
+  var section = document.getElementById('personalGymSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var gym = getPersonalGym();
+  var today = getTodayISO();
+
+  var card = buildPWCard('gymCard', '💪', 'Gym / Exercise', function(body) {
+    // Add routine
+    var addRow = document.createElement('div');
+    addRow.className = 'gym-routine-add';
+    addRow.innerHTML =
+      '<input type="text" id="gymRoutineNameInput" placeholder="New routine name (e.g. Upper Body, Leg Day)" />' +
+      '<button id="gymAddRoutineBtn">＋ Add</button>';
+    body.appendChild(addRow);
+
+    // Routines
+    if (!gym.routines.length) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'color:#aaa;text-align:center;padding:12px 0;font-size:0.88rem';
+      empty.textContent = 'No routines yet. Create one above!';
+      body.appendChild(empty);
+    }
+
+    gym.routines.forEach(function(routine, ri) {
+      var rDiv = document.createElement('div');
+      rDiv.className = 'gym-routine';
+
+      var rHeader = document.createElement('div');
+      rHeader.className = 'gym-routine-header';
+      rHeader.innerHTML =
+        '<span class="gym-routine-name">🏋️ ' + escapeHTML(routine.name) + '</span>' +
+        '<button class="gym-del-btn" data-ri="' + ri + '" title="Delete routine">🗑️</button>';
+      rDiv.appendChild(rHeader);
+
+      // Exercises
+      (routine.exercises || []).forEach(function(ex, ei) {
+        var exRow = document.createElement('div');
+        exRow.className = 'gym-exercise';
+        exRow.innerHTML =
+          '<span class="gym-exercise-name">' + escapeHTML(ex.name) + '</span>' +
+          '<span class="gym-exercise-detail">' + (ex.sets || '—') + ' × ' + (ex.reps || '—') + (ex.weight ? ' @ ' + ex.weight : '') + '</span>' +
+          '<button class="gym-del-btn" data-ri="' + ri + '" data-ei="' + ei + '" title="Remove">✕</button>';
+        rDiv.appendChild(exRow);
+      });
+
+      // Add exercise form
+      var exAdd = document.createElement('div');
+      exAdd.className = 'gym-add-row';
+      exAdd.innerHTML =
+        '<input type="text" class="gym-name-input" placeholder="Exercise name" data-ri="' + ri + '" />' +
+        '<input type="number" class="gym-small-input" placeholder="Sets" min="1" data-ri="' + ri + '" />' +
+        '<input type="text" class="gym-small-input" placeholder="Reps" data-ri="' + ri + '" />' +
+        '<input type="text" class="gym-small-input" placeholder="Weight" data-ri="' + ri + '" style="width:60px" />' +
+        '<button class="gym-add-btn" data-ri="' + ri + '">＋</button>';
+      rDiv.appendChild(exAdd);
+
+      // Log workout button
+      var todayLogged = gym.log[today] && gym.log[today].indexOf(routine.name) >= 0;
+      var logBtn = document.createElement('button');
+      logBtn.className = 'gym-log-btn';
+      logBtn.textContent = todayLogged ? '✅ Logged today' : '📝 Log workout';
+      logBtn.disabled = todayLogged;
+      logBtn.style.opacity = todayLogged ? '0.6' : '1';
+      logBtn.dataset.ri = ri;
+      logBtn.dataset.rname = routine.name;
+      rDiv.appendChild(logBtn);
+
+      body.appendChild(rDiv);
+    });
+
+    // Gym streak
+    var streak = calcGymStreak(gym);
+    if (streak > 0) {
+      var streakEl = document.createElement('div');
+      streakEl.className = 'gym-streak';
+      streakEl.textContent = '🔥 ' + streak + '-day workout streak!';
+      body.appendChild(streakEl);
+    }
+
+    // Wire events
+    var addRoutineBtn = body.querySelector('#gymAddRoutineBtn');
+    if (addRoutineBtn) addRoutineBtn.addEventListener('click', function() {
+      var input = document.getElementById('gymRoutineNameInput');
+      var name = input ? input.value.trim() : '';
+      if (!name) { alert('Enter a routine name'); return; }
+      var g = getPersonalGym();
+      g.routines.push({ name: name, exercises: [] });
+      setPersonalGym(g);
+      renderGymPlanner();
+    });
+
+    body.querySelectorAll('.gym-routine-header .gym-del-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        if (!confirm('Delete this routine?')) return;
+        var g = getPersonalGym();
+        g.routines.splice(parseInt(btn.dataset.ri, 10), 1);
+        setPersonalGym(g);
+        renderGymPlanner();
+      });
+    });
+
+    body.querySelectorAll('.gym-exercise .gym-del-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var g = getPersonalGym();
+        var ri = parseInt(btn.dataset.ri, 10);
+        var ei = parseInt(btn.dataset.ei, 10);
+        g.routines[ri].exercises.splice(ei, 1);
+        setPersonalGym(g);
+        renderGymPlanner();
+      });
+    });
+
+    body.querySelectorAll('.gym-add-row .gym-add-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var ri = parseInt(btn.dataset.ri, 10);
+        var row = btn.parentElement;
+        var inputs = row.querySelectorAll('input');
+        var name = inputs[0].value.trim();
+        if (!name) { alert('Enter exercise name'); return; }
+        var g = getPersonalGym();
+        g.routines[ri].exercises.push({
+          name: name,
+          sets: inputs[1].value || '',
+          reps: inputs[2].value || '',
+          weight: inputs[3].value || ''
+        });
+        setPersonalGym(g);
+        renderGymPlanner();
+      });
+    });
+
+    body.querySelectorAll('.gym-log-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var g = getPersonalGym();
+        if (!g.log[today]) g.log[today] = [];
+        var rname = btn.dataset.rname;
+        if (g.log[today].indexOf(rname) < 0) g.log[today].push(rname);
+        setPersonalGym(g);
+        renderGymPlanner();
+      });
+    });
+  }, 'pw_gym');
+
+  section.appendChild(card);
+}
+
+function calcGymStreak(gym) {
+  var streak = 0;
+  var d = new Date();
+  for (var i = 0; i < 365; i++) {
+    var ds = d.toISOString().slice(0, 10);
+    if (gym.log[ds] && gym.log[ds].length > 0) {
+      streak++;
+    } else if (i === 0) {
+      // Today not logged yet — skip but continue checking previous days
+    } else {
+      break;
+    }
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4a. DAILY FOCUS / TOP 3 PRIORITIES
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalFocus() { return safeParseStorage('personalFocus', {}); }
+function setPersonalFocus(data) { localStorage.setItem('personalFocus', JSON.stringify(data)); }
+
+function renderDailyFocus() {
+  var section = document.getElementById('personalFocusSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var today = getTodayISO();
+  var allFocus = getPersonalFocus();
+  var items = allFocus[today] || [];
+
+  // Get today's tasks for the task picker
+  var allTasks = getTasks();
+  var todayTasks = allTasks.filter(function(t) { return t.date === today && !t.done; });
+  // Filter out tasks already added as priorities
+  var existingTexts = items.map(function(i) { return i.text; });
+  var availableTasks = todayTasks.filter(function(t) {
+    return existingTexts.indexOf(t.title) < 0;
+  });
+
+  var card = buildPWCard('focusCard', '🎯', 'Today\'s Top Priorities', function(body) {
+    // Info text
+    var info = document.createElement('div');
+    info.style.cssText = 'font-size:0.82rem;color:#888;margin-bottom:8px';
+    info.textContent = 'Pick up to 3 must-do items to reduce overwhelm. Resets daily.';
+    body.appendChild(info);
+
+    // Items
+    items.forEach(function(item, idx) {
+      var row = document.createElement('div');
+      row.className = 'focus-item' + (item.done ? ' done' : '');
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = item.done;
+      cb.addEventListener('change', function() {
+        var f = getPersonalFocus();
+        if (f[today] && f[today][idx]) f[today][idx].done = cb.checked;
+        setPersonalFocus(f);
+        renderDailyFocus();
+      });
+      var text = document.createElement('span');
+      text.className = 'focus-item-text';
+      text.textContent = item.text;
+      var del = document.createElement('button');
+      del.className = 'focus-del-btn';
+      del.textContent = '✕';
+      del.addEventListener('click', function() {
+        var f = getPersonalFocus();
+        if (f[today]) f[today].splice(idx, 1);
+        setPersonalFocus(f);
+        renderDailyFocus();
+      });
+      row.appendChild(cb);
+      row.appendChild(text);
+      row.appendChild(del);
+      body.appendChild(row);
+    });
+
+    // Add row (max 3)
+    if (items.length < 3) {
+      var addRow = document.createElement('div');
+      addRow.className = 'focus-add-row';
+      addRow.innerHTML =
+        '<input type="text" id="focusAddInput" placeholder="What\'s your #' + (items.length + 1) + ' priority?" />' +
+        '<button class="focus-add-btn" id="focusAddBtn">Add</button>';
+      body.appendChild(addRow);
+
+      // Task picker: select from today's assigned tasks
+      if (availableTasks.length > 0) {
+        var pickerLabel = document.createElement('div');
+        pickerLabel.style.cssText = 'font-size:0.78rem;color:#888;margin-top:8px;margin-bottom:4px';
+        pickerLabel.textContent = '— or pick from today\'s tasks —';
+        body.appendChild(pickerLabel);
+
+        var pickerWrap = document.createElement('div');
+        pickerWrap.style.cssText = 'display:flex;flex-direction:column;gap:4px';
+        availableTasks.forEach(function(task) {
+          var taskBtn = document.createElement('button');
+          taskBtn.style.cssText = 'text-align:left;background:#f0f6ff;border:1px solid #d0dff5;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:0.82rem;display:flex;align-items:center;gap:6px';
+          var pmap = {'1':'!','2':'!!','3':'!!!'};
+          var priLabel = task.priority ? ' <span style="color:#e74c3c;font-weight:600">' + (pmap[task.priority] || '') + '</span>' : '';
+          taskBtn.innerHTML = '<span>＋</span><span>' + escapeHTML(task.title) + priLabel + '</span>';
+          taskBtn.addEventListener('click', function() {
+            var f = getPersonalFocus();
+            if (!f[today]) f[today] = [];
+            if (f[today].length >= 3) { alert('Maximum 3 priorities per day'); return; }
+            f[today].push({ text: task.title, done: false, taskId: task.id });
+            setPersonalFocus(f);
+            renderDailyFocus();
+          });
+          pickerWrap.appendChild(taskBtn);
+        });
+        body.appendChild(pickerWrap);
+      }
+    }
+
+    // Completion message
+    if (items.length > 0 && items.every(function(i) { return i.done; })) {
+      var msg = document.createElement('div');
+      msg.style.cssText = 'text-align:center;padding:8px;font-size:0.9rem;color:#27ae60;font-weight:600;margin-top:6px';
+      msg.textContent = '🎉 All priorities completed! Great job!';
+      body.appendChild(msg);
+    }
+
+    // Wire
+    var addBtn = body.querySelector('#focusAddBtn');
+    if (addBtn) addBtn.addEventListener('click', function() {
+      var input = document.getElementById('focusAddInput');
+      var text = input ? input.value.trim() : '';
+      if (!text) return;
+      var f = getPersonalFocus();
+      if (!f[today]) f[today] = [];
+      if (f[today].length >= 3) { alert('Maximum 3 priorities per day'); return; }
+      f[today].push({ text: text, done: false });
+      setPersonalFocus(f);
+      renderDailyFocus();
+    });
+    var addInput = body.querySelector('#focusAddInput');
+    if (addInput) addInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); if (addBtn) addBtn.click(); }
+    });
+  }, 'pw_focus');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4b. ROUTINE CHECKLISTS (Morning & Evening)
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalRoutines() { return safeParseStorage('personalRoutines', { morning: [], evening: [] }); }
+function setPersonalRoutines(data) { localStorage.setItem('personalRoutines', JSON.stringify(data)); }
+function getPersonalRoutineLog() { return safeParseStorage('personalRoutineLog', {}); }
+function setPersonalRoutineLog(data) { localStorage.setItem('personalRoutineLog', JSON.stringify(data)); }
+
+function renderRoutineChecklist() {
+  var section = document.getElementById('personalRoutineSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var routines = getPersonalRoutines();
+  var today = getTodayISO();
+  var log = getPersonalRoutineLog();
+  if (!log[today]) log[today] = { morning: [], evening: [] };
+  var todayLog = log[today];
+
+  var card = buildPWCard('routineCard', '📋', 'Daily Routines', function(body) {
+    var info = document.createElement('div');
+    info.style.cssText = 'font-size:0.82rem;color:#888;margin-bottom:8px';
+    info.textContent = 'Build consistent morning & evening routines. Checked items reset each day.';
+    body.appendChild(info);
+
+    ['morning', 'evening'].forEach(function(period) {
+      var emoji = period === 'morning' ? '🌅' : '🌙';
+      var label = document.createElement('div');
+      label.className = 'routine-section-label';
+      label.textContent = emoji + ' ' + period.charAt(0).toUpperCase() + period.slice(1) + ' Routine';
+      body.appendChild(label);
+
+      var items = routines[period] || [];
+      var checked = todayLog[period] || [];
+
+      items.forEach(function(item, idx) {
+        var isDone = checked.indexOf(idx) >= 0;
+        var row = document.createElement('div');
+        row.className = 'routine-item' + (isDone ? ' done' : '');
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = isDone;
+        cb.addEventListener('change', function() {
+          var l = getPersonalRoutineLog();
+          if (!l[today]) l[today] = { morning: [], evening: [] };
+          if (!l[today][period]) l[today][period] = [];
+          if (cb.checked) {
+            if (l[today][period].indexOf(idx) < 0) l[today][period].push(idx);
+          } else {
+            l[today][period] = l[today][period].filter(function(i) { return i !== idx; });
+          }
+          setPersonalRoutineLog(l);
+          renderRoutineChecklist();
+        });
+        var sp = document.createElement('span');
+        sp.textContent = item;
+        var del = document.createElement('button');
+        del.className = 'routine-del-btn';
+        del.textContent = '✕';
+        del.addEventListener('click', function() {
+          var r = getPersonalRoutines();
+          r[period].splice(idx, 1);
+          setPersonalRoutines(r);
+          // Remap log indices: remove deleted index, shift higher indices down
+          var l = getPersonalRoutineLog();
+          if (l[today] && l[today][period]) {
+            l[today][period] = l[today][period]
+              .filter(function(i) { return i !== idx; })
+              .map(function(i) { return i > idx ? i - 1 : i; });
+            setPersonalRoutineLog(l);
+          }
+          renderRoutineChecklist();
+        });
+        row.appendChild(cb);
+        row.appendChild(sp);
+        row.appendChild(del);
+        body.appendChild(row);
+      });
+
+      // Progress
+      if (items.length > 0) {
+        var doneCount = checked.filter(function(i) { return i < items.length; }).length;
+        var pct = Math.round((doneCount / items.length) * 100);
+        var prog = document.createElement('div');
+        prog.style.cssText = 'font-size:0.78rem;color:' + (pct === 100 ? '#27ae60' : '#888') + ';margin:2px 0 6px;font-weight:600';
+        prog.textContent = pct === 100 ? '✅ Complete!' : doneCount + '/' + items.length + ' done';
+        body.appendChild(prog);
+      }
+    });
+
+    // Add item form
+    var addRow = document.createElement('div');
+    addRow.className = 'routine-add-row';
+    addRow.innerHTML =
+      '<input type="text" id="routineAddInput" placeholder="Add routine step…" />' +
+      '<select id="routineAddPeriod">' +
+        '<option value="morning">🌅 Morning</option>' +
+        '<option value="evening">🌙 Evening</option>' +
+      '</select>' +
+      '<button class="routine-add-btn" id="routineAddBtn">＋</button>';
+    body.appendChild(addRow);
+
+    var addBtn = body.querySelector('#routineAddBtn');
+    if (addBtn) addBtn.addEventListener('click', function() {
+      var input = document.getElementById('routineAddInput');
+      var periodSel = document.getElementById('routineAddPeriod');
+      var text = input ? input.value.trim() : '';
+      var period = periodSel ? periodSel.value : 'morning';
+      if (!text) return;
+      var r = getPersonalRoutines();
+      if (!r[period]) r[period] = [];
+      r[period].push(text);
+      setPersonalRoutines(r);
+      renderRoutineChecklist();
+    });
+    var addInput = body.querySelector('#routineAddInput');
+    if (addInput) addInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') { e.preventDefault(); if (addBtn) addBtn.click(); }
+    });
+  }, 'pw_routine');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4c. HYDRATION TRACKER
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalHydration() { return safeParseStorage('personalHydration', { goal: 8, log: {} }); }
+function setPersonalHydration(data) { localStorage.setItem('personalHydration', JSON.stringify(data)); }
+
+function renderHydrationTracker() {
+  var section = document.getElementById('personalHydrationSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var hydration = getPersonalHydration();
+  var today = getTodayISO();
+  var count = hydration.log[today] || 0;
+  var goal = hydration.goal || 8;
+
+  var card = buildPWCard('hydrationCard', '💧', 'Hydration', function(body) {
+    // Glass display
+    var display = document.createElement('div');
+    display.className = 'hydration-display';
+
+    var glasses = document.createElement('div');
+    glasses.className = 'hydration-glasses';
+    for (var i = 0; i < goal; i++) {
+      var glass = document.createElement('div');
+      glass.className = 'hydration-glass' + (i < count ? ' filled' : '');
+      glass.dataset.idx = i;
+      glass.innerHTML = '<div class="hydration-water"></div>';
+      glass.addEventListener('click', (function(idx) {
+        return function() {
+          var h = getPersonalHydration();
+          h.log[today] = idx + 1;
+          setPersonalHydration(h);
+          renderHydrationTracker();
+        };
+      })(i));
+      glasses.appendChild(glass);
+    }
+    display.appendChild(glasses);
+
+    var countEl = document.createElement('div');
+    countEl.className = 'hydration-count';
+    countEl.textContent = count + '/' + goal;
+    display.appendChild(countEl);
+    body.appendChild(display);
+
+    // Completed message
+    if (count >= goal) {
+      var msg = document.createElement('div');
+      msg.style.cssText = 'text-align:center;font-size:0.85rem;color:#27ae60;font-weight:600;margin-top:6px';
+      msg.textContent = '🎉 Hydration goal reached!';
+      body.appendChild(msg);
+    }
+
+    // Controls
+    var controls = document.createElement('div');
+    controls.className = 'hydration-goal-row';
+    controls.innerHTML =
+      '<span>🎯 Goal:</span>' +
+      '<input type="number" class="hydration-goal-input" id="hydrationGoalInput" value="' + goal + '" min="1" max="20" />' +
+      '<span>glasses</span>' +
+      '<button class="hydration-reset" id="hydrationResetBtn">Reset today</button>';
+    body.appendChild(controls);
+
+    // Wire
+    var goalInput = body.querySelector('#hydrationGoalInput');
+    if (goalInput) goalInput.addEventListener('change', function() {
+      var h = getPersonalHydration();
+      h.goal = parseInt(goalInput.value, 10) || 8;
+      setPersonalHydration(h);
+      renderHydrationTracker();
+    });
+    var resetBtn = body.querySelector('#hydrationResetBtn');
+    if (resetBtn) resetBtn.addEventListener('click', function() {
+      var h = getPersonalHydration();
+      h.log[today] = 0;
+      setPersonalHydration(h);
+      renderHydrationTracker();
+    });
+  }, 'pw_hydration');
+
+  section.appendChild(card);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   4d. MOOD / ENERGY CHECK-IN
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalMood() { return safeParseStorage('personalMood', []); }
+function setPersonalMood(data) { localStorage.setItem('personalMood', JSON.stringify(data)); }
+
+function renderMoodCheckin() {
+  var section = document.getElementById('personalMoodSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var moods = getPersonalMood();
+  var today = getTodayISO();
+  var todayEntry = moods.find(function(m) { return m.date === today; });
+
+  var moodOptions = [
+    { emoji: '😊', label: 'Great' },
+    { emoji: '🙂', label: 'Good' },
+    { emoji: '😐', label: 'Okay' },
+    { emoji: '😟', label: 'Low' },
+    { emoji: '😢', label: 'Rough' }
+  ];
+  var energyOptions = ['🟢 High', '🟡 Medium', '🔴 Low'];
+
+  var card = buildPWCard('moodCard', '🧠', 'Mood & Energy Check-in', function(body) {
+    if (todayEntry) {
+      var checked = document.createElement('div');
+      checked.style.cssText = 'text-align:center;padding:8px';
+      checked.innerHTML =
+        '<div style="font-size:2rem">' + todayEntry.mood + '</div>' +
+        '<div style="font-size:0.88rem;font-weight:600;margin:4px 0">Feeling: ' + todayEntry.moodLabel + '</div>' +
+        '<div style="font-size:0.82rem;color:#888">Energy: ' + todayEntry.energy + '</div>' +
+        (todayEntry.note ? '<div style="font-size:0.82rem;color:#666;margin-top:4px;font-style:italic">"' + escapeHTML(todayEntry.note) + '"</div>' : '');
+      body.appendChild(checked);
+    } else {
+      // Mood selection
+      var moodLabel = document.createElement('div');
+      moodLabel.style.cssText = 'font-size:0.85rem;font-weight:600;text-align:center;margin-bottom:6px';
+      moodLabel.textContent = 'How are you feeling today?';
+      body.appendChild(moodLabel);
+
+      var moodRow = document.createElement('div');
+      moodRow.className = 'mood-row';
+      moodOptions.forEach(function(opt) {
+        var btn = document.createElement('button');
+        btn.className = 'mood-btn';
+        btn.textContent = opt.emoji;
+        btn.title = opt.label;
+        btn.dataset.mood = opt.emoji;
+        btn.dataset.label = opt.label;
+        btn.addEventListener('click', function() {
+          moodRow.querySelectorAll('.mood-btn').forEach(function(b) { b.classList.remove('selected'); });
+          btn.classList.add('selected');
+        });
+        moodRow.appendChild(btn);
+      });
+      body.appendChild(moodRow);
+
+      // Energy level
+      var energyLabel = document.createElement('div');
+      energyLabel.style.cssText = 'font-size:0.85rem;font-weight:600;text-align:center;margin-bottom:6px';
+      energyLabel.textContent = 'Energy level:';
+      body.appendChild(energyLabel);
+
+      var energyRow = document.createElement('div');
+      energyRow.className = 'mood-energy-row';
+      energyOptions.forEach(function(opt) {
+        var btn = document.createElement('button');
+        btn.className = 'mood-energy-btn';
+        btn.textContent = opt;
+        btn.dataset.energy = opt;
+        btn.addEventListener('click', function() {
+          energyRow.querySelectorAll('.mood-energy-btn').forEach(function(b) { b.classList.remove('selected'); });
+          btn.classList.add('selected');
+        });
+        energyRow.appendChild(btn);
+      });
+      body.appendChild(energyRow);
+
+      // Note
+      var noteInput = document.createElement('input');
+      noteInput.type = 'text';
+      noteInput.className = 'mood-note-input';
+      noteInput.placeholder = 'Optional: quick note about your day…';
+      noteInput.id = 'moodNoteInput';
+      body.appendChild(noteInput);
+
+      // Save
+      var saveBtn = document.createElement('button');
+      saveBtn.className = 'mood-save-btn';
+      saveBtn.textContent = '💾 Save Check-in';
+      saveBtn.addEventListener('click', function() {
+        var selectedMood = moodRow.querySelector('.mood-btn.selected');
+        var selectedEnergy = energyRow.querySelector('.mood-energy-btn.selected');
+        if (!selectedMood) { alert('Please select a mood'); return; }
+        if (!selectedEnergy) { alert('Please select an energy level'); return; }
+        var data = getPersonalMood();
+        data.unshift({
+          date: today,
+          mood: selectedMood.dataset.mood,
+          moodLabel: selectedMood.dataset.label,
+          energy: selectedEnergy.dataset.energy,
+          note: noteInput.value.trim()
+        });
+        // Keep only last 30 days
+        if (data.length > 30) data = data.slice(0, 30);
+        setPersonalMood(data);
+        renderMoodCheckin();
+      });
+      body.appendChild(saveBtn);
+    }
+
+    // History (last 7 entries)
+    var recent = moods.filter(function(m) { return m.date !== today || todayEntry; }).slice(0, 7);
+    if (recent.length > 0) {
+      var histLabel = document.createElement('div');
+      histLabel.style.cssText = 'font-size:0.85rem;font-weight:600;margin-top:12px;margin-bottom:4px';
+      histLabel.textContent = '📊 Recent History';
+      body.appendChild(histLabel);
+
+      var hist = document.createElement('div');
+      hist.className = 'mood-history';
+      recent.forEach(function(m) {
+        var row = document.createElement('div');
+        row.className = 'mood-history-item';
+        row.innerHTML =
+          '<span class="mood-history-date">' + formatShortDate(m.date) + '</span>' +
+          '<span class="mood-history-mood">' + m.mood + '</span>' +
+          '<span class="mood-history-energy">' + m.energy + '</span>' +
+          '<span class="mood-history-note">' + escapeHTML(m.note || '') + '</span>';
+        hist.appendChild(row);
+      });
+      body.appendChild(hist);
+    }
+  }, 'pw_mood');
+
+  section.appendChild(card);
+}
+
+function formatShortDate(dateStr) {
+  if (!dateStr) return '';
+  var d = new Date(dateStr + 'T00:00:00');
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+/* ══════════════════════════════════════════════════════════════
+   8. BUDGET WIDGET
+   ══════════════════════════════════════════════════════════════ */
+
+function getPersonalBudget() { return safeParseStorage('personalBudget', { bills: [], oneTimeExpenses: [], categories: [], payPeriods: [] }); }
+function setPersonalBudget(data) { localStorage.setItem('personalBudget', JSON.stringify(data)); }
+
+function calcBudgetJobIncome() {
+  /* Calculate total job earnings from the last 30 days */
+  var jobs = safeParseStorage('jobs', []);
+  if (!jobs.length) return 0;
+  var events = safeParseStorage('events', []);
+  /* Count job events in the last 30 days */
+  var now = new Date();
+  var thirtyAgo = new Date(now);
+  thirtyAgo.setDate(now.getDate() - 30);
+  var startISO = thirtyAgo.toISOString().slice(0, 10);
+  var endISO   = now.toISOString().slice(0, 10);
+  var expanded;
+  if (typeof getExpandedEvents === 'function') {
+    try { expanded = getExpandedEvents(startISO, endISO); } catch (_) { expanded = null; }
+  }
+  if (!expanded) expanded = events;
+
+  var byId = {}, byName = {};
+  jobs.forEach(function(j) {
+    if (j.id) byId[j.id] = j;
+    if (j.name) byName[j.name.toLowerCase()] = j;
+  });
+
+  var total = 0;
+  expanded.forEach(function(ev) {
+    var d = normalizeDate(ev.date);
+    if (!d || d < startISO || d > endISO) return;
+    var cat = (ev.category || '').toLowerCase();
+    var isJob = (cat === 'job') || ((cat === 'work' || ev.domain === 'work') && ev.bucketId != null);
+    if (!isJob) return;
+    var job = null;
+    if (ev.jobId) job = byId[ev.jobId];
+    if (!job && ev.bucketId != null) job = byId[ev.bucketId];
+    if (!job && ev.jobName) job = byName[(ev.jobName || '').toLowerCase()];
+    if (!job && ev.jobRate)  job = { rate: ev.jobRate, unit: ev.jobUnit || 'hour' };
+    if (!job) return;
+    var rate = parseFloat(job.rate || 0);
+    var unit = job.unit || 'hour';
+    if (unit === 'job' || unit === 'day') {
+      total += rate;
+    } else if (unit === 'hour' && ev.time && ev.endTime) {
+      var sm = timeToMinutes(ev.time), em = timeToMinutes(ev.endTime);
+      if (em <= sm) em += 1440;
+      total += rate * ((em - sm) / 60);
+    }
+  });
+  return total;
+}
+
+function calcBudgetGrocerySpending() {
+  var list = safeParseStorage('groceryList', []);
+  return list.reduce(function(sum, item) { return sum + (parseFloat(item.price) || 0); }, 0);
+}
+
+/** Create a reminder in the Budget bucket for a recurring bill */
+function createBudgetBillReminder(bill) {
+  if (!bill.dueDate) return;
+  var reminders = getReminders();
+  var dateKey = bill.dueDate;
+  if (!reminders[dateKey]) reminders[dateKey] = [];
+  // Check if reminder already exists for this bill
+  var reminderText = 'Bill due: ' + bill.name + ' ($' + (parseFloat(bill.amount) || 0).toFixed(2) + ')';
+  var exists = reminders[dateKey].some(function(r) {
+    return r.bucketId === 'budget' && r.text === reminderText;
+  });
+  if (!exists) {
+    reminders[dateKey].push({
+      text: reminderText,
+      time: '09:00',
+      notify: '1d',
+      domain: 'personal',
+      bucketId: 'budget'
+    });
+    setReminders(reminders);
+  }
+}
+
+function calcNextPayDate(startDate, type) {
+  var start = new Date(startDate + 'T00:00:00');
+  if (isNaN(start.getTime())) return new Date();
+  var now = new Date();
+  var next = new Date(start);
+
+  if (type === 'weekly') {
+    while (next < now) next.setDate(next.getDate() + 7);
+  } else if (type === 'biweekly') {
+    while (next < now) next.setDate(next.getDate() + 14);
+  } else if (type === 'semimonthly') {
+    // Pay on the start day and start day + ~15 days (1st/15th pattern)
+    var day = start.getDate();
+    var altDay = day <= 15 ? day + 15 : day - 15;
+    if (altDay < 1) altDay = 1;
+    if (altDay > 28) altDay = 28;
+    var d1 = Math.min(day, altDay);
+    var d2 = Math.max(day, altDay);
+    next = new Date(now.getFullYear(), now.getMonth(), d1);
+    if (next < now) {
+      next = new Date(now.getFullYear(), now.getMonth(), d2);
+    }
+    if (next < now) {
+      next = new Date(now.getFullYear(), now.getMonth() + 1, d1);
+    }
+  } else {
+    while (next < now) next.setMonth(next.getMonth() + 1);
+  }
+  return next;
+}
+
+function renderBudgetWidget() {
+  var section = document.getElementById('personalBudgetSection');
+  if (!section) return;
+  section.innerHTML = '';
+
+  var budget = getPersonalBudget();
+  var bills = budget.bills || [];
+  var oneTimeExpenses = budget.oneTimeExpenses || [];
+  var budgetCategories = budget.categories || [];
+
+  var card = buildPWCard('budgetCard', '💰', 'Budget', function(body) {
+    /* ── Income ── */
+    var incomeSection = document.createElement('div');
+    incomeSection.style.cssText = 'margin-bottom:10px';
+    var jobIncome = calcBudgetJobIncome();
+    incomeSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">📈 Income (last 30 days)</div>' +
+      '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.85rem">' +
+        '<span>Job earnings</span>' +
+        '<span style="color:#27ae60;font-weight:600">$' + jobIncome.toFixed(2) + '</span>' +
+      '</div>';
+    body.appendChild(incomeSection);
+
+    /* ── Budget Categories ── */
+    var catSection = document.createElement('div');
+    catSection.style.cssText = 'margin-bottom:10px';
+    catSection.innerHTML = '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">🏷️ Budget Categories</div>';
+
+    if (budgetCategories.length) {
+      budgetCategories.forEach(function(cat, ci) {
+        var catRow = document.createElement('div');
+        catRow.style.cssText = 'display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0;padding:3px 8px;background:' + (cat.color || '#e8f0fe') + '22;border:1px solid ' + (cat.color || '#4a90e2') + '55;border-radius:12px;font-size:0.78rem;color:' + (cat.color || '#4a90e2');
+        catRow.innerHTML = escapeHTML(cat.name) +
+          '<button class="budget-cat-del" data-ci="' + ci + '" style="background:none;border:none;cursor:pointer;font-size:0.7rem;color:#aaa;padding:0 2px" title="Remove">✕</button>';
+        catSection.appendChild(catRow);
+      });
+    }
+
+    var addCatRow = document.createElement('div');
+    addCatRow.style.cssText = 'display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap';
+    addCatRow.innerHTML =
+      '<input type="text" id="budgetCatName" placeholder="Category name" style="flex:1;min-width:80px;font-size:0.78rem;border:1px solid #ddd;border-radius:8px;padding:4px 6px" />' +
+      '<input type="color" id="budgetCatColor" value="#4a90e2" style="width:28px;height:28px;border:none;border-radius:4px;padding:0;cursor:pointer" />' +
+      '<button id="budgetAddCatBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:4px 8px;font-size:0.78rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+    catSection.appendChild(addCatRow);
+    body.appendChild(catSection);
+
+    /* ── Recurring bills ── */
+    var billsSection = document.createElement('div');
+    billsSection.style.cssText = 'margin-bottom:10px';
+    var billsTotal = bills.reduce(function(s, b) { return s + (parseFloat(b.amount) || 0); }, 0);
+    billsSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">📋 Recurring Bills' +
+        '<span style="font-weight:400;font-size:0.78rem;color:#888;margin-left:6px">$' + billsTotal.toFixed(2) + '/mo</span>' +
+      '</div>';
+
+    bills.forEach(function(bill, bi) {
+      var bRow = document.createElement('div');
+      bRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.85rem;border-bottom:1px solid #f5f5f5';
+      var catTag = bill.category ? '<span style="font-size:0.72rem;color:#888;margin-left:4px">(' + escapeHTML(bill.category) + ')</span>' : '';
+      var dateTag = bill.dueDate ? '<span style="font-size:0.72rem;color:#4a90e2;margin-left:4px">📅 ' + escapeHTML(bill.dueDate) + '</span>' : '';
+      var repeatTag = (bill.repeat && bill.repeat !== 'monthly') ? '<span style="font-size:0.72rem;color:#9b59b6;margin-left:4px">🔄 ' + escapeHTML(bill.repeat) + '</span>' : '';
+      bRow.innerHTML =
+        '<span>' + escapeHTML(bill.name) + catTag + dateTag + repeatTag + '</span>' +
+        '<span style="display:flex;align-items:center;gap:6px">' +
+          '<span style="color:#e74c3c;font-weight:600">$' + (parseFloat(bill.amount) || 0).toFixed(2) + '</span>' +
+          '<button class="budget-bill-del" data-bi="' + bi + '" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:#aaa;padding:2px" title="Remove">✕</button>' +
+        '</span>';
+      billsSection.appendChild(bRow);
+    });
+
+    /* Add bill form with date and category */
+    var addBillRow = document.createElement('div');
+    addBillRow.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';
+    var catOptions = '<option value="">Category</option>';
+    budgetCategories.forEach(function(c) { catOptions += '<option value="' + escapeHTML(c.name) + '">' + escapeHTML(c.name) + '</option>'; });
+    addBillRow.innerHTML =
+      '<input type="text" id="budgetBillName" placeholder="Bill name" style="flex:1;min-width:100px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="number" id="budgetBillAmount" placeholder="Amount" min="0" step="0.01" style="width:80px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="date" id="budgetBillDate" title="Due date (creates a reminder)" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<select id="budgetBillCategory" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' + catOptions + '</select>' +
+      '<select id="budgetBillRepeat" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' +
+        '<option value="monthly" selected>Monthly</option>' +
+        '<option value="weekly">Weekly</option>' +
+        '<option value="biweekly">Biweekly</option>' +
+        '<option value="quarterly">Quarterly</option>' +
+        '<option value="yearly">Yearly</option>' +
+      '</select>' +
+      '<button id="budgetAddBillBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+    billsSection.appendChild(addBillRow);
+    body.appendChild(billsSection);
+
+    /* ── Pay Periods ── */
+    var payPeriods = budget.payPeriods || [];
+    var ppSection = document.createElement('div');
+    ppSection.style.cssText = 'margin-bottom:10px';
+    ppSection.innerHTML = '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">💰 Pay Periods</div>';
+
+    payPeriods.forEach(function(pp, pi) {
+      var ppRow = document.createElement('div');
+      ppRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.85rem;border-bottom:1px solid #f5f5f5';
+      var nextPay = pp.startDate ? calcNextPayDate(pp.startDate, pp.type) : null;
+      var nextPayStr = nextPay ? nextPay.toISOString().slice(0, 10) : '';
+      var jobTag = pp.jobName ? '<span style="font-size:0.72rem;color:#888;margin-left:4px">(' + escapeHTML(pp.jobName) + ')</span>' : '';
+      var nextTag = nextPayStr ? '<span style="font-size:0.72rem;color:#27ae60;margin-left:4px">Next: ' + escapeHTML(nextPayStr) + '</span>' : '';
+      ppRow.innerHTML =
+        '<span>' + escapeHTML(pp.type || 'monthly') + jobTag +
+          '<span style="font-size:0.72rem;color:#4a90e2;margin-left:4px">📅 ' + escapeHTML(pp.startDate || '') + '</span>' +
+          nextTag +
+        '</span>' +
+        '<span style="display:flex;align-items:center;gap:6px">' +
+          '<span style="color:#27ae60;font-weight:600">$' + (parseFloat(pp.amount) || 0).toFixed(2) + '</span>' +
+          '<button class="budget-pp-del" data-pi="' + pi + '" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:#aaa;padding:2px" title="Remove">✕</button>' +
+        '</span>';
+      ppSection.appendChild(ppRow);
+    });
+
+    var addPPToggle = document.createElement('button');
+    addPPToggle.id = 'budgetAddPayPeriodToggle';
+    addPPToggle.style.cssText = 'background:none;border:1px dashed #ccc;border-radius:8px;padding:4px 10px;font-size:0.78rem;cursor:pointer;color:#888;margin-top:4px;width:100%';
+    addPPToggle.textContent = '＋ Add Pay Period';
+    ppSection.appendChild(addPPToggle);
+
+    var addPPForm = document.createElement('div');
+    addPPForm.id = 'budgetAddPPForm';
+    addPPForm.style.cssText = 'display:none;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';
+    var workBuckets = typeof getBuckets === 'function' ? getBuckets('work') : [];
+    var jobOptions = '<option value="">Job (optional)</option>';
+    workBuckets.forEach(function(wb) { jobOptions += '<option value="' + escapeHTML(wb.name) + '">' + (wb.emoji ? escapeHTML(wb.emoji) + ' ' : '') + escapeHTML(wb.name) + '</option>'; });
+    addPPForm.innerHTML =
+      '<select id="budgetPPType" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' +
+        '<option value="weekly">Weekly</option>' +
+        '<option value="biweekly" selected>Biweekly</option>' +
+        '<option value="semimonthly">Semi-monthly</option>' +
+        '<option value="monthly">Monthly</option>' +
+      '</select>' +
+      '<input type="date" id="budgetPPStart" title="First pay date" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="number" id="budgetPPAmount" placeholder="Amount" min="0" step="0.01" style="width:80px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<select id="budgetPPJob" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' + jobOptions + '</select>' +
+      '<button id="budgetAddPayPeriodBtn" style="background:#27ae60;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+    ppSection.appendChild(addPPForm);
+    body.appendChild(ppSection);
+
+    /* ── One-Time Expenses ── */
+    var oneTimeSection = document.createElement('div');
+    oneTimeSection.style.cssText = 'margin-bottom:10px';
+    var oneTimeTotal = oneTimeExpenses.reduce(function(s, e) { return s + (parseFloat(e.amount) || 0); }, 0);
+    oneTimeSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">🧾 One-Time Expenses' +
+        '<span style="font-weight:400;font-size:0.78rem;color:#888;margin-left:6px">$' + oneTimeTotal.toFixed(2) + '</span>' +
+      '</div>';
+
+    oneTimeExpenses.forEach(function(exp, ei) {
+      var eRow = document.createElement('div');
+      eRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.85rem;border-bottom:1px solid #f5f5f5';
+      var catTag = exp.category ? '<span style="font-size:0.72rem;color:#888;margin-left:4px">(' + escapeHTML(exp.category) + ')</span>' : '';
+      var dateTag = exp.date ? '<span style="font-size:0.72rem;color:#888;margin-left:4px">📅 ' + escapeHTML(exp.date) + '</span>' : '';
+      eRow.innerHTML =
+        '<span>' + escapeHTML(exp.name) + catTag + dateTag + '</span>' +
+        '<span style="display:flex;align-items:center;gap:6px">' +
+          '<span style="color:#e74c3c;font-weight:600">$' + (parseFloat(exp.amount) || 0).toFixed(2) + '</span>' +
+          '<button class="budget-onetime-del" data-ei="' + ei + '" style="background:none;border:none;cursor:pointer;font-size:0.8rem;color:#aaa;padding:2px" title="Remove">✕</button>' +
+        '</span>';
+      oneTimeSection.appendChild(eRow);
+    });
+
+    /* Add one-time expense form */
+    var addOneTimeRow = document.createElement('div');
+    addOneTimeRow.style.cssText = 'display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap';
+    addOneTimeRow.innerHTML =
+      '<input type="text" id="budgetOneTimeName" placeholder="Expense name" style="flex:1;min-width:100px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="number" id="budgetOneTimeAmount" placeholder="Amount" min="0" step="0.01" style="width:80px;font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<input type="date" id="budgetOneTimeDate" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px" />' +
+      '<select id="budgetOneTimeCategory" style="font-size:0.82rem;border:1px solid #ddd;border-radius:8px;padding:6px 8px">' + catOptions + '</select>' +
+      '<button id="budgetAddOneTimeBtn" style="background:#9b59b6;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:0.82rem;cursor:pointer;white-space:nowrap">＋ Add</button>';
+    oneTimeSection.appendChild(addOneTimeRow);
+    body.appendChild(oneTimeSection);
+
+    /* ── Expenses Summary ── */
+    var grocerySpend = calcBudgetGrocerySpending();
+    var expenseSection = document.createElement('div');
+    expenseSection.style.cssText = 'margin-bottom:10px';
+    var totalExpenses = billsTotal + oneTimeTotal + grocerySpend;
+    expenseSection.innerHTML =
+      '<div style="font-weight:600;font-size:0.88rem;margin-bottom:4px">💸 Expenses</div>' +
+      (grocerySpend > 0 ?
+        '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem">' +
+          '<span>Groceries</span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + grocerySpend.toFixed(2) + '</span>' +
+        '</div>' : '') +
+      (billsTotal > 0 ?
+        '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem">' +
+          '<span>Recurring bills</span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + billsTotal.toFixed(2) + '</span>' +
+        '</div>' : '') +
+      (oneTimeTotal > 0 ?
+        '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.85rem">' +
+          '<span>One-time expenses</span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + oneTimeTotal.toFixed(2) + '</span>' +
+        '</div>' : '') +
+      '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:0.88rem;font-weight:700;border-top:1px solid #eee;margin-top:4px">' +
+        '<span>Total expenses</span>' +
+        '<span style="color:#e74c3c">$' + totalExpenses.toFixed(2) + '</span>' +
+      '</div>';
+    body.appendChild(expenseSection);
+
+    /* ── Net / summary ── */
+    var net = jobIncome - totalExpenses;
+    var netColor = net >= 0 ? '#27ae60' : '#e74c3c';
+    var summaryEl = document.createElement('div');
+    summaryEl.style.cssText = 'display:flex;justify-content:space-between;padding:8px;background:#f8f9fa;border-radius:8px;font-size:0.95rem;font-weight:700';
+    summaryEl.innerHTML =
+      '<span>Net (30 days)</span>' +
+      '<span style="color:' + netColor + '">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span>';
+    body.appendChild(summaryEl);
+
+    /* ── Analytics Button ── */
+    var analyticsBtn = document.createElement('button');
+    analyticsBtn.style.cssText = 'margin-top:10px;width:100%;background:#27ae60;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:0.88rem;cursor:pointer;font-weight:600';
+    analyticsBtn.textContent = '📊 View Budget Analytics';
+    analyticsBtn.addEventListener('click', function() {
+      openBudgetAnalyticsModal(budget, jobIncome, billsTotal, oneTimeTotal, grocerySpend);
+    });
+    body.appendChild(analyticsBtn);
+
+    /* ── Wire events ── */
+    body.querySelectorAll('.budget-bill-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.bi, 10);
+        var b = getPersonalBudget();
+        b.bills.splice(idx, 1);
+        setPersonalBudget(b);
+        renderBudgetWidget();
+      });
+    });
+
+    body.querySelectorAll('.budget-onetime-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.ei, 10);
+        var b = getPersonalBudget();
+        if (!b.oneTimeExpenses) b.oneTimeExpenses = [];
+        b.oneTimeExpenses.splice(idx, 1);
+        setPersonalBudget(b);
+        renderBudgetWidget();
+      });
+    });
+
+    body.querySelectorAll('.budget-cat-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.ci, 10);
+        var b = getPersonalBudget();
+        if (!b.categories) b.categories = [];
+        b.categories.splice(idx, 1);
+        setPersonalBudget(b);
+        renderBudgetWidget();
+      });
+    });
+
+    /* Wire add category */
+    var addCatBtn = body.querySelector('#budgetAddCatBtn');
+    if (addCatBtn) addCatBtn.addEventListener('click', function() {
+      var nameInput = document.getElementById('budgetCatName');
+      var colorInput = document.getElementById('budgetCatColor');
+      var name = nameInput ? nameInput.value.trim() : '';
+      if (!name) return;
+      var b = getPersonalBudget();
+      if (!b.categories) b.categories = [];
+      if (b.categories.some(function(c) { return c.name.toLowerCase() === name.toLowerCase(); })) {
+        alert('Category "' + name + '" already exists.');
+        return;
+      }
+      b.categories.push({ name: name, color: colorInput ? colorInput.value : '#4a90e2' });
+      setPersonalBudget(b);
+      renderBudgetWidget();
+    });
+
+    /* Wire add bill */
+    var addBillBtn = body.querySelector('#budgetAddBillBtn');
+    if (addBillBtn) addBillBtn.addEventListener('click', function() {
+      var nameInput = document.getElementById('budgetBillName');
+      var amtInput = document.getElementById('budgetBillAmount');
+      var dateInput = document.getElementById('budgetBillDate');
+      var catInput = document.getElementById('budgetBillCategory');
+      var repeatInput = document.getElementById('budgetBillRepeat');
+      var name = nameInput ? nameInput.value.trim() : '';
+      var amount = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+      var dueDate = dateInput ? dateInput.value : '';
+      var category = catInput ? catInput.value : '';
+      var repeat = repeatInput ? repeatInput.value : 'monthly';
+      if (!name) return;
+      var b = getPersonalBudget();
+      var newBill = { name: name, amount: amount };
+      if (dueDate) newBill.dueDate = dueDate;
+      if (category) newBill.category = category;
+      newBill.repeat = repeat;
+      b.bills.push(newBill);
+      setPersonalBudget(b);
+      // Create a reminder for the bill if a date was provided
+      if (dueDate) {
+        createBudgetBillReminder(newBill);
+      }
+      renderBudgetWidget();
+    });
+
+    /* Wire add one-time expense */
+    var addOneTimeBtn = body.querySelector('#budgetAddOneTimeBtn');
+    if (addOneTimeBtn) addOneTimeBtn.addEventListener('click', function() {
+      var nameInput = document.getElementById('budgetOneTimeName');
+      var amtInput = document.getElementById('budgetOneTimeAmount');
+      var dateInput = document.getElementById('budgetOneTimeDate');
+      var catInput = document.getElementById('budgetOneTimeCategory');
+      var name = nameInput ? nameInput.value.trim() : '';
+      var amount = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+      var date = dateInput ? dateInput.value : '';
+      var category = catInput ? catInput.value : '';
+      if (!name) return;
+      var b = getPersonalBudget();
+      if (!b.oneTimeExpenses) b.oneTimeExpenses = [];
+      var newExpense = { name: name, amount: amount };
+      if (date) newExpense.date = date;
+      if (category) newExpense.category = category;
+      b.oneTimeExpenses.push(newExpense);
+      setPersonalBudget(b);
+      renderBudgetWidget();
+    });
+
+    /* Wire pay period delete */
+    body.querySelectorAll('.budget-pp-del').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(btn.dataset.pi, 10);
+        var b = getPersonalBudget();
+        if (!b.payPeriods) b.payPeriods = [];
+        b.payPeriods.splice(idx, 1);
+        setPersonalBudget(b);
+        renderBudgetWidget();
+      });
+    });
+
+    /* Wire add pay period toggle */
+    var ppToggle = body.querySelector('#budgetAddPayPeriodToggle');
+    if (ppToggle) ppToggle.addEventListener('click', function() {
+      var form = document.getElementById('budgetAddPPForm');
+      if (form) form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+    });
+
+    /* Wire add pay period */
+    var addPPBtn = body.querySelector('#budgetAddPayPeriodBtn');
+    if (addPPBtn) addPPBtn.addEventListener('click', function() {
+      var typeInput = document.getElementById('budgetPPType');
+      var startInput = document.getElementById('budgetPPStart');
+      var amtInput = document.getElementById('budgetPPAmount');
+      var jobInput = document.getElementById('budgetPPJob');
+      var type = typeInput ? typeInput.value : 'biweekly';
+      var startDate = startInput ? startInput.value : '';
+      var amount = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+      var jobName = jobInput ? jobInput.value : '';
+      if (!startDate || !amount) return;
+      var b = getPersonalBudget();
+      if (!b.payPeriods) b.payPeriods = [];
+      var newPP = { type: type, startDate: startDate, amount: amount };
+      if (jobName) newPP.jobName = jobName;
+      b.payPeriods.push(newPP);
+      setPersonalBudget(b);
+      renderBudgetWidget();
+    });
+  }, 'pw_budget');
+
+  section.appendChild(card);
+}
+
+/** Opens a small modal showing budget analytics */
+function openBudgetAnalyticsModal(budget, jobIncome, billsTotal, oneTimeTotal, grocerySpend) {
+  var existing = document.getElementById('budgetAnalyticsModal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'budgetAnalyticsModal';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:2000;display:flex;align-items:center;justify-content:center';
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:#fff;border-radius:14px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;padding:20px;box-shadow:0 8px 32px rgba(0,0,0,0.2)';
+
+  // Header
+  var hdr = document.createElement('div');
+  hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px';
+  hdr.innerHTML = '<div style="font-weight:700;font-size:1.1rem">📊 Budget Analytics</div>';
+  var closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:none;border:none;font-size:1.2rem;cursor:pointer;color:#888';
+  closeBtn.addEventListener('click', function() { overlay.remove(); });
+  hdr.appendChild(closeBtn);
+  modal.appendChild(hdr);
+
+  var totalExpenses = billsTotal + oneTimeTotal + grocerySpend;
+  var net = jobIncome - totalExpenses;
+
+  // Overview
+  var overview = document.createElement('div');
+  overview.style.cssText = 'margin-bottom:16px';
+  overview.innerHTML =
+    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:8px">Overview</div>' +
+    '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem"><span>💰 Total Income</span><span style="color:#27ae60;font-weight:600">$' + jobIncome.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:0.88rem"><span>💸 Total Expenses</span><span style="color:#e74c3c;font-weight:600">$' + totalExpenses.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:0.95rem;font-weight:700;border-top:2px solid #eee;margin-top:4px"><span>Net</span><span style="color:' + (net >= 0 ? '#27ae60' : '#e74c3c') + '">' + (net >= 0 ? '+' : '') + '$' + net.toFixed(2) + '</span></div>';
+  modal.appendChild(overview);
+
+  // Savings Rate
+  var savingsSection = document.createElement('div');
+  savingsSection.style.cssText = 'margin-bottom:16px;padding:10px;background:#f8f9fa;border-radius:8px';
+  var savingsRate = jobIncome > 0 ? ((jobIncome - totalExpenses) / jobIncome * 100) : 0;
+  var savingsColor = savingsRate >= 20 ? '#27ae60' : savingsRate >= 0 ? '#f39c12' : '#e74c3c';
+  var savingsLabel = savingsRate >= 20 ? '✅ Great' : savingsRate >= 0 ? '⚠️ Fair' : '🔴 Negative';
+  savingsSection.innerHTML =
+    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:6px">💹 Savings Rate</div>' +
+    '<div style="display:flex;align-items:center;gap:8px">' +
+      '<span style="font-size:1.4rem;font-weight:700;color:' + savingsColor + '">' + savingsRate.toFixed(1) + '%</span>' +
+      '<span style="font-size:0.82rem;color:#888">' + savingsLabel + '</span>' +
+    '</div>';
+  modal.appendChild(savingsSection);
+
+  // Monthly Cash Flow Chart
+  var cashFlowSection = document.createElement('div');
+  cashFlowSection.style.cssText = 'margin-bottom:16px';
+  var maxVal = Math.max(jobIncome, totalExpenses, 1);
+  var incomeBarW = Math.round((jobIncome / maxVal) * 100);
+  var expenseBarW = Math.round((totalExpenses / maxVal) * 100);
+  cashFlowSection.innerHTML =
+    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:8px">📊 Monthly Cash Flow</div>' +
+    '<div style="margin-bottom:6px">' +
+      '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:0.82rem"><span style="width:60px">Income</span>' +
+        '<div style="flex:1;background:#eee;border-radius:4px;height:18px;overflow:hidden"><div style="width:' + incomeBarW + '%;height:100%;background:#27ae60;border-radius:4px;transition:width 0.3s"></div></div>' +
+        '<span style="font-size:0.78rem;color:#27ae60;min-width:70px;text-align:right">$' + jobIncome.toFixed(2) + '</span>' +
+      '</div>' +
+      '<div style="display:flex;align-items:center;gap:6px;font-size:0.82rem"><span style="width:60px">Expenses</span>' +
+        '<div style="flex:1;background:#eee;border-radius:4px;height:18px;overflow:hidden"><div style="width:' + expenseBarW + '%;height:100%;background:#e74c3c;border-radius:4px;transition:width 0.3s"></div></div>' +
+        '<span style="font-size:0.78rem;color:#e74c3c;min-width:70px;text-align:right">$' + totalExpenses.toFixed(2) + '</span>' +
+      '</div>' +
+    '</div>';
+  modal.appendChild(cashFlowSection);
+
+  // Expense breakdown bar
+  var breakdownTitle = document.createElement('div');
+  breakdownTitle.style.cssText = 'font-weight:600;font-size:0.92rem;margin-bottom:8px';
+  breakdownTitle.textContent = 'Expense Breakdown';
+  modal.appendChild(breakdownTitle);
+
+  var segments = [];
+  if (billsTotal > 0) segments.push({ label: 'Recurring Bills', amount: billsTotal, color: '#e74c3c' });
+  if (oneTimeTotal > 0) segments.push({ label: 'One-Time', amount: oneTimeTotal, color: '#9b59b6' });
+  if (grocerySpend > 0) segments.push({ label: 'Groceries', amount: grocerySpend, color: '#f39c12' });
+
+  if (segments.length > 0 && totalExpenses > 0) {
+    var barWrap = document.createElement('div');
+    barWrap.style.cssText = 'display:flex;height:22px;border-radius:6px;overflow:hidden;margin-bottom:8px';
+    segments.forEach(function(seg) {
+      var pct = (seg.amount / totalExpenses) * 100;
+      var segEl = document.createElement('div');
+      segEl.style.cssText = 'height:100%;background:' + seg.color;
+      segEl.style.width = pct + '%';
+      segEl.title = seg.label + ': $' + seg.amount.toFixed(2) + ' (' + Math.round(pct) + '%)';
+      barWrap.appendChild(segEl);
+    });
+    modal.appendChild(barWrap);
+
+    // Legend
+    var legend = document.createElement('div');
+    legend.style.cssText = 'display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px';
+    segments.forEach(function(seg) {
+      var pct = Math.round((seg.amount / totalExpenses) * 100);
+      var item = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:0.82rem';
+      item.innerHTML = '<span style="width:10px;height:10px;border-radius:50%;background:' + seg.color + ';display:inline-block"></span>' +
+        escapeHTML(seg.label) + ' $' + seg.amount.toFixed(2) + ' (' + pct + '%)';
+      legend.appendChild(item);
+    });
+    modal.appendChild(legend);
+  } else {
+    var noData = document.createElement('div');
+    noData.style.cssText = 'color:#aaa;font-size:0.85rem;padding:8px 0';
+    noData.textContent = 'No expenses to analyze.';
+    modal.appendChild(noData);
+  }
+
+  // Category breakdown with colored bars
+  var bills = budget.bills || [];
+  var oneTimeExpenses = budget.oneTimeExpenses || [];
+  var allExpenseItems = [];
+  bills.forEach(function(b) { allExpenseItems.push({ category: b.category || 'Uncategorized', amount: parseFloat(b.amount) || 0 }); });
+  oneTimeExpenses.forEach(function(e) { allExpenseItems.push({ category: e.category || 'Uncategorized', amount: parseFloat(e.amount) || 0 }); });
+
+  if (allExpenseItems.length > 0) {
+    var catTitle = document.createElement('div');
+    catTitle.style.cssText = 'font-weight:600;font-size:0.92rem;margin-bottom:8px;margin-top:8px;border-top:1px solid #eee;padding-top:12px';
+    catTitle.textContent = 'By Category';
+    modal.appendChild(catTitle);
+
+    var catTotals = {};
+    allExpenseItems.forEach(function(item) {
+      var cat = item.category || 'Uncategorized';
+      catTotals[cat] = (catTotals[cat] || 0) + item.amount;
+    });
+
+    var catColors = ['#e74c3c', '#3498db', '#27ae60', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#2ecc71'];
+    var catKeys = Object.keys(catTotals).sort(function(a, b) { return catTotals[b] - catTotals[a]; });
+    var catMax = catKeys.length > 0 ? catTotals[catKeys[0]] : 1;
+    catKeys.forEach(function(cat, i) {
+      var row = document.createElement('div');
+      row.style.cssText = 'padding:4px 0;font-size:0.85rem';
+      var color = catColors[i % catColors.length];
+      var catPct = totalExpenses > 0 ? Math.round((catTotals[cat] / totalExpenses) * 100) : 0;
+      var barW = catMax > 0 ? Math.round((catTotals[cat] / catMax) * 100) : 0;
+      row.innerHTML =
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">' +
+          '<div style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:' + color + ';display:inline-block"></span>' + escapeHTML(cat) + '</div>' +
+          '<span style="font-weight:600">$' + catTotals[cat].toFixed(2) + ' <span style="font-weight:400;color:#888;font-size:0.78rem">(' + catPct + '%)</span></span>' +
+        '</div>' +
+        '<div style="background:#eee;border-radius:3px;height:8px;overflow:hidden"><div style="width:' + barW + '%;height:100%;background:' + color + ';border-radius:3px"></div></div>';
+      modal.appendChild(row);
+    });
+  }
+
+  // Bills Timeline (next 30 days)
+  var timelineBills = (budget.bills || []).filter(function(b) { return b.dueDate; });
+  if (timelineBills.length > 0) {
+    var tlTitle = document.createElement('div');
+    tlTitle.style.cssText = 'font-weight:600;font-size:0.92rem;margin-bottom:8px;margin-top:12px;border-top:1px solid #eee;padding-top:12px';
+    tlTitle.textContent = '📅 Bills Timeline (Next 30 Days)';
+    modal.appendChild(tlTitle);
+
+    var now = new Date();
+    var thirtyDays = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    var upcoming = [];
+    timelineBills.forEach(function(bill) {
+      var dueDate = new Date(bill.dueDate + 'T00:00:00');
+      // For recurring bills, find the next occurrence
+      var repeat = bill.repeat || 'monthly';
+      var next = new Date(dueDate);
+      if (repeat === 'weekly') {
+        while (next < now) next.setDate(next.getDate() + 7);
+      } else if (repeat === 'biweekly') {
+        while (next < now) next.setDate(next.getDate() + 14);
+      } else if (repeat === 'quarterly') {
+        while (next < now) next.setMonth(next.getMonth() + 3);
+      } else if (repeat === 'yearly') {
+        while (next < now) next.setFullYear(next.getFullYear() + 1);
+      } else {
+        while (next < now) next.setMonth(next.getMonth() + 1);
+      }
+      if (next <= thirtyDays) {
+        upcoming.push({ name: bill.name, date: next, amount: parseFloat(bill.amount) || 0 });
+      }
+    });
+    upcoming.sort(function(a, b) { return a.date - b.date; });
+
+    if (upcoming.length > 0) {
+      upcoming.forEach(function(item) {
+        var daysUntil = Math.ceil((item.date - now) / (24 * 60 * 60 * 1000));
+        var urgency = daysUntil <= 3 ? '#e74c3c' : daysUntil <= 7 ? '#f39c12' : '#888';
+        var tlRow = document.createElement('div');
+        tlRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:0.82rem;border-bottom:1px solid #f5f5f5';
+        tlRow.innerHTML =
+          '<span>' + escapeHTML(item.name) + ' <span style="color:' + urgency + ';font-size:0.72rem">' + (daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : 'in ' + daysUntil + ' days') + '</span></span>' +
+          '<span style="color:#e74c3c;font-weight:600">$' + item.amount.toFixed(2) + '</span>';
+        modal.appendChild(tlRow);
+      });
+    } else {
+      var noUpcoming = document.createElement('div');
+      noUpcoming.style.cssText = 'color:#aaa;font-size:0.82rem;padding:4px 0';
+      noUpcoming.textContent = 'No bills due in the next 30 days.';
+      modal.appendChild(noUpcoming);
+    }
+  }
+
+  // Annual Projection
+  var annualSection = document.createElement('div');
+  annualSection.style.cssText = 'margin-top:12px;border-top:1px solid #eee;padding-top:12px';
+  var annualIncome = jobIncome * 12;
+  var annualRecurring = billsTotal * 12;
+  var annualOneTime = oneTimeTotal;
+  var annualGrocery = grocerySpend * 12;
+  var annualExpenses = annualRecurring + annualOneTime + annualGrocery;
+  var annualNet = annualIncome - annualExpenses;
+  annualSection.innerHTML =
+    '<div style="font-weight:600;font-size:0.92rem;margin-bottom:8px">📈 Annual Projection</div>' +
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem"><span>Projected Income (12 mo)</span><span style="color:#27ae60;font-weight:600">$' + annualIncome.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem"><span>Recurring Bills (12 mo)</span><span style="color:#e74c3c">$' + annualRecurring.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem"><span>Groceries (12 mo)</span><span style="color:#e74c3c">$' + annualGrocery.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:0.82rem"><span>One-Time Expenses</span><span style="color:#e74c3c">$' + annualOneTime.toFixed(2) + '</span></div>' +
+    '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:0.88rem;font-weight:700;border-top:1px solid #eee;margin-top:4px"><span>Net Annual</span><span style="color:' + (annualNet >= 0 ? '#27ae60' : '#e74c3c') + '">' + (annualNet >= 0 ? '+' : '') + '$' + annualNet.toFixed(2) + '</span></div>';
+  modal.appendChild(annualSection);
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+}
+
+/* ══════════════════════════════════════════════════════════════
+   PERSONAL PAGE RENDER ORCHESTRATOR
+   ══════════════════════════════════════════════════════════════ */
+
+function renderPersonalWidgets() {
+  try { renderDailyFocus(); } catch(e) { console.warn('renderDailyFocus failed', e); }
+  try { renderBudgetWidget(); } catch(e) { console.warn('renderBudgetWidget failed', e); }
+  try { renderRoutineChecklist(); } catch(e) { console.warn('renderRoutineChecklist failed', e); }
+  try { renderMealTracker(); } catch(e) { console.warn('renderMealTracker failed', e); }
+  try { renderHydrationTracker(); } catch(e) { console.warn('renderHydrationTracker failed', e); }
+  try { renderSleepTracker(); } catch(e) { console.warn('renderSleepTracker failed', e); }
+  try { renderGymPlanner(); } catch(e) { console.warn('renderGymPlanner failed', e); }
+  try { renderMoodCheckin(); } catch(e) { console.warn('renderMoodCheckin failed', e); }
+}
+
+/* ----- Calendar Cross-Domain Summary ----- */
+let calSummaryDomainFilter = 'all';
+
+function renderCalendarSummary() {
+  const list = document.getElementById('calendarSummaryList');
+  if (!list) return;
+
+  const daysEl = document.getElementById('summaryDaysSelect');
+  const days = daysEl ? parseInt(daysEl.value, 10) : 30;
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const endDate = new Date(today);
+  endDate.setDate(endDate.getDate() + days);
+  const endStr = endDate.toISOString().slice(0, 10);
+
+  const items = [];
+
+  getExpandedEvents(todayStr, endStr).forEach(function(ev) {
+    const d = normalizeDate(ev.date);
+    if (!d || d < todayStr || d > endStr) return;
+    const domain = getDomainOfItem(ev);
+    if (calSummaryDomainFilter !== 'all' && domain !== calSummaryDomainFilter) return;
+    items.push({ type: 'event', title: ev.title || '', date: d, time: ev.time || '', domain: domain, sortKey: d + (ev.time || '23:59') });
+  });
+
+  getTasks().forEach(function(t) {
+    const d = normalizeDate(t.date);
+    if (!d || d < todayStr || d > endStr) return;
+    const domain = getDomainOfItem(t);
+    if (calSummaryDomainFilter !== 'all' && domain !== calSummaryDomainFilter) return;
+    items.push({ type: 'task', title: t.title || t.text || '', date: d, time: t.time || '', domain: domain, done: !!t.done, sortKey: d + (t.time || '23:59') });
+  });
+
+  const rmap = getReminders();
+  Object.keys(rmap).forEach(function(dk) {
+    if (dk < todayStr || dk > endStr) return;
+    (rmap[dk] || []).forEach(function(r) {
+      const domain = getDomainOfItem(r);
+      if (calSummaryDomainFilter !== 'all' && domain !== calSummaryDomainFilter) return;
+      items.push({ type: 'reminder', title: r.text || '', date: dk, time: r.time || '', domain: domain, sortKey: dk + (r.time || '23:59') });
+    });
+  });
+
+  items.sort(function(a, b) { return a.sortKey.localeCompare(b.sortKey); });
+
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<div style="color:#aaa;text-align:center;padding:16px 0">No upcoming items in this range.</div>';
+    return;
+  }
+
+  items.forEach(function(item) {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid #f0f0f0;font-size:0.88rem';
+
+    const typeIcon = { event: '\uD83D\uDCC5', task: '\u2705', reminder: '\uD83D\uDD14' }[item.type] || '\uD83D\uDCCC';
+    const meta = DOMAIN_META[item.domain] || DOMAIN_META.personal;
+
+    const domainBadge = document.createElement('span');
+    domainBadge.style.cssText = 'background:' + meta.color + ';color:#fff;padding:1px 7px;border-radius:10px;font-size:0.75rem;flex-shrink:0;white-space:nowrap';
+    domainBadge.textContent = meta.emoji + ' ' + meta.label;
+
+    const content = document.createElement('div');
+    content.style.cssText = 'flex:1;min-width:0';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = typeIcon + ' ' + (item.title || '');
+    if (item.done) titleSpan.style.textDecoration = 'line-through';
+
+    const dateSpan = document.createElement('span');
+    dateSpan.style.cssText = 'color:#888;margin-left:6px;font-size:0.8rem';
+    dateSpan.textContent = item.date + (item.time ? ' ' + item.time : '');
+
+    content.appendChild(titleSpan);
+    content.appendChild(dateSpan);
+    row.appendChild(domainBadge);
+    row.appendChild(content);
+    list.appendChild(row);
+  });
+}
+
+function wireCalendarSummary() {
+  document.querySelectorAll('.cal-domain-pill').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.cal-domain-pill').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      calSummaryDomainFilter = btn.dataset.domain || 'all';
+      renderCalendarSummary();
+    });
+  });
+
+  const daysEl = document.getElementById('summaryDaysSelect');
+  if (daysEl) daysEl.addEventListener('change', renderCalendarSummary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Header "Add Item" popup — lets users add Event / Task / Reminder
+   with domain + bucket selection (or Unassigned → Inbox)
+   ═══════════════════════════════════════════════════════════════ */
+function initCalendarAddItemPopup() {
+  var headerBtn = document.getElementById('headerAddItemBtn');
+  if (!headerBtn || document.getElementById('calAddItemOverlay')) return;
+
+  /* --- Overlay backdrop --- */
+  var overlay = document.createElement('div');
+  overlay.id = 'calAddItemOverlay';
+  document.body.appendChild(overlay);
+
+  /* --- Modal panel --- */
+  var modal = document.createElement('div');
+  modal.id = 'calAddItemModal';
+
+  /* Step 1 — choose type */
+  var step1 = document.createElement('div');
+  step1.id = 'calAddStep1';
+  step1.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:8px;align-items:stretch">' +
+      '<button type="button" class="cal-add-type-btn" data-item-type="event">📅 Add Event</button>' +
+      '<button type="button" class="cal-add-type-btn" data-item-type="task">✅ Add Task</button>' +
+      '<button type="button" class="cal-add-type-btn" data-item-type="reminder">🔔 Add Reminder</button>' +
+    '</div>';
+
+  /* Step 2 — form */
+  var step2 = document.createElement('div');
+  step2.id = 'calAddStep2';
+  step2.style.display = 'none';
+
+  modal.appendChild(step1);
+  modal.appendChild(step2);
+  document.body.appendChild(modal);
+
+  /* State */
+  var chosenType = '';
+
+  /* Open / close */
+  function openModal() {
+    overlay.classList.add('open');
+    modal.classList.add('open');
+    step1.style.display = '';
+    step2.style.display = 'none';
+    chosenType = '';
+  }
+  function closeModal() {
+    overlay.classList.remove('open');
+    modal.classList.remove('open');
+  }
+
+  headerBtn.addEventListener('click', openModal);
+  overlay.addEventListener('click', closeModal);
+
+  /* Show the header button on all main views */
+  headerBtn.style.display = '';
+  window.addEventListener('view:show', function(e) {
+    var view = e.detail && e.detail.view;
+    headerBtn.style.display = (view === 'settings' || view === 'inbox') ? 'none' : '';
+  });
+  var initHash = (location.hash && location.hash.length > 1) ? location.hash.slice(1) : 'today';
+  headerBtn.style.display = (initHash === 'settings' || initHash === 'inbox') ? 'none' : '';
+
+  /* Step 1 → Step 2 */
+  step1.querySelectorAll('.cal-add-type-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      chosenType = btn.dataset.itemType;
+      step1.style.display = 'none';
+      step2.style.display = '';
+      buildStep2(chosenType);
+    });
+  });
+
+  function buildStep2(type) {
+    var typeLabel = { event: '📅 Event', task: '✅ Task', reminder: '🔔 Reminder' }[type] || type;
+    var domains = ['personal', 'home', 'work'];
+
+    /* Build domain + bucket options */
+    var domainOptions = '';
+    domainOptions += '<option value="inbox">📥 Unassigned (Inbox)</option>';
+    domains.forEach(function(d) {
+      var meta = DOMAIN_META[d];
+      if (!meta) return;
+      domainOptions += '<option value="' + d + '">' + meta.emoji + ' ' + meta.label + '</option>';
+    });
+
+    var html = '<h3 style="margin:0 0 10px;font-size:1rem;text-align:center">' + typeLabel + '</h3>';
+
+    /* Domain selector */
+    html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Domain</label>' +
+      '<select id="calAddDomain" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px">' + domainOptions + '</select></div>';
+
+    /* Bucket selector (populated dynamically) */
+    html += '<div id="calAddBucketRow" style="margin-bottom:8px;display:none"><label style="font-size:0.82rem;font-weight:600">Bucket</label>' +
+      '<select id="calAddBucket" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px"></select></div>';
+
+    /* Title */
+    html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Title</label>' +
+      '<input id="calAddTitle" type="text" placeholder="Title" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>';
+
+    /* Emoji */
+    html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Emoji</label>' +
+      '<input id="calAddEmoji" type="text" placeholder="🎉" style="width:70px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>';
+
+    /* Type-specific fields */
+    if (type === 'event') {
+      html += '<div style="display:flex;gap:6px;margin-bottom:8px">' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Date</label><input id="calAddDate" type="date" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Start</label><input id="calAddTime" type="time" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">End</label><input id="calAddEndTime" type="time" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '</div>';
+      html += '<div style="margin-bottom:8px"><label style="font-size:0.82rem;font-weight:600">Location</label>' +
+        '<input id="calAddLocation" type="text" placeholder="Location (optional)" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>';
+      /* Repeat controls for the principal event */
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">' +
+        '<div style="flex:1;min-width:130px"><label style="font-size:0.82rem;font-weight:600">Repeat</label>' +
+        '<select id="calAddRepeat" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px">' +
+          '<option value="none">None</option>' +
+          '<option value="daily">Every day</option>' +
+          '<option value="2day">Every 2 days</option>' +
+          '<option value="weekday">Every weekday (Mon-Fri)</option>' +
+          '<option value="weekly">Every week</option>' +
+          '<option value="monthly">Every month</option>' +
+          '<option value="custom">Custom interval</option>' +
+          '<option value="weekday_ab">A/B weekday pattern</option>' +
+        '</select></div>' +
+        '<div style="flex:1;min-width:130px"><label style="font-size:0.82rem;font-weight:600">Until</label>' +
+        '<input id="calAddRepeatUntil" type="date" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+      '</div>';
+      /* Custom interval row (shown when repeat = custom) */
+      html += '<div id="calAddCustomRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
+        '<label style="font-size:0.82rem;font-weight:600;min-width:50px">Every</label>' +
+        '<input id="calAddRepeatInterval" type="number" min="1" max="30" value="1" aria-label="Repeat interval number" style="width:70px;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box" />' +
+        '<select id="calAddRepeatUnit" aria-label="Repeat interval unit" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box">' +
+          '<option value="days">Days</option>' +
+          '<option value="weeks">Weeks</option>' +
+          '<option value="months">Months</option>' +
+          '<option value="years">Years</option>' +
+        '</select>' +
+      '</div>';
+      /* A/B weekday pattern row (shown when repeat = weekday_ab) */
+      html += '<div id="calAddAbRow" style="display:none;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">' +
+        '<label style="font-size:0.82rem;font-weight:600;min-width:100px">Start template</label>' +
+        '<select id="calAddAbWeek" aria-label="A/B week template" style="padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box">' +
+          '<option value="a">A week (Mon/Wed/Fri)</option>' +
+          '<option value="b">B week (Tue/Thu)</option>' +
+        '</select>' +
+        '<label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer;font-size:0.82rem"><input type="checkbox" id="calAddAbSkipHolidays"> Skip holidays</label>' +
+      '</div>';
+      /* Advanced Item Specifications */
+      html += '<details style="margin-top:4px;margin-bottom:8px">' +
+        '<summary style="cursor:pointer;font-weight:600;font-size:0.82rem">Advanced Item Specifications</summary>' +
+        '<p style="margin:4px 0;font-size:0.8em;color:#888">Add additional time &amp; repeat schedules for this event.</p>' +
+        '<div id="calAddAdvSpecList"></div>' +
+        '<button type="button" id="calAddAdvSpecBtn" class="small-btn" style="margin-top:4px;font-size:0.78rem">+ Add time / repeat schedule</button>' +
+        '</details>';
+    } else if (type === 'task') {
+      html += '<div style="display:flex;gap:6px;margin-bottom:8px">' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Date</label><input id="calAddDate" type="date" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '<div style="width:130px"><label style="font-size:0.82rem;font-weight:600">Priority</label><select id="calAddPriority" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px"><option value="1">! Low</option><option value="2" selected>!! Med</option><option value="3">!!! High</option></select></div>' +
+        '</div>';
+    } else {
+      html += '<div style="display:flex;gap:6px;margin-bottom:8px">' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Date</label><input id="calAddDate" type="date" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '<div style="flex:1"><label style="font-size:0.82rem;font-weight:600">Time</label><input id="calAddTime" type="time" style="width:100%;padding:6px 8px;border:1px solid #ddd;border-radius:8px;font-size:0.88rem;box-sizing:border-box;margin-top:2px" /></div>' +
+        '</div>';
+    }
+
+    /* Buttons */
+    html += '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">' +
+      '<button type="button" id="calAddBack" style="padding:7px 14px;border:1px solid #ddd;border-radius:8px;background:#f5f5f5;cursor:pointer;font-size:0.88rem">Back</button>' +
+      '<button type="button" id="calAddSave" style="padding:7px 14px;border:none;border-radius:8px;background:#4a90e2;color:#fff;cursor:pointer;font-size:0.88rem;font-weight:600">Save</button>' +
+      '</div>';
+
+    step2.innerHTML = html;
+
+    /* Pre-fill date with selected day if available */
+    var dateInp = document.getElementById('calAddDate');
+    if (dateInp && window.selectedYear != null && window.selectedMonth != null && window.selectedDay) {
+      dateInp.value = window.selectedYear + '-' + pad2(window.selectedMonth + 1) + '-' + pad2(window.selectedDay);
+    }
+
+    /* Wire domain change to update buckets */
+    var domSel = document.getElementById('calAddDomain');
+    if (domSel) domSel.addEventListener('change', function() { updateBucketOptions(domSel.value); });
+    updateBucketOptions(domSel ? domSel.value : 'inbox');
+
+    /* Wire principal repeat dropdown (event only) */
+    var calRepeatSel = document.getElementById('calAddRepeat');
+    if (calRepeatSel) {
+      calRepeatSel.addEventListener('change', function() {
+        var mode = calRepeatSel.value;
+        var cr = document.getElementById('calAddCustomRow');
+        var ar = document.getElementById('calAddAbRow');
+        if (cr) cr.style.display = mode === 'custom' ? 'flex' : 'none';
+        if (ar) ar.style.display = mode === 'weekday_ab' ? 'flex' : 'none';
+      });
+    }
+
+    /* Wire advanced specs button (event only) */
+    var calAdvSpecBtn = document.getElementById('calAddAdvSpecBtn');
+    if (calAdvSpecBtn) {
+      calAdvSpecBtn.addEventListener('click', function() {
+        var list = document.getElementById('calAddAdvSpecList');
+        if (list) list.appendChild(buildAdvSpecRow());
+      });
+    }
+
+    /* Wire Back */
+    var backBtn = document.getElementById('calAddBack');
+    if (backBtn) backBtn.addEventListener('click', function() {
+      step2.style.display = 'none';
+      step1.style.display = '';
+    });
+
+    /* Wire Save */
+    var saveBtn = document.getElementById('calAddSave');
+    if (saveBtn) saveBtn.addEventListener('click', function() { saveCalendarItem(type); });
+
+    /* Wire Enter key on title */
+    var titleInp = document.getElementById('calAddTitle');
+    if (titleInp) {
+      titleInp.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); saveCalendarItem(type); }
+      });
+      setTimeout(function() { titleInp.focus(); }, 80);
+    }
+  }
+
+  function updateBucketOptions(domain) {
+    var row = document.getElementById('calAddBucketRow');
+    var sel = document.getElementById('calAddBucket');
+    if (!row || !sel) return;
+
+    if (domain === 'inbox') {
+      row.style.display = 'none';
+      return;
+    }
+
+    var buckets = getBuckets(domain);
+    if (!buckets.length) {
+      row.style.display = 'none';
+      return;
+    }
+
+    row.style.display = '';
+    sel.innerHTML = '<option value="">— No bucket —</option>';
+    buckets.forEach(function(b) {
+      var opt = document.createElement('option');
+      opt.value = String(b.id);
+      opt.textContent = (b.emoji || '') + ' ' + (b.name || 'Bucket ' + b.id);
+      sel.appendChild(opt);
+    });
+  }
+
+  function saveCalendarItem(type) {
+    var titleInp = document.getElementById('calAddTitle');
+    var title = titleInp ? titleInp.value.trim() : '';
+    if (!title) {
+      if (titleInp) { titleInp.focus(); titleInp.style.outline = '2px solid #e74c3c'; setTimeout(function() { titleInp.style.outline = ''; }, 1200); }
+      return;
+    }
+
+    var domSel = document.getElementById('calAddDomain');
+    var domain = domSel ? domSel.value : 'inbox';
+    var bucketSel = document.getElementById('calAddBucket');
+    var bucketId = (bucketSel && bucketSel.value) ? parseInt(bucketSel.value, 10) : undefined;
+    var emojiInp = document.getElementById('calAddEmoji');
+    var emoji = emojiInp ? emojiInp.value.trim() : '';
+    var dateInp = document.getElementById('calAddDate');
+    var date = normalizeDate(dateInp ? dateInp.value : '') || '';
+    var timeInp = document.getElementById('calAddTime');
+    var time = timeInp ? timeInp.value : '';
+
+    if (domain === 'inbox') {
+      /* Send to inbox — capture type-specific fields for later assignment */
+      var inboxItem = { title: title, emoji: emoji, type: type, date: date, time: time, created: new Date().toISOString() };
+      if (type === 'event') {
+        var eti = document.getElementById('calAddEndTime');
+        var eli = document.getElementById('calAddLocation');
+        if (eti && eti.value) inboxItem.endTime = eti.value;
+        if (eli && eli.value.trim()) inboxItem.location = eli.value.trim();
+        /* Principal repeat */
+        var inboxRepSel = document.getElementById('calAddRepeat');
+        var inboxRepVal = inboxRepSel ? inboxRepSel.value : 'none';
+        if (inboxRepVal && inboxRepVal !== 'none') {
+          inboxItem.repeat = inboxRepVal;
+          var inboxRU = document.getElementById('calAddRepeatUntil');
+          if (inboxRU && inboxRU.value) inboxItem.repeatUntil = inboxRU.value;
+          if (inboxRepVal === 'custom') {
+            var inboxRI = document.getElementById('calAddRepeatInterval');
+            var inboxRUnit = document.getElementById('calAddRepeatUnit');
+            inboxItem.repeatInterval = inboxRI ? Math.max(1, Math.min(30, parseInt(inboxRI.value, 10) || 1)) : 1;
+            inboxItem.repeatUnit = inboxRUnit ? inboxRUnit.value : 'days';
+          }
+          if (inboxRepVal === 'weekday_ab') {
+            var inboxAbW = document.getElementById('calAddAbWeek');
+            var inboxAbH = document.getElementById('calAddAbSkipHolidays');
+            inboxItem.abWeek = inboxAbW ? inboxAbW.value : 'a';
+            inboxItem.abSkipHolidays = inboxAbH ? inboxAbH.checked : false;
+          }
+        }
+        var inboxAdvSpecs = readAdvancedSpecs('calAddAdvSpecList');
+        if (inboxAdvSpecs.length) inboxItem.advancedSpecs = inboxAdvSpecs;
+      } else if (type === 'task') {
+        var epi = document.getElementById('calAddPriority');
+        if (epi) inboxItem.priority = epi.value;
+      }
+      var inbox = getInbox();
+      inbox.push(inboxItem);
+      setInbox(inbox);
+      updateInboxBadge();
+      closeModal();
+      showUndoToast('📥 Item added to Inbox!');
+      try { generateCalendar(); } catch(_) {}
+      return;
+    }
+
+    if (type === 'event') {
+      var endTimeInp = document.getElementById('calAddEndTime');
+      var endTime = endTimeInp ? endTimeInp.value : '';
+      var locationInp = document.getElementById('calAddLocation');
+      var location = locationInp ? locationInp.value.trim() : '';
+      var evDate = date || new Date().toISOString().slice(0, 10);
+      var evs = getEvents();
+      var id = evs.length ? Math.max.apply(null, evs.map(function(x) { return x.id; })) + 1 : 1;
+      /* Read principal repeat values */
+      var repSel = document.getElementById('calAddRepeat');
+      var repVal = repSel ? repSel.value : 'none';
+      var repUntilInp = document.getElementById('calAddRepeatUntil');
+      var repUntil = repUntilInp ? repUntilInp.value : '';
+      var ev = { id: id, title: title, date: evDate, time: time, startTime: time, endTime: endTime, location: location, emoji: emoji, category: domain, domain: domain, repeat: repVal || 'none', repeatUntil: repUntil, preBuffer: 0, postBuffer: 0 };
+      if (repVal === 'custom') {
+        var riInp = document.getElementById('calAddRepeatInterval');
+        var ruInp = document.getElementById('calAddRepeatUnit');
+        ev.repeatInterval = riInp ? Math.max(1, Math.min(30, parseInt(riInp.value, 10) || 1)) : 1;
+        ev.repeatUnit = ruInp ? ruInp.value : 'days';
+      }
+      if (repVal === 'weekday_ab') {
+        var abWInp = document.getElementById('calAddAbWeek');
+        var abHInp = document.getElementById('calAddAbSkipHolidays');
+        ev.abWeek = abWInp ? abWInp.value : 'a';
+        ev.abSkipHolidays = abHInp ? abHInp.checked : false;
+      }
+      if (bucketId !== undefined && !isNaN(bucketId)) ev.bucketId = bucketId;
+      var calAdvSpecs = readAdvancedSpecs('calAddAdvSpecList');
+      if (calAdvSpecs.length) ev.advancedSpecs = calAdvSpecs;
+      evs.push(ev);
+      setEvents(evs);
+      showUndoToast('📅 Event added!');
+    } else if (type === 'task') {
+      var priorityEl = document.getElementById('calAddPriority');
+      var priority = priorityEl ? priorityEl.value : '2';
+      var tasks = getTasks();
+      var t = { id: generateTaskId(), title: title, category: domain, domain: domain, done: false, date: date, time: time, priority: priority, emoji: emoji };
+      if (bucketId !== undefined && !isNaN(bucketId)) t.bucketId = bucketId;
+      tasks.push(t);
+      setTasks(tasks);
+      showUndoToast('✅ Task added!');
+    } else if (type === 'reminder') {
+      var rDate = date || new Date().toISOString().slice(0, 10);
+      var rmap = getReminders();
+      if (!rmap[rDate]) rmap[rDate] = [];
+      var rObj = { text: title, time: time, notify: 'none', domain: domain, emoji: emoji };
+      if (bucketId !== undefined && !isNaN(bucketId)) rObj.bucketId = bucketId;
+      rmap[rDate].push(rObj);
+      setReminders(rmap);
+      showUndoToast('🔔 Reminder added!');
+    }
+
+    closeModal();
+    try { generateCalendar(); } catch(_) {}
+    try { renderCalendarSummary(); } catch(_) {}
+    if (window.selectedDay) { try { showReminders(window.selectedDay); } catch(_) {} }
+  }
+}
+
+/* ----- Clipboard copy utility ----- */
+function copyToClipboard(text, btn, successLabel) {
+  successLabel = successLabel || '✅ Copied!';
+  var original = btn.textContent;
+  function onCopied() { btn.textContent = successLabel; setTimeout(function(){ btn.textContent = original; }, 2000); }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(onCopied).catch(function() {
+      var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); onCopied();
+    });
+  } else {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); onCopied();
+  }
+}
+
+/* ----- Siri Shortcuts / iOS Deep Links (Settings page) ----- */
+function wireSiriShortcuts() {
+  var container = document.getElementById('siriLinksList');
+  if (!container) return;
+  var base = location.origin + location.pathname;
+  var links = [
+    { emoji: '🏠', label: 'Open Today view',    hash: '#today' },
+    { emoji: '🗓️', label: 'Open Calendar',      hash: '#calendar' },
+    { emoji: '👤', label: 'Open Personal',       hash: '#personal' },
+    { emoji: '🏡', label: 'Open Home',           hash: '#home' },
+    { emoji: '💼', label: 'Open Work',           hash: '#work' },
+    { emoji: '📥', label: 'Open Inbox',          hash: '#inbox' },
+    { emoji: '⚙️', label: 'Open Settings',       hash: '#settings' }
+  ];
+  container.innerHTML = '';
+  links.forEach(function(item) {
+    var url = base + item.hash;
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;background:#f5f7fa;border-radius:8px;padding:8px 12px';
+    var lbl = document.createElement('span');
+    lbl.style.cssText = 'flex:1;font-size:0.88rem';
+    lbl.textContent = item.emoji + ' ' + item.label;
+    var urlSpan = document.createElement('code');
+    urlSpan.style.cssText = 'font-size:0.78rem;color:#333;background:#e8eaf0;padding:2px 6px;border-radius:4px;word-break:break-all;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    urlSpan.title = url;
+    urlSpan.textContent = url;
+    var copyBtn = document.createElement('button');
+    copyBtn.className = 'small-btn';
+    copyBtn.style.cssText = 'flex-shrink:0;font-size:0.75rem';
+    copyBtn.textContent = '📋 Copy';
+    copyBtn.addEventListener('click', function() { copyToClipboard(url, copyBtn); });
+    row.appendChild(lbl); row.appendChild(urlSpan); row.appendChild(copyBtn);
+    container.appendChild(row);
+  });
+
+  /* --- JSON Import via URL section --- */
+  var importSection = document.createElement('div');
+  importSection.style.cssText = 'margin-top:16px;padding:12px;background:#f0f4ff;border:1px solid #c4d4f0;border-radius:10px';
+  importSection.innerHTML =
+    '<h4 style="margin:0 0 6px;font-size:0.95rem">📲 Import JSON via iOS Shortcut</h4>' +
+    '<p style="margin:0 0 8px;font-size:0.85rem;color:#555;line-height:1.5">' +
+      'Create an iOS Shortcut that reads a JSON file and opens this URL to import data automatically:' +
+    '</p>' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+      '<code id="importShortcutUrl" style="flex:1;font-size:0.78rem;color:#333;background:#e8eaf0;padding:4px 8px;border-radius:4px;word-break:break-all">' + base + '?importData=BASE64_ENCODED_JSON</code>' +
+      '<button id="copyImportUrl" class="small-btn" style="flex-shrink:0;font-size:0.75rem">📋 Copy</button>' +
+    '</div>' +
+    '<details style="margin-top:6px">' +
+      '<summary style="cursor:pointer;font-size:0.85rem;font-weight:600;color:#4a90e2">📖 How to set up the iOS Shortcut</summary>' +
+      '<ol style="font-size:0.83rem;color:#444;line-height:1.8;padding-left:18px;margin:6px 0 0">' +
+        '<li>Open the <strong>Shortcuts</strong> app on your iPhone</li>' +
+        '<li>Create a new shortcut</li>' +
+        '<li>Add <strong>"Get File"</strong> action — set to pick a <code>.json</code> file</li>' +
+        '<li>Add <strong>"Base64 Encode"</strong> action on the file contents</li>' +
+        '<li>Add <strong>"Text"</strong> action that combines: <code>' + base + '?importData=</code> with the Base64 output from the previous step</li>' +
+        '<li>Add <strong>"Open URLs"</strong> action with the Text as input</li>' +
+        '<li>Run the shortcut — your data will be imported automatically!</li>' +
+      '</ol>' +
+    '</details>';
+  container.appendChild(importSection);
+
+  var copyImportBtn = document.getElementById('copyImportUrl');
+  if (copyImportBtn) {
+    copyImportBtn.addEventListener('click', function() { copyToClipboard(base + '?importData=BASE64_ENCODED_JSON', copyImportBtn); });
+  }
+}
+
+/* ----- Handle URL-based JSON import (for iOS Shortcuts) ----- */
+function handleUrlImport() {
+  var params = new URLSearchParams(window.location.search);
+  var importB64 = params.get('importData');
+  if (!importB64) return;
+
+  try {
+    var jsonStr = atob(importB64);
+    var parsed = JSON.parse(jsonStr);
+    var importData = parseImportPayload(parsed);
+    var stats = applyImportData(importData, 'merge');
+    if (stats) {
+      var summary = summarizeImportResult(stats);
+      console.info('URL import summary:', summary);
+      showUndoToast('📲 Data imported successfully!');
+    }
+  } catch (err) {
+    console.warn('URL import failed', err);
+    alert('Import failed: ' + (err && err.message ? err.message : err));
+  }
+
+  /* Clean up the URL to remove the import parameter */
+  if (window.history && window.history.replaceState) {
+    var cleanUrl = window.location.origin + window.location.pathname + (window.location.hash || '#today');
+    window.history.replaceState({}, '', cleanUrl);
+  }
+}
+
+/* ----- First-run onboarding / Empty states ----- */
+function wireFirstRunOnboarding() {
+  var STORAGE_KEY = 'ts_onboarding_done';
+  if (localStorage.getItem(STORAGE_KEY)) return;
+
+  /* Show onboarding only when there's truly no data — read storage once */
+  var events = getEvents(), tasks = getTasks(), reminders = getReminders();
+  var hasData = events.length > 0 || tasks.length > 0 || Object.keys(reminders).length > 0;
+  if (hasData) { localStorage.setItem(STORAGE_KEY, '1'); return; }
+
+  /* Build modal */
+  var overlay = document.createElement('div');
+  overlay.id = 'onboardingOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:20000;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box';
+
+  var panel = document.createElement('div');
+  panel.style.cssText = 'background:#fff;border-radius:20px;max-width:440px;width:100%;padding:28px 24px;box-shadow:0 8px 40px rgba(0,0,0,0.25);text-align:center';
+
+  panel.innerHTML =
+    '<div style="font-size:3rem;margin-bottom:12px">📅</div>' +
+    '<h2 style="margin:0 0 8px;font-size:1.3rem;color:#222">Welcome to TimeScape!</h2>' +
+    '<p style="color:#555;font-size:0.93rem;margin:0 0 20px;line-height:1.6">Here\'s how to get started in 3 quick steps:</p>' +
+    '<ol style="text-align:left;padding-left:20px;margin:0 0 20px;font-size:0.92rem;line-height:2;color:#333">' +
+      '<li>Tap the <strong>＋ Add</strong> button in the header to create your first event, task, or reminder.</li>' +
+      '<li>Use the <strong>bottom navigation</strong> to switch between Today, Calendar, Personal, Home, and Work views.</li>' +
+      '<li>Press <strong>?</strong> on a keyboard anytime to see all keyboard shortcuts.</li>' +
+    '</ol>' +
+    '<button id="onboardingDismiss" style="background:#4a90e2;color:#fff;border:none;border-radius:12px;padding:12px 32px;font-size:1rem;cursor:pointer;font-weight:600">Let\'s go! 🚀</button>';
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
+
+  document.getElementById('onboardingDismiss').addEventListener('click', function() {
+    overlay.remove();
+    localStorage.setItem(STORAGE_KEY, '1');
+  });
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) { overlay.remove(); localStorage.setItem(STORAGE_KEY, '1'); } });
+}
+
+/* ----- Init all new features on DOMContentLoaded ----- */
+document.addEventListener('DOMContentLoaded',function(){
+  try {
+    wireCategoryFilters();
+    wireViewToggle();
+    wireQuickAdd();
+    wireSearch();
+    wireUndoBtn();
+    wireKeyboardShortcuts();
+    wireSyncStatusBar();
+    wireCalendarSwipe();
+    wireMorningBriefing();
+    wireDomainColorEditor();
+    updateInboxBadge();
+    wireDomainForms();
+    wireCalendarSummary();
+    wireBucketPages();
+  } catch(e) { console.warn('Feature wiring error', e); }
+  try { initCalendarAddItemPopup(); } catch(e) { console.warn('Add-item popup init error', e); }
+  try { wireSiriShortcuts(); } catch(e) { console.warn('Siri shortcuts init error', e); }
+  try { handleUrlImport(); } catch(e) { console.warn('URL import error', e); }
+  try { wireFirstRunOnboarding(); } catch(e) { console.warn('Onboarding init error', e); }
+  /* Refresh rings immediately and every 60s */
+  updateDayElapsedRing();
+  updateCompletionRing();
+  updateWeeklySalary();
+  renderDashboardWeather();
+  try { renderInboxWidget(); } catch(e) { console.warn('renderInboxWidget init error', e); }
+  setInterval(function(){ updateDayElapsedRing(); updateCompletionRing(); }, 60000);
+
+  /* Re-update rings when the daily-view date changes */
+  window.addEventListener('dailyview:datechange', function(){
+    updateCompletionRing();
+    updateDayElapsedRing();
+    renderDashboardWeather();
+  });
+});

@@ -29,37 +29,8 @@
     return OFFSETS.hasOwnProperty(value) ? OFFSETS[value] : null;
   }
 
-  function getBridge() {
-    return window.platformBridge || null;
-  }
-
-  const storage = window.appStorage || {
-    getItem: function (key, fallback) {
-      const fb = (typeof fallback === 'undefined') ? '' : fallback;
-      try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
-    },
-    setJSON: function (key, value) {
-      try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { return false; }
-    },
-    getJSON: function (key, fallback) {
-      try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
-    }
-  };
-
   async function ensurePermissionAndSW() {
-    const bridge = getBridge();
-    try {
-      if (bridge && typeof bridge.registerServiceWorker === 'function') {
-        await bridge.registerServiceWorker('./sw.js');
-      } else {
-        window.pushClient && (await window.pushClient.registerSW());
-      }
-    } catch(_) {}
-
-    if (bridge && typeof bridge.requestNotificationPermission === 'function') {
-      try { return !!(await bridge.requestNotificationPermission()); } catch (_) {}
-    }
-
+    try { window.pushClient && (await window.pushClient.registerSW()); } catch(_) {}
     if (!('Notification' in window)) return false;
     if (Notification.permission === 'granted') return true;
     try {
@@ -77,15 +48,19 @@
       tag: payload.tag || ('ts-' + Date.now()),
       icon: payload.icon || '/icon-192.png',
       data: { url: payload.url || 'index.html#calendar' },
-      renotify: false
+      renotify: false,
+      vibrate: [100, 50, 100],
     };
 
-    const bridge = getBridge();
-    if (bridge && typeof bridge.showNotification === 'function') {
-      try {
-        const handled = await bridge.showNotification(title, options);
-        if (handled) return;
-      } catch (_) {}
+    // Show in-app banner if the app is in the foreground (document is visible)
+    if (typeof window.iosShowBanner === 'function' &&
+        document.visibilityState === 'visible') {
+      window.iosShowBanner(
+        (payload.emoji ? payload.emoji + ' ' : '') + (payload.title || 'Reminder'),
+        payload.body || '',
+        payload.emoji || '📅',
+        payload.url || null
+      );
     }
 
     try {
@@ -144,7 +119,7 @@
   // schedule reminders
   function scheduleReminders() {
     let list = [];
-    try { list = storage.getJSON('reminders', {}); } catch(_) { list = []; }
+    try { list = JSON.parse(localStorage.getItem('reminders') || '{}'); } catch(_) { list = []; }
     list = normalizeReminders(list);
     const offsetSel = readOffsetFromSelect('reminderNotify', 'none');
     list.forEach((r, idx) => {
@@ -163,6 +138,23 @@
     });
   }
 
+  // smart default notification lead time based on event category
+  function smartOffsetMin(ev, globalOffsetVal) {
+    // If event already has an explicit notify value, respect it
+    if (ev.notify && ev.notify !== 'none') return minutesOffset(ev.notify);
+    // If global select has a value set, use it
+    if (globalOffsetVal && globalOffsetVal !== 'none') return minutesOffset(globalOffsetVal);
+    // Smart defaults by category
+    const cat = (ev.category || '').toLowerCase();
+    let base = null;
+    if (cat === 'work' || cat === 'job' || cat === 'appointment') base = 30;
+    else if (cat === 'personal' || cat === 'home' || cat === 'errands') base = 15;
+    if (base === null) return null; // 'none' — no notification
+    // Add 15 min travel buffer when event has a location
+    if (ev.location || ev.place) base += 15;
+    return base;
+  }
+
   // schedule events (expand repeats and use eventNotify)
   function scheduleEvents() {
     const expand = window.appUtils && window.appUtils.expandEvents;
@@ -175,8 +167,7 @@
     const endISO = end.toISOString().slice(0,10);
     const events = expand ? expand(startISO, endISO) : (loadEvents().filter(e => e && e.date >= startISO && e.date <= endISO));
     events.forEach((ev, idx) => {
-      const offsetVal = ev.notify || ev.eventNotify || offsetSel || 'none';
-      const offsetMin = minutesOffset(offsetVal);
+      const offsetMin = smartOffsetMin(ev, offsetSel);
       if (offsetMin == null) return;
       const dateISO = ev.date;
       const when = dateFromParts(dateISO, ev.startTime || '09:00');
@@ -229,7 +220,7 @@
           const offsetMin = minutesOffset(offsetVal);
           // persist the reminder so daily view and other parts see it
           if (dateISO) {
-            const parsed = storage.getJSON('reminders', {});
+            const parsed = JSON.parse(localStorage.getItem('reminders') || '{}');
             const reminders = normalizeReminders(parsed);
             const grouped = {};
             reminders.forEach((r) => {
@@ -239,7 +230,7 @@
             });
             if (!grouped[dateISO]) grouped[dateISO] = [];
             grouped[dateISO].push({ text: text, time: time, notify: offsetVal || 'none' });
-            storage.setJSON('reminders', grouped);
+            localStorage.setItem('reminders', JSON.stringify(grouped));
             // also notify listeners that watch storage (some modules rely on storage event)
             try { window.dispatchEvent(new Event('storage')); } catch (e) { /* ignore */ }
             // schedule immediate notification (if offset set)

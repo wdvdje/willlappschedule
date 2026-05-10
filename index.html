@@ -2,165 +2,207 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="theme-color" content="#4a90e2" />
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="TimeScape" />
+  <!-- Apple Intelligence / Visual Intelligence hooks -->
+  <meta name="description" content="TimeScape Planner — your personal schedule, tasks, and life planner. Manage your calendar, habits, meals, gym sessions, work earnings, and more in one place." />
+  <meta name="keywords" content="planner, calendar, schedule, tasks, reminders, habits, productivity, iOS, PWA" />
+  <!-- Open Graph for system-level summarisation, sharing, and search -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="TimeScape Planner" />
+  <meta property="og:description" content="Your personal schedule, tasks, and life planner — calendar, habits, meals, gym, work earnings, and more." />
+  <meta property="og:image" content="assets/icon.svg" />
+  <meta property="og:locale" content="en_US" />
+  <!-- Structured data: helps Apple Intelligence understand app context -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "TimeScape Planner",
+    "description": "Your personal schedule, tasks, and life planner — calendar, habits, meals, gym, work earnings, and more.",
+    "applicationCategory": "ProductivityApplication",
+    "operatingSystem": "iOS, Android, Web",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "image": "assets/icon.svg",
+    "featureList": "Calendar, Tasks, Reminders, Habits, Meal Planner, Gym Tracker, Work Earnings"
+  }
+  </script>
+  <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTkyIj48cmVjdCB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgcng9IjMyIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMzYiIHk9IjUyIiB3aWR0aD0iMTIwIiBoZWlnaHQ9Ijk2IiByeD0iOCIgZmlsbD0id2hpdGUiLz48cmVjdCB4PSIzNiIgeT0iNTIiIHdpZHRoPSIxMjAiIGhlaWdodD0iMjgiIHJ4PSI4IiBmaWxsPSIjMjU2OGMzIi8+PHJlY3QgeD0iNjQiIHk9IjQwIiB3aWR0aD0iMTIiIGhlaWdodD0iMjQiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIvPjxyZWN0IHg9IjExNiIgeT0iNDAiIHdpZHRoPSIxMiIgaGVpZ2h0PSIyNCIgcng9IjQiIGZpbGw9IndoaXRlIi8+PHJlY3QgeD0iNTAiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iODYiIHk9Ijk2IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PHJlY3QgeD0iMTIyIiB5PSI5NiIgd2lkdGg9IjIwIiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iIzRhOTBlMiIvPjxyZWN0IHg9IjUwIiB5PSIxMjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjMiIGZpbGw9IiM0YTkwZTIiLz48cmVjdCB4PSI4NiIgeT0iMTI0IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIzIiBmaWxsPSIjNGE5MGUyIi8+PC9zdmc+" />
+  <!-- iOS splash screens: prevent white flash on PWA launch for common iPhone sizes -->
+  <!-- iPhone 16 Pro Max (440x956 @3x) -->
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1320' height='2868'%3E%3Crect width='1320' height='2868' fill='%234a90e2'/%3E%3Ctext x='660' y='1434' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='120' fill='white'%3E📅%3C/text%3E%3C/svg%3E" />
+  <!-- iPhone 16 Pro (402x874 @3x) -->
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1206' height='2622'%3E%3Crect width='1206' height='2622' fill='%234a90e2'/%3E%3Ctext x='603' y='1311' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='120' fill='white'%3E📅%3C/text%3E%3C/svg%3E" />
+  <!-- iPhone 15 Pro Max / 16 Plus (430x932 @3x) -->
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1290' height='2796'%3E%3Crect width='1290' height='2796' fill='%234a90e2'/%3E%3Ctext x='645' y='1398' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='120' fill='white'%3E📅%3C/text%3E%3C/svg%3E" />
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1179' height='2556'%3E%3Crect width='1179' height='2556' fill='%234a90e2'/%3E%3Ctext x='590' y='1278' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='120' fill='white'%3E📅%3C/text%3E%3C/svg%3E" />
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1170' height='2532'%3E%3Crect width='1170' height='2532' fill='%234a90e2'/%3E%3Ctext x='585' y='1266' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='120' fill='white'%3E📅%3C/text%3E%3C/svg%3E" />
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1125' height='2436'%3E%3Crect width='1125' height='2436' fill='%234a90e2'/%3E%3Ctext x='563' y='1218' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='120' fill='white'%3E📅%3C/text%3E%3C/svg%3E" />
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)"  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1242' height='2688'%3E%3Crect width='1242' height='2688' fill='%234a90e2'/%3E%3Ctext x='621' y='1344' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='120' fill='white'%3E📅%3C/text%3E%3C/svg%3E" />
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='828' height='1792'%3E%3Crect width='828' height='1792' fill='%234a90e2'/%3E%3Ctext x='414' y='896' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='80' fill='white'%3E📅%3C/text%3E%3C/svg%3E" />
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)"  href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='750' height='1334'%3E%3Crect width='750' height='1334' fill='%234a90e2'/%3E%3Ctext x='375' y='667' text-anchor='middle' dominant-baseline='middle' font-family='sans-serif' font-size='80' fill='white'%3E📅%3C/text%3E%3C/svg%3E" />
   <link rel="icon" href="data:," />
   <link rel="manifest" href="./manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <title>TimeScape Planner</title>
-  <style>
-    /* filepath: /Users/williamjoyce/Documents/GitHub/willlappschedule/assets/app.css (inlined) */
-    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f7fa; color:#333; text-align:center; }
-    header { background:#4a90e2; color:#fff; padding:1rem; font-size:1.25rem; position:sticky; top:0; z-index:50 }
-    main{padding-bottom:92px;}
-    .hidden{display:none}
-    .page{max-width:900px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left}
-    .calendar-controls{display:flex;gap:10px;justify-content:center;align-items:center;margin:18px 0;}
-    .calendar-controls button{background:#4a90e2;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;}
-    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:10px;width:calc(100vw - 32px);max-width:100%;margin:0 auto 12px;background:#fff;border-radius:10px;box-shadow:0 1px 8px rgba(0,0,0,0.07);box-sizing:border-box;}
-    .calendar-dayname{font-weight:700;color:#4a90e2;padding-bottom:4px}
-    .day{background:#fff;border-radius:8px;padding:8px;min-height:64px;position:relative;cursor:pointer;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06); display:flex; flex-direction:column; align-items:stretch;}
-    .day.selected{border:2px solid #4a90e2;box-shadow:0 2px 8px rgba(74,144,226,0.15)}
-    .day.today{outline:2px solid #4a90e2;}
-    .day .day-number{font-weight:700;display:flex;gap:6px;align-items:center;justify-content:flex-start}
-    .emoji-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;padding-top:6px;flex:1 1 auto;min-height:18px;max-height:48px;box-sizing:border-box}
-    .event-preview{display:inline-flex;align-items:center;justify-content:center;line-height:1;border-radius:6px;padding:2px;background:transparent;user-select:none}
-    .reminder-dot{width:8px;height:8px;border-radius:50%;background:#e67e22;display:inline-block;margin-left:6px}
-    .reminder-bar{background:#fbeee6;border-left:4px solid #e67e22;color:#9a6b16;margin:8px 0;padding:8px;border-radius:6px;font-size:0.95rem;text-align:left}
-    .reminder-bar .events-list{ margin:6px 0 0 0; padding:0; }
-    .reminder-bar .r-event{ padding:4px 0; margin:0; display:flex; gap:8px; align-items:center; font-size:0.95rem; }
-    .reminder-bar .r-event b{ margin-right:4px; }
-    .reminder-bar .r-actions{ margin-left:auto; }
-    .item-controls{margin-left:8px}
-    .small-btn{padding:4px 6px;background:#888;color:#fff;border:none;border-radius:4px;margin-left:6px;cursor:pointer}
-    input[type="text"],input[type="date"],input[type="time"],select,textarea{padding:8px;border-radius:4px;border:1px solid #ccc;width:100%;box-sizing:border-box;margin-top:6px}
-    .mobile-row{display:flex;gap:8px;align-items:center}
-    .mobile-label{display:none;font-weight:600;margin-right:8px}
-    @media (max-width:600px){ .mobile-label{display:inline-block} .calendar,.tasks,.events,.reminders{width:calc(100vw - 32px);}}
-    #editModal{position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999}
-    #editModal:not(.hidden){display:flex}
-    #editModal .panel{background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left}
-    .event-preview.reminder { color: #e67e22; } .event-preview.task { color: green; } .reminder-dot { display:none; }
-    .places-suggestions { position:relative; }
-    .places-suggestions .suggestions-list { position:absolute; left:0; right:0; background:#fff;border:1px solid #ddd;border-radius:6px;margin-top:6px;z-index:2000; max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,0.12); }
-    .places-suggestions .suggestions-list button{ display:block;width:100%;text-align:left;padding:8px 10px;border:0;background:transparent;cursor:pointer; }
-    .places-suggestions .suggestions-list button:hover{ background:#f2f6fb; }
-    .progress { width:64px; height:64px; border-radius:50%; border:8px solid #eee; border-top:8px solid #4a90e2; display:inline-block; margin-top:8px; transition: transform 0.4s linear; box-sizing:border-box; }
-    #dayProgressRing { border-top-color: #4a90e2; } #progressRing { border-top-color: #4a90e2; }
-    .bottom-ribbon{ position:fixed;left:0;right:0;bottom:0;height:64px;background:#fff;border-top:1px solid #e6e6e6;display:flex;align-items:center;justify-content:space-around; box-shadow:0 -4px 18px rgba(0,0,0,0.06);z-index:999; }
-    .bottom-ribbon .r-item{ text-decoration:none;color:#333;font-size:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:6px 4px;}
-    .bottom-ribbon .r-item .r-label{ font-size:11px;margin-top:4px;display:block;}
-    .bottom-ribbon .r-item.r-center{ background:linear-gradient(0deg, rgba(74,144,226,0.06), transparent); border-radius:12px; margin:0 6px; padding:8px 6px; }
-    body { padding-bottom: 92px; }
-
-    /* ADDED: center top headings on each page */
-    .page h2 { text-align: center; margin-top: 6px; }
-
-    /* ADDED: center only the User Profile and Jobs headings on settings page */
-    #userProfile h3, #userJobs h3 { text-align: center; }
-
-    /* cat modal: keep hidden by default; show only when .hidden removed */
-    #catModal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; z-index: 9999; display: none; }
-    #catModal:not(.hidden) { display: flex; }
-  </style>
+  <link rel="stylesheet" href="./assets/app.css" />
+  <link rel="stylesheet" href="./assets/ios-native.css" />
+  <!-- Resolve og:image and JSON-LD image to absolute URL at runtime -->
+  <script>try{var _b=new URL('assets/icon.svg',location.href).href;document.querySelector('meta[property="og:image"]')&&document.querySelector('meta[property="og:image"]').setAttribute('content',_b);var _ld=document.querySelector('script[type="application/ld+json"]');if(_ld){var _d=JSON.parse(_ld.textContent);_d.image=_b;_ld.textContent=JSON.stringify(_d);}}catch(e){}</script>
+  <!-- Prevent dark-mode flash: apply class before first paint -->
+  <script>try{if(window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body&&document.body.classList.add('dark-mode')}catch(e){}</script>
 </head>
 <body>
-  <!-- Desktop sidebar navigation — visible on iPad/Mac (min-width: 768px) -->
-  <nav id="desktopSidebar" class="desktop-sidebar" role="navigation" aria-label="Desktop navigation">
-    <div class="sidebar-header">
-      <div class="sidebar-app-title">📅 TimeScape</div>
-      <button id="sidebarCollapseBtn" class="sidebar-collapse-btn" aria-label="Toggle sidebar" title="Toggle sidebar">☰</button>
-    </div>
-    <span class="sidebar-section-label">Views</span>
-    <a href="#today"     class="sidebar-item" data-view="today">    <span class="sidebar-icon">🏠</span><span class="sidebar-label">Today</span></a>
-    <a href="#calendar"  class="sidebar-item" data-view="calendar"> <span class="sidebar-icon">🗓️</span><span class="sidebar-label">Month</span></a>
-    <div class="sidebar-divider"></div>
-    <span class="sidebar-section-label">Items</span>
-    <a href="#events"    class="sidebar-item" data-view="events">   <span class="sidebar-icon">📅</span><span class="sidebar-label">Events</span></a>
-    <a href="#reminders" class="sidebar-item" data-view="reminders"><span class="sidebar-icon">🔔</span><span class="sidebar-label">Reminders</span></a>
-    <a href="#tasks"     class="sidebar-item" data-view="tasks">    <span class="sidebar-icon">✅</span><span class="sidebar-label">Tasks</span></a>
-    <div class="sidebar-bottom">
-      <div class="sidebar-divider"></div>
-      <button type="button" id="sidebarAppsBtn"     class="sidebar-item"><span class="sidebar-icon">⊞</span><span class="sidebar-label">Apps</span></button>
-      <button type="button" id="sidebarSettingsBtn" class="sidebar-item"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">Settings</span></button>
-    </div>
-  </nav>
-
-  <!-- Sidebar collapse/expand toggle script -->
-  <script>
-  (function () {
-    var btn = document.getElementById('sidebarCollapseBtn');
-    if (!btn) return;
-    var KEY = 'sidebarCollapsed';
-    var _saved = localStorage.getItem(KEY);
-    var isTablet = window.matchMedia('(min-width: 768px) and (max-width: 1023px)').matches;
-    if ((_saved === 'true') || (_saved === null && isTablet)) {
-      document.getElementById('desktopSidebar').classList.add('collapsed');
-    }
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-      var sb = document.getElementById('desktopSidebar');
-      if (!sb) return;
-      sb.classList.toggle('collapsed');
-      var isCollapsed = sb.classList.contains('collapsed');
-      localStorage.setItem(KEY, isCollapsed ? 'true' : 'false');
-    });
-  })();
-  </script>
-
-  <header id="appHeader">📅 TimeScape Planner</header>
+  <!-- Dark mode initialized in <head> above; also handled by ios-native.js -->
+  <script>try{if(!document.body.classList.contains('dark-mode')&&window.matchMedia&&window.matchMedia('(prefers-color-scheme:dark)').matches&&!localStorage.getItem('darkModeManual'))document.body.classList.add('dark-mode')}catch(e){}</script>
+  <header id="appHeader">
+    <span id="appHeaderTitle">📅 TimeScape Planner</span>
+    <button type="button" class="header-btn" id="headerAddItemBtn" aria-label="Add Item"><span>＋</span><span class="header-btn-label">Add</span></button>
+  </header>
+  <div id="syncStatusBar" style="display:none;background:#2568c3;color:#fff;font-size:0.78rem;text-align:center;padding:3px 8px;letter-spacing:0.02em" aria-live="polite"></div>
   <main>
-    <!-- Calendar page -->
-    <section id="page-calendar" class="page">
+    <!-- Today page (default home) -->
+    <section id="page-today" class="page">
       <div id="welcomeWrapper" style="text-align:center;margin-top:8px;">
         <div id="welcomeText" style="font-size:1rem;color:#222;margin-bottom:6px">Welcome,</div>
       </div>
 
-      <div class="calendar-controls">
-        <button id="prevBtn">&lt;</button>
-        <span id="monthLabel" aria-live="polite"></span>
-        <button id="nextBtn">&gt;</button>
+      <!-- Quick-add bar -->
+      <div id="quickAddBar" style="max-width:720px;margin:0 auto 10px;padding:0 12px;box-sizing:border-box">
+        <div style="display:flex;gap:8px;align-items:center">
+          <input id="quickAddInput" type="text" placeholder="Quick add… e.g. 'Meeting tomorrow at 3pm #work' or 'Remind me to call dentist'"
+                 style="flex:1;border-radius:24px;border:1.5px solid #ddd;padding:10px 16px;font-size:0.93rem;outline:none;margin:0"
+                 autocomplete="off" />
+          <button id="quickAddBtn" style="background:#4a90e2;color:#fff;border:none;border-radius:24px;padding:10px 16px;cursor:pointer;font-size:0.93rem;white-space:nowrap;flex-shrink:0">+ Add</button>
+        </div>
+        <div id="quickAddPreview" style="display:none;margin-top:6px;padding:8px 14px;background:#eef6ff;border-radius:8px;font-size:0.85rem;color:#234"></div>
       </div>
 
-      <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
-
       <div id="selectedDateArea" style="max-width:720px;margin:0 auto 12px;padding:0 12px;box-sizing:border-box;text-align:left;">
-        <h2 id="selectedDateLong" style="display:none;margin-bottom:6px"></h2>
+        <!-- Day navigation -->
+        <div id="dayNavBar" class="day-nav-bar">
+          <button id="dayNavPrev" class="day-nav-btn" aria-label="Previous day">&lsaquo;</button>
+          <button id="dayNavToday" class="day-nav-today-btn" aria-label="Go to today">Today</button>
+          <h2 id="selectedDateLong" class="day-nav-title"></h2>
+          <button id="dayNavNext" class="day-nav-btn" aria-label="Next day">&rsaquo;</button>
+        </div>
 
         <!-- existing top bars (holidays/events summary) -->
         <div id="dayTopBars"></div>
 
-        <!-- Daily view controls -->
-        <div id="dailyViewControls" style="display:flex;gap:8px;align-items:center;margin:10px 0;">
-          <label style="font-weight:600;margin:0 6px 0 0">Show</label>
-          <select id="dayPartSelect" aria-label="Select part of day" style="padding:6px;border-radius:6px">
-            <option value="morning">🌅 Morning (01:00–09:00)</option>
-            <option value="day">☀️ Day (09:00–17:00)</option>
-            <option value="night">🌙 Night (17:00–01:00)</option>
-          </select>
-          <div style="margin-left:auto;color:#666;font-size:0.95rem" id="dailyViewInfo"></div>
-        </div>
-
-        <!-- Hourly grid container -->
-        <div id="dailyView" aria-live="polite" style="background:#fff;border-radius:10px;padding:8px;border:1px solid #eee;box-shadow:0 2px 8px rgba(0,0,0,0.04)">
-          <!-- hourly rows will be rendered here by JS -->
-        </div>
-      </div>
-
       <section class="dashboard">
         <h2 id="dashboardHeading">📊 Dashboard</h2>
         <p id="summaryStats"></p>
-        <div style="display:flex;align-items:center;gap:12px">
-          <div class="progress" id="progressRing" title="Overall progress"></div>
-          <div style="display:flex;flex-direction:column;align-items:flex-start">
-            <div style="font-size:0.95rem;color:#444;">Selected day</div>
-            <div class="progress" id="dayProgressRing" title="Selected-day progress"></div>
+        <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;margin-top:8px;justify-content:center">
+          <!-- Ring 1: today's completion -->
+          <div class="progress-ring-wrap" id="completionRingWrap" title="Completion">
+            <svg viewBox="0 0 44 44">
+              <circle class="ring-bg" cx="22" cy="22" r="18"/>
+              <circle class="ring-fg" id="completionRingFg" cx="22" cy="22" r="18"
+                      stroke="#4a90e2" stroke-dasharray="113.1" stroke-dashoffset="113.1"
+                      transform="rotate(-90 22 22)"/>
+              <text class="ring-pct" id="completionRingPct" x="22" y="22">0%</text>
+            </svg>
+            <span class="ring-label">Completed</span>
           </div>
+          <!-- Ring 2: day elapsed -->
+          <div class="progress-ring-wrap" id="dayElapsedRingWrap" title="Day elapsed">
+            <svg viewBox="0 0 44 44">
+              <circle class="ring-bg" cx="22" cy="22" r="18"/>
+              <circle class="ring-fg" id="dayElapsedRingFg" cx="22" cy="22" r="18"
+                      stroke="#e67e22" stroke-dasharray="113.1" stroke-dashoffset="113.1"
+                      transform="rotate(-90 22 22)"/>
+              <text class="ring-pct" id="dayElapsedRingPct" x="22" y="22">0%</text>
+            </svg>
+            <span class="ring-label">Day Elapsed</span>
+          </div>
+        </div>
+        <div class="weekly-salary" id="weeklySalaryDisplay"></div>
+
+        <!-- Weather Summary Widget -->
+        <div id="weatherWidgetSection" class="weather-widget-section" style="display:none">
+          <h3 class="weather-widget-heading">🌤️ Weekly Weather</h3>
+          <div id="weatherWidgetContent"></div>
+        </div>
+
+        <!-- Inbox Preview Widget -->
+        <div id="inboxWidget" class="inbox-widget">
+          <div class="inbox-widget-heading">
+            <span>📥 Today's Inbox</span>
+            <a href="#inbox" class="inbox-widget-link">View all →</a>
+          </div>
+          <div id="inboxWidgetList"></div>
         </div>
       </section>
 
+        <!-- Daily view controls -->
+        <div id="dailyViewControls" style="display:flex;gap:8px;align-items:center;margin:10px 0;">
+          <div style="margin-left:auto;color:#666;font-size:0.95rem" id="dailyViewInfo"></div>
+        </div>
+
+        <!-- Hourly grid container (vertical timeline) -->
+        <div id="dailyView" class="daily-view-timeline" aria-live="polite">
+          <!-- hourly rows + event blocks will be rendered here by JS -->
+        </div>
+      </div>
+
       <div id="reminderBar" aria-live="polite" style="max-width:540px;margin:12px auto;padding:0 12px;box-sizing:border-box;text-align:left;"></div>
+    </section>
+
+    <!-- Calendar page -->
+    <section id="page-calendar" class="page hidden">
+      <div class="calendar-controls" style="flex-direction:column;align-items:center">
+        <div class="cal-month-nav" style="display:flex;align-items:center;gap:12px;margin-bottom:6px">
+          <button id="prevBtn" class="cal-nav-arrow">&lt;</button>
+          <span id="monthLabel" aria-live="polite" style="font-size:1.5rem;font-weight:700;min-width:200px;text-align:center"></span>
+          <button id="nextBtn" class="cal-nav-arrow">&gt;</button>
+        </div>
+        <div class="cal-controls-row" style="display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap">
+          <!-- View dropdown toggle -->
+          <button id="viewDropdownToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="viewDropdownBar">📐 View <span id="viewArrow" style="font-size:0.7rem">▸</span></button>
+          <div id="viewDropdownBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
+            <button id="viewMonthBtn" class="view-toggle-btn active" title="Month view">Month</button>
+            <button id="viewWeekBtn" class="view-toggle-btn" title="Week view">Week</button>
+          </div>
+          <!-- Filter toggle -->
+          <button id="categoryFilterToggle" class="cat-filter-btn" style="font-weight:600;display:flex;align-items:center;gap:3px" aria-expanded="false" aria-controls="categoryFilterBar">🔍 Filter <span id="filterArrow" style="font-size:0.7rem">▸</span></button>
+          <div id="categoryFilterBar" style="display:none;gap:5px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:0.8rem;color:#666;margin-right:2px;font-weight:600">Domains:</span>
+            <button class="cat-filter-btn active" data-cat="all">All</button>
+          </div>
+        </div>
+      </div>
+
+      <section id="calendar" class="calendar" role="grid" aria-label="Calendar"></section>
+
+      <!-- Week view (shown when week toggle active) -->
+      <div id="weekView" style="display:none;overflow-x:auto;max-width:100%;margin:0 auto 12px" aria-label="Week view"></div>
+
+      <!-- Cross-domain upcoming summary -->
+      <div id="calendarSummary" style="max-width:900px;margin:16px auto 0;padding:0 12px;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <h3 style="margin:0;font-size:1rem">📋 Upcoming</h3>
+          <div style="display:flex;gap:4px;flex-wrap:wrap">
+            <button class="cal-domain-pill active" data-domain="all">All</button>
+            <button class="cal-domain-pill" data-domain="personal">👤 Personal</button>
+            <button class="cal-domain-pill" data-domain="home">🏡 Home</button>
+            <button class="cal-domain-pill" data-domain="work">💼 Work</button>
+          </div>
+          <select id="summaryDaysSelect" style="width:130px;margin-left:auto">
+            <option value="7">Next 7 days</option>
+            <option value="30" selected>Next 30 days</option>
+            <option value="90">Next 90 days</option>
+          </select>
+        </div>
+        <div id="calendarSummaryList"></div>
+      </div>
     </section>
 
     <!-- Events page -->
@@ -187,6 +229,12 @@
           <span class="overlay-label">End time</span>
         </div>
 
+        <!-- End date for multi-day events -->
+        <div class="overlay-input" style="margin-top:8px;display:inline-block;width:48%;box-sizing:border-box">
+          <input id="eventEndDate" type="date" class="overlay-field" />
+          <span class="overlay-label">End date (multi-day)</span>
+        </div>
+
         <div class="places-suggestions" style="margin-top:8px">
           <input id="eventLocation" type="text" placeholder="Location" autocomplete="off" autocorrect="off" autocapitalize="off" />
           <div id="eventLocationList" class="suggestions-list" style="display:none"></div>
@@ -200,6 +248,7 @@
             <option value="none">None</option>
             <option value="daily">Every day</option>
             <option value="2day">Every 2 days</option>
+            <option value="weekday">Every weekday (Mon-Fri)</option>
             <option value="weekly">Every week</option>
             <option value="monthly">Every month</option>
             <option value="custom">Custom interval</option>
@@ -227,7 +276,16 @@
               <option value="a">A week (Mon/Wed/Fri)</option>
               <option value="b">B week (Tue/Thu)</option>
             </select>
+            <label style="display:flex;align-items:center;gap:4px;margin:0;cursor:pointer"><input type="checkbox" id="eventABSkipHolidays" /> Skip holidays &amp; off-days</label>
           </div>
+        </details>
+
+        <!-- Advanced Item Specifications: additional time/repeat schedules for the same event -->
+        <details id="eventAdvancedSpecs" style="margin-top:8px">
+          <summary style="cursor:pointer;font-weight:600">Advanced Item Specifications</summary>
+          <p style="margin:6px 0;font-size:0.85em;color:#888">Add additional time &amp; repeat schedules for this event (e.g. a class that meets A&nbsp;days at one time and B&nbsp;days at another).</p>
+          <div id="eventAdvSpecList"></div>
+          <button type="button" id="eventAddAdvSpec" class="small-btn" style="margin-top:6px">+ Add time / repeat schedule</button>
         </details>
 
         <!-- Category -->
@@ -236,6 +294,10 @@
           <select id="eventCategory" name="eventCategory" style="width:200px">
             <option value="event">Events</option>
             <option value="appointment">Appointments</option>
+            <option value="work">Work</option>
+            <option value="personal">Personal</option>
+            <option value="home">Home</option>
+            <option value="errands">Errands</option>
             <option value="job">Jobs</option>
             <option value="holiday">Holiday</option>
             <option value="commitment">Commitment</option>
@@ -254,7 +316,6 @@
         <input type="hidden" id="eventJobUnit" name="eventJobUnit" />
         <input type="hidden" id="eventJobEmoji" name="eventJobEmoji" />
         <input type="hidden" id="eventJobLocation" name="eventJobLocation" />
-        <div style="margin-top:8px"><button id="addEventBtn" type="submit">Add Event</button></div>
       </form>
       <ul id="eventList" style="margin-top:12px"></ul>
     </section>
@@ -275,7 +336,6 @@
         <div style="margin-top:8px" class="mobile-row">
           <label class="mobile-label" for="reminderTime">Time</label>
           <input type="time" id="reminderTime" style="width:36%" />
-          <button id="addReminderBtn" type="submit" style="width:auto;margin-left:8px">Add Reminder</button>
         </div>
         <div style="margin-top:8px" class="mobile-row">
           <label class="mobile-label" for="reminderNotify">Notify</label>
@@ -320,7 +380,6 @@
           <!-- note: quick category input now in modal (see #catModal below) -->
           <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
             <select id="taskPriority" style="width:120px"><option value="1">!</option><option value="2">!!</option><option value="3">!!!</option></select>
-            <button id="addTaskBtn" type="submit">Add</button>
           </div>
         </div>
       </form>
@@ -341,11 +400,219 @@
           </div>
           <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
             <button id="catCancelBtn" type="button" class="small-btn">Cancel</button>
-            <button id="catAddBtn" type="button" style="background:#4a90e2;color:#fff;border:none;padding:6px 10px;border-radius:6px">Add</button>
+            <button id="catAddBtn" type="button" style="background:#4a90e2;color:#fff;border:none;padding:6px 10px;border-radius:10px">Add</button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Personal domain page -->
+    <section id="page-personal" class="page hidden">
+      <h2>👤 Personal</h2>
+      <div id="personalGrid" style="margin:0 auto;padding:0 12px;box-sizing:border-box">
+        <div class="personal-top-row">
+          <!-- Budget Widget -->
+          <div id="personalBudgetSection"></div>
+          <!-- Daily Focus / Top 3 Priorities -->
+          <div id="personalFocusSection"></div>
+          <!-- Hydration + Mood promoted alongside Budget/Focus on desktop -->
+          <div id="personalHydrationSection"></div>
+          <div id="personalMoodSection"></div>
+        </div>
+
+        <!-- Sleep: full-width banner between top row and main columns -->
+        <div id="personalSleepBanner">
+          <div id="personalSleepSection"></div>
+        </div>
+
+        <!-- Two-column area: each column flows independently so minimising
+             a widget in one column does NOT leave blank space in the other -->
+        <div id="personalColumns">
+          <div id="personalColLeft">
+            <!-- Meal Tracker — left column (7-col grid benefits from wider layout) -->
+            <div id="personalMealSection"></div>
+            <!-- Gym / Exercise Planner — left column (split panel benefits from wider layout) -->
+            <div id="personalGymSection"></div>
+          </div>
+          <div id="personalColRight">
+            <!-- Routine Checklists — right column (phases layout works at any width) -->
+            <div id="personalRoutineSection"></div>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div id="personalToolbar" style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button id="addPersonalBucketBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Category</button>
+        </div>
+        <div id="domain-buckets-personal"></div>
+      </div>
+    </section>
+
+    <!-- Home domain page -->
+    <section id="page-home" class="page hidden">
+      <h2>🏡 Home</h2>
+      <div style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
+        <!-- Home Dashboard: progress + nudges -->
+        <div id="homeDashboard"></div>
+
+        <!-- Grocery List -->
+        <div id="homeGrocerySection"></div>
+
+        <!-- Toolbar -->
+        <div class="home-toolbar">
+          <button id="choreTemplateBtn" class="domain-add-btn" style="font-size:0.88rem">⚡ Quick Chore</button>
+          <button id="addHomeBucketBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Category</button>
+          <div id="homeEnergyFilter" style="display:flex;gap:4px;flex-wrap:wrap;margin-left:auto"></div>
+        </div>
+
+        <div id="domain-buckets-home"></div>
+      </div>
+    </section>
+
+    <!-- Chore Template Modal -->
+    <div id="choreTemplateModal" class="chore-tpl-modal hidden">
+      <div class="chore-tpl-panel">
+        <div class="chore-tpl-header">
+          <h3 class="chore-tpl-title">⚡ Quick Chore</h3>
+          <button id="choreManagePresetsBtn" type="button" class="chore-tpl-manage-btn">✏️ Manage Presets</button>
+          <button id="choreTemplateClose" class="chore-tpl-close" aria-label="Close">✕</button>
+        </div>
+        <div class="chore-tpl-bucket-row">
+          <label style="margin:0;font-weight:600;flex-shrink:0">Add to:</label>
+          <select id="choreTemplateBucket" style="flex:1;font-size:0.9rem;padding:5px 8px;border-radius:6px;border:1px solid #ccc">
+            <option value="">— Uncategorized —</option>
+          </select>
+        </div>
+        <div id="choreTemplateGrid" class="chore-tpl-grid"></div>
+      </div>
+    </div>
+
+    <!-- Work domain page -->
+    <section id="page-work" class="page hidden">
+      <h2>💼 Work</h2>
+      <div style="max-width:640px;margin:0 auto;padding:0 12px;box-sizing:border-box">
+
+        <!-- Expanded Job Earnings Analytics -->
+        <div id="workEarningsSection" class="work-earnings-section">
+          <h3 class="work-earnings-heading">💰 Job Earnings <a href="#workEarningsContent" class="work-earnings-details-link">View details ›</a></h3>
+          <div id="workEarningsContent"></div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+          <button id="addWorkJobBtn" class="domain-add-btn" style="font-size:0.88rem">＋ Add Job</button>
+        </div>
+        <div id="domain-buckets-work"></div>
+      </div>
+
+      <!-- Job Add/Edit Modal -->
+      <div id="jobModal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,0.35);align-items:center;justify-content:center;z-index:9999">
+        <div style="background:#fff;padding:16px;border-radius:8px;max-width:520px;width:94%;box-shadow:0 6px 30px rgba(0,0,0,0.2);text-align:left;max-height:90vh;overflow-y:auto">
+          <h3 id="jobModalHeading" style="margin:0 0 12px">Add Job</h3>
+          <input id="jobId" type="hidden" />
+          <label for="jobName" style="display:block;margin-top:6px;font-weight:600">Job name</label>
+          <input id="jobName" type="text" placeholder="e.g. Lawn mowing" />
+
+          <label for="jobEmoji" style="display:block;margin-top:6px;font-weight:600">Emoji</label>
+          <input id="jobEmoji" type="text" placeholder="e.g. 🚜" />
+
+          <label for="jobLocation" style="display:block;margin-top:6px;font-weight:600">Location</label>
+          <div class="places-suggestions" style="position:relative">
+            <input id="jobLocation" type="text" placeholder="Address or area" autocomplete="off" />
+            <div id="jobLocationList" class="suggestions-list" style="display:none"></div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <div style="flex:1">
+              <label for="jobRate" style="display:block;font-weight:600">Rate</label>
+              <input id="jobRate" type="text" placeholder="e.g. 25.00" />
+            </div>
+            <div style="width:140px">
+              <label for="jobUnit" style="display:block;font-weight:600">Unit</label>
+              <select id="jobUnit">
+                <option value="hour">hour</option>
+                <option value="job">job</option>
+                <option value="day">day</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Overtime settings -->
+          <div style="margin-top:10px">
+            <div style="display:flex;gap:8px">
+              <div style="flex:1">
+                <label for="jobOvertimeHours" style="display:block;font-weight:600">Overtime after (hrs/period)</label>
+                <input id="jobOvertimeHours" type="number" min="0" step="0.5" placeholder="e.g. 40" />
+              </div>
+              <div style="width:150px">
+                <label for="jobOvertimeMultiplier" style="display:block;font-weight:600">OT multiplier</label>
+                <input id="jobOvertimeMultiplier" type="number" min="1" step="0.25" placeholder="e.g. 1.5" />
+              </div>
+            </div>
+            <p style="color:#888;font-size:0.82rem;margin:3px 0 0">Leave blank to disable overtime tracking.</p>
+          </div>
+
+          <!-- Pay Period -->
+          <div style="margin-top:12px;border-top:1px solid #eee;padding-top:10px">
+            <label style="display:block;font-weight:600">💰 Pay Period</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="jobPayPeriodType" style="flex:1">
+                <option value="">None</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Bi-weekly</option>
+                <option value="semimonthly">Semi-monthly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+              <input id="jobPayPeriodStart" type="date" placeholder="First pay date" style="flex:1" />
+            </div>
+            <p style="font-size:0.78rem;color:#888;margin:4px 0 0">Set when you get paid. Syncs with Budget widget.</p>
+          </div>
+
+          <!-- Per-Job Off-Days -->
+          <div style="margin-top:12px;border-top:1px solid #eee;padding-top:10px">
+            <label style="display:block;font-weight:600">Days Off</label>
+            <p style="color:#666;font-size:0.85rem;margin:2px 0 6px">Add days off for this job. The A/B weekday repeat pattern will skip these dates.</p>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="jobOffDayDate" type="date" style="flex:1" />
+              <input id="jobOffDayLabel" type="text" placeholder="Label (optional)" style="flex:1" />
+              <button type="button" id="addJobOffDayBtn" class="small-btn" style="background:#4a90e2;color:#fff">Add</button>
+            </div>
+            <ul id="jobOffDaysList" style="list-style:none;padding:0;margin:6px 0 0"></ul>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+            <button id="cancelJobBtn" type="button" class="small-btn">Cancel</button>
+            <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inbox page -->
+    <section id="page-inbox" class="page hidden">
+      <h2 style="text-align:center">📥 Inbox</h2>
+
+      <!-- Overdue Tasks: incomplete tasks past their due date -->
+      <div style="max-width:640px;margin:0 auto;padding:0 12px">
+        <h3 id="inboxOverdueHeading" style="margin:8px 0 6px;font-size:1rem;color:#c0392b;display:none">⚠️ Overdue Tasks</h3>
+        <div id="inboxOverdueList"></div>
+        <p id="inboxOverdueEmpty" style="text-align:center;color:#aaa;display:none;font-size:0.9rem">✅ No overdue tasks!</p>
+      </div>
+
+      <!-- Daily Items: tasks + reminders + events for the viewed day -->
+      <div style="max-width:640px;margin:8px auto 0;padding:0 12px">
+        <h3 id="inboxDailyHeading" style="margin:8px 0 6px;font-size:1rem;color:#333">📋 Today's Items</h3>
+        <div id="inboxDailyList"></div>
+        <p id="inboxDailyEmpty" style="text-align:center;color:#aaa;display:none;font-size:0.9rem">No tasks, reminders, or events for this day.</p>
+      </div>
+
+      <!-- Unsorted items (existing inbox) -->
+      <div style="max-width:640px;margin:16px auto 0;padding:0 12px">
+        <h3 style="margin:8px 0 6px;font-size:1rem;color:#333">📥 Unsorted Items</h3>
+        <p style="text-align:center;color:#666;font-size:0.85rem;margin:0 0 8px">Items added via Quick Add that need sorting.</p>
+        <div id="inboxList"></div>
+        <p id="inboxEmpty" style="text-align:center;color:#aaa;display:none">🎉 No unsorted items — everything is classified!</p>
+      </div>
+    </section>
 
     <!-- Settings page -->
     <section id="page-settings" class="page hidden">
@@ -376,78 +643,36 @@
           <p style="margin-top:8px;color:#666">Home directions: <a id="homeDirections" href="#" target="_blank" rel="noopener">not set</a></p>
         </section>
 
-        <!-- Jobs -->
-        <section id="userJobs" style="margin-top:18px">
-          <h3>Jobs</h3>
 
-          <!-- Saved Jobs -->
-          <div id="savedJobs" style="margin-top:8px">
-            <h4>Saved Jobs</h4>
-            <ul id="jobList" style="list-style:none;padding:0;margin:8px 0;">
-              <!-- ... populated by JS ... -->
-            </ul>
+
+        <!-- GitHub Gist sync (no extra account needed – uses existing GitHub login) -->
+        <section id="gistSyncSettings" style="margin-top:18px">
+          <h3>🔄 Sync Between Devices (GitHub)</h3>
+          <p style="color:#555;font-size:0.9rem;margin:4px 0 10px">
+            Keeps your data in sync across your computer and iPhone using your existing GitHub account.
+            Takes about 30 seconds to set up — no new accounts needed.
+          </p>
+          <details style="margin-bottom:10px;background:#f0f6ff;border-radius:8px;padding:8px 12px;border:1px solid #c8dff8">
+            <summary style="cursor:pointer;font-weight:600;color:#2568c3">How to set up (one-time)</summary>
+            <ol style="margin:8px 0 0;padding-left:20px;font-size:0.9rem;line-height:1.7">
+              <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" style="color:#2568c3">github.com/settings/personal-access-tokens/new</a></li>
+              <li>Give it any name (e.g. <em>TimeScape Sync</em>), set an expiration</li>
+              <li>Under <strong>Account permissions</strong> → <strong>Gists</strong>, choose <strong>Read and write</strong></li>
+              <li>Click <strong>Generate token</strong> and copy it</li>
+              <li>Paste the token below and click <strong>Save &amp; Sync</strong></li>
+              <li>On your iPhone: open Settings here, paste the <em>same token</em>, click <strong>Save &amp; Sync</strong></li>
+            </ol>
+          </details>
+          <label for="gistSyncToken" style="display:block;font-weight:600">GitHub Personal Access Token</label>
+          <input id="gistSyncToken" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button id="gistSyncSaveBtn" class="small-btn" style="background:#2568c3;color:#fff">Save &amp; Sync</button>
+            <button id="gistSyncPullBtn" class="small-btn">Pull from Cloud</button>
           </div>
-
-          <!-- Add / Edit Job -->
-          <div id="addJob" style="margin-top:16px">
-            <h4>Add Job</h4>
-            <input id="jobId" type="hidden" />
-            <label for="jobName" style="display:block;margin-top:6px;font-weight:600">Job name</label>
-            <input id="jobName" type="text" placeholder="e.g. Lawn mowing" />
-
-            <label for="jobEmoji" style="display:block;margin-top:6px;font-weight:600">Emoji</label>
-            <input id="jobEmoji" type="text" placeholder="e.g. 🚜" />
-
-            <label for="jobLocation" style="display:block;margin-top:6px;font-weight:600">Location</label>
-            <div class="places-suggestions" style="position:relative">
-              <input id="jobLocation" type="text" placeholder="Address or area" autocomplete="off" />
-              <div id="jobLocationList" class="suggestions-list" style="display:none"></div>
-            </div>
-
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <div style="flex:1">
-                <label for="jobRate" style="display:block;font-weight:600">Rate</label>
-                <input id="jobRate" type="text" placeholder="e.g. 25.00" />
-              </div>
-              <div style="width:140px">
-                <label for="jobUnit" style="display:block;font-weight:600">Unit</label>
-                <select id="jobUnit">
-                  <option value="hour">hour</option>
-                  <option value="job">job</option>
-                  <option value="day">day</option>
-                </select>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:8px;margin-top:10px">
-              <button id="saveJobBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save job</button>
-              <button id="clearJobBtn" class="small-btn">Clear</button>
-            </div>
-          </div>
+          <div id="gistSyncStatus" style="margin-top:8px;color:#666;font-size:0.9rem">Not configured</div>
+          <div style="margin-top:6px;font-size:0.82rem;color:#888">Gist ID: <span id="gistSyncIdDisplay" style="font-family:monospace">(none yet)</span></div>
         </section>
 
-        <!-- ADDED: PouchDB sync settings -->
-        <section id="pouchSyncSettings" style="margin-top:18px">
-          <h3>Sync (PouchDB)</h3>
-          <label for="syncHost" style="display:block;font-weight:600">CouchDB Host</label>
-          <input id="syncHost" type="text" placeholder="e.g. couch.example.com" />
-          <label for="syncPort" style="display:block;font-weight:600;margin-top:8px">Port</label>
-          <input id="syncPort" type="text" placeholder="e.g. 5984" />
-          <label for="syncHttps" style="display:block;font-weight:600;margin-top:8px">Use HTTPS</label>
-          <input id="syncHttps" type="checkbox" />
-          <label for="syncUser" style="display:block;font-weight:600;margin-top:8px">Username</label>
-          <input id="syncUser" type="text" placeholder="e.g. admin" />
-          <label for="syncPass" style="display:block;font-weight:600;margin-top:8px">Password</label>
-          <input id="syncPass" type="password" placeholder="e.g. password" />
-          <label for="saveCreds" style="display:block;font-weight:600;margin-top:8px">Save Credentials</label>
-          <input id="saveCreds" type="checkbox" />
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button id="startSyncBtn" class="small-btn" style="background:#4a90e2;color:#fff">Start sync</button>
-            <button id="stopSyncBtn" class="small-btn">Stop sync</button>
-            <button id="importNowBtn" class="small-btn">Import now</button>
-          </div>
-          <div id="pouchSyncStatus" style="margin-top:8px;color:#666;font-size:0.95rem">Not syncing</div>
-        </section>
 
         <section id="dataBackupSettings" style="margin-top:18px">
           <h3>Data Backup</h3>
@@ -463,104 +688,67 @@
           <div id="dataBackupStatus" style="margin-top:8px;color:#666;font-size:0.95rem">No backup action yet</div>
         </section>
 
-        <section id="bridgeDiagnosticsSettings" style="margin-top:18px">
-          <h3>Native Bridge Diagnostics</h3>
-          <div id="bridgeDiagSummary" style="margin-top:8px;color:#666;font-size:0.95rem">Checking bridge status...</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-            <span id="bridgeHostBadge" style="padding:4px 8px;border-radius:999px;background:#eceff4;color:#333;font-size:0.85rem">Host: unknown</span>
-            <span id="bridgeResolveBadge" style="padding:4px 8px;border-radius:999px;background:#eceff4;color:#333;font-size:0.85rem">Callback: unknown</span>
-            <span id="bridgePendingBadge" style="padding:4px 8px;border-radius:999px;background:#eceff4;color:#333;font-size:0.85rem">Pending: 0</span>
+        <!-- Morning Briefing -->
+        <section id="morningBriefingSettings" style="margin-top:18px">
+          <h3>Morning Briefing</h3>
+          <p style="color:#666;font-size:0.9rem;margin:4px 0 8px">Get a daily push notification with today's schedule.</p>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+            <label style="margin:0;font-weight:600">Enable</label>
+            <input id="morningBriefingEnabled" type="checkbox" style="width:auto;margin:0" />
+            <label style="margin:0 0 0 12px;font-weight:600">Time</label>
+            <input id="morningBriefingTime" type="time" value="08:00" style="width:130px" />
           </div>
-          <div style="margin-top:10px;font-weight:600;color:#444">Known handlers</div>
-          <ul id="bridgeDiagHandlers" style="list-style:none;padding:0;margin:8px 0 0 0;display:flex;flex-direction:column;gap:6px"></ul>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
-            <button id="refreshBridgeDiagBtn" class="small-btn" style="background:#4a90e2;color:#fff">Refresh diagnostics</button>
-            <div id="bridgeDiagUpdated" style="color:#666;font-size:0.9rem">Last updated: never</div>
+          <button id="saveMorningBriefingBtn" class="small-btn" style="background:#4a90e2;color:#fff;margin-top:8px">Save briefing settings</button>
+          <div id="morningBriefingStatus" style="margin-top:6px;color:#666;font-size:0.9rem"></div>
+        </section>
+
+        <!-- Domain Colors -->
+        <section id="domainColorsSection" style="margin-top:18px">
+          <h3 style="text-align:center">Domain Colors</h3>
+          <p style="color:#666;font-size:0.9rem;margin:4px 0 12px">Customize the accent colors used for each domain on the calendar and throughout the app.</p>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <label style="font-weight:600;width:90px">💼 Work</label>
+              <input id="dcWork" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+              <span id="dcWorkHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <label style="font-weight:600;width:90px">🏡 Home</label>
+              <input id="dcHome" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+              <span id="dcHomeHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <label style="font-weight:600;width:90px">👤 Personal</label>
+              <input id="dcPersonal" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+              <span id="dcPersonalHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <label style="font-weight:600;width:90px">🎉 Holiday</label>
+              <input id="dcHoliday" type="color" style="width:56px;height:36px;padding:0;border-radius:6px;border:1px solid #ccc" />
+              <span id="dcHolidayHex" style="font-size:0.85rem;color:#555;font-family:monospace"></span>
+            </div>
           </div>
+          <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+            <button id="saveDomainColorsBtn" class="small-btn" style="background:#4a90e2;color:#fff">Save colors</button>
+            <button id="resetDomainColorsBtn" class="small-btn">Reset to defaults</button>
+            <span id="domainColorStatus" style="font-size:0.9rem;color:#27ae60;margin-left:8px"></span>
+          </div>
+        </section>
+
+        <!-- Siri Shortcuts & iOS Deep Links -->
+        <section id="siriShortcutsSection" style="margin-top:18px">
+          <h3>🍎 Siri Shortcuts &amp; iOS Deep Links</h3>
+          <p style="color:#555;font-size:0.9rem;margin:4px 0 10px">
+            Add these URLs as Siri Shortcuts to open any section instantly with your voice or a tap.
+            In the <strong>Shortcuts</strong> app: tap <strong>+</strong> → <strong>Open URLs</strong> → paste a URL below → add a phrase.
+          </p>
+          <div id="siriLinksList" style="display:flex;flex-direction:column;gap:8px"></div>
         </section>
       </main>
     </section>
   </main>
 
-
-  <!-- Apps modal -->
-  <div id="appsModal" class="apps-modal hidden" role="dialog" aria-modal="true" aria-label="Apps">
-    <div class="apps-modal-overlay" id="appsModalOverlay"></div>
-    <div class="apps-modal-panel">
-      <div class="sheet-handle"></div>
-      <div class="apps-modal-header">
-        <h2 style="margin:0;font-size:1.15rem">⊞ Apps</h2>
-        <button id="closeAppsModal" class="apps-modal-close" aria-label="Close apps">✕</button>
-      </div>
-
-      <!-- App icon grid (default view) -->
-      <div id="appsIconGrid" class="apps-icon-grid">
-        <button class="app-icon-btn" data-app="budget">     <span class="app-icon-emoji">💰</span><span class="app-icon-label">Budget</span></button>
-        <button class="app-icon-btn" data-app="hydration">  <span class="app-icon-emoji">💧</span><span class="app-icon-label">Hydration</span></button>
-        <button class="app-icon-btn" data-app="mood">       <span class="app-icon-emoji">😊</span><span class="app-icon-label">Mood</span></button>
-        <button class="app-icon-btn" data-app="focus">      <span class="app-icon-emoji">🎯</span><span class="app-icon-label">Focus</span></button>
-        <button class="app-icon-btn" data-app="sleep">      <span class="app-icon-emoji">😴</span><span class="app-icon-label">Sleep</span></button>
-        <button class="app-icon-btn" data-app="meal">       <span class="app-icon-emoji">🥗</span><span class="app-icon-label">Meals</span></button>
-        <button class="app-icon-btn" data-app="gym">        <span class="app-icon-emoji">🏋️</span><span class="app-icon-label">Gym</span></button>
-        <button class="app-icon-btn" data-app="routine">    <span class="app-icon-emoji">🌅</span><span class="app-icon-label">Routine</span></button>
-        <button class="app-icon-btn" data-app="weather">    <span class="app-icon-emoji">🌤️</span><span class="app-icon-label">Weather</span></button>
-        <button class="app-icon-btn" data-app="jobs">       <span class="app-icon-emoji">💼</span><span class="app-icon-label">Jobs</span></button>
-        <button class="app-icon-btn" data-app="journal">    <span class="app-icon-emoji">📓</span><span class="app-icon-label">Journal</span></button>
-        <button class="app-icon-btn" data-app="chores">     <span class="app-icon-emoji">🏡</span><span class="app-icon-label">Chores</span></button>
-        <button class="app-icon-btn" data-app="groceries">  <span class="app-icon-emoji">🛒</span><span class="app-icon-label">Groceries</span></button>
-      </div>
-
-      <!-- App detail panel (shown when an app icon is tapped) -->
-      <div id="appsDetailPanel" class="hidden">
-        <div class="apps-detail-nav">
-          <button id="appsDetailBack" class="apps-detail-back-btn">← Back</button>
-          <h3 id="appsDetailTitle" class="apps-detail-title"></h3>
-          <label class="apps-pin-label" title="Show this app on the Today page">
-            <input type="checkbox" id="appPinToggle" style="width:auto;margin:0" />
-            <span>Pin to Today</span>
-          </label>
-        </div>
-        <div id="appsDetailContent" class="apps-detail-content">
-          <!-- Widget containers (moved from Personal page; rendered by app.js / desktop-personal.js) -->
-          <div id="personalBudgetSection"    class="app-widget-pane hidden"></div>
-          <div id="personalFocusSection"     class="app-widget-pane hidden"></div>
-          <div id="personalHydrationSection" class="app-widget-pane hidden"></div>
-          <div id="personalMoodSection"      class="app-widget-pane hidden"></div>
-          <div id="personalSleepBanner"      class="app-widget-pane hidden">
-            <div id="personalSleepSection"></div>
-          </div>
-          <div id="personalMealSection"      class="app-widget-pane hidden"></div>
-          <div id="personalGymSection"       class="app-widget-pane hidden"></div>
-          <div id="personalRoutineSection"   class="app-widget-pane hidden"></div>
-          <div id="personalJournalSection"   class="app-widget-pane hidden"></div>
-          <!-- Routine Analytics Stats (rendered by routine-analytics.js) -->
-          <div id="personalRoutineStatsSection" class="app-widget-pane hidden"></div>
-        </div>
-      </div>
-    </div><!-- end apps-modal-panel -->
-  </div><!-- end appsModal -->
-
-  <!-- App Window Modal — opens when the user launches an individual app -->
-  <div id="appWindowModal" class="hidden" role="dialog" aria-modal="true" aria-label="App">
-    <div id="appWindowOverlay"></div>
-    <div id="appWindowPanel">
-      <div class="sheet-handle"></div>
-      <div class="app-window-header">
-        <button id="appWindowCloseBtn" class="app-window-close-btn" aria-label="Close app">✕</button>
-        <button id="appWindowBackBtn" aria-label="Back to Apps">← Apps</button>
-        <h2 id="appWindowTitle"></h2>
-        <label class="app-window-pin-label" title="Show this app on the Today page">
-          <input type="checkbox" id="appWindowPinToggle" style="width:auto;margin:0" />
-          <span>Pin</span>
-        </label>
-        <button id="appWindowExpandBtn" class="app-window-expand-btn" title="Expand to full screen" aria-label="Expand app to full screen">⤢</button>
-      </div>
-      <div id="appWindowContent">
-        <!-- Widget panes rendered here when an app is launched -->
-      </div>
-    </div>
-  </div><!-- end appWindowModal -->
-
+  <!-- Edit modal used by all pages -->
   <div id="editModal" role="dialog" aria-modal="true" class="hidden">
     <div class="panel">
       <h3 id="editModalHeading">Edit</h3>
@@ -712,128 +900,105 @@
         <a href="#home"     class="more-sheet-item" data-view="home">    <span class="more-sheet-icon">🏡</span><span class="more-sheet-label">Home</span></a>
         <a href="#work"     class="more-sheet-item" data-view="work">    <span class="more-sheet-icon">💼</span><span class="more-sheet-label">Work</span></a>
         <a href="#inbox"    class="more-sheet-item" data-view="inbox">   <span class="more-sheet-icon">📥</span><span class="more-sheet-label">Inbox</span></a>
-        <a href="#reminders" class="more-sheet-item" data-view="reminders" aria-label="View Reminders"><span class="more-sheet-icon">🔔</span><span class="more-sheet-label">Reminders</span></a>
         <a href="#events"   class="more-sheet-item" data-view="events">  <span class="more-sheet-icon">📅</span><span class="more-sheet-label">Events</span></a>
-        <button type="button" id="moreSheetJournalBtn" class="more-sheet-item" aria-label="Open Journal"><span class="more-sheet-icon">📓</span><span class="more-sheet-label">Journal</span></button>
-        <button type="button" id="moreSheetAppsBtn" class="more-sheet-item" aria-label="Open Apps"><span class="more-sheet-icon">⊞</span><span class="more-sheet-label">Apps</span></button>
         <a href="#settings" class="more-sheet-item" data-view="settings"><span class="more-sheet-icon">⚙️</span><span class="more-sheet-label">Settings</span></a>
       </div>
     </div>
   </div>
 
-  <!-- Edit modal used by all pages -->
-  <div id="editModal" role="dialog" aria-modal="true" class="hidden">
-    <div class="panel">
-      <h3 id="editModalHeading">Edit</h3>
-      <form id="editForm">
-        <input type="hidden" id="editKind" />
-        <input type="hidden" id="editEventId" />
-        <input type="hidden" id="editTaskIndex" />
-        <input type="hidden" id="editReminderKey" />
-        <input type="hidden" id="editReminderIndex" />
-        <div style="margin-top:8px;">
-          <label for="editText">Text / Title</label>
-          <input id="editText" type="text" />
-        </div>
-        <div style="display:flex;gap:8px;margin-top:8px;">
-          <div style="flex:1"><label for="editDate">Date</label><input id="editDate" type="date" /></div>
-          <div style="width:140px"><label for="editTime">Time</label><input id="editTime" type="time" /></div>
-          <div style="width:140px"><label for="editEndTime">End</label><input id="editEndTime" type="time" /></div>
-        </div>
-
-        <!-- Repeat controls in edit modal -->
-        <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-          <label style="min-width:90px;margin:0">Repeat</label>
-          <select id="editRepeat" style="width:160px">
-            <option value="none">None</option>
-            <option value="daily">Every day</option>
-            <option value="2day">Every 2 days</option>
-            <option value="weekly">Every week</option>
-            <option value="monthly">Every month</option>
-            <option value="custom">Custom interval</option>
-            <option value="weekday_ab">A/B weekday pattern</option>
-          </select>
-          <label style="min-width:90px;margin:0">Until</label>
-          <input id="editRepeatUntil" type="date" style="width:160px" />
-        </div>
-
-        <div id="editRepeatCustomRow" style="display:none;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
-          <label style="min-width:90px;margin:0">Every</label>
-          <input id="editRepeatInterval" type="number" min="1" max="30" value="1" style="width:90px" />
-          <select id="editRepeatUnit" style="width:130px">
-            <option value="days">Days</option>
-            <option value="weeks">Weeks</option>
-            <option value="months">Months</option>
-            <option value="years">Years</option>
-          </select>
-        </div>
-
-        <div id="editRepeatABRow" style="display:none;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
-          <label style="min-width:120px;margin:0">Start template</label>
-          <select id="editABWeek" style="width:220px">
-            <option value="a">A week (Mon/Wed/Fri)</option>
-            <option value="b">B week (Tue/Thu)</option>
-          </select>
-        </div>
-
-        <div id="editFieldsExtra" style="margin-top:8px">
-          <div style="margin-top:8px">
-            <label for="editLocation">Location</label>
-            <div class="places-suggestions" style="margin-top:8px">
-              <input id="editLocation" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" />
-              <div id="editLocationList" class="suggestions-list" style="display:none"></div>
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-            <div style="flex:1"><label for="editEmoji">Emoji</label><input id="editEmoji" type="text" placeholder="🎉" /></div>
-            <div style="width:140px"><label for="editCategory">Category</label><select id="editCategory"><option value="work">work</option><option value="personal">personal</option><option value="errands">errands</option></select></div>
-            <div style="width:120px"><label for="editPriority">Priority</label><select id="editPriority"><option value="1">!</option><option value="2">!!</option><option value="3">!!!</option></select></div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-            <div style="flex:1"><label for="editPreBuffer">Pre-buffer</label>
-              <select id="editPreBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option></select>
-            </div>
-            <div style="width:140px"><label for="editPostBuffer">Post-buffer</label>
-              <select id="editPostBuffer"><option value="5">5 min</option><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30">30 min</option></select>
-            </div>
-          </div>
-        </div>
-        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
-          <button type="button" id="cancelEdit" class="small-btn">Cancel</button>
-          <button type="submit" id="saveEdit" style="background:#4a90e2;color:#fff;border:none;padding:8px 12px;border-radius:6px">Save</button>
-        </div>
-      </form>
+  <!-- Desktop sidebar navigation (shown on desktop via CSS; mirrors bottom ribbon) -->
+  <nav id="desktopSidebar" class="desktop-sidebar" role="navigation" aria-label="Desktop navigation">
+    <div class="sidebar-header">
+      <div class="sidebar-app-title">📅 TimeScape</div>
+      <button id="sidebarCollapseBtn" class="sidebar-collapse-btn" aria-label="Toggle sidebar" title="Toggle sidebar">☰</button>
     </div>
-  </div>
-
-  <!-- bottom ribbon navigation -->
-  <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
-    <a href="#events" class="r-item" data-view="events"><span>📅</span><span class="r-label">Events</span></a>
-    <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
-    <a href="#calendar" class="r-item r-center" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
-    <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
-    <a href="#settings" class="r-item" data-view="settings"><span>⚙️</span><span class="r-label">Settings</span></a>
+    <a href="#today"     class="sidebar-item" data-view="today">    <span class="sidebar-icon">🏠</span><span class="sidebar-label">Today</span></a>
+    <a href="#calendar"  class="sidebar-item" data-view="calendar"> <span class="sidebar-icon">🗓️</span><span class="sidebar-label">Calendar</span></a>
+    <a href="#inbox"     class="sidebar-item" data-view="inbox">    <span class="sidebar-icon">📥</span><span class="sidebar-label">Inbox</span></a>
+    <div class="sidebar-divider"></div>
+    <a href="#personal"  class="sidebar-item" data-view="personal"> <span class="sidebar-icon">👤</span><span class="sidebar-label">Personal</span></a>
+    <a href="#home"      class="sidebar-item" data-view="home">     <span class="sidebar-icon">🏡</span><span class="sidebar-label">Home</span></a>
+    <a href="#work"      class="sidebar-item" data-view="work">     <span class="sidebar-icon">💼</span><span class="sidebar-label">Work</span></a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-bottom">
+      <a href="#tasks"    class="sidebar-item" data-view="tasks">   <span class="sidebar-icon">✅</span><span class="sidebar-label">Tasks</span></a>
+      <a href="#reminders" class="sidebar-item" data-view="reminders"><span class="sidebar-icon">🔔</span><span class="sidebar-label">Reminders</span></a>
+      <a href="#settings" class="sidebar-item" data-view="settings"><span class="sidebar-icon">⚙️</span><span class="sidebar-label">Settings</span></a>
+    </div>
   </nav>
+
+  <!-- Sidebar collapse/expand logic -->
+  <script>
+  (function() {
+    var sidebar = document.getElementById('desktopSidebar');
+    var btn = document.getElementById('sidebarCollapseBtn');
+    if (!sidebar || !btn) return;
+    var KEY = 'sidebarCollapsed';
+
+    function applySidebarState(collapsed) {
+      var collapsedW = getComputedStyle(document.documentElement).getPropertyValue('--ios-sidebar-w-collapsed').trim();
+      if (collapsed) {
+        sidebar.classList.add('collapsed');
+        document.documentElement.style.setProperty('--ios-sidebar-w', collapsedW);
+        btn.setAttribute('aria-label', 'Expand sidebar');
+        btn.setAttribute('title', 'Expand sidebar');
+      } else {
+        sidebar.classList.remove('collapsed');
+        document.documentElement.style.setProperty('--ios-sidebar-w', '');
+        btn.setAttribute('aria-label', 'Collapse sidebar');
+        btn.setAttribute('title', 'Collapse sidebar');
+      }
+    }
+
+    // Restore saved state; default to collapsed on iPad/tablet (768–1023 px)
+    try {
+      var _saved = localStorage.getItem(KEY);
+      var _vw = window.innerWidth;
+      if (_saved === 'true' || (_saved === null && _vw >= 768 && _vw < 1024)) {
+        applySidebarState(true);
+      }
+    } catch(e) {}
+
+    btn.addEventListener('click', function() {
+      var isCollapsed = sidebar.classList.contains('collapsed');
+      applySidebarState(!isCollapsed);
+      try { localStorage.setItem(KEY, !isCollapsed ? 'true' : 'false'); } catch(e) {}
+    });
+  })();
+  </script>
+
+  <!-- bottom ribbon navigation — iOS 26 floating pill tab bar + search island -->
+  <div class="tab-bar-wrapper" role="none">
+    <nav class="bottom-ribbon" role="navigation" aria-label="App pages">
+      <a href="#today" class="r-item r-center" data-view="today"><span>🏠</span><span class="r-label">Today</span></a>
+      <a href="#calendar" class="r-item" data-view="calendar"><span>🗓️</span><span class="r-label">Calendar</span></a>
+      <a href="#tasks" class="r-item" data-view="tasks"><span>✅</span><span class="r-label">Tasks</span></a>
+      <a href="#reminders" class="r-item" data-view="reminders"><span>🔔</span><span class="r-label">Reminders</span></a>
+      <button type="button" class="r-item" id="moreTabBtn" aria-label="More sections" aria-expanded="false"><span>⋯</span><span class="r-label">More</span></button>
+    </nav>
+    <!-- Search island — separate pill to the right of the tab bar -->
+    <button type="button" class="tab-search-island" id="tabSearchIslandBtn" aria-label="Search" title="Search (Ctrl+K)">🔍</button>
+  </div>
 
   <!-- Ensure ribbon links always target a cache-busted index.html, but avoid full reload when already on index -->
   <script>
   (function () {
-    const items = document.querySelectorAll('.bottom-ribbon .r-item');
+    // Only wire anchor items that have a data-view (excludes #moreTabBtn)
+    const items = document.querySelectorAll('.bottom-ribbon .r-item[data-view]');
     if (!items || !items.length) return;
-    const path = location.pathname.split('/').pop();
-    const onIndex = path === '' || path === 'index.html';
+    const now = Date.now();
     items.forEach(a => {
-      const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '') || 'calendar';
-      // Keep in-app hash navigation stable for installed/offline PWA usage.
-      a.setAttribute('href', onIndex ? ('#' + view) : ('index.html#' + view));
+      const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '') || 'today';
+      // set href to cache-busted target so navigating from other pages loads newest index.html
+      a.setAttribute('href', 'index.html?_=' + now + '#' + view);
     });
 
     // Intercept clicks when already on index.html to use SPA router
     items.forEach(a => {
       a.addEventListener('click', (e) => {
-        const currentPath = location.pathname.split('/').pop();
-        const view = a.dataset.view || (a.getAttribute('href') || '').split('#')[1] || 'calendar';
-        if (currentPath === '' || currentPath === 'index.html') {
+        const path = location.pathname.split('/').pop();
+        const view = a.dataset.view || (a.getAttribute('href') || '').split('#')[1] || 'today';
+        if (path === '' || path === 'index.html') {
           // already on index: prevent reload, update hash and trigger hashchange so router shows view
           e.preventDefault();
           if (location.hash.replace('#','') !== view) {
@@ -851,324 +1016,8 @@
   })();
   </script>
 
-  <script src="./assets/platform-bridge.js"></script>
-  <script src="./assets/storage-adapter.js"></script>
-
-
-  <!-- Apps modal and sidebar JavaScript -->
-  <script>
-    var _APP_EMOJI_MAP = {
-      budget: '💰', hydration: '💧', mood: '😊', focus: '🎯',
-      sleep: '😴', meal: '🥗', gym: '🏋️', routine: '🌅',
-      weather: '🌤️', jobs: '💼', journal: '📓',
-      chores: '🏡', groceries: '🛒'
-    };
-    var _APP_CONTAINER_MAP = {
-      budget: 'personalBudgetSection', hydration: 'personalHydrationSection',
-      mood: 'personalMoodSection', focus: 'personalFocusSection',
-      sleep: 'personalSleepBanner', meal: 'personalMealSection',
-      gym: 'personalGymSection', routine: 'personalRoutineSection',
-      journal: 'personalJournalSection'
-    };
-    var _APP_RENDER_MAP = {
-      budget: 'renderBudgetWidget', hydration: 'renderHydrationTracker',
-      mood: 'renderMoodCheckin', focus: 'renderDailyFocus',
-      sleep: 'renderSleepTracker', meal: 'renderMealTracker',
-      gym: 'renderGymPlanner', routine: 'renderRoutineChecklist',
-      journal: 'renderJournalWidget'
-    };
-
-    function openAppsModal() {
-      var m = document.getElementById('appsModal');
-      if (!m) return;
-      m.classList.remove('hidden');
-      var grid = document.getElementById('appsIconGrid');
-      var detail = document.getElementById('appsDetailPanel');
-      if (grid) grid.classList.remove('hidden');
-      if (detail) detail.classList.add('hidden');
-      // Wire drag-to-reorder if not already wired
-      if (grid && !grid._dndWired) {
-        setTimeout(function() {
-          var fn = window._wireAppsGridDnd;
-          if (typeof fn === 'function') fn();
-        }, 0);
-      }
-    }
-
-    function closeAppsModal() {
-      var m = document.getElementById('appsModal');
-      if (m) m.classList.add('hidden');
-    }
-
-    function closeAppWindow() {
-      var w = document.getElementById('appWindowModal');
-      if (w) {
-        w.classList.remove('fullscreen');
-        w.classList.add('hidden');
-      }
-      var content = document.getElementById('appWindowContent');
-      if (content) {
-        // Restore any app-widget-pane elements back to their original home
-        // before clearing innerHTML, so they can be re-used next time the app opens.
-        var detailContent = document.getElementById('appsDetailContent');
-        if (detailContent) {
-          content.querySelectorAll('.app-widget-pane').forEach(function(pane) {
-            pane.classList.add('hidden');
-            detailContent.appendChild(pane);
-          });
-        }
-        content.innerHTML = '';
-      }
-    }
-
-    // Expose modal controls for later scripts that bind button handlers.
-    window.openAppsModal = openAppsModal;
-    window.closeAppsModal = closeAppsModal;
-
-    function _scrollWeatherGridToToday(root) {
-      var grid = root && root.querySelector('.weather-week-grid');
-      var todayCard = grid && grid.querySelector('.wdc-today');
-      if (grid && todayCard) {
-        var scrollTarget = todayCard.offsetLeft - (grid.offsetWidth - todayCard.offsetWidth) / 2;
-        grid.scrollLeft = Math.max(0, scrollTarget);
-      }
-    }
-
-    function _renderWeatherAppContent(container) {
-      // Reuse the existing weather widget section data if available
-      var wSection = document.getElementById('weatherWidgetSection');
-      var wContent = document.getElementById('weatherWidgetContent');
-      if (wContent && wContent.innerHTML.trim()) {
-        container.innerHTML =
-          '<div class="app-weather-full">' +
-            '<p style="font-size:0.85rem;color:var(--ios-text-3);margin:0 0 10px">Full forecast — current conditions and weekly outlook.</p>' +
-            '<div id="appWeatherFullContent">' + wContent.innerHTML + '</div>' +
-          '</div>';
-        _scrollWeatherGridToToday(container);
-      } else {
-        container.innerHTML =
-          '<div class="app-weather-full">' +
-            '<p style="color:var(--ios-text-3);font-size:0.9rem;text-align:center;padding:24px 0">' +
-              '🌤️ Weather data is loading…<br><small>Make sure location access is enabled in Settings.</small>' +
-            '</p>' +
-          '</div>';
-        // Trigger a weather fetch via desktop-calendar-features if available
-        if (typeof window.fetchWeather === 'function') {
-          setTimeout(function() {
-            try { window.fetchWeather(); } catch(_) {}
-            if (wContent && wContent.innerHTML.trim()) {
-              var fw = document.getElementById('appWeatherFullContent');
-              if (fw) {
-                fw.innerHTML = wContent.innerHTML;
-                _scrollWeatherGridToToday(fw);
-              }
-            }
-          }, 800);
-        }
-      }
-    }
-
-    function _renderJobsAppContent(container) {
-      // Render the work earnings widget inside the app window
-      var earningsSection = document.getElementById('workEarningsSection');
-      if (earningsSection) {
-        earningsSection.classList.remove('hidden');
-        container.appendChild(earningsSection);
-        if (typeof window.renderWorkEarnings === 'function') {
-          try { window.renderWorkEarnings(); } catch(_) {}
-        }
-      } else {
-        container.innerHTML =
-          '<p style="color:var(--ios-text-3);font-size:0.9rem;text-align:center;padding:24px 0">' +
-          '💼 Job Earnings — navigate to the <a href="#work" style="color:var(--ios-accent)">Work</a> page to set up jobs first.</p>';
-      }
-    }
-
-    var _currentApp = null;
-
-    // Map of full-view render functions (exposed from app.js)
-    var _APP_FULL_RENDER_MAP = {
-      weather: 'renderWeatherAppFull',
-      jobs:    'renderJobsAppFull',
-      sleep:   'renderSleepAppFull',
-      mood:    'renderMoodAppFull',
-      focus:   'renderFocusAppFull',
-      hydration: 'renderHydrationAppFull',
-      meal:    'renderMealAppFull',
-      gym:     'renderGymAppFull',
-      routine: 'renderRoutineAppFull',
-      budget:  'renderBudgetAppFull',
-      journal: 'renderJournalAppFull',
-      chores:     'renderChoresAppFull',
-      groceries:  'renderGroceriesAppFull'
-    };
-
-    // Render either medium (widget) or full-view content into the app window
-    function _renderAppContent(app, content, isFullscreen) {
-      // Restore any app-widget-pane elements back to their original home
-      // before clearing innerHTML, so they are not destroyed and can be
-      // re-used when switching back to medium view.
-      var detailContent = document.getElementById('appsDetailContent');
-      if (detailContent) {
-        content.querySelectorAll('.app-widget-pane').forEach(function(pane) {
-          pane.classList.add('hidden');
-          detailContent.appendChild(pane);
-        });
-      }
-      content.innerHTML = '';
-      if (isFullscreen) {
-        var fullFn = _APP_FULL_RENDER_MAP[app];
-        if (fullFn && typeof window[fullFn] === 'function') {
-          try { window[fullFn](content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error rendering full view.</p>'; }
-          return;
-        }
-      }
-      // Medium / default view
-      if (app === 'weather') {
-        _renderWeatherAppContent(content);
-      } else if (app === 'jobs') {
-        _renderJobsAppContent(content);
-      } else if (app === 'sleep') {
-        // Sleep medium view: use dedicated compact view
-        if (typeof window.renderSleepAppMedium === 'function') {
-          try { window.renderSleepAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Sleep.</p>'; }
-        }
-      } else if (app === 'gym') {
-        // Gym medium view: use the full-view render function directly
-        var gymMedFn = _APP_FULL_RENDER_MAP['gym'];
-        if (gymMedFn && typeof window[gymMedFn] === 'function') {
-          try { window[gymMedFn](content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Gym.</p>'; }
-        }
-      } else if (app === 'chores') {
-        if (typeof window.renderChoresAppMedium === 'function') {
-          try { window.renderChoresAppMedium(content); } catch(e) { content.innerHTML = '<p style="color:var(--ios-text-3);padding:20px">Error loading Chores.</p>'; }
-        }
-      } else {
-        var containerId = _APP_CONTAINER_MAP[app];
-        if (containerId) {
-          var existing = document.getElementById(containerId);
-          if (existing) {
-            existing.classList.remove('hidden');
-            content.appendChild(existing);
-          }
-        }
-        var renderFn = _APP_RENDER_MAP[app];
-        if (renderFn && typeof window[renderFn] === 'function') {
-          try { window[renderFn](); } catch(e) { /* ignore */ }
-        }
-      }
-    }
-
-    function openAppDetail(app, opts) {
-      // opts: { fullscreen: true } to open directly in full view
-      var openFullscreen = !!(opts && opts.fullscreen);
-      _currentApp = app;
-
-      // Close the apps grid first so it feels like a new window opening
-      closeAppsModal();
-
-      var titleEl = document.getElementById('appWindowTitle');
-      if (titleEl) titleEl.textContent = _APP_TITLE_MAP[app] || app;
-
-      // Set pin toggle state
-      var pinToggle = document.getElementById('appWindowPinToggle');
-      if (pinToggle) {
-        var pinned = {};
-        try { pinned = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
-        pinToggle.checked = !!pinned[app];
-        pinToggle.dataset.app = app;
-      }
-
-      // Show the app window modal
-      var w = document.getElementById('appWindowModal');
-      if (w) {
-        if (openFullscreen) {
-          w.classList.add('fullscreen');
-        } else {
-          w.classList.remove('fullscreen');
-        }
-        w.classList.remove('hidden');
-      }
-
-      // Update expand button label to reflect current state
-      var expandBtn = document.getElementById('appWindowExpandBtn');
-      if (expandBtn) {
-        expandBtn.textContent = openFullscreen ? '⤡' : '⤢';
-        expandBtn.title = openFullscreen ? 'Collapse to medium' : 'Expand to full screen';
-        expandBtn.setAttribute('aria-label', openFullscreen ? 'Collapse app' : 'Expand app to full screen');
-      }
-
-      // Render content
-      var content = document.getElementById('appWindowContent');
-      if (content) _renderAppContent(app, content, openFullscreen);
-
-      // Expose so app scripts can open any app from within widgets
-      window.openAppDetail = openAppDetail;
-    }
-
-    var _pinnedAppsDragSrc = null;
-
-    function _savePinnedAppsOrder(apps) {
-      try { localStorage.setItem('pinnedAppsOrder', JSON.stringify(apps)); } catch(e) {}
-    }
-
-    function _getOrderedPinnedApps() {
-      var pinned = {};
-      try { pinned = JSON.parse(localStorage.getItem('pinnedApps') || '{}'); } catch(e) {}
-      var allPinned = Object.keys(pinned).filter(function(k) { return pinned[k]; });
-      var order = [];
-      try { order = JSON.parse(localStorage.getItem('pinnedAppsOrder') || '[]'); } catch(e) {}
-      // Keep only apps that are still pinned, in saved order, then append any new ones
-      var ordered = order.filter(function(k) { return allPinned.indexOf(k) !== -1; });
-      allPinned.forEach(function(k) { if (ordered.indexOf(k) === -1) ordered.push(k); });
-      return ordered;
-    }
-
-    function renderTodayPinnedApps() {
-      var col = document.getElementById('todayPinnedApps');
-      if (!col) return;
-      var apps = _getOrderedPinnedApps();
-      col.innerHTML = '';
-      if (!apps.length) {
-        col.innerHTML = '<p class="today-no-apps">No apps pinned yet.<br><small><button id="todayOpenAppsBtn" class="today-open-apps-link">⊞ Open Apps</button> to pin one.</small></p>';
-        return;
-      }
-      apps.forEach(function(app) {
-        var card = document.createElement('div');
-        card.className = 'today-pinned-app-card';
-        card.draggable = true;
-        card.tabIndex = 0;
-        card.setAttribute('role', 'button');
-        card.setAttribute('aria-label', (_APP_TITLE_MAP[app] || app) + ' — drag to reorder');
-        card.dataset.app = app;
-        card.innerHTML =
-          '<span class="today-pinned-app-drag-handle" aria-hidden="true">⠿</span>' +
-          '<span class="today-pinned-app-icon">' + (_APP_EMOJI_MAP[app] || '⊞') + '</span>' +
-          '<span class="today-pinned-app-name">' + (_APP_TITLE_MAP[app] || app) + '</span>';
-
-        // Click or keyboard activation opens the app (but not on drag handle)
-        card.addEventListener('click', function(e) {
-          if (e.target.classList.contains('today-pinned-app-drag-handle')) return;
-          openAppDetail(app);
-        });
-        card.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            openAppDetail(app);
-          }
-        });
-
-        // Drag-and-drop handlers
-        card.addEventListener('dragstart', function(e) {
-          _pinnedAppsDragSrc = card;
-          e.dataTransfer.effectAllowed = 'move';
-          e.dataTransfer.setData('text/plain', app);
-        });
-
-        col.appendChild(card);
-      });
-    }
-  </script>
+  <!-- GitHub Gist sync – works on GitHub Pages, no extra account needed -->
+  <script src="./gist-sync.js"></script>
 
   <!-- load canonical app script -->
   <script src="./assets/app.js"></script>
@@ -1177,12 +1026,6 @@
   <script>
   (function () {
     const viewSrcs = ['./utils.js','./events-view.js','./daily-view.js'];
-    const storage = window.appStorage || {
-      getItem: function (key, fallback) {
-        const fb = (typeof fallback === 'undefined') ? '' : fallback;
-        try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
-      }
-    };
 
     // remove existing script tags that match base src (so we can reload fresh)
     document.querySelectorAll('script[src]').forEach(s => {
@@ -1202,19 +1045,33 @@
       });
     }
 
+    // Shared selector for tab-bar anchor items (excludes #moreTabBtn which has no data-view)
+    const _RIBBON_SEL = '.bottom-ribbon .r-item[data-view]';
+
+    // Section-name map for dynamic header title
+    const _viewTitles = {
+      today: '🏠 Today', calendar: '🗓️ Calendar', tasks: '✅ Tasks',
+      reminders: '🔔 Reminders', personal: '👤 Personal', home: '🏡 Home',
+      work: '💼 Work', inbox: '📥 Inbox', events: '📅 Events', settings: '⚙️ Settings'
+    };
+    // Views that live behind the "More" tab button
+    const _moreViews = new Set(['personal','home','work','inbox','events','settings']);
+
     // SPA navigation helpers
     function showView(view) {
       document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
       const el = document.querySelector('#page-' + view);
       if (el) el.classList.remove('hidden');
-      document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
+      // Update active state on tab bar anchor items (excludes #moreTabBtn)
+      document.querySelectorAll(_RIBBON_SEL).forEach(a => {
         a.classList.toggle('active', a.dataset.view === view);
       });
-      try {
-        if (window.platformBridge && typeof window.platformBridge.emit === 'function') {
-          window.platformBridge.emit('view:show', { view: view || 'calendar' });
-        }
-      } catch (_) {}
+      // Mark More button active when a secondary section is shown
+      const moreBtn = document.getElementById('moreTabBtn');
+      if (moreBtn) moreBtn.classList.toggle('active', _moreViews.has(view));
+      // Dynamic header title
+      const titleEl = document.getElementById('appHeaderTitle');
+      if (titleEl) titleEl.textContent = _viewTitles[view] || '📅 TimeScape Planner';
       // notify view scripts to (re)render for the active view
       window.dispatchEvent(new CustomEvent('view:show', { detail: { view } }));
     }
@@ -1227,132 +1084,75 @@
         showView(view);
         return;
       }
-      // otherwise navigate to index + target hash (works in standalone/offline PWA)
-      location.href = 'index.html#' + view;
+      // otherwise navigate to index with cache-bust so latest files load
+      location.href = 'index.html?_=' + Date.now() + '#' + view;
     }
 
     function wireRibbon() {
-      document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
+      // Wire only anchor items that declare a destination view
+      document.querySelectorAll(_RIBBON_SEL).forEach(a => {
         a.addEventListener('click', (e) => {
           e.preventDefault();
           const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
-          navTo(view || 'calendar');
+          navTo(view || 'today');
         });
       });
+      // More button — toggles the More sheet
+      const moreBtn = document.getElementById('moreTabBtn');
+      if (moreBtn) {
+        moreBtn.addEventListener('click', () => {
+          const sheet = document.getElementById('moreSheet');
+          if (!sheet) return;
+          const opening = sheet.classList.contains('hidden');
+          sheet.classList.toggle('hidden', !opening);
+          moreBtn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        });
+      }
     }
 
     function updateHeaderFromProfile() {
       try {
-        const name = storage.getItem('userName', '') || '';
-        const header = document.getElementById('appHeader');
+        const name = localStorage.getItem('userName') || '';
+        // Header title is managed dynamically by showView(); update profile status only
         const profileStatus = document.getElementById('profileStatus');
-        if (header) header.textContent = name ? (name + "'s Planner") : '📅 TimeScape Planner';
         if (profileStatus) profileStatus.textContent = name ? ('Name set: ' + name) : 'Name not set';
+        // Update sidebar app title with user name
+        const sidebarTitle = document.querySelector('.sidebar-app-title');
+        if (sidebarTitle) sidebarTitle.textContent = name ? (name + '\u2019s Planner') : '\uD83D\uDCC5 TimeScape';
       } catch (e) { /* ignore */ }
+    }
+
+    function wireHeaderButtons() {
+      var headerInbox = document.getElementById('headerInboxBtn');
+      var headerSettings = document.getElementById('headerSettingsBtn');
+      if (headerInbox) {
+        headerInbox.addEventListener('click', function(e) {
+          e.preventDefault();
+          navTo('inbox');
+        });
+      }
+      if (headerSettings) {
+        headerSettings.addEventListener('click', function(e) {
+          e.preventDefault();
+          navTo('settings');
+        });
+      }
     }
 
     // load view scripts and initialize router
     Promise.all(viewSrcs.map(loadScript)).catch(() => { /* ignore load errors */ }).then(() => {
       wireRibbon();
-      window.addEventListener('hashchange', () => showView(location.hash.replace('#', '') || 'calendar'));
+      wireHeaderButtons();
+      window.addEventListener('hashchange', () => showView(location.hash.replace('#', '') || 'today'));
       // initial view
-      const initial = location.hash.replace('#', '') || 'calendar';
+      const initial = location.hash.replace('#', '') || 'today';
       showView(initial);
       updateHeaderFromProfile();
+      // Re-render calendar and day details now that utils.js (expandEvents) is loaded
+      try { if (typeof generateCalendar === 'function') generateCalendar(); } catch(_) {}
+      try { if (typeof showReminders === 'function' && typeof selectedDay !== 'undefined' && selectedDay) showReminders(selectedDay); } catch(_) {}
     });
 
-  })();
-  </script>
-
-  <script>
-  (function () {
-    function badgeColors(ok) {
-      return ok ? { bg: '#dff5e2', fg: '#1b5e20' } : { bg: '#ffe5e5', fg: '#8a1c1c' };
-    }
-
-    function setBadge(id, text, ok) {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const c = badgeColors(ok);
-      el.textContent = text;
-      el.style.background = c.bg;
-      el.style.color = c.fg;
-    }
-
-    function formatTime(ts) {
-      try { return new Date(ts).toLocaleString(); } catch (_) { return 'unknown'; }
-    }
-
-    function renderBridgeDiagnostics() {
-      const summary = document.getElementById('bridgeDiagSummary');
-      const list = document.getElementById('bridgeDiagHandlers');
-      const updated = document.getElementById('bridgeDiagUpdated');
-      if (!summary || !list || !updated) return;
-
-      const bridge = window.platformBridge;
-      if (!bridge || typeof bridge.getDiagnostics !== 'function') {
-        summary.textContent = 'Bridge script not loaded.';
-        setBadge('bridgeHostBadge', 'Host: unavailable', false);
-        setBadge('bridgeResolveBadge', 'Callback: unavailable', false);
-        setBadge('bridgePendingBadge', 'Pending: 0', true);
-        list.innerHTML = '';
-        updated.textContent = 'Last updated: ' + formatTime(Date.now());
-        return;
-      }
-
-      const d = bridge.getDiagnostics();
-      const hostOk = !!d.isNativeHost;
-      const callbackOk = !!d.hasResolveEntrypoint;
-
-      summary.textContent = hostOk
-        ? 'Native host detected. Handler availability shown below.'
-        : 'No native host detected. PWA fallback behavior is active.';
-
-      setBadge('bridgeHostBadge', 'Host: ' + (hostOk ? 'detected' : 'not detected'), hostOk);
-      setBadge('bridgeResolveBadge', 'Callback: ' + (callbackOk ? 'available' : 'missing'), callbackOk);
-      setBadge('bridgePendingBadge', 'Pending: ' + (d.pendingRequestCount || 0), true);
-
-      const known = Array.isArray(d.knownHandlers) ? d.knownHandlers : [];
-      list.innerHTML = '';
-      known.forEach((name) => {
-        const ok = !!(d.statusByKnown && d.statusByKnown[name]);
-        const li = document.createElement('li');
-        li.style.display = 'flex';
-        li.style.alignItems = 'center';
-        li.style.justifyContent = 'space-between';
-        li.style.padding = '6px 8px';
-        li.style.border = '1px solid #e6e6e6';
-        li.style.borderRadius = '6px';
-        const left = document.createElement('span');
-        left.textContent = name;
-        const right = document.createElement('span');
-        right.textContent = ok ? 'available' : 'missing';
-        right.style.fontWeight = '600';
-        right.style.color = ok ? '#1b5e20' : '#8a1c1c';
-        li.appendChild(left);
-        li.appendChild(right);
-        list.appendChild(li);
-      });
-
-      updated.textContent = 'Last updated: ' + formatTime(d.ts || Date.now());
-    }
-
-    function wireBridgeDiagnostics() {
-      const btn = document.getElementById('refreshBridgeDiagBtn');
-      if (btn) btn.addEventListener('click', function (e) {
-        e.preventDefault();
-        renderBridgeDiagnostics();
-      });
-
-      window.addEventListener('view:show', function (e) {
-        const view = (e && e.detail && e.detail.view) ? e.detail.view : '';
-        if (view === 'settings') renderBridgeDiagnostics();
-      });
-
-      renderBridgeDiagnostics();
-    }
-
-    document.addEventListener('DOMContentLoaded', wireBridgeDiagnostics);
   })();
   </script>
 
@@ -1360,360 +1160,17 @@
   <script src="./push.js"></script>
   <!-- ADDED: local notifications scheduler (events + reminders) -->
   <script src="./notifications.js"></script>
-  <!-- ADDED: PouchDB sync support (loads PouchDB and provides simple sync helpers) -->
-  <script src="https://unpkg.com/pouchdb@7.3.0/dist/pouchdb.min.js"></script>
-  <script>
-    (function () {
-      const storage = window.appStorage || {
-        getItem: function (key, fallback) {
-          const fb = (typeof fallback === 'undefined') ? '' : fallback;
-          try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
-        },
-        setItem: function (key, value) {
-          try { localStorage.setItem(key, value == null ? '' : String(value)); } catch (_) {}
-        },
-        removeItem: function (key) {
-          try { localStorage.removeItem(key); } catch (_) {}
-        },
-        getJSON: function (key, fallback) {
-          try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
-        },
-        setJSON: function (key, value) {
-          try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { return false; }
-        }
-      };
-
-      // Simple PouchDB sync helpers for "events" and "profile" (user data)
-      // Usage:
-      //   window.initPouchSync('https://user:pass@host:5984'); // returns Promise
-      //   window.stopPouchSync();
-      // Listens for remote changes and dispatches custom events:
-      //   document.addEventListener('pouch-sync:import', (e) => { /* e.detail = { events: [...], profile: [...] } */ });
-      //   document.addEventListener('pouch-sync:error', (e) => { /* e.detail = error */ });
-
-      const state = {
-        local: {},
-        syncHandlers: [],
-      };
-
-      function docsToArray(result) {
-        return (result && result.rows) ? result.rows.map(r => r.doc) : [];
-      }
-
-      async function pullAllDocs(db) {
-        const res = await db.allDocs({ include_docs: true });
-        return docsToArray(res);
-      }
-
-      async function importAll() {
-        try {
-          const events = state.local.events ? await pullAllDocs(state.local.events) : [];
-          const profile = state.local.profile ? await pullAllDocs(state.local.profile) : [];
-          // Broadcast to the app so other scripts can reconcile with localStorage/UI
-          window.dispatchEvent(new CustomEvent('pouch-sync:import', { detail: { events, profile } }));
-        } catch (err) {
-          window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err }));
-        }
-      }
-
-      function makeHandler(dbName) {
-        return async (change) => {
-          // A change occurred in either direction; do a full import (simple, reliable)
-          try {
-            await importAll();
-          } catch (err) {
-            window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err }));
-          }
-        };
-      }
-
-      window.initPouchSync = async function initPouchSync(remoteBaseUrl) {
-        // remoteBaseUrl example: https://user:pass@mycouch.example.com/dbs
-        if (!remoteBaseUrl || typeof remoteBaseUrl !== 'string') {
-          throw new Error('remoteBaseUrl required, e.g. https://user:pass@couch.example.com');
-        }
-
-        // create local DB instances
-        state.local.events = new PouchDB('events');
-        state.local.profile = new PouchDB('profile');
-
-        // compose remote endpoints
-        const remoteEvents = remoteBaseUrl.replace(/\/$/, '') + '/events';
-        const remoteProfile = remoteBaseUrl.replace(/\/$/, '') + '/profile';
-
-        // cancel any existing syncs
-        window.stopPouchSync && window.stopPouchSync();
-
-        // start bidirectional live sync (auto-retry)
-        const opts = { live: true, retry: true };
-        const syncEv = state.local.events.sync(remoteEvents, opts)
-          .on('change', makeHandler('events'))
-          .on('paused', info => window.dispatchEvent(new CustomEvent('pouch-sync:paused', { detail: info })))
-          .on('active', info => window.dispatchEvent(new CustomEvent('pouch-sync:active', { detail: info })))
-          .on('denied', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })))
-          .on('error', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })));
-
-        const syncPr = state.local.profile.sync(remoteProfile, opts)
-          .on('change', makeHandler('profile'))
-          .on('paused', info => window.dispatchEvent(new CustomEvent('pouch-sync:paused', { detail: info })))
-          .on('active', info => window.dispatchEvent(new CustomEvent('pouch-sync:active', { detail: info })))
-          .on('denied', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })))
-          .on('error', err => window.dispatchEvent(new CustomEvent('pouch-sync:error', { detail: err })));
-
-        // keep references so we can cancel later
-        state.syncHandlers = [syncEv, syncPr];
-
-        // initial import of current docs
-        await importAll();
-
-        return { eventsDb: state.local.events, profileDb: state.local.profile };
-      };
-
-      window.stopPouchSync = function stopPouchSync() {
-        if (state.syncHandlers && state.syncHandlers.length) {
-          state.syncHandlers.forEach(s => {
-            try { s.cancel && s.cancel(); } catch (e) { /* ignore */ }
-          });
-        }
-        state.syncHandlers = [];
-        // don't destroy local DB instances (app may still read them)
-      };
-
-      // expose helper to push local JSON objects into PouchDB (upsert by id)
-      // docs should be array of { _id: '...', ... } - if no _id provided one will be created
-      window.upsertDocs = async function upsertDocs(dbName, docs = []) {
-        if (!state.local[dbName]) throw new Error('unknown db: ' + dbName);
-        const db = state.local[dbName];
-        const results = [];
-        for (const doc of docs) {
-          try {
-            if (!doc._id) doc._id = (dbName + ':' + Date.now() + ':' + Math.random().toString(36).slice(2));
-            // try get to preserve _rev when updating
-            const existing = await db.get(doc._id).catch(() => null);
-            if (existing) {
-              const merged = Object.assign({}, existing, doc);
-              merged._rev = existing._rev;
-              results.push(await db.put(merged));
-            } else {
-              results.push(await db.put(doc));
-            }
-          } catch (err) {
-            results.push({ error: err.message || String(err) });
-          }
-        }
-        return results;
-      };
-
-      // lightweight auto-import on load if PouchDB data exists locally
-      (async function autoImportIfLocal() {
-        try {
-          // only import if local DBs are present
-          const test = new PouchDB('events');
-          const count = await test.allDocs({ limit: 1 }).catch(() => ({ rows: [] }));
-          if (count && Array.isArray(count.rows)) {
-            state.local.events = test;
-            state.local.profile = new PouchDB('profile');
-            await importAll();
-          }
-        } catch (e) { /* ignore */ }
-      })();
-
-      // --- ADDED: settings wiring + merge logic for incoming docs ---
-      (function wirePouchUiAndMerge() {
-        const elHost = document.getElementById('syncHost');
-        const elPort = document.getElementById('syncPort');
-        const elHttps = document.getElementById('syncHttps');
-        const elUser = document.getElementById('syncUser');
-        const elPass = document.getElementById('syncPass');
-        const elSave = document.getElementById('saveCreds');
-        const startBtn = document.getElementById('startSyncBtn');
-        const stopBtn = document.getElementById('stopSyncBtn');
-        const importBtn = document.getElementById('importNowBtn');
-        const statusEl = document.getElementById('pouchSyncStatus');
-        function setStatus(s){ if(statusEl) statusEl.textContent = s; }
-
-        // populate saved parts if present
-        if (elHost) elHost.value = storage.getItem('pouchSyncHost', '') || '';
-        if (elPort) elPort.value = storage.getItem('pouchSyncPort', '5984') || '5984';
-        if (elHttps) elHttps.checked = storage.getItem('pouchSyncHttps', '') === '1';
-        if (elUser) elUser.value = storage.getItem('pouchSyncUser', '') || '';
-        if (elSave) elSave.checked = storage.getItem('pouchSyncSaveCreds', '') === '1';
-
-        startBtn && startBtn.addEventListener('click', async () => {
-          const host = (elHost && elHost.value || '').trim();
-          if (!host) return setStatus('Enter CouchDB host first');
-          const port = (elPort && elPort.value || '').trim();
-          const https = !!(elHttps && elHttps.checked);
-          const user = (elUser && elUser.value || '').trim();
-          const pass = (elPass && elPass.value || '').trim();
-          const saveCreds = !!(elSave && elSave.checked);
-
-          // assemble base URL
-          const proto = https ? 'https://' : 'http://';
-          const hostPort = port ? (host + ':' + port) : host;
-          let baseUrl = proto + hostPort;
-          if (user) {
-            // include credentials in URL for quick replication (encode them)
-            const cred = encodeURIComponent(user) + (pass ? ':' + encodeURIComponent(pass) : '');
-            baseUrl = proto + cred + '@' + hostPort;
-          }
-
-          setStatus('Starting sync...');
-          try {
-            // persist parts (optionally password)
-            storage.setItem('pouchSyncHost', host);
-            storage.setItem('pouchSyncPort', port);
-            storage.setItem('pouchSyncHttps', https ? '1' : '0');
-            storage.setItem('pouchSyncUser', user || '');
-            storage.setItem('pouchSyncSaveCreds', saveCreds ? '1' : '0');
-            if (saveCreds && pass) storage.setItem('pouchSyncPass', pass);
-            else storage.removeItem('pouchSyncPass');
-
-            await window.initPouchSync(baseUrl);
-            setStatus('Sync running');
-          } catch (err) {
-            console.error(err);
-            setStatus('Error starting: ' + (err && err.message ? err.message : String(err)));
-          }
-        });
-
-        stopBtn && stopBtn.addEventListener('click', () => {
-          window.stopPouchSync && window.stopPouchSync();
-          setStatus('Sync stopped');
-        });
-
-        importBtn && importBtn.addEventListener('click', () => {
-          (async () => {
-            try {
-              const evDb = new PouchDB('events');
-              const prDb = new PouchDB('profile');
-              const evs = (await evDb.allDocs({ include_docs: true })).rows.map(r => r.doc);
-              const prs = (await prDb.allDocs({ include_docs: true })).rows.map(r => r.doc);
-              window.dispatchEvent(new CustomEvent('pouch-sync:import', { detail: { events: evs, profile: prs } }));
-              setStatus('Imported local pouch data');
-            } catch (e) { console.error(e); setStatus('Import failed: ' + (e && e.message ? e.message : String(e))); }
-          })();
-        });
-
-        // merge incoming docs into localStorage structures used by the app
-        document.addEventListener('pouch-sync:import', (ev) => {
-          const { events = [], profile = [] } = ev.detail || {};
-          try {
-            // merge events by _id into localStorage 'events' array
-            const localEvents = storage.getJSON('events', []);
-            const map = {};
-            localEvents.forEach(item => { if (item && item._id) map[item._id] = item; });
-            events.forEach(d => { if (d && d._id) map[d._id] = Object.assign({}, map[d._id] || {}, d); });
-            const mergedEvents = Object.values(map);
-            storage.setJSON('events', mergedEvents);
-
-            // profile: merge first profile doc fields into localStorage keys used by app
-            if (profile && profile.length) {
-              const p = profile[0];
-              if (p.name) storage.setItem('userName', p.name);
-              if (p.home) storage.setItem('userHome', p.home);
-              if (p.jobs) storage.setJSON('jobs', p.jobs);
-            }
-
-            // update UI hooks
-            if (window.updateHeaderFromProfile) window.updateHeaderFromProfile();
-            window.dispatchEvent(new CustomEvent('app:data:updated'));
-            setStatus('Imported ' + events.length + ' events, ' + profile.length + ' profile docs');
-          } catch (err) {
-            console.error(err);
-            setStatus('Import error: ' + (err && err.message ? err.message : String(err)));
-          }
-        });
-
-        document.addEventListener('pouch-sync:error', (e) => { setStatus('Sync error: ' + (e.detail && (e.detail.message || e.detail) ? (e.detail.message || e.detail) : 'unknown')); });
-        document.addEventListener('pouch-sync:active', () => setStatus('Sync active'));
-        document.addEventListener('pouch-sync:paused', () => setStatus('Sync paused'));
-
-        // try to auto-start if the user saved a URL
-        (async function autoStartSaved() {
-          const host = storage.getItem('pouchSyncHost', '');
-          if (host) {
-            try {
-              const port = storage.getItem('pouchSyncPort', '') || '';
-              const https = storage.getItem('pouchSyncHttps', '') === '1';
-              const user = storage.getItem('pouchSyncUser', '') || '';
-              const pass = storage.getItem('pouchSyncPass', '') || '';
-              const proto = https ? 'https://' : 'http://';
-              const hostPort = port ? (host + ':' + port) : host;
-              let base = proto + hostPort;
-              if (user) base = proto + encodeURIComponent(user) + (pass ? ':' + encodeURIComponent(pass) : '') + '@' + hostPort;
-              await window.initPouchSync(base);
-              setStatus('Sync running');
-            } catch (e) { setStatus('Auto-start failed'); }
-          }
-        })();
-      })();
-
-    })();
-  </script>
-
   <!-- ADDED: tasks UI script -->
   <script src="./tasks.js"></script>
-
-  <!-- Sidebar button event handlers -->
-  <script>
-  (function () {
-    // Wire sidebar Apps button
-    var appsBtn = document.getElementById('sidebarAppsBtn');
-    if (appsBtn) {
-      appsBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (typeof window.openAppsModal === 'function') {
-          window.openAppsModal();
-          return;
-        }
-        var appsModal = document.getElementById('appsModal');
-        if (appsModal) appsModal.classList.remove('hidden');
-      });
-    }
-
-    // Wire sidebar Settings button
-    var settingsBtn = document.getElementById('sidebarSettingsBtn');
-    if (settingsBtn) {
-      settingsBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        var settingsModal = document.getElementById('settingsModal') || document.querySelector('.settings-modal');
-        if (settingsModal) {
-          settingsModal.classList.remove('hidden');
-          if (typeof window.showSettingsModal === 'function') {
-            window.showSettingsModal();
-          }
-          return;
-        }
-        // Fallback to SPA settings page when modal UI is not present.
-        if (typeof window.showView === 'function') {
-          window.showView('settings');
-        }
-        if (location.hash !== '#settings') {
-          location.hash = 'settings';
-        }
-      });
-    }
-
-    // Also wire the apps button in the "Open Apps" link on Today page
-    document.addEventListener('click', function (e) {
-      if (e.target.id === 'todayOpenAppsBtn' || (e.target.closest && e.target.closest('#todayOpenAppsBtn'))) {
-        e.preventDefault();
-        if (typeof window.openAppsModal === 'function') {
-          window.openAppsModal();
-        }
-      }
-    }, true);
-
-    // Wire the close apps modal button
-    var closeAppsModalBtn = document.getElementById('closeAppsModal');
-    if (closeAppsModalBtn && typeof window.closeAppsModal === 'function') {
-      closeAppsModalBtn.addEventListener('click', function (e) {
-        e.preventDefault();
-        window.closeAppsModal();
-      });
-    }
-  })();
-  </script>
+  <!-- advanced calendar features: ICS export, heatmap, multi-day spans, drag-to-create, conflict detection, mini-month nav, NLP recurrence, Pomodoro timer, timezone -->
+  <script src="./calendar-advanced.js"></script>
+  <!-- desktop-specific advanced features (CSV export, earnings panel, task filter/sort, DnD week view, bulk operations) -->
+  <script src="./desktop.js"></script>
+  <!-- desktop personal page enhancements (meal week grid, routine timeline, gym split panel) -->
+  <script src="./desktop-personal.js"></script>
+  <!-- 20 advanced calendar features: year heatmap, animated transitions, time-block week view, weather overlay, count badges, dark mode, 2-week view, drag-resize, time-slot create, layer toggles, recurrence icons, smart scheduling, activity chart, donut chart, streak tracking, go-to-date, split panel, search highlighting, print CSS, command palette -->
+  <script src="./desktop-calendar-features.js"></script>
+  <!-- iOS 26 / macOS native-feel: glass UI, bottom sheets, sidebar, haptics, dark mode, pull-to-refresh, badge API -->
+  <script src="./assets/ios-native.js" defer></script>
 </body>
 </html>
