@@ -51,3 +51,14 @@ Date: 2026-05-10
 - `d594da6`
 
 All other reviewed commits are architecture-divergent relative to current Pouch baseline and should remain excluded.
+
+## Step 2 Outcome (detailed hunk review)
+
+- Reviewed `59bea86` and `d594da6` against current files (`index.html`, `assets/app.js`, `sw.js`, `notifications.js`, `push.js`).
+- Result: no directly applicable sync hunks remain to patch into current HEAD.
+
+Notes:
+
+1. `59bea86` references older symbols/sections not present in current code shape (e.g., old routine/sync-specific blocks and settings-pin constants from prior UI structure).
+2. `d594da6` is a merge containing no meaningful sync changes for the current Pouch path.
+3. Decision: mark both as reviewed/no-op for current architecture; do not cherry-pick.
