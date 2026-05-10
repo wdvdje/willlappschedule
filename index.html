@@ -820,19 +820,20 @@
   (function () {
     const items = document.querySelectorAll('.bottom-ribbon .r-item');
     if (!items || !items.length) return;
-    const now = Date.now();
+    const path = location.pathname.split('/').pop();
+    const onIndex = path === '' || path === 'index.html';
     items.forEach(a => {
       const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '') || 'calendar';
-      // set href to cache-busted target so navigating from other pages loads newest index.html
-      a.setAttribute('href', 'index.html?_=' + now + '#' + view);
+      // Keep in-app hash navigation stable for installed/offline PWA usage.
+      a.setAttribute('href', onIndex ? ('#' + view) : ('index.html#' + view));
     });
 
     // Intercept clicks when already on index.html to use SPA router
     items.forEach(a => {
       a.addEventListener('click', (e) => {
-        const path = location.pathname.split('/').pop();
+        const currentPath = location.pathname.split('/').pop();
         const view = a.dataset.view || (a.getAttribute('href') || '').split('#')[1] || 'calendar';
-        if (path === '' || path === 'index.html') {
+        if (currentPath === '' || currentPath === 'index.html') {
           // already on index: prevent reload, update hash and trigger hashchange so router shows view
           e.preventDefault();
           if (location.hash.replace('#','') !== view) {
@@ -845,7 +846,7 @@
           }
         }
         // otherwise allow default navigation to cache-busted index.html target
-      }, { passive: true });
+      });
     });
   })();
   </script>
@@ -919,6 +920,10 @@
         content.innerHTML = '';
       }
     }
+
+    // Expose modal controls for later scripts that bind button handlers.
+    window.openAppsModal = openAppsModal;
+    window.closeAppsModal = closeAppsModal;
 
     function _scrollWeatherGridToToday(root) {
       var grid = root && root.querySelector('.weather-week-grid');
@@ -1222,8 +1227,8 @@
         showView(view);
         return;
       }
-      // otherwise navigate to index with cache-bust so latest files load
-      location.href = 'index.html?_=' + Date.now() + '#' + view;
+      // otherwise navigate to index + target hash (works in standalone/offline PWA)
+      location.href = 'index.html#' + view;
     }
 
     function wireRibbon() {
@@ -1232,7 +1237,7 @@
           e.preventDefault();
           const view = a.dataset.view || (a.getAttribute('href') || '').replace('#', '');
           navTo(view || 'calendar');
-        }, { passive: true });
+        });
       });
     }
 
@@ -1655,10 +1660,15 @@
   (function () {
     // Wire sidebar Apps button
     var appsBtn = document.getElementById('sidebarAppsBtn');
-    if (appsBtn && typeof window.openAppsModal === 'function') {
+    if (appsBtn) {
       appsBtn.addEventListener('click', function (e) {
         e.preventDefault();
-        window.openAppsModal();
+        if (typeof window.openAppsModal === 'function') {
+          window.openAppsModal();
+          return;
+        }
+        var appsModal = document.getElementById('appsModal');
+        if (appsModal) appsModal.classList.remove('hidden');
       });
     }
 
@@ -1673,6 +1683,14 @@
           if (typeof window.showSettingsModal === 'function') {
             window.showSettingsModal();
           }
+          return;
+        }
+        // Fallback to SPA settings page when modal UI is not present.
+        if (typeof window.showView === 'function') {
+          window.showView('settings');
+        }
+        if (location.hash !== '#settings') {
+          location.hash = 'settings';
         }
       });
     }
