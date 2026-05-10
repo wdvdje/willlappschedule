@@ -419,6 +419,22 @@
           </div>
           <div id="dataBackupStatus" style="margin-top:8px;color:#666;font-size:0.95rem">No backup action yet</div>
         </section>
+
+        <section id="bridgeDiagnosticsSettings" style="margin-top:18px">
+          <h3>Native Bridge Diagnostics</h3>
+          <div id="bridgeDiagSummary" style="margin-top:8px;color:#666;font-size:0.95rem">Checking bridge status...</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+            <span id="bridgeHostBadge" style="padding:4px 8px;border-radius:999px;background:#eceff4;color:#333;font-size:0.85rem">Host: unknown</span>
+            <span id="bridgeResolveBadge" style="padding:4px 8px;border-radius:999px;background:#eceff4;color:#333;font-size:0.85rem">Callback: unknown</span>
+            <span id="bridgePendingBadge" style="padding:4px 8px;border-radius:999px;background:#eceff4;color:#333;font-size:0.85rem">Pending: 0</span>
+          </div>
+          <div style="margin-top:10px;font-weight:600;color:#444">Known handlers</div>
+          <ul id="bridgeDiagHandlers" style="list-style:none;padding:0;margin:8px 0 0 0;display:flex;flex-direction:column;gap:6px"></ul>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px">
+            <button id="refreshBridgeDiagBtn" class="small-btn" style="background:#4a90e2;color:#fff">Refresh diagnostics</button>
+            <div id="bridgeDiagUpdated" style="color:#666;font-size:0.9rem">Last updated: never</div>
+          </div>
+        </section>
       </main>
     </section>
   </main>
@@ -552,6 +568,9 @@
   })();
   </script>
 
+  <script src="./assets/platform-bridge.js"></script>
+  <script src="./assets/storage-adapter.js"></script>
+
   <!-- load canonical app script -->
   <script src="./assets/app.js"></script>
 
@@ -559,6 +578,12 @@
   <script>
   (function () {
     const viewSrcs = ['./utils.js','./events-view.js','./daily-view.js'];
+    const storage = window.appStorage || {
+      getItem: function (key, fallback) {
+        const fb = (typeof fallback === 'undefined') ? '' : fallback;
+        try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
+      }
+    };
 
     // remove existing script tags that match base src (so we can reload fresh)
     document.querySelectorAll('script[src]').forEach(s => {
@@ -586,6 +611,11 @@
       document.querySelectorAll('.bottom-ribbon .r-item').forEach(a => {
         a.classList.toggle('active', a.dataset.view === view);
       });
+      try {
+        if (window.platformBridge && typeof window.platformBridge.emit === 'function') {
+          window.platformBridge.emit('view:show', { view: view || 'calendar' });
+        }
+      } catch (_) {}
       // notify view scripts to (re)render for the active view
       window.dispatchEvent(new CustomEvent('view:show', { detail: { view } }));
     }
@@ -614,7 +644,7 @@
 
     function updateHeaderFromProfile() {
       try {
-        const name = localStorage.getItem('userName') || '';
+        const name = storage.getItem('userName', '') || '';
         const header = document.getElementById('appHeader');
         const profileStatus = document.getElementById('profileStatus');
         if (header) header.textContent = name ? (name + "'s Planner") : '📅 TimeScape Planner';
@@ -635,6 +665,98 @@
   })();
   </script>
 
+  <script>
+  (function () {
+    function badgeColors(ok) {
+      return ok ? { bg: '#dff5e2', fg: '#1b5e20' } : { bg: '#ffe5e5', fg: '#8a1c1c' };
+    }
+
+    function setBadge(id, text, ok) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const c = badgeColors(ok);
+      el.textContent = text;
+      el.style.background = c.bg;
+      el.style.color = c.fg;
+    }
+
+    function formatTime(ts) {
+      try { return new Date(ts).toLocaleString(); } catch (_) { return 'unknown'; }
+    }
+
+    function renderBridgeDiagnostics() {
+      const summary = document.getElementById('bridgeDiagSummary');
+      const list = document.getElementById('bridgeDiagHandlers');
+      const updated = document.getElementById('bridgeDiagUpdated');
+      if (!summary || !list || !updated) return;
+
+      const bridge = window.platformBridge;
+      if (!bridge || typeof bridge.getDiagnostics !== 'function') {
+        summary.textContent = 'Bridge script not loaded.';
+        setBadge('bridgeHostBadge', 'Host: unavailable', false);
+        setBadge('bridgeResolveBadge', 'Callback: unavailable', false);
+        setBadge('bridgePendingBadge', 'Pending: 0', true);
+        list.innerHTML = '';
+        updated.textContent = 'Last updated: ' + formatTime(Date.now());
+        return;
+      }
+
+      const d = bridge.getDiagnostics();
+      const hostOk = !!d.isNativeHost;
+      const callbackOk = !!d.hasResolveEntrypoint;
+
+      summary.textContent = hostOk
+        ? 'Native host detected. Handler availability shown below.'
+        : 'No native host detected. PWA fallback behavior is active.';
+
+      setBadge('bridgeHostBadge', 'Host: ' + (hostOk ? 'detected' : 'not detected'), hostOk);
+      setBadge('bridgeResolveBadge', 'Callback: ' + (callbackOk ? 'available' : 'missing'), callbackOk);
+      setBadge('bridgePendingBadge', 'Pending: ' + (d.pendingRequestCount || 0), true);
+
+      const known = Array.isArray(d.knownHandlers) ? d.knownHandlers : [];
+      list.innerHTML = '';
+      known.forEach((name) => {
+        const ok = !!(d.statusByKnown && d.statusByKnown[name]);
+        const li = document.createElement('li');
+        li.style.display = 'flex';
+        li.style.alignItems = 'center';
+        li.style.justifyContent = 'space-between';
+        li.style.padding = '6px 8px';
+        li.style.border = '1px solid #e6e6e6';
+        li.style.borderRadius = '6px';
+        const left = document.createElement('span');
+        left.textContent = name;
+        const right = document.createElement('span');
+        right.textContent = ok ? 'available' : 'missing';
+        right.style.fontWeight = '600';
+        right.style.color = ok ? '#1b5e20' : '#8a1c1c';
+        li.appendChild(left);
+        li.appendChild(right);
+        list.appendChild(li);
+      });
+
+      updated.textContent = 'Last updated: ' + formatTime(d.ts || Date.now());
+    }
+
+    function wireBridgeDiagnostics() {
+      const btn = document.getElementById('refreshBridgeDiagBtn');
+      if (btn) btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        renderBridgeDiagnostics();
+      });
+
+      window.addEventListener('view:show', function (e) {
+        const view = (e && e.detail && e.detail.view) ? e.detail.view : '';
+        if (view === 'settings') renderBridgeDiagnostics();
+      });
+
+      renderBridgeDiagnostics();
+    }
+
+    document.addEventListener('DOMContentLoaded', wireBridgeDiagnostics);
+  })();
+  </script>
+
   <!-- ADDED: push notifications client -->
   <script src="./push.js"></script>
   <!-- ADDED: local notifications scheduler (events + reminders) -->
@@ -643,6 +765,25 @@
   <script src="https://unpkg.com/pouchdb@7.3.0/dist/pouchdb.min.js"></script>
   <script>
     (function () {
+      const storage = window.appStorage || {
+        getItem: function (key, fallback) {
+          const fb = (typeof fallback === 'undefined') ? '' : fallback;
+          try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
+        },
+        setItem: function (key, value) {
+          try { localStorage.setItem(key, value == null ? '' : String(value)); } catch (_) {}
+        },
+        removeItem: function (key) {
+          try { localStorage.removeItem(key); } catch (_) {}
+        },
+        getJSON: function (key, fallback) {
+          try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
+        },
+        setJSON: function (key, value) {
+          try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { return false; }
+        }
+      };
+
       // Simple PouchDB sync helpers for "events" and "profile" (user data)
       // Usage:
       //   window.initPouchSync('https://user:pass@host:5984'); // returns Promise
@@ -793,11 +934,11 @@
         function setStatus(s){ if(statusEl) statusEl.textContent = s; }
 
         // populate saved parts if present
-        if (elHost) elHost.value = localStorage.getItem('pouchSyncHost') || '';
-        if (elPort) elPort.value = localStorage.getItem('pouchSyncPort') || '5984';
-        if (elHttps) elHttps.checked = localStorage.getItem('pouchSyncHttps') === '1';
-        if (elUser) elUser.value = localStorage.getItem('pouchSyncUser') || '';
-        if (elSave) elSave.checked = localStorage.getItem('pouchSyncSaveCreds') === '1';
+        if (elHost) elHost.value = storage.getItem('pouchSyncHost', '') || '';
+        if (elPort) elPort.value = storage.getItem('pouchSyncPort', '5984') || '5984';
+        if (elHttps) elHttps.checked = storage.getItem('pouchSyncHttps', '') === '1';
+        if (elUser) elUser.value = storage.getItem('pouchSyncUser', '') || '';
+        if (elSave) elSave.checked = storage.getItem('pouchSyncSaveCreds', '') === '1';
 
         startBtn && startBtn.addEventListener('click', async () => {
           const host = (elHost && elHost.value || '').trim();
@@ -821,13 +962,13 @@
           setStatus('Starting sync...');
           try {
             // persist parts (optionally password)
-            localStorage.setItem('pouchSyncHost', host);
-            localStorage.setItem('pouchSyncPort', port);
-            localStorage.setItem('pouchSyncHttps', https ? '1' : '0');
-            localStorage.setItem('pouchSyncUser', user || '');
-            localStorage.setItem('pouchSyncSaveCreds', saveCreds ? '1' : '0');
-            if (saveCreds && pass) localStorage.setItem('pouchSyncPass', pass);
-            else localStorage.removeItem('pouchSyncPass');
+            storage.setItem('pouchSyncHost', host);
+            storage.setItem('pouchSyncPort', port);
+            storage.setItem('pouchSyncHttps', https ? '1' : '0');
+            storage.setItem('pouchSyncUser', user || '');
+            storage.setItem('pouchSyncSaveCreds', saveCreds ? '1' : '0');
+            if (saveCreds && pass) storage.setItem('pouchSyncPass', pass);
+            else storage.removeItem('pouchSyncPass');
 
             await window.initPouchSync(baseUrl);
             setStatus('Sync running');
@@ -860,19 +1001,19 @@
           const { events = [], profile = [] } = ev.detail || {};
           try {
             // merge events by _id into localStorage 'events' array
-            const localEvents = JSON.parse(localStorage.getItem('events') || '[]');
+            const localEvents = storage.getJSON('events', []);
             const map = {};
             localEvents.forEach(item => { if (item && item._id) map[item._id] = item; });
             events.forEach(d => { if (d && d._id) map[d._id] = Object.assign({}, map[d._id] || {}, d); });
             const mergedEvents = Object.values(map);
-            localStorage.setItem('events', JSON.stringify(mergedEvents));
+            storage.setJSON('events', mergedEvents);
 
             // profile: merge first profile doc fields into localStorage keys used by app
             if (profile && profile.length) {
               const p = profile[0];
-              if (p.name) localStorage.setItem('userName', p.name);
-              if (p.home) localStorage.setItem('userHome', p.home);
-              if (p.jobs) localStorage.setItem('jobs', JSON.stringify(p.jobs));
+              if (p.name) storage.setItem('userName', p.name);
+              if (p.home) storage.setItem('userHome', p.home);
+              if (p.jobs) storage.setJSON('jobs', p.jobs);
             }
 
             // update UI hooks
@@ -891,13 +1032,13 @@
 
         // try to auto-start if the user saved a URL
         (async function autoStartSaved() {
-          const host = localStorage.getItem('pouchSyncHost');
+          const host = storage.getItem('pouchSyncHost', '');
           if (host) {
             try {
-              const port = localStorage.getItem('pouchSyncPort') || '';
-              const https = localStorage.getItem('pouchSyncHttps') === '1';
-              const user = localStorage.getItem('pouchSyncUser') || '';
-              const pass = localStorage.getItem('pouchSyncPass') || '';
+              const port = storage.getItem('pouchSyncPort', '') || '';
+              const https = storage.getItem('pouchSyncHttps', '') === '1';
+              const user = storage.getItem('pouchSyncUser', '') || '';
+              const pass = storage.getItem('pouchSyncPass', '') || '';
               const proto = https ? 'https://' : 'http://';
               const hostPort = port ? (host + ':' + port) : host;
               let base = proto + hostPort;

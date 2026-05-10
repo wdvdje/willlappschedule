@@ -29,8 +29,37 @@
     return OFFSETS.hasOwnProperty(value) ? OFFSETS[value] : null;
   }
 
+  function getBridge() {
+    return window.platformBridge || null;
+  }
+
+  const storage = window.appStorage || {
+    getItem: function (key, fallback) {
+      const fb = (typeof fallback === 'undefined') ? '' : fallback;
+      try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
+    },
+    setJSON: function (key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { return false; }
+    },
+    getJSON: function (key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
+    }
+  };
+
   async function ensurePermissionAndSW() {
-    try { window.pushClient && (await window.pushClient.registerSW()); } catch(_) {}
+    const bridge = getBridge();
+    try {
+      if (bridge && typeof bridge.registerServiceWorker === 'function') {
+        await bridge.registerServiceWorker('./sw.js');
+      } else {
+        window.pushClient && (await window.pushClient.registerSW());
+      }
+    } catch(_) {}
+
+    if (bridge && typeof bridge.requestNotificationPermission === 'function') {
+      try { return !!(await bridge.requestNotificationPermission()); } catch (_) {}
+    }
+
     if (!('Notification' in window)) return false;
     if (Notification.permission === 'granted') return true;
     try {
@@ -50,6 +79,15 @@
       data: { url: payload.url || 'index.html#calendar' },
       renotify: false
     };
+
+    const bridge = getBridge();
+    if (bridge && typeof bridge.showNotification === 'function') {
+      try {
+        const handled = await bridge.showNotification(title, options);
+        if (handled) return;
+      } catch (_) {}
+    }
+
     try {
       const reg = await navigator.serviceWorker.getRegistration();
       if (reg && reg.showNotification) return reg.showNotification(title, options);
@@ -106,7 +144,7 @@
   // schedule reminders
   function scheduleReminders() {
     let list = [];
-    try { list = JSON.parse(localStorage.getItem('reminders') || '{}'); } catch(_) { list = []; }
+    try { list = storage.getJSON('reminders', {}); } catch(_) { list = []; }
     list = normalizeReminders(list);
     const offsetSel = readOffsetFromSelect('reminderNotify', 'none');
     list.forEach((r, idx) => {
@@ -191,7 +229,7 @@
           const offsetMin = minutesOffset(offsetVal);
           // persist the reminder so daily view and other parts see it
           if (dateISO) {
-            const parsed = JSON.parse(localStorage.getItem('reminders') || '{}');
+            const parsed = storage.getJSON('reminders', {});
             const reminders = normalizeReminders(parsed);
             const grouped = {};
             reminders.forEach((r) => {
@@ -201,7 +239,7 @@
             });
             if (!grouped[dateISO]) grouped[dateISO] = [];
             grouped[dateISO].push({ text: text, time: time, notify: offsetVal || 'none' });
-            localStorage.setItem('reminders', JSON.stringify(grouped));
+            storage.setJSON('reminders', grouped);
             // also notify listeners that watch storage (some modules rely on storage event)
             try { window.dispatchEvent(new Event('storage')); } catch (e) { /* ignore */ }
             // schedule immediate notification (if offset set)

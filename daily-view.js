@@ -1,4 +1,10 @@
 (function () {
+  const storage = window.appStorage || {
+    getJSON: function (key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
+    }
+  };
+
   // ...existing app scripts may run before this file ...
   // avoid grabbing DOM elements at module-eval time (they may not exist yet)
   function getDailyView() { return document.getElementById('dailyView'); }
@@ -11,7 +17,7 @@
 
   // use shared loader if available, fallback to local impl
   const loadEvents = (window.appUtils && window.appUtils.loadEvents) ? window.appUtils.loadEvents : function () {
-    try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (_) { return []; }
+    try { return storage.getJSON('events', []) || []; } catch (_) { return []; }
   };
   const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
   const openEditModal = (window.appUtils && window.appUtils.openEditModalFill) ? window.appUtils.openEditModalFill : null;
@@ -36,16 +42,16 @@
   // local loaders for reminders and tasks
   function loadReminders() {
     try {
-      const parsed = JSON.parse(localStorage.getItem('reminders') || '{}') || {};
+      const parsed = storage.getJSON('reminders', {}) || {};
       return normalizeReminders(parsed);
     } catch (_) { return []; }
   }
   function loadTasksLS() {
-    try { return JSON.parse(localStorage.getItem('tasks') || '[]') || []; } catch (_) { return []; }
+    try { return storage.getJSON('tasks', []) || []; } catch (_) { return []; }
   }
   function loadTaskCategories() {
     try {
-      const arr = JSON.parse(localStorage.getItem('taskCategories') || '[]') || [];
+      const arr = storage.getJSON('taskCategories', []) || [];
       const map = {}; arr.forEach(c => { if (c && c.id) map[c.id] = c; });
       return map;
     } catch (_) { return {}; }

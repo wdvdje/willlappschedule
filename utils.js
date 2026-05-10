@@ -1,8 +1,14 @@
 // Minimal shared helpers used by other view scripts
 (function () {
+  const storage = window.appStorage || {
+    getJSON: function (key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
+    }
+  };
+
   function loadEvents(storageKey = 'events') {
     try {
-      return JSON.parse(localStorage.getItem(storageKey) || '[]') || [];
+      return storage.getJSON(storageKey, []) || [];
     } catch (e) {
       return [];
     }

@@ -1,11 +1,29 @@
 /* Core helpers and storage */
 const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const weekdayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const storage = window.appStorage || {
+  getItem: function (key, fallback) {
+    const fb = (typeof fallback === 'undefined') ? '' : fallback;
+    try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
+  },
+  setItem: function (key, value) {
+    try { localStorage.setItem(key, value == null ? '' : String(value)); } catch (_) {}
+  },
+  removeItem: function (key) {
+    try { localStorage.removeItem(key); } catch (_) {}
+  },
+  getJSON: function (key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
+  },
+  setJSON: function (key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (_) { return false; }
+  }
+};
 
 function pad2(n){ return n<10 ? '0'+n : ''+n; }
 function safeParseStorage(key, fallback){
-  try{ const raw = localStorage.getItem(key); if (!raw) return fallback; return JSON.parse(raw); }
-  catch(e){ console.warn('LocalStorage parse failed for', key, e); try{ localStorage.removeItem(key); }catch(_){} return fallback; }
+  try{ const raw = storage.getItem(key, ''); if (!raw) return fallback; return JSON.parse(raw); }
+  catch(e){ console.warn('LocalStorage parse failed for', key, e); try{ storage.removeItem(key); }catch(_){} return fallback; }
 }
 function remindersToMap(input){
   const map = {};
@@ -38,17 +56,17 @@ function getReminders(){
   const parsed = safeParseStorage('reminders', {});
   const mapped = remindersToMap(parsed);
   if (JSON.stringify(parsed) !== JSON.stringify(mapped)) {
-    try { localStorage.setItem('reminders', JSON.stringify(mapped)); } catch (_) {}
+    try { storage.setJSON('reminders', mapped); } catch (_) {}
   }
   return mapped;
 }
-function setReminders(v){ localStorage.setItem('reminders', JSON.stringify(remindersToMap(v))); }
+function setReminders(v){ storage.setJSON('reminders', remindersToMap(v)); }
 function getTasks(){ return safeParseStorage('tasks', []); }
-function setTasks(v){ localStorage.setItem('tasks', JSON.stringify(v)); }
+function setTasks(v){ storage.setJSON('tasks', v); }
 function getEvents(){ return safeParseStorage('events', []); }
-function setEvents(v){ localStorage.setItem('events', JSON.stringify(v)); }
+function setEvents(v){ storage.setJSON('events', v); }
 function getJobs(){ return safeParseStorage('jobs', []); }
-function setJobs(v){ localStorage.setItem('jobs', JSON.stringify(v)); }
+function setJobs(v){ storage.setJSON('jobs', v); }
 
 function showAppError(msg){
   try{
@@ -106,7 +124,7 @@ function migrateConsistencyData(){
     const remRaw = safeParseStorage('reminders', {});
     const remMap = remindersToMap(remRaw);
     if (JSON.stringify(remRaw) !== JSON.stringify(remMap)) {
-      localStorage.setItem('reminders', JSON.stringify(remMap));
+      storage.setJSON('reminders', remMap);
     }
 
     // Normalize events for buffers, recurrence, and time aliases.
@@ -1256,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', function(){
 /* Read user profile from localStorage */
 function readUserProfile(){
   try{
-    const raw = localStorage.getItem('USER_PROFILE');
+    const raw = storage.getItem('USER_PROFILE', '');
     if (!raw) return { name: '', home: { address:'', placeId:'', lat:null, lng:null } };
     return JSON.parse(raw) || { name: '', home: { address:'', placeId:'', lat:null, lng:null } };
   }catch(e){ return { name: '', home: { address:'', placeId:'', lat:null, lng:null } }; }
@@ -1265,7 +1283,7 @@ function readUserProfile(){
 /* Save profile object */
 function writeUserProfile(profile){
   try{
-    localStorage.setItem('USER_PROFILE', JSON.stringify(profile||{}));
+    storage.setJSON('USER_PROFILE', profile||{});
   }catch(e){ console.warn('writeUserProfile failed', e); }
 }
 
@@ -1332,7 +1350,7 @@ function saveProfileFromUI(){
 /* Clear user profile */
 function clearUserProfile(){
   try{
-    localStorage.removeItem('USER_PROFILE');
+    storage.removeItem('USER_PROFILE');
     updateProfileUI();
     alert('Profile cleared');
   }catch(e){ console.warn('clearUserProfile failed', e); }
@@ -1580,7 +1598,7 @@ function applyImportData(importData, mode){
     setTasks(importData.tasks);
     setRemindersFromArray(importData.reminders);
     setJobs(importData.jobs);
-    localStorage.setItem('taskCategories', JSON.stringify(importData.taskCategories));
+    storage.setJSON('taskCategories', importData.taskCategories);
     writeUserProfile(importData.userProfile || readUserProfile());
     refreshAfterImport();
     return {
@@ -1637,7 +1655,7 @@ function applyImportData(importData, mode){
   setTasks(mergedTasks.list);
   setRemindersFromArray(mergedReminders.list);
   setJobs(mergedJobs.list);
-  localStorage.setItem('taskCategories', JSON.stringify(mergedCategories.list));
+  storage.setJSON('taskCategories', mergedCategories.list);
   refreshAfterImport();
 
   return {

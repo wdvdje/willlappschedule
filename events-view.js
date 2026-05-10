@@ -1,6 +1,22 @@
 (function () {
+  const storage = window.appStorage || {
+    getItem: function (key, fallback) {
+      const fb = (typeof fallback === 'undefined') ? '' : fallback;
+      try { const v = localStorage.getItem(key); return v == null ? fb : v; } catch (_) { return fb; }
+    },
+    setItem: function (key, value) {
+      try { localStorage.setItem(key, value == null ? '' : String(value)); } catch (_) {}
+    },
+    removeItem: function (key) {
+      try { localStorage.removeItem(key); } catch (_) {}
+    },
+    getJSON: function (key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key) || ''); } catch (_) { return fallback; }
+    }
+  };
+
   const loadEvents = (window.appUtils && window.appUtils.loadEvents) ? window.appUtils.loadEvents : function () {
-    try { return JSON.parse(localStorage.getItem('events') || '[]') || []; } catch (e) { return []; }
+    try { return storage.getJSON('events', []) || []; } catch (e) { return []; }
   };
 
   const expandEvents = (window.appUtils && window.appUtils.expandEvents) ? window.appUtils.expandEvents : null;
@@ -74,7 +90,7 @@
 
   // Jobs helpers
   function loadJobs() {
-    try { return JSON.parse(localStorage.getItem('jobs') || '[]') || []; } catch (_) { return []; }
+    try { return storage.getJSON('jobs', []) || []; } catch (_) { return []; }
   }
   function jobSelectEl() { return document.getElementById('eventJobId'); }
   function jobRowEl() { return document.getElementById('eventJobRow'); }
@@ -208,7 +224,7 @@
   // Header + profile status wiring
   function resolveProfileName() {
     // try a few common keys and inputs
-    let name = localStorage.getItem('userName') || localStorage.getItem('settingsFullName') || localStorage.getItem('profileName') || '';
+    let name = storage.getItem('userName', '') || storage.getItem('settingsFullName', '') || storage.getItem('profileName', '') || '';
     if (!name) {
       const inputs = ['userName', 'settingsFullName', 'settingsName', 'settingsFullName'];
       for (const id of inputs) {
@@ -241,7 +257,7 @@
       saveBtn.addEventListener('click', (e) => {
         e.preventDefault();
         const v = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
-        if (v) localStorage.setItem('userName', v);
+        if (v) storage.setItem('userName', v);
         updateHeaderAndProfileStatus();
         // notify other tabs
         try { window.dispatchEvent(new Event('storage')); } catch (e) {}
@@ -251,7 +267,7 @@
     if (clearBtn) {
       clearBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        localStorage.removeItem('userName');
+        storage.removeItem('userName');
         if (nameInput) nameInput.value = '';
         updateHeaderAndProfileStatus();
         try { window.dispatchEvent(new Event('storage')); } catch (e) {}
