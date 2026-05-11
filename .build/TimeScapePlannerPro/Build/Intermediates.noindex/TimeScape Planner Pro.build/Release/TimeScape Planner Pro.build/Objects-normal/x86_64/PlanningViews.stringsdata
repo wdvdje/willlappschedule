@@ -4,10 +4,146 @@
     "Localizable": [
       {
         "comment": "",
+        "key": "Open companion apps in dedicated windows and connect their output back into buckets and planning items.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 16
+        }
+      },
+      {
+        "comment": "",
+        "key": "Singleton window mode",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 72
+        }
+      },
+      {
+        "comment": "",
+        "key": "Open %@",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 68
+        }
+      },
+      {
+        "comment": "",
+        "key": "Journal",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 273
+        }
+      },
+      {
+        "comment": "",
+        "key": "Capture entries and attach snapshots to item sub-items",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 275
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Entry",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 285
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search entries",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 291
+        }
+      },
+      {
+        "comment": "",
+        "key": "Group",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 294
+        }
+      },
+      {
+        "comment": "",
+        "key": "No journal entries yet",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 306
+        }
+      },
+      {
+        "comment": "",
+        "key": "Snapshot for item sub-item attachments: first 120 characters",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 357
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Entry",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 325
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Entry",
+        "location": {
+          "startingColumn": 67,
+          "startingLine": 325
+        }
+      },
+      {
+        "comment": "",
+        "key": "Title",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 328
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mood",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 332
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 342
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Entry",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 362
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 368
+        }
+      },
+      {
+        "comment": "",
         "key": "No items match the current filters.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 97
+          "startingLine": 573
         }
       },
       {
@@ -15,7 +151,7 @@
         "key": "Edit",
         "location": {
           "startingColumn": 39,
-          "startingLine": 196
+          "startingLine": 678
         }
       },
       {
@@ -23,7 +159,7 @@
         "key": "Duplicate",
         "location": {
           "startingColumn": 39,
-          "startingLine": 202
+          "startingLine": 684
         }
       },
       {
@@ -31,7 +167,7 @@
         "key": "Delete",
         "location": {
           "startingColumn": 39,
-          "startingLine": 210
+          "startingLine": 692
         }
       },
       {
@@ -39,7 +175,7 @@
         "key": "Domain",
         "location": {
           "startingColumn": 32,
-          "startingLine": 233
+          "startingLine": 715
         }
       },
       {
@@ -47,7 +183,7 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 32,
-          "startingLine": 241
+          "startingLine": 723
         }
       },
       {
@@ -55,7 +191,7 @@
         "key": "+%lld more details",
         "location": {
           "startingColumn": 34,
-          "startingLine": 262
+          "startingLine": 746
         }
       },
       {
@@ -63,7 +199,7 @@
         "key": "No sub-items",
         "location": {
           "startingColumn": 34,
-          "startingLine": 271
+          "startingLine": 755
         }
       },
       {
@@ -71,7 +207,7 @@
         "key": "%lld/%lld completed",
         "location": {
           "startingColumn": 34,
-          "startingLine": 275
+          "startingLine": 759
         }
       },
       {
@@ -79,7 +215,31 @@
         "key": "+%lld more sub-items",
         "location": {
           "startingColumn": 38,
-          "startingLine": 294
+          "startingLine": 778
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select date",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 839
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 843
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 858
         }
       }
     ]

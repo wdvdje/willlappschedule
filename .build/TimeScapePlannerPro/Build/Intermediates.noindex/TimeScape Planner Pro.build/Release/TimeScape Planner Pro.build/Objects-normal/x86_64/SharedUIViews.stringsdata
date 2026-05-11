@@ -7,7 +7,7 @@
         "key": "Planned next",
         "location": {
           "startingColumn": 22,
-          "startingLine": 8
+          "startingLine": 10
         }
       },
       {
@@ -15,7 +15,15 @@
         "key": "%@ is part of the native architecture, but this first slice only builds the shell and the two core pages. We can add this view once the navigation structure feels right.",
         "location": {
           "startingColumn": 22,
-          "startingLine": 10
+          "startingLine": 12
+        }
+      },
+      {
+        "comment": "",
+        "key": "Searching places...",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 318
         }
       }
     ]

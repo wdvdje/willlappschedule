@@ -487,6 +487,11 @@
       </div>
     </div>
 
+    <!-- Meals page -->
+    <section id="page-meals" class="page hidden">
+      <div id="mealsView" style="width:100%;height:100%;overflow:auto"></div>
+    </section>
+
     <!-- Work domain page -->
     <section id="page-work" class="page hidden">
       <h2>💼 Work</h2>
@@ -1162,6 +1167,11 @@
   <script src="./notifications.js"></script>
   <!-- ADDED: tasks UI script -->
   <script src="./tasks.js"></script>
+  <!-- ADDED: meals app (storage, API, UI) - requires storage adapter -->
+  <script src="./assets/storage-adapter.js"></script>
+  <script src="./meals-storage.js"></script>
+  <script src="./meals-api.js"></script>
+  <script src="./meals.js"></script>
   <!-- advanced calendar features: ICS export, heatmap, multi-day spans, drag-to-create, conflict detection, mini-month nav, NLP recurrence, Pomodoro timer, timezone -->
   <script src="./calendar-advanced.js"></script>
   <!-- desktop-specific advanced features (CSV export, earnings panel, task filter/sort, DnD week view, bulk operations) -->

@@ -13,7 +13,9 @@ DERIVED_DATA_DIR="$REPO_ROOT/.build/TimeScapePlannerPro"
 BUILT_APP="$DERIVED_DATA_DIR/Build/Products/Release/TimeScape Planner Pro.app"
 INSTALL_APP="/Applications/TimeScape Planner Pro.app"
 
-DATA_FILE="$HOME/Library/Application Support/TimeScapePlannerPro/planner-state.json"
+BUNDLE_ID="TimeScapesViewss.TimeScape-Planner-Pro"
+LEGACY_DATA_FILE="$HOME/Library/Application Support/TimeScapePlannerPro/planner-state.json"
+SANDBOX_DATA_FILE="$HOME/Library/Containers/$BUNDLE_ID/Data/Library/Application Support/TimeScapePlannerPro/planner-state.json"
 BACKUP_DIR="$HOME/Library/Application Support/TimeScapePlannerPro/backups"
 
 BUMP_KIND="build"
@@ -168,20 +170,33 @@ echo "Next version/build:    $next_version ($next_build)"
 print_step "Backing up user data"
 if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "[dry-run] mkdir -p $BACKUP_DIR"
-  if [[ -f "$DATA_FILE" ]]; then
-    echo "[dry-run] cp $DATA_FILE $BACKUP_DIR/planner-state-<timestamp>.json"
+  if [[ -f "$SANDBOX_DATA_FILE" || -f "$LEGACY_DATA_FILE" ]]; then
+    [[ -f "$SANDBOX_DATA_FILE" ]] && echo "[dry-run] cp $SANDBOX_DATA_FILE $BACKUP_DIR/planner-state-sandbox-<timestamp>.json"
+    [[ -f "$LEGACY_DATA_FILE" ]] && echo "[dry-run] cp $LEGACY_DATA_FILE $BACKUP_DIR/planner-state-legacy-<timestamp>.json"
   else
     echo "No planner data file found yet; backup will be skipped."
   fi
 else
   mkdir -p "$BACKUP_DIR"
-  if [[ -f "$DATA_FILE" ]]; then
-    ts="$(date +%Y%m%d-%H%M%S)"
-    backup_file="$BACKUP_DIR/planner-state-$ts.json"
-    cp "$DATA_FILE" "$backup_file"
-    echo "Backup created: $backup_file"
-  else
+  ts="$(date +%Y%m%d-%H%M%S)"
+  backed_up=0
+  if [[ -f "$SANDBOX_DATA_FILE" ]]; then
+    sandbox_backup="$BACKUP_DIR/planner-state-sandbox-$ts.json"
+    cp "$SANDBOX_DATA_FILE" "$sandbox_backup"
+    echo "Backup created: $sandbox_backup"
+    backed_up=1
+  fi
+  if [[ -f "$LEGACY_DATA_FILE" ]]; then
+    legacy_backup="$BACKUP_DIR/planner-state-legacy-$ts.json"
+    cp "$LEGACY_DATA_FILE" "$legacy_backup"
+    echo "Backup created: $legacy_backup"
+    backed_up=1
+  fi
+  if [[ "$backed_up" -eq 0 ]]; then
     echo "No planner data file found yet; backup skipped."
+  else
+    [[ -f "$SANDBOX_DATA_FILE" ]] && echo "Source data: $SANDBOX_DATA_FILE"
+    [[ -f "$LEGACY_DATA_FILE" ]] && echo "Source data: $LEGACY_DATA_FILE"
   fi
 fi
 
@@ -216,8 +231,16 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
   echo "[dry-run] osascript -e 'tell application \"TimeScape Planner Pro\" to quit'"
 else
   osascript -e 'tell application "TimeScape Planner Pro" to quit' >/dev/null 2>&1 || true
-  pkill -f 'TimeScape Planner Pro.app/Contents/MacOS/TimeScape Planner Pro' >/dev/null 2>&1 || true
-  sleep 1
+  for _ in {1..10}; do
+    if ! pgrep -f 'TimeScape Planner Pro.app/Contents/MacOS/TimeScape Planner Pro' >/dev/null 2>&1; then
+      break
+    fi
+    sleep 0.5
+  done
+  if pgrep -f 'TimeScape Planner Pro.app/Contents/MacOS/TimeScape Planner Pro' >/dev/null 2>&1; then
+    pkill -f 'TimeScape Planner Pro.app/Contents/MacOS/TimeScape Planner Pro' >/dev/null 2>&1 || true
+    sleep 1
+  fi
 fi
 
 print_step "Installing to /Applications"
@@ -231,5 +254,6 @@ fi
 
 print_step "Done"
 echo "Installed app: $INSTALL_APP"
-echo "User data file: $DATA_FILE"
+echo "User data file (sandbox): $SANDBOX_DATA_FILE"
+echo "User data file (legacy):  $LEGACY_DATA_FILE"
 echo "Backups: $BACKUP_DIR"

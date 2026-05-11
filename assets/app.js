@@ -2591,6 +2591,7 @@ function showView(view, updateHash = true){
   else if (view === 'calendar'){ try{ generateCalendar(); }catch(e){ console.warn(e); } try{ renderCalendarSummary(); }catch(e){ console.warn(e); } }
   else if (view === 'events'){ try{ renderEvents(); }catch(e){ console.warn(e); } }
   else if (view === 'tasks'){ try{ loadTasks(); }catch(e){ console.warn(e); } }
+  else if (view === 'meals'){ /* Meals view handled by meals.js via view:show event */ }
   else if (view === 'jobs'){ try{ renderJobs(); }catch(e){ console.warn(e); } }
   else if (view === 'inbox'){ try{ renderInbox(); updateInboxBadge(); }catch(e){ console.warn(e); } }
   else if (view === 'personal' || view === 'home' || view === 'work'){ try{ renderDomainPage(view); }catch(e){ console.warn(e); } if(view==='work'){ try{ renderWorkEarnings(); }catch(e){ console.warn(e); } } }

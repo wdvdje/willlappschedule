@@ -127,7 +127,7 @@
         "key": "Week preview",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1031
+          "startingLine": 1020
         }
       },
       {
@@ -135,7 +135,7 @@
         "key": "%lld",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1077
+          "startingLine": 1066
         }
       },
       {
@@ -143,7 +143,7 @@
         "key": "•",
         "location": {
           "startingColumn": 53,
-          "startingLine": 1088
+          "startingLine": 1077
         }
       },
       {
@@ -151,7 +151,7 @@
         "key": "",
         "location": {
           "startingColumn": 61,
-          "startingLine": 1088
+          "startingLine": 1077
         }
       },
       {
@@ -159,7 +159,7 @@
         "key": "Month view",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1172
+          "startingLine": 1161
         }
       },
       {
@@ -167,7 +167,7 @@
         "key": "Month grid",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1193
+          "startingLine": 1182
         }
       },
       {
@@ -175,7 +175,7 @@
         "key": "This is the native surface where the month grid, day detail, and drag-aware scheduling will live.",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1196
+          "startingLine": 1185
         }
       },
       {
@@ -183,7 +183,7 @@
         "key": "%lld",
         "location": {
           "startingColumn": 38,
-          "startingLine": 1179
+          "startingLine": 1168
         }
       },
       {
@@ -191,7 +191,7 @@
         "key": "Previous",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1208
+          "startingLine": 1197
         }
       },
       {
@@ -199,7 +199,7 @@
         "key": "Next",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1213
+          "startingLine": 1202
         }
       },
       {
@@ -207,7 +207,7 @@
         "key": "Native shell",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1220
+          "startingLine": 1209
         }
       },
       {
@@ -215,7 +215,7 @@
         "key": "Ready for month/day expansion",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1223
+          "startingLine": 1212
         }
       },
       {
@@ -223,7 +223,7 @@
         "key": "Week schedule",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1264
+          "startingLine": 1253
         }
       },
       {
@@ -231,7 +231,7 @@
         "key": "Schedule grid",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1270
+          "startingLine": 1259
         }
       },
       {
@@ -239,7 +239,7 @@
         "key": "Previous",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1277
+          "startingLine": 1266
         }
       },
       {
@@ -247,7 +247,7 @@
         "key": "Next",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1282
+          "startingLine": 1271
         }
       }
     ]

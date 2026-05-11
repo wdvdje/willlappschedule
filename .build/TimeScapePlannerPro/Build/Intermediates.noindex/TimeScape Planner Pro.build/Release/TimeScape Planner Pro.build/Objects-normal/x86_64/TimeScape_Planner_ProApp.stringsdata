@@ -1,5 +1,40 @@
 {
   "source": "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/TimeScape_Planner_ProApp.swift",
-  "tables": {},
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Journal",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 20
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dynamic Weather",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 25
+        }
+      },
+      {
+        "comment": "",
+        "key": "Meals",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 30
+        }
+      },
+      {
+        "comment": "",
+        "key": "Budgeting",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 35
+        }
+      }
+    ]
+  },
   "version": 1
 }
