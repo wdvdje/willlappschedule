@@ -1,0 +1,320 @@
+{
+  "source": "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/DomainViews.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "No archived buckets.",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 105
+        }
+      },
+      {
+        "comment": "",
+        "key": "No active buckets yet.",
+        "location": {
+          "startingColumn": 78,
+          "startingLine": 105
+        }
+      },
+      {
+        "comment": "",
+        "key": "Notes",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 262
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sub-Items",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 274
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%lld more",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 291
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Item",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 303
+        }
+      },
+      {
+        "comment": "",
+        "key": "General",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 337
+        }
+      },
+      {
+        "comment": "",
+        "key": "$%@%@",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 355
+        }
+      },
+      {
+        "comment": "",
+        "key": "Job",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 350
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add item",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 375
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit bucket",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 379
+        }
+      },
+      {
+        "comment": "",
+        "key": "Unarchive",
+        "location": {
+          "startingColumn": 56,
+          "startingLine": 384
+        }
+      },
+      {
+        "comment": "",
+        "key": "Archive",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 384
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 386
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 402
+        }
+      },
+      {
+        "comment": "",
+        "key": "Items",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 410
+        }
+      },
+      {
+        "comment": "",
+        "key": "No items yet",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 415
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit bucket",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 555
+        }
+      },
+      {
+        "comment": "",
+        "key": "General",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 514
+        }
+      },
+      {
+        "comment": "",
+        "key": "$%@%@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 532
+        }
+      },
+      {
+        "comment": "",
+        "key": "Job",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 527
+        }
+      },
+      {
+        "comment": "",
+        "key": "Unarchive",
+        "location": {
+          "startingColumn": 52,
+          "startingLine": 559
+        }
+      },
+      {
+        "comment": "",
+        "key": "Archive",
+        "location": {
+          "startingColumn": 66,
+          "startingLine": 559
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 561
+        }
+      },
+      {
+        "comment": "",
+        "key": "Domain: %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 697
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Bucket",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 694
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Bucket",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 694
+        }
+      },
+      {
+        "comment": "",
+        "key": "Job?",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 731
+        }
+      },
+      {
+        "comment": "",
+        "key": "Routine?",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 758
+        }
+      },
+      {
+        "comment": "",
+        "key": "Frequency",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 761
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bucket name",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 701
+        }
+      },
+      {
+        "comment": "",
+        "key": "Icon",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 704
+        }
+      },
+      {
+        "comment": "",
+        "key": "Color",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 716
+        }
+      },
+      {
+        "comment": "",
+        "key": "Description",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 725
+        }
+      },
+      {
+        "comment": "",
+        "key": "Job site",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 735
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pay rate",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 737
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pay period",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 742
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 774
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 775
+        }
+      }
+    ]
+  },
+  "version": 1
+}

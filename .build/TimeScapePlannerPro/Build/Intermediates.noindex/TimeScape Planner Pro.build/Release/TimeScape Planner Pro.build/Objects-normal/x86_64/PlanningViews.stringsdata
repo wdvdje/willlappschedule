@@ -1,0 +1,88 @@
+{
+  "source": "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/PlanningViews.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "No items match the current filters.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 97
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 196
+        }
+      },
+      {
+        "comment": "",
+        "key": "Duplicate",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 202
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 210
+        }
+      },
+      {
+        "comment": "",
+        "key": "Domain",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 233
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bucket",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 241
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%lld more details",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 262
+        }
+      },
+      {
+        "comment": "",
+        "key": "No sub-items",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 271
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld completed",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 275
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%lld more sub-items",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 294
+        }
+      }
+    ]
+  },
+  "version": 1
+}

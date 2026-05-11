@@ -1,0 +1,616 @@
+{
+  "source": "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/PlanningEditors.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Edit Item",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 91
+        }
+      },
+      {
+        "comment": "",
+        "key": "Type",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 94
+        }
+      },
+      {
+        "comment": "",
+        "key": "Core",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 103
+        }
+      },
+      {
+        "comment": "",
+        "key": "Notes",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 138
+        }
+      },
+      {
+        "comment": "",
+        "key": "Title",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 105
+        }
+      },
+      {
+        "comment": "",
+        "key": "Domain",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bucket",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 119
+        }
+      },
+      {
+        "comment": "",
+        "key": "General",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 120
+        }
+      },
+      {
+        "comment": "",
+        "key": "Event Details",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 212
+        }
+      },
+      {
+        "comment": "",
+        "key": "Task Details",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 254
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reminder Details",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 298
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sub-items",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 145
+        }
+      },
+      {
+        "comment": "",
+        "key": "No sub-items yet.",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 149
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sub-item",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 163
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add sub-item",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 179
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 181
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 192
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 193
+        }
+      },
+      {
+        "comment": "",
+        "key": "All day",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 222
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 215
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 218
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 226
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 229
+        }
+      },
+      {
+        "comment": "",
+        "key": "Repeat",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 236
+        }
+      },
+      {
+        "comment": "",
+        "key": "Location",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 245
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set due date",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 256
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set due time",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 258
+        }
+      },
+      {
+        "comment": "",
+        "key": "Estimated duration: %lld min",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 291
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 260
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 264
+        }
+      },
+      {
+        "comment": "",
+        "key": "Repeat",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 272
+        }
+      },
+      {
+        "comment": "",
+        "key": "Priority",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 281
+        }
+      },
+      {
+        "comment": "",
+        "key": "Enable reminder time to choose an alert offset.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 335
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set reminder time",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 300
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 303
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 307
+        }
+      },
+      {
+        "comment": "",
+        "key": "Repeat",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 314
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alert",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 323
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Item",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 489
+        }
+      },
+      {
+        "comment": "",
+        "key": "Type",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 492
+        }
+      },
+      {
+        "comment": "",
+        "key": "Core",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 501
+        }
+      },
+      {
+        "comment": "",
+        "key": "Notes",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 536
+        }
+      },
+      {
+        "comment": "",
+        "key": "Title",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 503
+        }
+      },
+      {
+        "comment": "",
+        "key": "Domain",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 507
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bucket",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 517
+        }
+      },
+      {
+        "comment": "",
+        "key": "General",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 518
+        }
+      },
+      {
+        "comment": "",
+        "key": "Event Details",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 610
+        }
+      },
+      {
+        "comment": "",
+        "key": "Task Details",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 652
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reminder Details",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 696
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sub-items",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 543
+        }
+      },
+      {
+        "comment": "",
+        "key": "No sub-items yet.",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 547
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sub-item",
+        "location": {
+          "startingColumn": 55,
+          "startingLine": 561
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add sub-item",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 577
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 579
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 590
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 591
+        }
+      },
+      {
+        "comment": "",
+        "key": "All day",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 620
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 613
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 616
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 624
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 627
+        }
+      },
+      {
+        "comment": "",
+        "key": "Repeat",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 634
+        }
+      },
+      {
+        "comment": "",
+        "key": "Location",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 643
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set due date",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 654
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set due time",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 656
+        }
+      },
+      {
+        "comment": "",
+        "key": "Estimated duration: %lld min",
+        "location": {
+          "startingColumn": 33,
+          "startingLine": 689
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 658
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 662
+        }
+      },
+      {
+        "comment": "",
+        "key": "Repeat",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 670
+        }
+      },
+      {
+        "comment": "",
+        "key": "Priority",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 679
+        }
+      },
+      {
+        "comment": "",
+        "key": "Enable reminder time to choose an alert offset.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 733
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set reminder time",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 698
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 701
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 705
+        }
+      },
+      {
+        "comment": "",
+        "key": "Repeat",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 712
+        }
+      },
+      {
+        "comment": "",
+        "key": "Alert",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 721
+        }
+      }
+    ]
+  },
+  "version": 1
+}

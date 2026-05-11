@@ -1,0 +1,4619 @@
+//
+//  ContentView.swift
+//  TimeScape Planner Pro
+//
+//  Created by William Joyce on 5/10/26.
+//
+
+import SwiftUI
+import AppKit
+import Combine
+
+struct ContentView: View {
+    @State private var selection: AppDestination = .today
+    @StateObject private var plannerStore = PlannerStore()
+
+    var body: some View {
+        NavigationSplitView {
+            SidebarView(selection: $selection)
+        } detail: {
+            NativeDestinationView(destination: selection)
+        }
+        .frame(minWidth: 1100, minHeight: 760)
+        .environmentObject(plannerStore)
+    }
+}
+
+    enum AppDestination: String, CaseIterable, Identifiable {
+        case today
+        case week
+        case calendar
+        case personal
+        case household
+        case professional
+        case apps
+        case events
+        case reminders
+        case tasks
+        case settings
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .today: return "Today"
+            case .week: return "Week"
+            case .calendar: return "Calendar"
+            case .personal: return "Personal"
+            case .household: return "Household"
+            case .professional: return "Professional"
+            case .apps: return "Apps"
+            case .events: return "Events"
+            case .reminders: return "Reminders"
+            case .tasks: return "Tasks"
+            case .settings: return "Settings"
+            }
+        }
+
+        var subtitle: String {
+            switch self {
+            case .today: return "Daily overview and focus"
+            case .week: return "Native weekly planning"
+            case .calendar: return "Month, day, and schedule"
+            case .personal: return "Personal routines and priorities"
+            case .household: return "Home coordination and shared plans"
+            case .professional: return "Career goals and work planning"
+            case .apps: return "Launcher and utilities"
+            case .events: return "Event planning and management"
+            case .reminders: return "Time-based nudges"
+            case .tasks: return "Actionable work queue"
+            case .settings: return "App preferences"
+            }
+        }
+
+        var symbolName: String {
+            switch self {
+            case .today: return "house.fill"
+            case .week: return "calendar.day.timeline.left"
+            case .calendar: return "calendar"
+            case .personal: return "person.circle"
+            case .household: return "house"
+            case .professional: return "briefcase"
+            case .apps: return "square.grid.2x2"
+            case .events: return "calendar.badge.plus"
+            case .reminders: return "bell"
+            case .tasks: return "checklist"
+            case .settings: return "gearshape"
+            }
+        }
+
+        var accent: Color {
+            switch self {
+            case .today: return .blue
+            case .week: return .purple
+            case .calendar: return .cyan
+            case .personal: return .mint
+            case .household: return .teal
+            case .professional: return .indigo
+            case .apps: return .pink
+            case .events: return .indigo
+            case .reminders: return .teal
+            case .tasks: return .mint
+            case .settings: return .orange
+            }
+        }
+
+        var isImplemented: Bool {
+            self == .today || self == .week || self == .calendar || self == .personal || self == .household || self == .professional || self == .apps || self == .events || self == .tasks || self == .reminders
+        }
+
+        var isDomain: Bool {
+            switch self {
+            case .personal, .household, .professional:
+                return true
+            default:
+                return false
+            }
+        }
+
+        var asDomain: BucketDomain? {
+            switch self {
+            case .personal:
+                return .personal
+            case .household:
+                return .household
+            case .professional:
+                return .professional
+            default:
+                return nil
+            }
+        }
+
+        var asPlanningKind: PlanningKind? {
+            switch self {
+            case .events:
+                return .event
+            case .tasks:
+                return .task
+            case .reminders:
+                return .reminder
+            default:
+                return nil
+            }
+        }
+
+        var isPlanningDestination: Bool {
+            asPlanningKind != nil
+        }
+    }
+
+    enum BucketDomain: String, CaseIterable, Identifiable, Codable {
+        case personal
+        case household
+        case professional
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .personal: return "Personal"
+            case .household: return "Household"
+            case .professional: return "Professional"
+            }
+        }
+
+        var symbolName: String {
+            switch self {
+            case .personal: return "person.circle"
+            case .household: return "house"
+            case .professional: return "briefcase"
+            }
+        }
+    }
+
+    struct PlannerSettings: Codable, Hashable {
+        var displayName: String
+        var prefersArchivedVisibleByDefault: Bool
+
+        static let `default` = PlannerSettings(
+            displayName: "",
+            prefersArchivedVisibleByDefault: false
+        )
+
+        enum CodingKeys: String, CodingKey {
+            case displayName
+            case prefersArchivedVisibleByDefault
+        }
+
+        init(displayName: String, prefersArchivedVisibleByDefault: Bool) {
+            self.displayName = displayName
+            self.prefersArchivedVisibleByDefault = prefersArchivedVisibleByDefault
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            displayName = try container.decodeIfPresent(String.self, forKey: .displayName) ?? ""
+            prefersArchivedVisibleByDefault = try container.decodeIfPresent(Bool.self, forKey: .prefersArchivedVisibleByDefault) ?? false
+        }
+    }
+
+    enum PlanningKind: String, CaseIterable, Identifiable, Codable {
+        case event
+        case task
+        case reminder
+
+        var id: String { rawValue }
+    }
+
+    enum RepeatRule: String, CaseIterable, Identifiable, Codable {
+        case none
+        case daily
+        case weekdays
+        case weekly
+        case monthly
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .none: return "None"
+            case .daily: return "Daily"
+            case .weekdays: return "Weekdays"
+            case .weekly: return "Weekly"
+            case .monthly: return "Monthly"
+            }
+        }
+    }
+
+    enum PriorityLevel: String, CaseIterable, Identifiable, Codable {
+        case low
+        case medium
+        case high
+
+        var id: String { rawValue }
+
+        var label: String {
+            rawValue.capitalized
+        }
+    }
+
+    enum ReminderLeadTime: Int, CaseIterable, Identifiable, Codable {
+        case atTime = 0
+        case fiveMinutes = 5
+        case fifteenMinutes = 15
+        case thirtyMinutes = 30
+        case oneHour = 60
+
+        var id: Int { rawValue }
+
+        var label: String {
+            switch self {
+            case .atTime: return "At time"
+            case .fiveMinutes: return "5 min before"
+            case .fifteenMinutes: return "15 min before"
+            case .thirtyMinutes: return "30 min before"
+            case .oneHour: return "1 hr before"
+            }
+        }
+    }
+
+    enum PlanningDateFilter: String, CaseIterable, Identifiable {
+        case all
+        case today
+        case next7Days
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .all: return "All dates"
+            case .today: return "Today"
+            case .next7Days: return "Next 7 days"
+            }
+        }
+    }
+
+    enum BucketTone: String, CaseIterable, Identifiable, Codable {
+        case ocean
+        case mint
+        case amber
+        case coral
+        case violet
+        case slate
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .ocean: return "Ocean"
+            case .mint: return "Mint"
+            case .amber: return "Amber"
+            case .coral: return "Coral"
+            case .violet: return "Violet"
+            case .slate: return "Slate"
+            }
+        }
+
+        var hex: String {
+            switch self {
+            case .ocean: return "#3B82F6"
+            case .mint: return "#10B981"
+            case .amber: return "#F59E0B"
+            case .coral: return "#F97316"
+            case .violet: return "#8B5CF6"
+            case .slate: return "#64748B"
+            }
+        }
+
+        static func nearest(to hex: String) -> BucketTone {
+            BucketTone.allCases.first(where: { $0.hex.caseInsensitiveCompare(hex) == .orderedSame }) ?? .ocean
+        }
+    }
+
+    enum JobPayPeriod: String, CaseIterable, Codable, Identifiable {
+        case hourly
+        case salary
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .hourly:
+                return "Hourly"
+            case .salary:
+                return "Salary"
+            }
+        }
+
+        var suffix: String {
+            switch self {
+            case .hourly:
+                return "/hr"
+            case .salary:
+                return "/yr"
+            }
+        }
+    }
+
+    struct PlannerBucket: Identifiable, Hashable, Codable {
+        let id: UUID
+        var domain: BucketDomain
+        var name: String
+        var colorHex: String
+        var icon: String
+        var detail: String
+        var isArchived: Bool
+        var isDefault: Bool
+        var isJob: Bool = false
+        var payRate: Double? = nil
+        var payPeriod: JobPayPeriod = .hourly
+        var jobSite: String = ""
+
+        private enum CodingKeys: String, CodingKey {
+            case id
+            case domain
+            case name
+            case colorHex
+            case icon
+            case detail
+            case isArchived
+            case isDefault
+            case isJob
+            case payRate
+            case payPeriod
+            case jobSite
+        }
+
+        init(
+            id: UUID,
+            domain: BucketDomain,
+            name: String,
+            colorHex: String,
+            icon: String,
+            detail: String,
+            isArchived: Bool,
+            isDefault: Bool,
+            isJob: Bool = false,
+            payRate: Double? = nil,
+            payPeriod: JobPayPeriod = .hourly,
+            jobSite: String = ""
+        ) {
+            self.id = id
+            self.domain = domain
+            self.name = name
+            self.colorHex = colorHex
+            self.icon = icon
+            self.detail = detail
+            self.isArchived = isArchived
+            self.isDefault = isDefault
+            self.isJob = isJob
+            self.payRate = payRate
+            self.payPeriod = payPeriod
+            self.jobSite = jobSite
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            domain = try container.decode(BucketDomain.self, forKey: .domain)
+            name = try container.decode(String.self, forKey: .name)
+            colorHex = try container.decode(String.self, forKey: .colorHex)
+            icon = try container.decode(String.self, forKey: .icon)
+            detail = try container.decode(String.self, forKey: .detail)
+            isArchived = try container.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
+            isDefault = try container.decodeIfPresent(Bool.self, forKey: .isDefault) ?? false
+            isJob = try container.decodeIfPresent(Bool.self, forKey: .isJob) ?? false
+            payRate = try container.decodeIfPresent(Double.self, forKey: .payRate)
+            payPeriod = try container.decodeIfPresent(JobPayPeriod.self, forKey: .payPeriod) ?? .hourly
+            jobSite = try container.decodeIfPresent(String.self, forKey: .jobSite) ?? ""
+
+            if domain != .professional {
+                isJob = false
+                payRate = nil
+                payPeriod = .hourly
+                jobSite = ""
+            }
+        }
+    }
+
+    struct PlanningSubItem: Identifiable, Hashable, Codable {
+        let id: UUID
+        var title: String
+        var isCompleted: Bool
+    }
+
+    struct PlanningItem: Identifiable, Hashable, Codable {
+        let id: UUID
+        var kind: PlanningKind
+        var title: String
+        var domain: BucketDomain
+        var bucketID: UUID
+        var notes: String = ""
+        var subItems: [PlanningSubItem] = []
+        var priority: PriorityLevel = .medium
+        var repeatRule: RepeatRule = .none
+
+        var startDate: Date? = nil
+        var endDate: Date? = nil
+        var isAllDay: Bool = false
+        var startTime: Date? = nil
+        var endTime: Date? = nil
+        var location: String = ""
+
+        var dueDate: Date? = nil
+        var dueTime: Date? = nil
+        var estimatedMinutes: Int? = nil
+
+        var reminderDate: Date? = nil
+        var reminderTime: Date? = nil
+        var reminderLeadTime: ReminderLeadTime = .atTime
+        var isCompleted: Bool = false
+        var isRead: Bool = false
+
+        private enum CodingKeys: String, CodingKey {
+            case id
+            case kind
+            case title
+            case domain
+            case bucketID
+            case notes
+            case subItems
+            case priority
+            case repeatRule
+            case startDate
+            case endDate
+            case isAllDay
+            case startTime
+            case endTime
+            case location
+            case dueDate
+            case dueTime
+            case estimatedMinutes
+            case reminderDate
+            case reminderTime
+            case reminderLeadTime
+            case isCompleted
+            case isRead
+        }
+
+        init(
+            id: UUID,
+            kind: PlanningKind,
+            title: String,
+            domain: BucketDomain,
+            bucketID: UUID,
+            notes: String = "",
+            subItems: [PlanningSubItem] = [],
+            priority: PriorityLevel = .medium,
+            repeatRule: RepeatRule = .none,
+            startDate: Date? = nil,
+            endDate: Date? = nil,
+            isAllDay: Bool = false,
+            startTime: Date? = nil,
+            endTime: Date? = nil,
+            location: String = "",
+            dueDate: Date? = nil,
+            dueTime: Date? = nil,
+            estimatedMinutes: Int? = nil,
+            reminderDate: Date? = nil,
+            reminderTime: Date? = nil,
+            reminderLeadTime: ReminderLeadTime = .atTime,
+            isCompleted: Bool = false,
+            isRead: Bool = false
+        ) {
+            self.id = id
+            self.kind = kind
+            self.title = title
+            self.domain = domain
+            self.bucketID = bucketID
+            self.notes = notes
+            self.subItems = subItems
+            self.priority = priority
+            self.repeatRule = repeatRule
+            self.startDate = startDate
+            self.endDate = endDate
+            self.isAllDay = isAllDay
+            self.startTime = startTime
+            self.endTime = endTime
+            self.location = location
+            self.dueDate = dueDate
+            self.dueTime = dueTime
+            self.estimatedMinutes = estimatedMinutes
+            self.reminderDate = reminderDate
+            self.reminderTime = reminderTime
+            self.reminderLeadTime = reminderLeadTime
+            self.isCompleted = isCompleted
+            self.isRead = isRead
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(UUID.self, forKey: .id)
+            kind = try container.decode(PlanningKind.self, forKey: .kind)
+            title = try container.decode(String.self, forKey: .title)
+            domain = try container.decode(BucketDomain.self, forKey: .domain)
+            bucketID = try container.decode(UUID.self, forKey: .bucketID)
+            notes = try container.decodeIfPresent(String.self, forKey: .notes) ?? ""
+            subItems = try container.decodeIfPresent([PlanningSubItem].self, forKey: .subItems) ?? []
+            priority = try container.decodeIfPresent(PriorityLevel.self, forKey: .priority) ?? .medium
+            repeatRule = try container.decodeIfPresent(RepeatRule.self, forKey: .repeatRule) ?? .none
+            startDate = try container.decodeIfPresent(Date.self, forKey: .startDate)
+            endDate = try container.decodeIfPresent(Date.self, forKey: .endDate)
+            isAllDay = try container.decodeIfPresent(Bool.self, forKey: .isAllDay) ?? false
+            startTime = try container.decodeIfPresent(Date.self, forKey: .startTime)
+            endTime = try container.decodeIfPresent(Date.self, forKey: .endTime)
+            location = try container.decodeIfPresent(String.self, forKey: .location) ?? ""
+            dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate)
+            dueTime = try container.decodeIfPresent(Date.self, forKey: .dueTime)
+            estimatedMinutes = try container.decodeIfPresent(Int.self, forKey: .estimatedMinutes)
+            reminderDate = try container.decodeIfPresent(Date.self, forKey: .reminderDate)
+            reminderTime = try container.decodeIfPresent(Date.self, forKey: .reminderTime)
+            reminderLeadTime = try container.decodeIfPresent(ReminderLeadTime.self, forKey: .reminderLeadTime) ?? .atTime
+            isCompleted = try container.decodeIfPresent(Bool.self, forKey: .isCompleted) ?? false
+            isRead = try container.decodeIfPresent(Bool.self, forKey: .isRead) ?? false
+        }
+    }
+
+    struct PlanningItemDraft {
+        var kind: PlanningKind
+        var title: String
+        var domain: BucketDomain
+        var bucketID: UUID?
+
+        var notes: String
+        var subItems: [PlanningSubItem]
+        var priority: PriorityLevel
+        var repeatRule: RepeatRule
+
+        var startDate: Date?
+        var endDate: Date?
+        var isAllDay: Bool
+        var startTime: Date?
+        var endTime: Date?
+        var location: String
+
+        var dueDate: Date?
+        var dueTime: Date?
+        var estimatedMinutes: Int?
+
+        var reminderDate: Date?
+        var reminderTime: Date?
+        var reminderLeadTime: ReminderLeadTime
+    }
+
+    struct WeekItemPrefill {
+        var kind: PlanningKind
+        var domain: BucketDomain
+        var start: Date
+        var end: Date
+        var isAllDay: Bool
+    }
+
+    struct WeekInteractionPreview {
+        var itemID: UUID
+        var start: Date
+        var durationMinutes: Int
+    }
+
+    final class PlannerStore: ObservableObject {
+        struct ItemScheduleState: Equatable {
+            var startDate: Date?
+            var endDate: Date?
+            var startTime: Date?
+            var endTime: Date?
+            var isAllDay: Bool
+            var dueDate: Date?
+            var dueTime: Date?
+            var reminderDate: Date?
+            var reminderTime: Date?
+        }
+
+        @Published private(set) var buckets: [PlannerBucket]
+        @Published private(set) var items: [PlanningItem]
+        @Published private(set) var settings: PlannerSettings
+
+        private let defaultIDs: [BucketDomain: UUID]
+        private var cancellables: Set<AnyCancellable> = []
+
+        private struct PersistedState: Codable {
+            let buckets: [PlannerBucket]
+            let items: [PlanningItem]
+            let settings: PlannerSettings
+
+            private enum CodingKeys: String, CodingKey {
+                case buckets
+                case items
+                case settings
+            }
+
+            init(buckets: [PlannerBucket], items: [PlanningItem], settings: PlannerSettings) {
+                self.buckets = buckets
+                self.items = items
+                self.settings = settings
+            }
+
+            init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                buckets = try container.decodeIfPresent([PlannerBucket].self, forKey: .buckets) ?? []
+                items = try container.decodeIfPresent([PlanningItem].self, forKey: .items) ?? []
+                settings = try container.decodeIfPresent(PlannerSettings.self, forKey: .settings) ?? .default
+            }
+        }
+
+        private struct LegacyPersistedStateV1: Codable {
+            let buckets: [PlannerBucket]
+            let items: [PlanningItem]
+        }
+
+        private static let personalDefaultID = UUID(uuidString: "E4D7BC6E-A0BE-4B44-8B59-819AC57FC9A9")!
+        private static let householdDefaultID = UUID(uuidString: "6F851A57-7D31-4F6B-B4BC-7761C5B4D4B7")!
+        private static let professionalDefaultID = UUID(uuidString: "B0A3F357-06B2-4F5D-B4F2-1B2E4862CB3E")!
+
+        init() {
+            let personalDefault = Self.personalDefaultID
+            let householdDefault = Self.householdDefaultID
+            let professionalDefault = Self.professionalDefaultID
+
+            defaultIDs = [
+                .personal: personalDefault,
+                .household: householdDefault,
+                .professional: professionalDefault
+            ]
+
+            let seededBuckets = [
+                PlannerBucket(id: personalDefault, domain: .personal, name: "General", colorHex: BucketTone.mint.hex, icon: "person", detail: "Default personal bucket", isArchived: false, isDefault: true),
+                PlannerBucket(id: householdDefault, domain: .household, name: "General", colorHex: BucketTone.amber.hex, icon: "house", detail: "Default household bucket", isArchived: false, isDefault: true),
+                PlannerBucket(id: professionalDefault, domain: .professional, name: "General", colorHex: BucketTone.ocean.hex, icon: "briefcase", detail: "Default professional bucket", isArchived: false, isDefault: true)
+            ]
+
+            let seededItems = [
+                PlanningItem(id: UUID(), kind: .event, title: "Doctor appointment", domain: .personal, bucketID: personalDefault),
+                PlanningItem(id: UUID(), kind: .task, title: "Grocery restock", domain: .household, bucketID: householdDefault),
+                PlanningItem(id: UUID(), kind: .reminder, title: "Send project update", domain: .professional, bucketID: professionalDefault)
+            ]
+
+            if let persisted = Self.loadState(defaultIDs: defaultIDs) {
+                buckets = persisted.buckets
+                items = persisted.items
+                settings = persisted.settings
+            } else {
+                buckets = seededBuckets
+                items = seededItems
+                settings = .default
+            }
+
+            bindPersistence()
+        }
+
+        var preferredDisplayName: String {
+            let clean = settings.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+            return clean.isEmpty ? "Planner Pro" : clean
+        }
+
+        func bucket(for id: UUID) -> PlannerBucket? {
+            buckets.first(where: { $0.id == id })
+        }
+
+        func item(for id: UUID) -> PlanningItem? {
+            items.first(where: { $0.id == id })
+        }
+
+        func defaultBucket(for domain: BucketDomain) -> PlannerBucket {
+            if let id = defaultIDs[domain], let bucket = bucket(for: id) {
+                return bucket
+            }
+            return PlannerBucket(id: UUID(), domain: domain, name: "General", colorHex: BucketTone.slate.hex, icon: "tray", detail: "Fallback", isArchived: false, isDefault: true)
+        }
+
+        func activeBuckets(for domain: BucketDomain) -> [PlannerBucket] {
+            buckets.filter { $0.domain == domain && !$0.isArchived }
+                .sorted { lhs, rhs in
+                    if lhs.isDefault != rhs.isDefault { return lhs.isDefault }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+        }
+
+        func archivedBuckets(for domain: BucketDomain) -> [PlannerBucket] {
+            buckets.filter { $0.domain == domain && $0.isArchived }
+                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }
+
+        func bucketsForPicker(domain: BucketDomain) -> [PlannerBucket] {
+            activeBuckets(for: domain)
+        }
+
+        func items(for kind: PlanningKind) -> [PlanningItem] {
+            items.filter { $0.kind == kind }
+        }
+
+        func items(for domain: BucketDomain) -> [PlanningItem] {
+            items.filter { $0.domain == domain }
+        }
+
+        func items(for bucketID: UUID) -> [PlanningItem] {
+            items.filter { $0.bucketID == bucketID }
+        }
+
+        func createBucket(domain: BucketDomain, name: String, colorHex: String, icon: String, detail: String, isJob: Bool, payRate: Double?, payPeriod: JobPayPeriod, jobSite: String) {
+            let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanIcon = icon.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanDetail = detail.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanJobSite = jobSite.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanName.isEmpty, !cleanIcon.isEmpty, !cleanDetail.isEmpty else { return }
+
+            let canUseJobFields = domain == .professional && isJob
+            let resolvedPayRate = canUseJobFields ? payRate : nil
+            let resolvedJobSite = canUseJobFields ? cleanJobSite : ""
+            if canUseJobFields {
+                guard resolvedPayRate != nil, !resolvedJobSite.isEmpty else { return }
+            }
+
+            buckets.append(
+                PlannerBucket(
+                    id: UUID(),
+                    domain: domain,
+                    name: cleanName,
+                    colorHex: colorHex,
+                    icon: cleanIcon,
+                    detail: cleanDetail,
+                    isArchived: false,
+                    isDefault: false,
+                    isJob: canUseJobFields,
+                    payRate: resolvedPayRate,
+                    payPeriod: canUseJobFields ? payPeriod : .hourly,
+                    jobSite: resolvedJobSite
+                )
+            )
+        }
+
+        func updateBucket(id: UUID, name: String, colorHex: String, icon: String, detail: String, isJob: Bool, payRate: Double?, payPeriod: JobPayPeriod, jobSite: String) {
+            guard let idx = buckets.firstIndex(where: { $0.id == id }) else { return }
+            guard !buckets[idx].isDefault else { return }
+
+            let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanIcon = icon.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanDetail = detail.trimmingCharacters(in: .whitespacesAndNewlines)
+            let cleanJobSite = jobSite.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanName.isEmpty, !cleanIcon.isEmpty, !cleanDetail.isEmpty else { return }
+
+            let canUseJobFields = buckets[idx].domain == .professional && isJob
+            let resolvedPayRate = canUseJobFields ? payRate : nil
+            let resolvedJobSite = canUseJobFields ? cleanJobSite : ""
+            if canUseJobFields {
+                guard resolvedPayRate != nil, !resolvedJobSite.isEmpty else { return }
+            }
+
+            buckets[idx].name = cleanName
+            buckets[idx].colorHex = colorHex
+            buckets[idx].icon = cleanIcon
+            buckets[idx].detail = cleanDetail
+            buckets[idx].isJob = canUseJobFields
+            buckets[idx].payRate = resolvedPayRate
+            buckets[idx].payPeriod = canUseJobFields ? payPeriod : .hourly
+            buckets[idx].jobSite = resolvedJobSite
+        }
+
+        func archiveBucket(id: UUID) {
+            guard let idx = buckets.firstIndex(where: { $0.id == id }) else { return }
+            guard !buckets[idx].isDefault else { return }
+            buckets[idx].isArchived = true
+        }
+
+        func unarchiveBucket(id: UUID) {
+            guard let idx = buckets.firstIndex(where: { $0.id == id }) else { return }
+            buckets[idx].isArchived = false
+        }
+
+        func deleteBucket(id: UUID) {
+            guard let bucket = bucket(for: id) else { return }
+            guard !bucket.isDefault else { return }
+
+            let fallback = defaultBucket(for: bucket.domain)
+
+            items = items.map { item in
+                guard item.bucketID == id else { return item }
+                var changed = item
+                changed.domain = bucket.domain
+                changed.bucketID = fallback.id
+                return changed
+            }
+
+            buckets.removeAll { $0.id == id }
+        }
+
+        func updateItemDomain(itemID: UUID, domain: BucketDomain) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+            items[idx].domain = domain
+            items[idx].bucketID = defaultBucket(for: domain).id
+        }
+
+        func updateItemBucket(itemID: UUID, bucketID: UUID) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+            guard let bucket = bucket(for: bucketID), !bucket.isArchived else { return }
+            items[idx].domain = bucket.domain
+            items[idx].bucketID = bucket.id
+        }
+
+        func updateItemTitle(itemID: UUID, title: String) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+            let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanTitle.isEmpty else { return }
+            items[idx].title = cleanTitle
+        }
+
+        func updateItem(itemID: UUID, from draft: PlanningItemDraft) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+
+            let cleanTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanTitle.isEmpty else { return }
+
+            let resolvedBucket: PlannerBucket
+            if let bucketID = draft.bucketID, let bucket = bucket(for: bucketID), !bucket.isArchived {
+                resolvedBucket = bucket
+            } else {
+                resolvedBucket = defaultBucket(for: draft.domain)
+            }
+
+            items[idx].kind = draft.kind
+            items[idx].title = cleanTitle
+            items[idx].domain = resolvedBucket.domain
+            items[idx].bucketID = resolvedBucket.id
+            items[idx].notes = draft.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+            items[idx].subItems = sanitizedSubItems(draft.subItems)
+            items[idx].priority = draft.priority
+            items[idx].repeatRule = draft.repeatRule
+            items[idx].startDate = draft.startDate
+            items[idx].endDate = draft.endDate
+            items[idx].isAllDay = draft.isAllDay
+            items[idx].startTime = draft.startTime
+            items[idx].endTime = draft.endTime
+            items[idx].location = draft.location.trimmingCharacters(in: .whitespacesAndNewlines)
+            items[idx].dueDate = draft.dueDate
+            items[idx].dueTime = draft.dueTime
+            items[idx].estimatedMinutes = draft.estimatedMinutes
+            items[idx].reminderDate = draft.reminderDate
+            items[idx].reminderTime = draft.reminderTime
+            items[idx].reminderLeadTime = draft.reminderLeadTime
+        }
+
+        func scheduleState(for itemID: UUID) -> ItemScheduleState? {
+            guard let item = item(for: itemID) else { return nil }
+            return ItemScheduleState(
+                startDate: item.startDate,
+                endDate: item.endDate,
+                startTime: item.startTime,
+                endTime: item.endTime,
+                isAllDay: item.isAllDay,
+                dueDate: item.dueDate,
+                dueTime: item.dueTime,
+                reminderDate: item.reminderDate,
+                reminderTime: item.reminderTime
+            )
+        }
+
+        func restoreScheduleState(itemID: UUID, state: ItemScheduleState) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+
+            items[idx].startDate = state.startDate
+            items[idx].endDate = state.endDate
+            items[idx].startTime = state.startTime
+            items[idx].endTime = state.endTime
+            items[idx].isAllDay = state.isAllDay
+            items[idx].dueDate = state.dueDate
+            items[idx].dueTime = state.dueTime
+            items[idx].reminderDate = state.reminderDate
+            items[idx].reminderTime = state.reminderTime
+        }
+
+        func moveItem(itemID: UUID, to start: Date, durationMinutes: Int? = nil) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+
+            switch items[idx].kind {
+            case .event:
+                let resolvedDuration = max(durationMinutes ?? eventDurationMinutes(for: items[idx]), 30)
+                applyEventSchedule(index: idx, start: start, durationMinutes: resolvedDuration)
+
+            case .task:
+                items[idx].dueDate = dayOnly(from: start)
+                items[idx].dueTime = timeOnly(from: start)
+
+            case .reminder:
+                items[idx].reminderDate = dayOnly(from: start)
+                items[idx].reminderTime = timeOnly(from: start)
+            }
+        }
+
+        func resizeEvent(itemID: UUID, toStart start: Date, durationMinutes: Int) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+            guard items[idx].kind == .event else { return }
+            applyEventSchedule(index: idx, start: start, durationMinutes: max(durationMinutes, 30))
+        }
+
+        func toggleTaskCompletion(itemID: UUID) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+            guard items[idx].kind == .task else { return }
+            items[idx].isCompleted.toggle()
+        }
+
+        func setReminderRead(itemID: UUID, isRead: Bool) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+            guard items[idx].kind == .reminder else { return }
+            items[idx].isRead = isRead
+        }
+
+        func duplicateItem(itemID: UUID) {
+            guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+            let source = items[idx]
+
+            let resolvedBucketID: UUID
+            if let bucket = bucket(for: source.bucketID), !bucket.isArchived {
+                resolvedBucketID = bucket.id
+            } else {
+                resolvedBucketID = defaultBucket(for: source.domain).id
+            }
+
+            let duplicate = PlanningItem(
+                id: UUID(),
+                kind: source.kind,
+                title: "\(source.title) Copy",
+                domain: source.domain,
+                bucketID: resolvedBucketID,
+                notes: source.notes,
+                subItems: source.subItems.map {
+                    PlanningSubItem(id: UUID(), title: $0.title, isCompleted: $0.isCompleted)
+                },
+                priority: source.priority,
+                repeatRule: source.repeatRule,
+                startDate: source.startDate,
+                endDate: source.endDate,
+                isAllDay: source.isAllDay,
+                startTime: source.startTime,
+                endTime: source.endTime,
+                location: source.location,
+                dueDate: source.dueDate,
+                dueTime: source.dueTime,
+                estimatedMinutes: source.estimatedMinutes,
+                reminderDate: source.reminderDate,
+                reminderTime: source.reminderTime,
+                reminderLeadTime: source.reminderLeadTime,
+                isCompleted: false,
+                isRead: false
+            )
+
+            items.insert(duplicate, at: idx + 1)
+        }
+
+        func deleteItem(itemID: UUID) {
+            items.removeAll { $0.id == itemID }
+        }
+
+        func createItem(from draft: PlanningItemDraft) {
+            let cleanTitle = draft.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanTitle.isEmpty else { return }
+
+            let resolvedBucket: PlannerBucket
+            if let bucketID = draft.bucketID, let bucket = bucket(for: bucketID), !bucket.isArchived {
+                resolvedBucket = bucket
+            } else {
+                resolvedBucket = defaultBucket(for: draft.domain)
+            }
+
+            let created = PlanningItem(
+                id: UUID(),
+                kind: draft.kind,
+                title: cleanTitle,
+                domain: resolvedBucket.domain,
+                bucketID: resolvedBucket.id,
+                notes: draft.notes.trimmingCharacters(in: .whitespacesAndNewlines),
+                subItems: sanitizedSubItems(draft.subItems),
+                priority: draft.priority,
+                repeatRule: draft.repeatRule,
+                startDate: draft.startDate,
+                endDate: draft.endDate,
+                isAllDay: draft.isAllDay,
+                startTime: draft.startTime,
+                endTime: draft.endTime,
+                location: draft.location.trimmingCharacters(in: .whitespacesAndNewlines),
+                dueDate: draft.dueDate,
+                dueTime: draft.dueTime,
+                estimatedMinutes: draft.estimatedMinutes,
+                reminderDate: draft.reminderDate,
+                reminderTime: draft.reminderTime,
+                reminderLeadTime: draft.reminderLeadTime
+            )
+
+            items.insert(created, at: 0)
+        }
+
+        func updateDisplayName(_ name: String) {
+            settings.displayName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        func setArchivedPreference(_ enabled: Bool) {
+            settings.prefersArchivedVisibleByDefault = enabled
+        }
+
+        func resetToSampleData() {
+            let personalDefault = defaultBucket(for: .personal)
+            let householdDefault = defaultBucket(for: .household)
+            let professionalDefault = defaultBucket(for: .professional)
+
+            items = [
+                PlanningItem(id: UUID(), kind: .event, title: "Doctor appointment", domain: .personal, bucketID: personalDefault.id),
+                PlanningItem(id: UUID(), kind: .task, title: "Grocery restock", domain: .household, bucketID: householdDefault.id),
+                PlanningItem(id: UUID(), kind: .reminder, title: "Send project update", domain: .professional, bucketID: professionalDefault.id)
+            ]
+        }
+
+        private func sanitizedSubItems(_ subItems: [PlanningSubItem]) -> [PlanningSubItem] {
+            subItems.compactMap { subItem in
+                let cleanTitle = subItem.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !cleanTitle.isEmpty else { return nil }
+                return PlanningSubItem(id: subItem.id, title: cleanTitle, isCompleted: subItem.isCompleted)
+            }
+        }
+
+        private func applyEventSchedule(index: Int, start: Date, durationMinutes: Int) {
+            let safeDuration = max(durationMinutes, 30)
+            let end = Calendar.current.date(byAdding: .minute, value: safeDuration, to: start) ?? start
+
+            items[index].isAllDay = false
+            items[index].startDate = dayOnly(from: start)
+            items[index].startTime = timeOnly(from: start)
+            items[index].endDate = dayOnly(from: end)
+            items[index].endTime = timeOnly(from: end)
+        }
+
+        private func eventDurationMinutes(for item: PlanningItem) -> Int {
+            guard let start = combinedDate(date: item.startDate, time: item.startTime) else { return 60 }
+            guard let end = combinedDate(date: item.endDate ?? item.startDate, time: item.endTime) else { return 60 }
+            return max(Int(end.timeIntervalSince(start) / 60), 30)
+        }
+
+        private func combinedDate(date: Date?, time: Date?) -> Date? {
+            guard let date else { return nil }
+            let calendar = Calendar.current
+            var components = calendar.dateComponents([.year, .month, .day], from: date)
+
+            if let time {
+                let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
+                components.hour = timeComponents.hour ?? 0
+                components.minute = timeComponents.minute ?? 0
+            } else {
+                components.hour = 0
+                components.minute = 0
+            }
+
+            return calendar.date(from: components)
+        }
+
+        private func dayOnly(from date: Date) -> Date {
+            Calendar.current.startOfDay(for: date)
+        }
+
+        private func timeOnly(from date: Date) -> Date {
+            let calendar = Calendar.current
+            let components = calendar.dateComponents([.hour, .minute], from: date)
+            return calendar.date(from: components) ?? date
+        }
+
+        private func bindPersistence() {
+            Publishers.CombineLatest3($buckets, $items, $settings)
+                .dropFirst()
+                .sink { [weak self] _, _, _ in
+                    self?.persistState()
+                }
+                .store(in: &cancellables)
+        }
+
+        private func persistState() {
+            let state = PersistedState(buckets: buckets, items: items, settings: settings)
+            do {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                let data = try encoder.encode(state)
+                try data.write(to: Self.storageURL(), options: [.atomic])
+            } catch {
+                print("PlannerStore persistence failed: \(error)")
+            }
+        }
+
+        private static func loadState(defaultIDs: [BucketDomain: UUID]) -> PersistedState? {
+            do {
+                let data = try Data(contentsOf: storageURL())
+                let decoder = JSONDecoder()
+
+                if let current = try? decoder.decode(PersistedState.self, from: data) {
+                    return normalizeLoadedState(current, defaultIDs: defaultIDs)
+                }
+
+                if let legacyV1 = try? decoder.decode(LegacyPersistedStateV1.self, from: data) {
+                    let upgraded = PersistedState(
+                        buckets: legacyV1.buckets,
+                        items: legacyV1.items,
+                        settings: .default
+                    )
+                    return normalizeLoadedState(upgraded, defaultIDs: defaultIDs)
+                }
+
+                return nil
+            } catch {
+                return nil
+            }
+        }
+
+        private static func normalizeLoadedState(_ state: PersistedState, defaultIDs: [BucketDomain: UUID]) -> PersistedState {
+            var normalizedBuckets = state.buckets
+            var normalizedItems = state.items
+
+            for domain in BucketDomain.allCases {
+                guard let expectedID = defaultIDs[domain] else { continue }
+
+                if let idx = normalizedBuckets.firstIndex(where: { $0.id == expectedID }) {
+                    normalizedBuckets[idx].domain = domain
+                    normalizedBuckets[idx].isDefault = true
+                    normalizedBuckets[idx].isArchived = false
+                    if normalizedBuckets[idx].name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        normalizedBuckets[idx].name = "General"
+                    }
+                    if normalizedBuckets[idx].icon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        normalizedBuckets[idx].icon = defaultIcon(for: domain)
+                    }
+                    if normalizedBuckets[idx].colorHex.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        normalizedBuckets[idx].colorHex = defaultColorHex(for: domain)
+                    }
+                    if normalizedBuckets[idx].detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        normalizedBuckets[idx].detail = "Default \(domain.title.lowercased()) bucket"
+                    }
+                } else {
+                    normalizedBuckets.append(
+                        PlannerBucket(
+                            id: expectedID,
+                            domain: domain,
+                            name: "General",
+                            colorHex: defaultColorHex(for: domain),
+                            icon: defaultIcon(for: domain),
+                            detail: "Default \(domain.title.lowercased()) bucket",
+                            isArchived: false,
+                            isDefault: true
+                        )
+                    )
+                }
+            }
+
+            let bucketByID = Dictionary(uniqueKeysWithValues: normalizedBuckets.map { ($0.id, $0) })
+            normalizedItems = normalizedItems.map { item in
+                if let bucket = bucketByID[item.bucketID], !bucket.isArchived {
+                    var kept = item
+                    kept.domain = bucket.domain
+                    return kept
+                }
+
+                var migrated = item
+                let fallbackID = defaultIDs[item.domain] ?? defaultIDs[.personal]!
+                migrated.bucketID = fallbackID
+                return migrated
+            }
+
+            let activeDefaultIDs = Set(defaultIDs.values)
+            normalizedBuckets = normalizedBuckets.filter { bucket in
+                if bucket.isDefault {
+                    return activeDefaultIDs.contains(bucket.id)
+                }
+                return true
+            }
+
+            return PersistedState(
+                buckets: normalizedBuckets,
+                items: normalizedItems,
+                settings: state.settings
+            )
+        }
+
+        private static func defaultIcon(for domain: BucketDomain) -> String {
+            switch domain {
+            case .personal:
+                return "person"
+            case .household:
+                return "house"
+            case .professional:
+                return "briefcase"
+            }
+        }
+
+        private static func defaultColorHex(for domain: BucketDomain) -> String {
+            switch domain {
+            case .personal:
+                return BucketTone.mint.hex
+            case .household:
+                return BucketTone.amber.hex
+            case .professional:
+                return BucketTone.ocean.hex
+            }
+        }
+
+        private static func hasDefaultBuckets(in buckets: [PlannerBucket], defaultIDs: [BucketDomain: UUID]) -> Bool {
+            for domain in BucketDomain.allCases {
+                guard let expectedID = defaultIDs[domain] else { return false }
+                guard let bucket = buckets.first(where: { $0.id == expectedID }) else { return false }
+                if !bucket.isDefault { return false }
+            }
+            return true
+        }
+
+        private static func storageURL() -> URL {
+            let fm = FileManager.default
+            let root = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+                ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            let appFolder = root.appendingPathComponent("TimeScapePlannerPro", isDirectory: true)
+            if !fm.fileExists(atPath: appFolder.path) {
+                try? fm.createDirectory(at: appFolder, withIntermediateDirectories: true)
+            }
+            return appFolder.appendingPathComponent("planner-state.json", isDirectory: false)
+        }
+    }
+
+    struct SidebarView: View {
+        @Binding var selection: AppDestination
+
+        private let overviewItems: [AppDestination] = [.today, .week, .calendar]
+        private let domainItems: [AppDestination] = [.personal, .household, .professional]
+        private let planningItems: [AppDestination] = [.events, .tasks, .reminders]
+
+        var body: some View {
+            List(selection: $selection) {
+                Section("Overview") {
+                    ForEach(overviewItems) { destination in
+                        NavigationLink(value: destination) {
+                            Label(destination.title, systemImage: destination.symbolName)
+                        }
+                    }
+                }
+
+                Section("Planning") {
+                    ForEach(planningItems) { destination in
+                        NavigationLink(value: destination) {
+                            Label(destination.title, systemImage: destination.symbolName)
+                        }
+                    }
+                }
+
+                Section("Domains") {
+                    ForEach(domainItems) { destination in
+                        NavigationLink(value: destination) {
+                            Label(destination.title, systemImage: destination.symbolName)
+                        }
+                    }
+                }
+
+                Section("System") {
+                    NavigationLink(value: AppDestination.apps) {
+                        Label(AppDestination.apps.title, systemImage: AppDestination.apps.symbolName)
+                    }
+                    NavigationLink(value: AppDestination.settings) {
+                        Label(AppDestination.settings.title, systemImage: AppDestination.settings.symbolName)
+                    }
+                }
+            }
+            .listStyle(.sidebar)
+            .navigationTitle("TimeScape")
+            .navigationSplitViewColumnWidth(min: 220, ideal: 250, max: 320)
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Text("Planner Pro")
+                        .font(.headline)
+                }
+            }
+        }
+    }
+
+    struct NativeDestinationView: View {
+        let destination: AppDestination
+
+        @State private var isShowingCreateBucketSheet = false
+        @State private var isShowingCreateItemSheet = false
+        @State private var editingBucket: PlannerBucket?
+        @State private var isViewingArchivedBuckets = false
+        @State private var planningDateFilter: PlanningDateFilter = .all
+        @State private var planningDomainFilter: BucketDomain? = nil
+        @State private var planningBucketFilter: UUID? = nil
+        @State private var todayShowsNextUp = true
+        @State private var todayShowsQuickActions = true
+        @State private var weekUsesCompactRows = false
+        @State private var weekShowsSummaryCard = true
+        @State private var weekShowsWorkWeekOnly = false
+        @State private var calendarShowsSummaryCard = true
+        @State private var calendarShowsWeekPreview = false
+
+        @EnvironmentObject private var store: PlannerStore
+
+        private var planningFilterBuckets: [PlannerBucket] {
+            if let planningDomainFilter {
+                return store.activeBuckets(for: planningDomainFilter)
+            }
+
+            return BucketDomain.allCases
+                .flatMap { store.activeBuckets(for: $0) }
+                .sorted { lhs, rhs in
+                    if lhs.domain != rhs.domain {
+                        return lhs.domain.title.localizedCaseInsensitiveCompare(rhs.domain.title) == .orderedAscending
+                    }
+                    return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+                }
+        }
+
+        var body: some View {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    DestinationHero(destination: destination)
+
+                    if destination.isImplemented {
+                        nativeContent
+                    } else {
+                        PlaceholderFeatureCard(destination: destination)
+                    }
+                }
+                .padding(24)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .background(detailBackground)
+            .navigationTitle(destination.title)
+            .toolbar {
+                ToolbarItemGroup(placement: .primaryAction) {
+                    Button {
+                        MicroFeedback.tap()
+                        isShowingCreateItemSheet = true
+                    } label: {
+                        Label("New Item", systemImage: "plus")
+                    }
+                    .disabled(!destination.isImplemented)
+
+                    if destination == .today || destination == .week || destination == .calendar {
+                        Menu {
+                            switch destination {
+                            case .today:
+                                Toggle("Show Next Up", isOn: $todayShowsNextUp)
+                                Toggle("Show Quick Actions", isOn: $todayShowsQuickActions)
+
+                            case .week:
+                                Toggle("Compact Row Height", isOn: $weekUsesCompactRows)
+                                Toggle("Show Summary Card", isOn: $weekShowsSummaryCard)
+                                Toggle("Work Week (Mon-Fri)", isOn: $weekShowsWorkWeekOnly)
+
+                            case .calendar:
+                                Toggle("Show Summary Card", isOn: $calendarShowsSummaryCard)
+                                Toggle("Show Week Preview", isOn: $calendarShowsWeekPreview)
+
+                            default:
+                                EmptyView()
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .imageScale(.large)
+                        }
+                        .menuIndicator(.hidden)
+                        .menuStyle(.button)
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("View options")
+                    }
+
+                    if destination.isPlanningDestination {
+                        Menu {
+                            Section("Date") {
+                                Picker("Date", selection: $planningDateFilter) {
+                                    ForEach(PlanningDateFilter.allCases) { option in
+                                        Text(option.label).tag(option)
+                                    }
+                                }
+                            }
+
+                            Section("Domain") {
+                                Picker("Domain", selection: $planningDomainFilter) {
+                                    Text("All domains")
+                                        .tag(Optional<BucketDomain>.none)
+
+                                    ForEach(BucketDomain.allCases) { domain in
+                                        Text(domain.title).tag(Optional(domain))
+                                    }
+                                }
+                            }
+
+                            Section("Bucket") {
+                                Picker("Bucket", selection: $planningBucketFilter) {
+                                    Text("All buckets")
+                                        .tag(Optional<UUID>.none)
+
+                                    ForEach(planningFilterBuckets) { bucket in
+                                        Text("\(bucket.domain.title): \(bucket.name)")
+                                            .tag(Optional(bucket.id))
+                                    }
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .imageScale(.large)
+                        }
+                        .menuIndicator(.hidden)
+                        .menuStyle(.button)
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("Filter options")
+                    }
+
+                    if destination.isDomain {
+                        Menu {
+                            Button {
+                                isShowingCreateBucketSheet = true
+                            } label: {
+                                Label("Create Bucket", systemImage: "plus")
+                            }
+
+                            Button {
+                                isViewingArchivedBuckets.toggle()
+                            } label: {
+                                Label(
+                                    isViewingArchivedBuckets ? "View Active" : "View Archived",
+                                    systemImage: isViewingArchivedBuckets ? "tray.full" : "archivebox"
+                                )
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .imageScale(.large)
+                        }
+                        .menuIndicator(.hidden)
+                        .menuStyle(.button)
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("Page options")
+                    }
+                }
+            }
+            .onChange(of: destination) { _, _ in
+                isViewingArchivedBuckets = destination.isDomain
+                    ? store.settings.prefersArchivedVisibleByDefault
+                    : false
+
+                if !destination.isPlanningDestination {
+                    planningDateFilter = .all
+                    planningDomainFilter = nil
+                    planningBucketFilter = nil
+                }
+            }
+            .onChange(of: planningDomainFilter) { _, _ in
+                planningBucketFilter = nil
+            }
+            .sheet(isPresented: $isShowingCreateItemSheet) {
+                NewPlanningItemSheet(destination: destination) { draft in
+                    store.createItem(from: draft)
+                }
+            }
+        }
+
+        @ViewBuilder
+        private var nativeContent: some View {
+            switch destination {
+            case .today:
+                TodayDashboardView(
+                    showsNextUp: todayShowsNextUp,
+                    showsQuickActions: todayShowsQuickActions
+                )
+            case .week:
+                WeekPlanningView(
+                    usesCompactRows: weekUsesCompactRows,
+                    showsSummaryCard: weekShowsSummaryCard,
+                    showsWorkWeekOnly: weekShowsWorkWeekOnly
+                )
+            case .calendar:
+                CalendarLandingView(
+                    showsSummaryCard: calendarShowsSummaryCard,
+                    showsWeekPreview: calendarShowsWeekPreview
+                )
+            case .personal:
+                PersonalDomainView(
+                    isShowingCreateBucketSheet: $isShowingCreateBucketSheet,
+                    editingBucket: $editingBucket,
+                    isViewingArchivedBuckets: $isViewingArchivedBuckets
+                )
+            case .household:
+                HouseholdDomainView(
+                    isShowingCreateBucketSheet: $isShowingCreateBucketSheet,
+                    editingBucket: $editingBucket,
+                    isViewingArchivedBuckets: $isViewingArchivedBuckets
+                )
+            case .professional:
+                ProfessionalDomainView(
+                    isShowingCreateBucketSheet: $isShowingCreateBucketSheet,
+                    editingBucket: $editingBucket,
+                    isViewingArchivedBuckets: $isViewingArchivedBuckets
+                )
+            case .apps:
+                AppsHubView()
+            case .events:
+                EventsPageView(
+                    dateFilter: planningDateFilter,
+                    domainFilter: planningDomainFilter,
+                    bucketFilter: planningBucketFilter
+                )
+            case .tasks:
+                TasksPageView(
+                    dateFilter: planningDateFilter,
+                    domainFilter: planningDomainFilter,
+                    bucketFilter: planningBucketFilter
+                )
+            case .reminders:
+                RemindersPageView(
+                    dateFilter: planningDateFilter,
+                    domainFilter: planningDomainFilter,
+                    bucketFilter: planningBucketFilter
+                )
+            case .settings:
+                SettingsPageView()
+            }
+        }
+
+        private var detailBackground: some View {
+            LinearGradient(
+                colors: [
+                    Color(nsColor: .windowBackgroundColor),
+                    Color(nsColor: .controlBackgroundColor).opacity(0.7)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+        }
+    }
+
+    struct DestinationHero: View {
+        let destination: AppDestination
+
+        var body: some View {
+            HStack(alignment: .center, spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(destination.accent.opacity(0.18))
+                    Image(systemName: destination.symbolName)
+                        .font(.system(size: 26, weight: .semibold))
+                        .foregroundStyle(destination.accent)
+                }
+                .frame(width: 60, height: 60)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(destination.title)
+                        .font(.largeTitle.weight(.semibold))
+                    Text(destination.subtitle)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+            }
+            .padding(20)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(destination.accent.opacity(0.18), lineWidth: 1)
+            )
+        }
+    }
+
+    struct TodayDashboardView: View {
+        let showsNextUp: Bool
+        let showsQuickActions: Bool
+
+        @EnvironmentObject private var store: PlannerStore
+
+        private var eventsCount: Int { store.items(for: .event).count }
+        private var tasksCount: Int { store.items(for: .task).count }
+
+        private var nextUpItems: [String] {
+            store.items.prefix(3).map { item in
+                "\(item.kind.rawValue.capitalized): \(item.title)"
+            }
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeader(title: "Today", eyebrow: "Daily command center")
+
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
+                    GridRow {
+                        MetricCard(
+                            title: "Focus",
+                            value: "\(tasksCount) tasks",
+                            detail: tasksCount == 0 ? "No tasks yet" : "Ready for your next work block",
+                            tint: .blue
+                        )
+                        MetricCard(
+                            title: "Schedule",
+                            value: "\(eventsCount) events",
+                            detail: eventsCount == 0 ? "No events yet" : "Appointments coming up",
+                            tint: .indigo
+                        )
+                    }
+
+                    if showsNextUp || showsQuickActions {
+                        GridRow {
+                            if showsNextUp {
+                                FeatureListCard(
+                                    title: "Next up",
+                                    items: nextUpItems.isEmpty ? ["Create your first event, task, or reminder"] : nextUpItems
+                                )
+                            } else {
+                                Color.clear
+                            }
+
+                            if showsQuickActions {
+                                FeatureListCard(
+                                    title: "Quick actions",
+                                    items: [
+                                        "Create a task",
+                                        "Add a calendar event",
+                                        "Review reminders"
+                                    ]
+                                )
+                            } else {
+                                Color.clear
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    struct CalendarLandingView: View {
+        let showsSummaryCard: Bool
+        let showsWeekPreview: Bool
+        @State private var visibleMonth: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: Date())) ?? Date()
+
+        private var monthTitle: String {
+            let formatter = DateFormatter()
+            formatter.calendar = Calendar.current
+            formatter.dateFormat = "LLLL yyyy"
+            return formatter.string(from: visibleMonth)
+        }
+
+        private func moveMonth(by value: Int) {
+            guard let nextMonth = Calendar.current.date(byAdding: .month, value: value, to: visibleMonth) else { return }
+            visibleMonth = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: nextMonth)) ?? nextMonth
+        }
+
+        private func jumpToMonth(month: Int, year: Int) {
+            var components = DateComponents()
+            components.year = year
+            components.month = month
+            components.day = 1
+            if let date = Calendar.current.date(from: components) {
+                visibleMonth = date
+            }
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeader(title: "Calendar", eyebrow: "Time in context")
+
+                if showsSummaryCard {
+                    CalendarSummaryCard(
+                        visibleMonth: visibleMonth,
+                        monthTitle: monthTitle,
+                        onPreviousMonth: { moveMonth(by: -1) },
+                        onNextMonth: { moveMonth(by: 1) },
+                        onJumpToMonth: jumpToMonth
+                    )
+                }
+
+                if showsWeekPreview {
+                    WeekPreviewCard()
+                }
+
+                MonthCalendarView(visibleMonth: $visibleMonth)
+            }
+        }
+    }
+
+    struct WeekPlanningView: View {
+        let usesCompactRows: Bool
+        let showsSummaryCard: Bool
+        let showsWorkWeekOnly: Bool
+
+        @EnvironmentObject private var store: PlannerStore
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeader(title: "This Week", eyebrow: "Weekly schedule")
+
+                if showsSummaryCard {
+                    CalendarSummaryCard()
+                }
+
+                ThisWeekScheduleView(
+                    items: store.items,
+                    compactMode: usesCompactRows,
+                    showsWorkWeekOnly: showsWorkWeekOnly
+                )
+            }
+        }
+    }
+
+    struct ThisWeekScheduleView: View {
+        let items: [PlanningItem]
+        let compactMode: Bool
+        let showsWorkWeekOnly: Bool
+
+        @EnvironmentObject private var store: PlannerStore
+        @State private var selectedItemID: UUID?
+        @State private var isShowingQuickCreateSheet = false
+        @State private var quickCreatePrefill: WeekItemPrefill?
+
+        private let calendar = Calendar.current
+        private let today = Date()
+        private let startHour = 7
+        private let endHour = 22
+        private let timeColumnWidth: CGFloat = 72
+        private let minimumDayWidth: CGFloat = 72
+        private let snapIntervalMinutes = 30
+        private let minimumEventDurationMinutes = 30
+
+        private var rowHeight: CGFloat {
+            compactMode ? 44 : 58
+        }
+
+        private var totalHours: Int {
+            endHour - startHour
+        }
+
+        private var gridHeight: CGFloat {
+            CGFloat(totalHours) * rowHeight
+        }
+
+        private var startOfWeek: Date {
+            let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
+            return calendar.date(from: components) ?? today
+        }
+
+        private var weekDates: [Date] {
+            (0..<7).compactMap { offset in
+                calendar.date(byAdding: .day, value: offset, to: startOfWeek)
+            }
+        }
+
+        private var displayedWeekDates: [Date] {
+            if !showsWorkWeekOnly {
+                return weekDates
+            }
+
+            let weekdays = weekDates.filter { !calendar.isDateInWeekend($0) }
+            return weekdays.isEmpty ? weekDates : weekdays
+        }
+
+        private var displayedDayCount: Int {
+            max(displayedWeekDates.count, 1)
+        }
+
+        private var weekRangeTitle: String {
+            let formatter = DateFormatter()
+            formatter.calendar = calendar
+            formatter.dateFormat = "MMM d"
+
+            guard let start = displayedWeekDates.first,
+                  let end = displayedWeekDates.last
+            else {
+                return "This week"
+            }
+            return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
+        }
+
+        private var scheduledItems: [ScheduledPlanningItem] {
+            items.enumerated().compactMap { index, item in
+                if let resolvedStart = resolvedStartDate(for: item) {
+                    guard let dayIndex = dayIndexInDisplayedWeek(for: resolvedStart) else { return nil }
+                    let components = calendar.dateComponents([.hour, .minute], from: resolvedStart)
+                    let rawHour = components.hour ?? baseHour(for: item.kind)
+                    let clampedHour = min(max(rawHour, startHour), endHour - 1)
+                    let startMinute = components.minute ?? 0
+
+                    return ScheduledPlanningItem(
+                        item: item,
+                        dayIndex: dayIndex,
+                        startHour: clampedHour,
+                        startMinute: startMinute,
+                        durationMinutes: resolvedDurationMinutes(for: item)
+                    )
+                }
+
+                let dayIndex = index % displayedDayCount
+                let cycle = (index / displayedDayCount) % 4
+                let start = min(baseHour(for: item.kind) + (cycle * 2), endHour - 2)
+
+                return ScheduledPlanningItem(
+                    item: item,
+                    dayIndex: dayIndex,
+                    startHour: start,
+                    startMinute: 0,
+                    durationMinutes: durationHours(for: item.kind) * 60
+                )
+            }
+        }
+
+        private var kindSummary: String {
+            let events = items.filter { $0.kind == .event }.count
+            let tasks = items.filter { $0.kind == .task }.count
+            let reminders = items.filter { $0.kind == .reminder }.count
+            return "\(events) events  •  \(tasks) tasks  •  \(reminders) reminders"
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("This week")
+                            .font(.headline)
+                        Text(weekRangeTitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Text(kindSummary)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+
+                GeometryReader { proxy in
+                    let availableWidth = max(proxy.size.width, (minimumDayWidth * CGFloat(displayedDayCount)) + timeColumnWidth)
+                    let dayWidth = max((availableWidth - timeColumnWidth) / CGFloat(displayedDayCount), minimumDayWidth)
+
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 0) {
+                            Color.clear
+                                .frame(width: timeColumnWidth, height: 42)
+
+                            ForEach(displayedWeekDates, id: \.self) { date in
+                                WeekDayHeader(date: date, isToday: calendar.isDateInToday(date))
+                                    .frame(width: dayWidth, height: 42)
+                            }
+                        }
+
+                        HStack(alignment: .top, spacing: 0) {
+                            VStack(spacing: 0) {
+                                ForEach(startHour..<endHour, id: \.self) { hour in
+                                    Text(hourLabel(hour))
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: timeColumnWidth, height: rowHeight, alignment: .topTrailing)
+                                        .padding(.top, 6)
+                                }
+                            }
+
+                            ZStack(alignment: .topLeading) {
+                                Rectangle()
+                                    .fill(Color(nsColor: .windowBackgroundColor).opacity(0.45))
+
+                                Path { path in
+                                    for index in 0...totalHours {
+                                        let y = CGFloat(index) * rowHeight
+                                        path.move(to: CGPoint(x: 0, y: y))
+                                        path.addLine(to: CGPoint(x: dayWidth * CGFloat(displayedDayCount), y: y))
+                                    }
+                                }
+                                .stroke(Color(nsColor: .separatorColor).opacity(0.35), lineWidth: 1)
+
+                                Path { path in
+                                    for index in 0...displayedDayCount {
+                                        let x = CGFloat(index) * dayWidth
+                                        path.move(to: CGPoint(x: x, y: 0))
+                                        path.addLine(to: CGPoint(x: x, y: gridHeight))
+                                    }
+                                }
+                                .stroke(Color(nsColor: .separatorColor).opacity(0.4), lineWidth: 1)
+                                .contentShape(Rectangle())
+                                .gesture(
+                                    SpatialTapGesture(count: 2)
+                                        .onEnded { value in
+                                            handleGridDoubleClick(at: value.location, dayWidth: dayWidth)
+                                        }
+                                )
+
+                                ForEach(scheduledItems) { scheduled in
+                                    if let bucket = store.bucket(for: scheduled.item.bucketID) {
+                                        WeekScheduledBlock(
+                                            item: scheduled.item,
+                                            bucket: bucket,
+                                            isSelected: selectedItemID == scheduled.item.id,
+                                            onSelect: { selectedItemID = scheduled.item.id },
+                                            showsResizeHandles: scheduled.item.kind == .event,
+                                            snapMinutes: snapIntervalMinutes,
+                                            onResizeStart: { deltaY in
+                                                resizeEvent(
+                                                    scheduled,
+                                                    edge: .start,
+                                                    deltaY: deltaY
+                                                )
+                                            },
+                                            onResizeEnd: { deltaY in
+                                                resizeEvent(
+                                                    scheduled,
+                                                    edge: .end,
+                                                    deltaY: deltaY
+                                                )
+                                            }
+                                        )
+                                            .frame(
+                                                width: dayWidth - 14,
+                                                height: blockHeight(for: scheduled),
+                                                alignment: .topLeading
+                                            )
+                                            .position(
+                                                x: (CGFloat(scheduled.dayIndex) * dayWidth) + (dayWidth / 2),
+                                                y: yPosition(for: scheduled)
+                                            )
+                                            .gesture(
+                                                DragGesture(minimumDistance: 6)
+                                                    .onEnded { value in
+                                                        moveScheduledItem(
+                                                            scheduled,
+                                                            translation: value.translation,
+                                                            dayWidth: dayWidth
+                                                        )
+                                                    }
+                                            )
+                                    }
+                                }
+                            }
+                            .frame(width: dayWidth * CGFloat(displayedDayCount), height: gridHeight, alignment: .topLeading)
+                        }
+                    }
+                }
+                .frame(minHeight: gridHeight + 42)
+                .padding(14)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            }
+            .sheet(isPresented: $isShowingQuickCreateSheet) {
+                if let quickCreatePrefill {
+                    NewPlanningItemSheet(destination: .events, prefill: quickCreatePrefill) { draft in
+                        store.createItem(from: draft)
+                    }
+                }
+            }
+        }
+
+        private func baseHour(for kind: PlanningKind) -> Int {
+            switch kind {
+            case .event:
+                return 9
+            case .task:
+                return 11
+            case .reminder:
+                return 16
+            }
+        }
+
+        private func durationHours(for kind: PlanningKind) -> Int {
+            switch kind {
+            case .event:
+                return 2
+            case .task:
+                return 1
+            case .reminder:
+                return 1
+            }
+        }
+
+        private func blockHeight(for scheduled: ScheduledPlanningItem) -> CGFloat {
+            max((CGFloat(scheduled.durationMinutes) / 60 * rowHeight) - 10, 34)
+        }
+
+        private func yPosition(for scheduled: ScheduledPlanningItem) -> CGFloat {
+            let fractionalOffset = CGFloat(scheduled.startMinute) / 60
+            let baseY = (CGFloat(scheduled.startHour - startHour) + fractionalOffset) * rowHeight
+            return baseY + (blockHeight(for: scheduled) / 2) + 5
+        }
+
+        private func resolvedStartDate(for item: PlanningItem) -> Date? {
+            switch item.kind {
+            case .event:
+                return mergeDateAndTime(date: item.startDate, time: item.startTime)
+            case .task:
+                return mergeDateAndTime(date: item.dueDate, time: item.dueTime)
+            case .reminder:
+                return mergeDateAndTime(date: item.reminderDate, time: item.reminderTime)
+            }
+        }
+
+        private func resolvedDurationMinutes(for item: PlanningItem) -> Int {
+            switch item.kind {
+            case .event:
+                guard let start = mergeDateAndTime(date: item.startDate, time: item.startTime) else {
+                    return 120
+                }
+
+                let endBaseDate = item.endDate ?? item.startDate
+                guard let end = mergeDateAndTime(date: endBaseDate, time: item.endTime) else {
+                    return 120
+                }
+
+                return max(Int(end.timeIntervalSince(start) / 60), minimumEventDurationMinutes)
+
+            case .task, .reminder:
+                return 60
+            }
+        }
+
+        private func mergeDateAndTime(date: Date?, time: Date?) -> Date? {
+            guard let date else { return nil }
+            var dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
+
+            if let time {
+                let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
+                dateComponents.hour = timeComponents.hour ?? 0
+                dateComponents.minute = timeComponents.minute ?? 0
+            } else {
+                dateComponents.hour = baseHour(for: .event)
+                dateComponents.minute = 0
+            }
+
+            return calendar.date(from: dateComponents)
+        }
+
+        private func dayIndexInDisplayedWeek(for date: Date) -> Int? {
+            for (index, weekDate) in displayedWeekDates.enumerated() {
+                if calendar.isDate(date, inSameDayAs: weekDate) {
+                    return index
+                }
+            }
+            return nil
+        }
+
+        private func snappedMinutes(_ value: Int) -> Int {
+            let ratio = Double(value) / Double(snapIntervalMinutes)
+            return Int(ratio.rounded()) * snapIntervalMinutes
+        }
+
+        private func startDate(for scheduled: ScheduledPlanningItem) -> Date {
+            let day = displayedWeekDates[scheduled.dayIndex]
+            var components = calendar.dateComponents([.year, .month, .day], from: day)
+            components.hour = scheduled.startHour
+            components.minute = scheduled.startMinute
+            return calendar.date(from: components) ?? day
+        }
+
+        private func moveScheduledItem(_ scheduled: ScheduledPlanningItem, translation: CGSize, dayWidth: CGFloat) {
+            let dayShift = Int((translation.width / dayWidth).rounded())
+            let minuteShift = snappedMinutes(Int(((translation.height / rowHeight) * 60).rounded()))
+
+            guard dayShift != 0 || minuteShift != 0 else { return }
+
+            guard let shiftedByDay = calendar.date(byAdding: .day, value: dayShift, to: startDate(for: scheduled)),
+                  let shiftedByTime = calendar.date(byAdding: .minute, value: minuteShift, to: shiftedByDay)
+            else {
+                return
+            }
+
+            store.moveItem(
+                itemID: scheduled.item.id,
+                to: shiftedByTime,
+                durationMinutes: scheduled.item.kind == .event ? scheduled.durationMinutes : nil
+            )
+        }
+
+        private enum EventResizeEdge {
+            case start
+            case end
+        }
+
+        private func resizeEvent(_ scheduled: ScheduledPlanningItem, edge: EventResizeEdge, deltaY: CGFloat) {
+            guard scheduled.item.kind == .event else { return }
+
+            let snappedDelta = snappedMinutes(Int(((deltaY / rowHeight) * 60).rounded()))
+            guard snappedDelta != 0 else { return }
+
+            let initialStart = startDate(for: scheduled)
+            var updatedStart = initialStart
+            var updatedDuration = scheduled.durationMinutes
+
+            switch edge {
+            case .start:
+                updatedStart = calendar.date(byAdding: .minute, value: snappedDelta, to: initialStart) ?? initialStart
+                updatedDuration = max(scheduled.durationMinutes - snappedDelta, minimumEventDurationMinutes)
+
+            case .end:
+                updatedDuration = max(scheduled.durationMinutes + snappedDelta, minimumEventDurationMinutes)
+            }
+
+            store.resizeEvent(
+                itemID: scheduled.item.id,
+                toStart: updatedStart,
+                durationMinutes: updatedDuration
+            )
+        }
+
+        private func handleGridDoubleClick(at location: CGPoint, dayWidth: CGFloat) {
+            guard location.x >= 0, location.y >= 0 else { return }
+
+            let rawDayIndex = Int((location.x / dayWidth).rounded(.down))
+            let dayIndex = min(max(rawDayIndex, 0), displayedDayCount - 1)
+
+            let minutesFromTop = Int(((location.y / rowHeight) * 60).rounded())
+            let snappedFromTop = min(max(snappedMinutes(minutesFromTop), 0), (totalHours * 60) - minimumEventDurationMinutes)
+
+            let hourOffset = snappedFromTop / 60
+            let minuteOffset = snappedFromTop % 60
+
+            let slotDay = displayedWeekDates[dayIndex]
+
+            var components = calendar.dateComponents([.year, .month, .day], from: slotDay)
+            components.hour = startHour + hourOffset
+            components.minute = minuteOffset
+
+            guard let start = calendar.date(from: components),
+                  let end = calendar.date(byAdding: .minute, value: 60, to: start)
+            else {
+                return
+            }
+
+            quickCreatePrefill = WeekItemPrefill(
+                kind: .event,
+                domain: .personal,
+                start: start,
+                end: end,
+                isAllDay: false
+            )
+            isShowingQuickCreateSheet = true
+        }
+
+        private func hourLabel(_ hour: Int) -> String {
+            var components = DateComponents()
+            components.hour = hour
+            let date = calendar.date(from: components) ?? today
+
+            let formatter = DateFormatter()
+            formatter.dateFormat = "h a"
+            return formatter.string(from: date)
+        }
+    }
+
+    struct WeekDayHeader: View {
+        let date: Date
+        let isToday: Bool
+
+        private let calendar = Calendar.current
+
+        var body: some View {
+            VStack(spacing: 2) {
+                Text(shortDay)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text("\(calendar.component(.day, from: date))")
+                    .font(.headline.weight(isToday ? .semibold : .regular))
+                    .foregroundStyle(isToday ? .primary : .secondary)
+            }
+            .frame(height: 42)
+        }
+
+        private var shortDay: String {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEE"
+            return formatter.string(from: date).uppercased()
+        }
+    }
+
+    struct WeekScheduledBlock: View {
+        let item: PlanningItem
+        let bucket: PlannerBucket
+
+        let isSelected: Bool
+        let onSelect: () -> Void
+        let showsResizeHandles: Bool
+        let snapMinutes: Int
+        let onResizeStart: ((CGFloat) -> Void)?
+        let onResizeEnd: ((CGFloat) -> Void)?
+
+        @EnvironmentObject private var store: PlannerStore
+        @State private var isHovering = false
+
+        private var borderColor: Color {
+            if isSelected {
+                return Color.accentColor.opacity(0.9)
+            }
+            if isHovering {
+                return Color(hex: bucket.colorHex).opacity(0.6)
+            }
+            return Color(hex: bucket.colorHex).opacity(0.32)
+        }
+
+        private var fillColor: Color {
+            if isSelected {
+                return Color(hex: bucket.colorHex).opacity(0.32)
+            }
+            if isHovering {
+                return Color(hex: bucket.colorHex).opacity(0.26)
+            }
+            return Color(hex: bucket.colorHex).opacity(0.2)
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Image(systemName: bucket.icon)
+                        .font(.caption)
+                    Text(item.title)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(2)
+                }
+
+                Text(item.kind.rawValue.capitalized)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .fill(fillColor)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                    .stroke(borderColor, lineWidth: isSelected ? 1.4 : 1)
+            )
+            .overlay(alignment: .top) {
+                if showsResizeHandles {
+                    Capsule(style: .continuous)
+                        .fill(Color.primary.opacity(isHovering ? 0.34 : 0.22))
+                        .frame(width: 34, height: 5)
+                        .padding(.top, 4)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 3)
+                                .onEnded { value in
+                                    onResizeStart?(value.translation.height)
+                                }
+                        )
+                        .help("Drag to resize start (\(snapMinutes)-minute snap)")
+                }
+            }
+            .overlay(alignment: .bottom) {
+                if showsResizeHandles {
+                    Capsule(style: .continuous)
+                        .fill(Color.primary.opacity(isHovering ? 0.34 : 0.22))
+                        .frame(width: 34, height: 5)
+                        .padding(.bottom, 4)
+                        .contentShape(Rectangle())
+                        .gesture(
+                            DragGesture(minimumDistance: 3)
+                                .onEnded { value in
+                                    onResizeEnd?(value.translation.height)
+                                }
+                        )
+                        .help("Drag to resize end (\(snapMinutes)-minute snap)")
+                }
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+            .onTapGesture {
+                onSelect()
+            }
+            .onHover { hovering in
+                isHovering = hovering
+            }
+            .contextMenu {
+                Button {
+                    store.duplicateItem(itemID: item.id)
+                } label: {
+                    Label("Duplicate", systemImage: "plus.square.on.square")
+                }
+
+                if item.kind == .task {
+                    Button {
+                        store.toggleTaskCompletion(itemID: item.id)
+                    } label: {
+                        Label(
+                            item.isCompleted ? "Mark Incomplete" : "Mark Complete",
+                            systemImage: item.isCompleted ? "circle" : "checkmark.circle"
+                        )
+                    }
+                }
+
+                if item.kind == .reminder {
+                    Button {
+                        store.setReminderRead(itemID: item.id, isRead: !item.isRead)
+                    } label: {
+                        Label(
+                            item.isRead ? "Mark Unread" : "Mark Read",
+                            systemImage: item.isRead ? "envelope.badge" : "checkmark.message"
+                        )
+                    }
+                }
+
+                Divider()
+
+                Button(role: .destructive) {
+                    store.deleteItem(itemID: item.id)
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+            .help("Right-click for quick actions")
+        }
+    }
+
+    struct ScheduledPlanningItem: Identifiable {
+        let item: PlanningItem
+        let dayIndex: Int
+        let startHour: Int
+        let startMinute: Int
+        let durationMinutes: Int
+
+        var id: UUID { item.id }
+    }
+
+    struct AppsHubView: View {
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeader(title: "Apps", eyebrow: "Launcher and utilities")
+
+                FeatureListCard(
+                    title: "Native app surface",
+                    items: [
+                        "Quick access to companion utilities",
+                        "Space for app shortcuts and integrations",
+                        "Future home for tools and launch actions"
+                    ]
+                )
+            }
+        }
+    }
+
+    struct PersonalDomainView: View {
+        @Binding var isShowingCreateBucketSheet: Bool
+        @Binding var editingBucket: PlannerBucket?
+        @Binding var isViewingArchivedBuckets: Bool
+
+        var body: some View {
+            DomainBucketsPage(
+                title: "Personal",
+                eyebrow: "Individual focus",
+                domain: .personal,
+                isShowingCreateBucketSheet: $isShowingCreateBucketSheet,
+                editingBucket: $editingBucket,
+                isViewingArchivedBuckets: $isViewingArchivedBuckets
+            )
+        }
+    }
+
+    struct HouseholdDomainView: View {
+        @Binding var isShowingCreateBucketSheet: Bool
+        @Binding var editingBucket: PlannerBucket?
+        @Binding var isViewingArchivedBuckets: Bool
+
+        var body: some View {
+            DomainBucketsPage(
+                title: "Household",
+                eyebrow: "Home operations",
+                domain: .household,
+                isShowingCreateBucketSheet: $isShowingCreateBucketSheet,
+                editingBucket: $editingBucket,
+                isViewingArchivedBuckets: $isViewingArchivedBuckets
+            )
+        }
+    }
+
+    struct ProfessionalDomainView: View {
+        @Binding var isShowingCreateBucketSheet: Bool
+        @Binding var editingBucket: PlannerBucket?
+        @Binding var isViewingArchivedBuckets: Bool
+
+        var body: some View {
+            DomainBucketsPage(
+                title: "Professional",
+                eyebrow: "Work execution",
+                domain: .professional,
+                isShowingCreateBucketSheet: $isShowingCreateBucketSheet,
+                editingBucket: $editingBucket,
+                isViewingArchivedBuckets: $isViewingArchivedBuckets
+            )
+        }
+    }
+
+    struct EventsPageView: View {
+        let dateFilter: PlanningDateFilter
+        let domainFilter: BucketDomain?
+        let bucketFilter: UUID?
+
+        var body: some View {
+            PlanningItemsPage(
+                kind: .event,
+                title: "Events",
+                eyebrow: "Event planning",
+                dateFilter: dateFilter,
+                domainFilter: domainFilter,
+                bucketFilter: bucketFilter
+            )
+        }
+    }
+
+    struct TasksPageView: View {
+        let dateFilter: PlanningDateFilter
+        let domainFilter: BucketDomain?
+        let bucketFilter: UUID?
+
+        var body: some View {
+            PlanningItemsPage(
+                kind: .task,
+                title: "Tasks",
+                eyebrow: "Action management",
+                dateFilter: dateFilter,
+                domainFilter: domainFilter,
+                bucketFilter: bucketFilter
+            )
+        }
+    }
+
+    struct RemindersPageView: View {
+        let dateFilter: PlanningDateFilter
+        let domainFilter: BucketDomain?
+        let bucketFilter: UUID?
+
+        var body: some View {
+            PlanningItemsPage(
+                kind: .reminder,
+                title: "Reminders",
+                eyebrow: "Time-based prompts",
+                dateFilter: dateFilter,
+                domainFilter: domainFilter,
+                bucketFilter: bucketFilter
+            )
+        }
+    }
+
+    struct DomainBucketsPage: View {
+        let title: String
+        let eyebrow: String
+        let domain: BucketDomain
+
+        @Binding var isShowingCreateBucketSheet: Bool
+        @Binding var editingBucket: PlannerBucket?
+        @Binding var isViewingArchivedBuckets: Bool
+
+        @EnvironmentObject private var store: PlannerStore
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeader(title: title, eyebrow: eyebrow)
+
+                let visibleBuckets = isViewingArchivedBuckets
+                    ? store.archivedBuckets(for: domain)
+                    : store.activeBuckets(for: domain)
+
+                if visibleBuckets.isEmpty {
+                    Text(isViewingArchivedBuckets ? "No archived buckets." : "No active buckets yet.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 8)
+                } else {
+                    Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 16) {
+                        ForEach(visibleBuckets) { bucket in
+                            BucketCard(
+                                bucket: bucket,
+                                itemCount: store.items(for: bucket.id).count,
+                                onEdit: { editingBucket = bucket },
+                                onArchive: {
+                                    if isViewingArchivedBuckets {
+                                        store.unarchiveBucket(id: bucket.id)
+                                    } else {
+                                        store.archiveBucket(id: bucket.id)
+                                    }
+                                },
+                                onDelete: { store.deleteBucket(id: bucket.id) }
+                            )
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $isShowingCreateBucketSheet) {
+                BucketEditorSheet(domain: domain) { name, colorHex, icon, detail, isJob, payRate, payPeriod, jobSite in
+                    store.createBucket(
+                        domain: domain,
+                        name: name,
+                        colorHex: colorHex,
+                        icon: icon,
+                        detail: detail,
+                        isJob: isJob,
+                        payRate: payRate,
+                        payPeriod: payPeriod,
+                        jobSite: jobSite
+                    )
+                }
+            }
+            .sheet(item: $editingBucket) { bucket in
+                BucketEditorSheet(domain: domain, existingBucket: bucket) { name, colorHex, icon, detail, isJob, payRate, payPeriod, jobSite in
+                    store.updateBucket(
+                        id: bucket.id,
+                        name: name,
+                        colorHex: colorHex,
+                        icon: icon,
+                        detail: detail,
+                        isJob: isJob,
+                        payRate: payRate,
+                        payPeriod: payPeriod,
+                        jobSite: jobSite
+                    )
+                }
+            }
+        }
+    }
+
+    struct BucketCard: View {
+        let bucket: PlannerBucket
+        let itemCount: Int
+        let onEdit: () -> Void
+        let onArchive: () -> Void
+        let onDelete: () -> Void
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    HStack(spacing: 10) {
+                        Image(systemName: bucket.icon)
+                            .font(.title2)
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 8) {
+                                Text(bucket.name)
+                                    .font(.headline)
+                                if bucket.isDefault {
+                                    Text("General")
+                                        .font(.caption2.weight(.bold))
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.secondary.opacity(0.18), in: Capsule())
+                                }
+                            }
+                            Text(bucket.detail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            if bucket.isJob {
+                                HStack(spacing: 8) {
+                                    Label("Job", systemImage: "briefcase.fill")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+
+                                    if let payRate = bucket.payRate {
+                                        Text("$\(payRate.formatted(.number.precision(.fractionLength(2))))\(bucket.payPeriod.suffix)")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+
+                                    if !bucket.jobSite.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                        Text(bucket.jobSite)
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer()
+                    Menu {
+                        Button("Edit bucket", action: onEdit)
+                        if !bucket.isDefault {
+                            Divider()
+                        }
+                        if !bucket.isDefault {
+                            Button(bucket.isArchived ? "Unarchive" : "Archive", action: onArchive)
+                            Divider()
+                            Button("Delete", role: .destructive, action: onDelete)
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundStyle(.secondary)
+                    }
+                    .menuStyle(.borderlessButton)
+                }
+
+                HStack(spacing: 16) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "list.bullet")
+                            .font(.caption)
+                        Text("\(itemCount)")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(.secondary)
+                    Spacer()
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color(hex: bucket.colorHex).opacity(0.16))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color(hex: bucket.colorHex).opacity(0.34), lineWidth: 1)
+            )
+        }
+    }
+
+    struct PlanningItemsPage: View {
+        let kind: PlanningKind
+        let title: String
+        let eyebrow: String
+        let dateFilter: PlanningDateFilter
+        let domainFilter: BucketDomain?
+        let bucketFilter: UUID?
+
+        @EnvironmentObject private var store: PlannerStore
+
+        private var filteredItems: [PlanningItem] {
+            store.items(for: kind).filter { item in
+                matchesDomain(item) && matchesBucket(item) && matchesDate(item)
+            }
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeader(title: title, eyebrow: eyebrow)
+
+                if filteredItems.isEmpty {
+                    Text("No items match the current filters.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(filteredItems) { item in
+                        PlanningItemCard(itemID: item.id)
+                    }
+                }
+            }
+        }
+
+        private func matchesDomain(_ item: PlanningItem) -> Bool {
+            guard let domainFilter else { return true }
+            return item.domain == domainFilter
+        }
+
+        private func matchesBucket(_ item: PlanningItem) -> Bool {
+            guard let bucketFilter else { return true }
+            return item.bucketID == bucketFilter
+        }
+
+        private func matchesDate(_ item: PlanningItem) -> Bool {
+            guard dateFilter != .all else { return true }
+            guard let itemDate = dateForFiltering(item) else { return false }
+
+            let calendar = Calendar.current
+            switch dateFilter {
+            case .all:
+                return true
+            case .today:
+                return calendar.isDateInToday(itemDate)
+            case .next7Days:
+                let todayStart = calendar.startOfDay(for: Date())
+                guard let upperBound = calendar.date(byAdding: .day, value: 7, to: todayStart) else { return false }
+                let candidate = calendar.startOfDay(for: itemDate)
+                return candidate >= todayStart && candidate <= upperBound
+            }
+        }
+
+        private func dateForFiltering(_ item: PlanningItem) -> Date? {
+            switch kind {
+            case .event:
+                return item.startDate ?? item.endDate
+            case .task:
+                return item.dueDate
+            case .reminder:
+                return item.reminderDate
+            }
+        }
+    }
+
+    struct PlanningItemCard: View {
+        let itemID: UUID
+
+        @EnvironmentObject private var store: PlannerStore
+        @State private var editingItem: PlanningItem?
+
+        private let maxDetailsPreviewCount = 3
+        private let maxSubItemsPreviewCount = 2
+
+        var body: some View {
+            if let item = store.item(for: itemID), let bucket = store.bucket(for: item.bucketID) {
+                let isDone = item.kind == .task ? item.isCompleted : item.isRead
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        if item.kind == .task {
+                            Button {
+                                store.toggleTaskCompletion(itemID: item.id)
+                            } label: {
+                                Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                                    .font(.title3)
+                                    .foregroundStyle(isDone ? .green : .secondary)
+                            }
+                            .buttonStyle(.plain)
+                        } else if item.kind == .reminder {
+                            Button {
+                                store.setReminderRead(itemID: item.id, isRead: !item.isRead)
+                            } label: {
+                                Image(systemName: isDone ? "checkmark.circle.fill" : "circle")
+                                    .font(.title3)
+                                    .foregroundStyle(isDone ? .green : .secondary)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Text(item.title)
+                            .font(.headline)
+                            .strikethrough(isDone)
+                            .foregroundStyle(isDone ? .secondary : .primary)
+
+                        Spacer()
+                        BucketBadge(bucket: bucket)
+                        Menu {
+                            Button {
+                                editingItem = item
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+
+                            Button {
+                                store.duplicateItem(itemID: item.id)
+                            } label: {
+                                Label("Duplicate", systemImage: "plus.square.on.square")
+                            }
+
+                            Divider()
+
+                            Button(role: .destructive) {
+                                store.deleteItem(itemID: item.id)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .foregroundStyle(.secondary)
+                        }
+                        .menuIndicator(.hidden)
+                        .menuStyle(.borderlessButton)
+                    }
+
+                    Divider()
+
+                    sectionTitle("Core")
+
+                    HStack(spacing: 12) {
+                        Picker("Domain", selection: domainBinding(for: item.id)) {
+                            ForEach(BucketDomain.allCases) { domain in
+                                Label(domain.title, systemImage: domain.symbolName)
+                                    .tag(domain)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Picker("Bucket", selection: bucketBinding(for: item.id)) {
+                            ForEach(store.bucketsForPicker(domain: item.domain)) { bucketOption in
+                                Label(bucketOption.name, systemImage: bucketOption.icon)
+                                    .tag(bucketOption.id)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+
+                    sectionTitle("Details")
+                    VStack(alignment: .leading, spacing: 6) {
+                        let details = detailsLines(for: item)
+                        ForEach(Array(details.prefix(maxDetailsPreviewCount).enumerated()), id: \.offset) { _, line in
+                            Text(line)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+
+                        if details.count > maxDetailsPreviewCount {
+                            Text("+\(details.count - maxDetailsPreviewCount) more details")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    sectionTitle("Notes")
+                    VStack(alignment: .leading, spacing: 6) {
+                        if trimmedNotes(for: item).isEmpty {
+                            Text("No notes")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text(trimmedNotes(for: item))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                                .truncationMode(.tail)
+                        }
+
+                        if item.subItems.isEmpty {
+                            Text("No sub-items")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("\(item.subItems.filter { $0.isCompleted }.count)/\(item.subItems.count) completed")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+
+                            ForEach(Array(item.subItems.prefix(maxSubItemsPreviewCount))) { subItem in
+                                HStack(spacing: 6) {
+                                    Image(systemName: subItem.isCompleted ? "checkmark.circle.fill" : "circle")
+                                        .font(.caption)
+                                        .foregroundStyle(subItem.isCompleted ? .green : .secondary)
+                                    Text(subItem.title)
+                                        .font(.caption)
+                                        .foregroundStyle(subItem.isCompleted ? .secondary : .primary)
+                                        .strikethrough(subItem.isCompleted)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                }
+                            }
+
+                            if item.subItems.count > maxSubItemsPreviewCount {
+                                Text("+\(item.subItems.count - maxSubItemsPreviewCount) more sub-items")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color(hex: bucket.colorHex).opacity(0.16))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color(hex: bucket.colorHex).opacity(0.34), lineWidth: 1)
+                )
+                .sheet(item: $editingItem) { item in
+                    PlanningItemEditorSheet(item: item) { draft in
+                        store.updateItem(itemID: item.id, from: draft)
+                    }
+                }
+            }
+        }
+
+        @ViewBuilder
+        private func sectionTitle(_ title: String) -> some View {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+        }
+
+        private func trimmedNotes(for item: PlanningItem) -> String {
+            item.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        private func detailsLines(for item: PlanningItem) -> [String] {
+            switch item.kind {
+            case .event:
+                var lines = [eventPreviewText(for: item)]
+                if !item.location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    lines.append("Location: \(item.location)")
+                }
+                lines.append("Repeat: \(item.repeatRule.label)")
+                return lines
+
+            case .task:
+                var lines = [taskPreviewText(for: item)]
+                lines.append("Priority: \(item.priority.label)")
+                if let estimatedMinutes = item.estimatedMinutes {
+                    lines.append("Estimate: \(estimatedMinutes) min")
+                }
+                lines.append("Repeat: \(item.repeatRule.label)")
+                return lines
+
+            case .reminder:
+                return [
+                    reminderPreviewText(for: item),
+                    "Alert: \(item.reminderLeadTime.label)",
+                    "Repeat: \(item.repeatRule.label)"
+                ]
+            }
+        }
+
+        private func domainBinding(for itemID: UUID) -> Binding<BucketDomain> {
+            Binding(
+                get: { store.item(for: itemID)?.domain ?? .personal },
+                set: { store.updateItemDomain(itemID: itemID, domain: $0) }
+            )
+        }
+
+        private func bucketBinding(for itemID: UUID) -> Binding<UUID> {
+            Binding(
+                get: {
+                    if let item = store.item(for: itemID) {
+                        return item.bucketID
+                    }
+                    return store.defaultBucket(for: .personal).id
+                },
+                set: { store.updateItemBucket(itemID: itemID, bucketID: $0) }
+            )
+        }
+
+        private func eventPreviewText(for item: PlanningItem) -> String {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .medium
+            dateFormatter.timeStyle = .none
+
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateStyle = .none
+            timeFormatter.timeStyle = .short
+
+            guard let startDate = combinedDate(date: item.startDate, time: item.startTime) else {
+                return item.isAllDay ? "All day" : "No date set"
+            }
+
+            if item.isAllDay {
+                return dateFormatter.string(from: startDate)
+            }
+
+            let endBaseDate = item.endDate ?? item.startDate
+            if let endDate = combinedDate(date: endBaseDate, time: item.endTime) {
+                return "\(dateFormatter.string(from: startDate)), \(timeFormatter.string(from: startDate)) - \(timeFormatter.string(from: endDate))"
+            }
+
+            return "\(dateFormatter.string(from: startDate)), \(timeFormatter.string(from: startDate))"
+        }
+
+        private func taskPreviewText(for item: PlanningItem) -> String {
+            guard let dueDate = combinedDate(date: item.dueDate, time: item.dueTime) else {
+                return "No due date set"
+            }
+
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .medium
+            dateFormatter.timeStyle = .none
+
+            if item.dueTime == nil {
+                return "Due \(dateFormatter.string(from: dueDate))"
+            }
+
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateStyle = .none
+            timeFormatter.timeStyle = .short
+            return "Due \(dateFormatter.string(from: dueDate)) at \(timeFormatter.string(from: dueDate))"
+        }
+
+        private func reminderPreviewText(for item: PlanningItem) -> String {
+            guard let reminderDate = combinedDate(date: item.reminderDate, time: item.reminderTime) else {
+                return "No reminder date set"
+            }
+
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateStyle = .medium
+            dateFormatter.timeStyle = .none
+
+            if item.reminderTime == nil {
+                return "Reminder on \(dateFormatter.string(from: reminderDate))"
+            }
+
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateStyle = .none
+            timeFormatter.timeStyle = .short
+            return "Reminder on \(dateFormatter.string(from: reminderDate)) at \(timeFormatter.string(from: reminderDate))"
+        }
+
+        private func combinedDate(date: Date?, time: Date?) -> Date? {
+            guard let date else { return nil }
+            var components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+
+            if let time {
+                let timeComponents = Calendar.current.dateComponents([.hour, .minute], from: time)
+                components.hour = timeComponents.hour ?? 0
+                components.minute = timeComponents.minute ?? 0
+            }
+
+            return Calendar.current.date(from: components)
+        }
+
+    }
+
+    struct BucketBadge: View {
+        let bucket: PlannerBucket
+
+        var body: some View {
+            HStack(spacing: 6) {
+                Image(systemName: bucket.icon)
+                Text(bucket.name)
+                    .font(.caption.weight(.semibold))
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color(hex: bucket.colorHex).opacity(0.24), in: Capsule())
+        }
+    }
+
+    struct BucketSectionCard<RowContent: View>: View {
+        let title: String
+        let buckets: [PlannerBucket]
+        let emptyMessage: String
+        let rowBuilder: (PlannerBucket) -> RowContent
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(title)
+                    .font(.headline)
+
+                if buckets.isEmpty {
+                    Text(emptyMessage)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(buckets) { bucket in
+                        rowBuilder(bucket)
+                    }
+                }
+            }
+            .padding(18)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+    }
+
+    struct BucketRow: View {
+        let bucket: PlannerBucket
+        let onEdit: () -> Void
+        let onArchiveToggle: () -> Void
+        let onDelete: () -> Void
+
+        var body: some View {
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(Color(hex: bucket.colorHex))
+                    .frame(width: 14, height: 14)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Image(systemName: bucket.icon)
+                        Text(bucket.name)
+                            .font(.subheadline.weight(.semibold))
+                        if bucket.isDefault {
+                            Text("General")
+                                .font(.caption2.weight(.bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.secondary.opacity(0.18), in: Capsule())
+                        }
+                    }
+                    Text(bucket.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if bucket.isJob {
+                        HStack(spacing: 8) {
+                            Label("Job", systemImage: "briefcase.fill")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.secondary)
+
+                            if let payRate = bucket.payRate {
+                                Text("$\(payRate.formatted(.number.precision(.fractionLength(2))))\(bucket.payPeriod.suffix)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            if !bucket.jobSite.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Text(bucket.jobSite)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                            }
+                        }
+                    }
+                }
+
+                Spacer()
+
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .help("Edit bucket")
+
+                Menu {
+                    if !bucket.isDefault {
+                        Button(bucket.isArchived ? "Unarchive" : "Archive", action: onArchiveToggle)
+                        Divider()
+                        Button("Delete", role: .destructive, action: onDelete)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundStyle(.secondary)
+                }
+                .menuIndicator(.hidden)
+                .menuStyle(.borderlessButton)
+            }
+            .padding(10)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color(hex: bucket.colorHex).opacity(0.11))
+            )
+        }
+    }
+
+    struct BucketEditorSheet: View {
+        let domain: BucketDomain
+        let existingBucket: PlannerBucket?
+        let onSave: (String, String, String, String, Bool, Double?, JobPayPeriod, String) -> Void
+
+        @Environment(\.dismiss) private var dismiss
+        @State private var name: String
+        @State private var icon: String
+        @State private var detail: String
+        @State private var tone: BucketTone
+        @State private var isJob: Bool
+        @State private var payRateText: String
+        @State private var payPeriod: JobPayPeriod
+        @State private var jobSite: String
+
+        init(domain: BucketDomain, existingBucket: PlannerBucket? = nil, onSave: @escaping (String, String, String, String, Bool, Double?, JobPayPeriod, String) -> Void) {
+            self.domain = domain
+            self.existingBucket = existingBucket
+            self.onSave = onSave
+
+            _name = State(initialValue: existingBucket?.name ?? "")
+            _icon = State(initialValue: existingBucket?.icon ?? "")
+            _detail = State(initialValue: existingBucket?.detail ?? "")
+            _tone = State(initialValue: BucketTone.nearest(to: existingBucket?.colorHex ?? BucketTone.ocean.hex))
+            _isJob = State(initialValue: existingBucket?.isJob ?? false)
+            _payRateText = State(initialValue: existingBucket?.payRate.map { $0.formatted(.number.precision(.fractionLength(2))) } ?? "")
+            _payPeriod = State(initialValue: existingBucket?.payPeriod ?? .hourly)
+            _jobSite = State(initialValue: existingBucket?.jobSite ?? "")
+        }
+
+        private var parsedPayRate: Double? {
+            let trimmed = payRateText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+            guard let value = Double(trimmed), value >= 0 else { return nil }
+            return value
+        }
+
+        private var requiresJobFields: Bool {
+            domain == .professional && isJob
+        }
+
+        private var canSave: Bool {
+            let baseValid = !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !icon.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            !detail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+
+            guard baseValid else { return false }
+            guard requiresJobFields else { return true }
+            return parsedPayRate != nil && !jobSite.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 14) {
+                Text(existingBucket == nil ? "New Bucket" : "Edit Bucket")
+                    .font(.title2.weight(.semibold))
+
+                Text("Domain: \(domain.title)")
+                    .foregroundStyle(.secondary)
+
+                TextField("Bucket name", text: $name)
+                TextField("Icon or emoji", text: $icon)
+
+                Picker("Color", selection: $tone) {
+                    ForEach(BucketTone.allCases) { tone in
+                        Text(tone.label).tag(tone)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                TextField("Description", text: $detail)
+
+                if domain == .professional {
+                    Toggle("Job?", isOn: $isJob)
+
+                    if isJob {
+                        TextField("Job site", text: $jobSite)
+                        TextField("Pay rate", text: $payRateText)
+
+                        Picker("Pay period", selection: $payPeriod) {
+                            ForEach(JobPayPeriod.allCases) { period in
+                                Text(period.label).tag(period)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    Button("Cancel") { dismiss() }
+                    Button("Save") {
+                        onSave(name, tone.hex, icon, detail, requiresJobFields, parsedPayRate, payPeriod, jobSite)
+                        dismiss()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!canSave)
+                }
+            }
+            .padding(20)
+            .frame(minWidth: 420)
+        }
+    }
+
+    struct PlanningItemEditorSheet: View {
+        let item: PlanningItem
+        let onSave: (PlanningItemDraft) -> Void
+
+        @EnvironmentObject private var store: PlannerStore
+        @Environment(\.dismiss) private var dismiss
+
+        @State private var kind: PlanningKind
+        @State private var title: String
+        @State private var domain: BucketDomain
+        @State private var selectedBucketID: UUID?
+        @State private var notes: String
+        @State private var subItems: [PlanningSubItem]
+        @State private var newSubItemTitle: String = ""
+        @State private var priority: PriorityLevel
+        @State private var repeatRule: RepeatRule
+
+        @State private var eventStartDate: Date
+        @State private var eventEndDate: Date
+        @State private var isAllDayEvent: Bool
+        @State private var eventStartTime: Date
+        @State private var eventEndTime: Date
+        @State private var eventLocation: String
+
+        @State private var taskHasDueDate: Bool
+        @State private var taskDueDate: Date
+        @State private var taskHasDueTime: Bool
+        @State private var taskDueTime: Date
+        @State private var taskEstimatedMinutes: Int
+
+        @State private var reminderDate: Date
+        @State private var reminderHasTime: Bool
+        @State private var reminderTime: Date
+        @State private var reminderLeadTime: ReminderLeadTime
+
+        init(item: PlanningItem, onSave: @escaping (PlanningItemDraft) -> Void) {
+            self.item = item
+            self.onSave = onSave
+
+            let calendar = Calendar.current
+            let resolvedEventStart = item.startDate ?? Date()
+            let resolvedEventEnd = item.endDate ?? (calendar.date(byAdding: .hour, value: 1, to: resolvedEventStart) ?? resolvedEventStart)
+
+            _kind = State(initialValue: item.kind)
+            _title = State(initialValue: item.title)
+            _domain = State(initialValue: item.domain)
+            _selectedBucketID = State(initialValue: item.bucketID)
+            _notes = State(initialValue: item.notes)
+            _subItems = State(initialValue: item.subItems)
+            _priority = State(initialValue: item.priority)
+            _repeatRule = State(initialValue: item.repeatRule)
+
+            _eventStartDate = State(initialValue: resolvedEventStart)
+            _eventEndDate = State(initialValue: resolvedEventEnd)
+            _isAllDayEvent = State(initialValue: item.isAllDay)
+            _eventStartTime = State(initialValue: item.startTime ?? resolvedEventStart)
+            _eventEndTime = State(initialValue: item.endTime ?? resolvedEventEnd)
+            _eventLocation = State(initialValue: item.location)
+
+            _taskHasDueDate = State(initialValue: item.dueDate != nil)
+            _taskDueDate = State(initialValue: item.dueDate ?? Date())
+            _taskHasDueTime = State(initialValue: item.dueTime != nil)
+            _taskDueTime = State(initialValue: item.dueTime ?? Date())
+            _taskEstimatedMinutes = State(initialValue: item.estimatedMinutes ?? 30)
+
+            _reminderDate = State(initialValue: item.reminderDate ?? Date())
+            _reminderHasTime = State(initialValue: item.reminderTime != nil)
+            _reminderTime = State(initialValue: item.reminderTime ?? Date())
+            _reminderLeadTime = State(initialValue: item.reminderLeadTime)
+        }
+
+        private var availableBuckets: [PlannerBucket] {
+            store.bucketsForPicker(domain: domain)
+        }
+
+        private var canSave: Bool {
+            let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            guard hasTitle else { return false }
+
+            if kind == .event {
+                return eventEndDate >= eventStartDate
+            }
+
+            return true
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Edit Item")
+                    .font(.title2.weight(.semibold))
+
+                Picker("Type", selection: $kind) {
+                    ForEach(PlanningKind.allCases) { option in
+                        Text(option.rawValue.capitalized).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        GroupBox("Core") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                TextField("Title", text: $title)
+
+                                Picker("Domain", selection: $domain) {
+                                    ForEach(BucketDomain.allCases) { option in
+                                        Label(option.title, systemImage: option.symbolName)
+                                            .tag(option)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+
+                                Picker("Bucket", selection: $selectedBucketID) {
+                                    Text("General")
+                                        .tag(Optional<UUID>.none)
+
+                                    ForEach(availableBuckets) { bucket in
+                                        Label(bucket.name, systemImage: bucket.icon)
+                                            .tag(Optional(bucket.id))
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
+                            .padding(.top, 4)
+                        }
+
+                        kindSpecificInputs
+
+                        GroupBox("Notes") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                TextEditor(text: $notes)
+                                    .frame(minHeight: 86)
+
+                                Divider()
+
+                                Text("Sub-items")
+                                    .font(.subheadline.weight(.semibold))
+
+                                if subItems.isEmpty {
+                                    Text("No sub-items yet.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    ForEach($subItems) { $subItem in
+                                        HStack(spacing: 8) {
+                                            Button {
+                                                subItem.isCompleted.toggle()
+                                            } label: {
+                                                Image(systemName: subItem.isCompleted ? "checkmark.circle.fill" : "circle")
+                                                    .foregroundStyle(subItem.isCompleted ? .green : .secondary)
+                                            }
+                                            .buttonStyle(.plain)
+
+                                            TextField("Sub-item", text: $subItem.title)
+                                                .strikethrough(subItem.isCompleted)
+                                                .foregroundStyle(subItem.isCompleted ? .secondary : .primary)
+
+                                            Button(role: .destructive) {
+                                                removeSubItem(id: subItem.id)
+                                            } label: {
+                                                Image(systemName: "trash")
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                    }
+                                }
+
+                                HStack(spacing: 8) {
+                                    TextField("Add sub-item", text: $newSubItemTitle)
+                                        .onSubmit(addSubItem)
+                                    Button("Add", action: addSubItem)
+                                        .disabled(newSubItemTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    Button("Cancel") { dismiss() }
+                    Button("Save") {
+                        onSave(buildDraft())
+                        dismiss()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!canSave)
+                }
+            }
+            .padding(20)
+            .frame(minWidth: 520, minHeight: 560)
+            .onChange(of: domain) { _, _ in
+                selectedBucketID = nil
+            }
+        }
+
+        @ViewBuilder
+        private var kindSpecificInputs: some View {
+            switch kind {
+            case .event:
+                GroupBox("Event Details") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        DatePicker("Start date", selection: $eventStartDate, displayedComponents: [.date])
+                        DatePicker("End date", selection: $eventEndDate, in: eventStartDate..., displayedComponents: [.date])
+                        Toggle("All day", isOn: $isAllDayEvent)
+
+                        if !isAllDayEvent {
+                            DatePicker("Start time", selection: $eventStartTime, displayedComponents: [.hourAndMinute])
+                            DatePicker("End time", selection: $eventEndTime, displayedComponents: [.hourAndMinute])
+                        }
+
+                        Picker("Repeat", selection: $repeatRule) {
+                            ForEach(RepeatRule.allCases) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        TextField("Location", text: $eventLocation)
+                    }
+                    .padding(.top, 4)
+                }
+
+            case .task:
+                GroupBox("Task Details") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle("Set due date", isOn: $taskHasDueDate)
+                        if taskHasDueDate {
+                            DatePicker("Due date", selection: $taskDueDate, displayedComponents: [.date])
+                            Toggle("Set due time", isOn: $taskHasDueTime)
+                            if taskHasDueTime {
+                                DatePicker("Due time", selection: $taskDueTime, displayedComponents: [.hourAndMinute])
+                            }
+                        }
+
+                        Picker("Repeat", selection: $repeatRule) {
+                            ForEach(RepeatRule.allCases) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Picker("Priority", selection: $priority) {
+                            ForEach(PriorityLevel.allCases) { level in
+                                Text(level.label).tag(level)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Stepper("Estimated duration: \(taskEstimatedMinutes) min", value: $taskEstimatedMinutes, in: 5...480, step: 5)
+                    }
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            case .reminder:
+                GroupBox("Reminder Details") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        DatePicker("Reminder date", selection: $reminderDate, displayedComponents: [.date])
+                        Toggle("Set reminder time", isOn: $reminderHasTime)
+                        if reminderHasTime {
+                            DatePicker("Reminder time", selection: $reminderTime, displayedComponents: [.hourAndMinute])
+                        }
+
+                        Picker("Repeat", selection: $repeatRule) {
+                            ForEach(RepeatRule.allCases) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Picker("Alert", selection: $reminderLeadTime) {
+                            ForEach(ReminderLeadTime.allCases) { lead in
+                                Text(lead.label).tag(lead)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .disabled(!reminderHasTime)
+
+                        if !reminderHasTime {
+                            Text("Enable reminder time to choose an alert offset.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+
+        private func buildDraft() -> PlanningItemDraft {
+            let effectivePriority: PriorityLevel = (kind == .task) ? priority : .medium
+
+            var draft = PlanningItemDraft(
+                kind: kind,
+                title: title,
+                domain: domain,
+                bucketID: selectedBucketID,
+                notes: notes,
+                subItems: normalizedSubItems(),
+                priority: effectivePriority,
+                repeatRule: repeatRule,
+                startDate: nil,
+                endDate: nil,
+                isAllDay: false,
+                startTime: nil,
+                endTime: nil,
+                location: "",
+                dueDate: nil,
+                dueTime: nil,
+                estimatedMinutes: nil,
+                reminderDate: nil,
+                reminderTime: nil,
+                reminderLeadTime: reminderLeadTime
+            )
+
+            switch kind {
+            case .event:
+                draft.startDate = eventStartDate
+                draft.endDate = eventEndDate
+                draft.isAllDay = isAllDayEvent
+                draft.startTime = isAllDayEvent ? nil : eventStartTime
+                draft.endTime = isAllDayEvent ? nil : eventEndTime
+                draft.location = eventLocation
+
+            case .task:
+                draft.dueDate = taskHasDueDate ? taskDueDate : nil
+                draft.dueTime = (taskHasDueDate && taskHasDueTime) ? taskDueTime : nil
+                draft.estimatedMinutes = taskEstimatedMinutes
+
+            case .reminder:
+                draft.reminderDate = reminderDate
+                draft.reminderTime = reminderHasTime ? reminderTime : nil
+                draft.reminderLeadTime = reminderHasTime ? reminderLeadTime : .atTime
+            }
+
+            return draft
+        }
+
+        private func normalizedSubItems() -> [PlanningSubItem] {
+            subItems.compactMap { subItem in
+                let cleanTitle = subItem.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !cleanTitle.isEmpty else { return nil }
+                return PlanningSubItem(id: subItem.id, title: cleanTitle, isCompleted: subItem.isCompleted)
+            }
+        }
+
+        private func addSubItem() {
+            let cleanTitle = newSubItemTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanTitle.isEmpty else { return }
+            subItems.append(PlanningSubItem(id: UUID(), title: cleanTitle, isCompleted: false))
+            newSubItemTitle = ""
+        }
+
+        private func removeSubItem(id: UUID) {
+            subItems.removeAll { $0.id == id }
+        }
+    }
+
+    struct NewPlanningItemSheet: View {
+        let destination: AppDestination
+        let prefill: WeekItemPrefill?
+        let onCreate: (PlanningItemDraft) -> Void
+
+        @EnvironmentObject private var store: PlannerStore
+        @Environment(\.dismiss) private var dismiss
+
+        @State private var kind: PlanningKind
+        @State private var title: String = ""
+        @State private var domain: BucketDomain
+        @State private var selectedBucketID: UUID?
+        @State private var notes: String = ""
+        @State private var subItems: [PlanningSubItem] = []
+        @State private var newSubItemTitle: String = ""
+        @State private var priority: PriorityLevel = .medium
+        @State private var repeatRule: RepeatRule = .none
+
+        @State private var eventStartDate: Date = Date()
+        @State private var eventEndDate: Date = Date()
+        @State private var isAllDayEvent: Bool = true
+        @State private var eventStartTime: Date = Date()
+        @State private var eventEndTime: Date = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+        @State private var eventLocation: String = ""
+
+        @State private var taskHasDueDate: Bool = true
+        @State private var taskDueDate: Date = Date()
+        @State private var taskHasDueTime: Bool = false
+        @State private var taskDueTime: Date = Date()
+        @State private var taskEstimatedMinutes: Int = 30
+
+        @State private var reminderDate: Date = Date()
+        @State private var reminderHasTime: Bool = true
+        @State private var reminderTime: Date = Date()
+        @State private var reminderLeadTime: ReminderLeadTime = .atTime
+
+        init(destination: AppDestination, prefill: WeekItemPrefill? = nil, onCreate: @escaping (PlanningItemDraft) -> Void) {
+            self.destination = destination
+            self.prefill = prefill
+            self.onCreate = onCreate
+
+            let calendar = Calendar.current
+            let resolvedStart = prefill?.start ?? Date()
+            let resolvedEnd = prefill?.end ?? (calendar.date(byAdding: .hour, value: 1, to: resolvedStart) ?? resolvedStart)
+
+            _kind = State(initialValue: prefill?.kind ?? Self.defaultKind(for: destination))
+            _domain = State(initialValue: prefill?.domain ?? destination.asDomain ?? .personal)
+            _eventStartDate = State(initialValue: resolvedStart)
+            _eventEndDate = State(initialValue: resolvedEnd)
+            _isAllDayEvent = State(initialValue: prefill?.isAllDay ?? true)
+            _eventStartTime = State(initialValue: resolvedStart)
+            _eventEndTime = State(initialValue: resolvedEnd)
+            _taskDueDate = State(initialValue: resolvedStart)
+            _taskDueTime = State(initialValue: resolvedStart)
+            _reminderDate = State(initialValue: resolvedStart)
+            _reminderTime = State(initialValue: resolvedStart)
+        }
+
+        private var availableBuckets: [PlannerBucket] {
+            store.bucketsForPicker(domain: domain)
+        }
+
+        private var canCreate: Bool {
+            let hasTitle = !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            guard hasTitle else { return false }
+            if kind == .event {
+                return eventEndDate >= eventStartDate
+            }
+            return true
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("New Item")
+                    .font(.title2.weight(.semibold))
+
+                Picker("Type", selection: $kind) {
+                    ForEach(PlanningKind.allCases) { option in
+                        Text(option.rawValue.capitalized).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        GroupBox("Core") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                TextField("Title", text: $title)
+
+                                Picker("Domain", selection: $domain) {
+                                    ForEach(BucketDomain.allCases) { option in
+                                        Label(option.title, systemImage: option.symbolName)
+                                            .tag(option)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+
+                                Picker("Bucket", selection: $selectedBucketID) {
+                                    Text("General")
+                                        .tag(Optional<UUID>.none)
+
+                                    ForEach(availableBuckets) { bucket in
+                                        Label(bucket.name, systemImage: bucket.icon)
+                                            .tag(Optional(bucket.id))
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                            }
+                            .padding(.top, 4)
+                        }
+
+                        kindSpecificInputs
+
+                        GroupBox("Notes") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                TextEditor(text: $notes)
+                                    .frame(minHeight: 86)
+
+                                Divider()
+
+                                Text("Sub-items")
+                                    .font(.subheadline.weight(.semibold))
+
+                                if subItems.isEmpty {
+                                    Text("No sub-items yet.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    ForEach($subItems) { $subItem in
+                                        HStack(spacing: 8) {
+                                            Button {
+                                                subItem.isCompleted.toggle()
+                                            } label: {
+                                                Image(systemName: subItem.isCompleted ? "checkmark.circle.fill" : "circle")
+                                                    .foregroundStyle(subItem.isCompleted ? .green : .secondary)
+                                            }
+                                            .buttonStyle(.plain)
+
+                                            TextField("Sub-item", text: $subItem.title)
+                                                .strikethrough(subItem.isCompleted)
+                                                .foregroundStyle(subItem.isCompleted ? .secondary : .primary)
+
+                                            Button(role: .destructive) {
+                                                removeSubItem(id: subItem.id)
+                                            } label: {
+                                                Image(systemName: "trash")
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                            .buttonStyle(.plain)
+                                        }
+                                    }
+                                }
+
+                                HStack(spacing: 8) {
+                                    TextField("Add sub-item", text: $newSubItemTitle)
+                                        .onSubmit(addSubItem)
+                                    Button("Add", action: addSubItem)
+                                        .disabled(newSubItemTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+
+                HStack {
+                    Spacer()
+                    Button("Cancel") { dismiss() }
+                    Button("Create") {
+                        onCreate(buildDraft())
+                        dismiss()
+                    }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!canCreate)
+                }
+            }
+            .padding(20)
+            .frame(minWidth: 520, minHeight: 560)
+            .onChange(of: domain) { _, _ in
+                selectedBucketID = nil
+            }
+        }
+
+        @ViewBuilder
+        private var kindSpecificInputs: some View {
+            switch kind {
+            case .event:
+                GroupBox("Event Details") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        DatePicker("Start date", selection: $eventStartDate, displayedComponents: [.date])
+                        DatePicker("End date", selection: $eventEndDate, in: eventStartDate..., displayedComponents: [.date])
+                        Toggle("All day", isOn: $isAllDayEvent)
+
+                        if !isAllDayEvent {
+                            DatePicker("Start time", selection: $eventStartTime, displayedComponents: [.hourAndMinute])
+                            DatePicker("End time", selection: $eventEndTime, displayedComponents: [.hourAndMinute])
+                        }
+
+                        Picker("Repeat", selection: $repeatRule) {
+                            ForEach(RepeatRule.allCases) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        TextField("Location", text: $eventLocation)
+                    }
+                    .padding(.top, 4)
+                }
+
+            case .task:
+                GroupBox("Task Details") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Toggle("Set due date", isOn: $taskHasDueDate)
+                        if taskHasDueDate {
+                            DatePicker("Due date", selection: $taskDueDate, displayedComponents: [.date])
+                            Toggle("Set due time", isOn: $taskHasDueTime)
+                            if taskHasDueTime {
+                                DatePicker("Due time", selection: $taskDueTime, displayedComponents: [.hourAndMinute])
+                            }
+                        }
+
+                        Picker("Repeat", selection: $repeatRule) {
+                            ForEach(RepeatRule.allCases) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Picker("Priority", selection: $priority) {
+                            ForEach(PriorityLevel.allCases) { level in
+                                Text(level.label).tag(level)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Stepper("Estimated duration: \(taskEstimatedMinutes) min", value: $taskEstimatedMinutes, in: 5...480, step: 5)
+                    }
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            case .reminder:
+                GroupBox("Reminder Details") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        DatePicker("Reminder date", selection: $reminderDate, displayedComponents: [.date])
+                        Toggle("Set reminder time", isOn: $reminderHasTime)
+                        if reminderHasTime {
+                            DatePicker("Reminder time", selection: $reminderTime, displayedComponents: [.hourAndMinute])
+                        }
+
+                        Picker("Repeat", selection: $repeatRule) {
+                            ForEach(RepeatRule.allCases) { option in
+                                Text(option.label).tag(option)
+                            }
+                        }
+                        .pickerStyle(.menu)
+
+                        Picker("Alert", selection: $reminderLeadTime) {
+                            ForEach(ReminderLeadTime.allCases) { lead in
+                                Text(lead.label).tag(lead)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .disabled(!reminderHasTime)
+
+                        if !reminderHasTime {
+                            Text("Enable reminder time to choose an alert offset.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+
+        private func buildDraft() -> PlanningItemDraft {
+            let effectivePriority: PriorityLevel = (kind == .task) ? priority : .medium
+
+            var draft = PlanningItemDraft(
+                kind: kind,
+                title: title,
+                domain: domain,
+                bucketID: selectedBucketID,
+                notes: notes,
+                subItems: normalizedSubItems(),
+                priority: effectivePriority,
+                repeatRule: repeatRule,
+                startDate: nil,
+                endDate: nil,
+                isAllDay: false,
+                startTime: nil,
+                endTime: nil,
+                location: "",
+                dueDate: nil,
+                dueTime: nil,
+                estimatedMinutes: nil,
+                reminderDate: nil,
+                reminderTime: nil,
+                reminderLeadTime: reminderLeadTime
+            )
+
+            switch kind {
+            case .event:
+                draft.startDate = eventStartDate
+                draft.endDate = eventEndDate
+                draft.isAllDay = isAllDayEvent
+                draft.startTime = isAllDayEvent ? nil : eventStartTime
+                draft.endTime = isAllDayEvent ? nil : eventEndTime
+                draft.location = eventLocation
+
+            case .task:
+                draft.dueDate = taskHasDueDate ? taskDueDate : nil
+                draft.dueTime = (taskHasDueDate && taskHasDueTime) ? taskDueTime : nil
+                draft.estimatedMinutes = taskEstimatedMinutes
+
+            case .reminder:
+                draft.reminderDate = reminderDate
+                draft.reminderTime = reminderHasTime ? reminderTime : nil
+                draft.reminderLeadTime = reminderHasTime ? reminderLeadTime : .atTime
+            }
+
+            return draft
+        }
+
+        private func normalizedSubItems() -> [PlanningSubItem] {
+            subItems.compactMap { subItem in
+                let cleanTitle = subItem.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !cleanTitle.isEmpty else { return nil }
+                return PlanningSubItem(id: subItem.id, title: cleanTitle, isCompleted: subItem.isCompleted)
+            }
+        }
+
+        private func addSubItem() {
+            let cleanTitle = newSubItemTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !cleanTitle.isEmpty else { return }
+            subItems.append(PlanningSubItem(id: UUID(), title: cleanTitle, isCompleted: false))
+            newSubItemTitle = ""
+        }
+
+        private func removeSubItem(id: UUID) {
+            subItems.removeAll { $0.id == id }
+        }
+
+        private static func defaultKind(for destination: AppDestination) -> PlanningKind {
+            switch destination {
+            case .events:
+                return .event
+            case .reminders:
+                return .reminder
+            default:
+                return .task
+            }
+        }
+    }
+
+    struct SettingsPageView: View {
+        @EnvironmentObject private var store: PlannerStore
+        @State private var displayName: String = ""
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 16) {
+                SectionHeader(title: "Settings", eyebrow: "App preferences")
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Profile")
+                        .font(.headline)
+
+                    TextField("Display name", text: $displayName)
+
+                    Toggle(
+                        "Show archived buckets by default",
+                        isOn: Binding(
+                            get: { store.settings.prefersArchivedVisibleByDefault },
+                            set: { store.setArchivedPreference($0) }
+                        )
+                    )
+
+                    Text("Header preview: \(store.preferredDisplayName)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    HStack(spacing: 10) {
+                        Button("Save Name") {
+                            store.updateDisplayName(displayName)
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        Button("Reset Sample Items") {
+                            store.resetToSampleData()
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                }
+                .padding(18)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            }
+            .onAppear {
+                displayName = store.settings.displayName
+            }
+        }
+    }
+
+    struct MonthCalendarView: View {
+        private let calendar = Calendar.current
+        private let weekdaySymbols = Calendar.current.shortWeekdaySymbols
+        private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 7)
+        @EnvironmentObject private var store: PlannerStore
+        @Binding var visibleMonth: Date
+        @State private var selectedDate: Date? = nil
+        @State private var isShowingCreateItemSheet = false
+        @State private var createItemPrefill: WeekItemPrefill?
+        @State private var editingDayItem: PlanningItem?
+
+        private var leadingEmptyCells: Int {
+            let start = startOfMonth
+            let weekdayIndex = calendar.component(.weekday, from: start) - calendar.firstWeekday
+            return (weekdayIndex + 7) % 7
+        }
+
+        private var daysInMonth: Int {
+            calendar.range(of: .day, in: .month, for: visibleMonth)?.count ?? 30
+        }
+
+        private var startOfMonth: Date {
+            let components = calendar.dateComponents([.year, .month], from: visibleMonth)
+            return calendar.date(from: components) ?? visibleMonth
+        }
+
+        private var monthCells: [MonthCell] {
+            var cells: [MonthCell] = []
+
+            if leadingEmptyCells > 0 {
+                cells.append(contentsOf: Array(repeating: MonthCell.empty, count: leadingEmptyCells))
+            }
+
+            for day in 1...daysInMonth {
+                guard let date = calendar.date(byAdding: .day, value: day - 1, to: startOfMonth) else { continue }
+                cells.append(MonthCell(date: date, dayNumber: day, isToday: calendar.isDateInToday(date)))
+            }
+
+            while cells.count % 7 != 0 {
+                cells.append(.empty)
+            }
+
+            return cells
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(weekdaySymbols, id: \.self) { symbol in
+                        Text(symbol.uppercased())
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                    }
+
+                    ForEach(monthCells) { cell in
+                        if let date = cell.date {
+                            MonthCellView(
+                                cell: cell,
+                                isSelected: isSelectedDate(date),
+                                onTap: {
+                                    selectedDate = date
+                                }
+                            )
+                            .popover(
+                                isPresented: dayPopoverBinding(for: date),
+                                attachmentAnchor: .rect(.bounds),
+                                arrowEdge: .bottom
+                            ) {
+                                dayPopoverContent(for: date)
+                            }
+                        } else {
+                            MonthCellView(cell: cell, isSelected: false, onTap: {})
+                        }
+                    }
+                }
+                .padding(14)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            }
+            .sheet(isPresented: $isShowingCreateItemSheet) {
+                if let createItemPrefill {
+                    NewPlanningItemSheet(destination: .events, prefill: createItemPrefill) { draft in
+                        store.createItem(from: draft)
+                    }
+                }
+            }
+            .sheet(item: $editingDayItem) { item in
+                PlanningItemEditorSheet(item: item) { draft in
+                    store.updateItem(itemID: item.id, from: draft)
+                }
+            }
+        }
+
+        private func items(for date: Date) -> [PlanningItem] {
+            store.items
+                .filter { item in
+                    guard let itemDate = dateForItem(item) else { return false }
+                    return calendar.isDate(itemDate, inSameDayAs: date)
+                }
+                .sorted { lhs, rhs in
+                    let lhsDate = dateForItem(lhs) ?? .distantFuture
+                    let rhsDate = dateForItem(rhs) ?? .distantFuture
+                    return lhsDate < rhsDate
+                }
+        }
+
+        private func isSelectedDate(_ date: Date) -> Bool {
+            guard let selectedDate else { return false }
+            return calendar.isDate(selectedDate, inSameDayAs: date)
+        }
+
+        private func dayPopoverBinding(for date: Date) -> Binding<Bool> {
+            Binding(
+                get: { isSelectedDate(date) },
+                set: { isPresented in
+                    if isPresented {
+                        selectedDate = date
+                    } else if isSelectedDate(date) {
+                        selectedDate = nil
+                    }
+                }
+            )
+        }
+
+        @ViewBuilder
+        private func dayPopoverContent(for date: Date) -> some View {
+            let dayItems = items(for: date)
+
+            VStack(alignment: .leading, spacing: 10) {
+                Text(date.formatted(date: .abbreviated, time: .omitted))
+                    .font(.headline)
+
+                if dayItems.isEmpty {
+                    Text("No items scheduled for this day.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(dayItems.prefix(6)) { item in
+                        HStack(spacing: 8) {
+                            Image(systemName: symbolName(for: item.kind))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(item.title)
+                                    .font(.callout)
+                                Text(item.kind.rawValue.capitalized)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Button("Edit") {
+                                selectedDate = nil
+                                editingDayItem = item
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                        }
+                    }
+
+                    if dayItems.count > 6 {
+                        Text("+\(dayItems.count - 6) more")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Divider()
+
+                Button {
+                    selectedDate = nil
+                    createItemPrefill = prefill(for: date)
+                    isShowingCreateItemSheet = true
+                } label: {
+                    Label("New Item", systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding(14)
+            .frame(width: 320, alignment: .leading)
+        }
+
+        private func prefill(for date: Date) -> WeekItemPrefill {
+            let dayStart = calendar.startOfDay(for: date)
+            let start = calendar.date(byAdding: .hour, value: 9, to: dayStart) ?? date
+            let end = calendar.date(byAdding: .hour, value: 1, to: start) ?? start
+
+            return WeekItemPrefill(
+                kind: .event,
+                domain: .personal,
+                start: start,
+                end: end,
+                isAllDay: false
+            )
+        }
+
+        private func dateForItem(_ item: PlanningItem) -> Date? {
+            switch item.kind {
+            case .event:
+                return item.startDate ?? item.endDate
+            case .task:
+                return item.dueDate
+            case .reminder:
+                return item.reminderDate
+            }
+        }
+
+        private func symbolName(for kind: PlanningKind) -> String {
+            switch kind {
+            case .event:
+                return "calendar"
+            case .task:
+                return "checkmark.circle"
+            case .reminder:
+                return "bell"
+            }
+        }
+    }
+
+    struct WeekPreviewCard: View {
+        private let calendar = Calendar.current
+        private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 7)
+        private let today = Date()
+
+        private var weekDates: [Date] {
+            let start = startOfWeek
+            return (0..<7).compactMap { offset in
+                calendar.date(byAdding: .day, value: offset, to: start)
+            }
+        }
+
+        private var startOfWeek: Date {
+            let components = calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
+            return calendar.date(from: components) ?? today
+        }
+
+        private var weekRangeTitle: String {
+            let formatter = DateFormatter()
+            formatter.calendar = calendar
+            formatter.dateFormat = "MMM d"
+
+            guard let end = weekDates.last else { return "This week" }
+            return "\(formatter.string(from: startOfWeek)) - \(formatter.string(from: end))"
+        }
+
+        private var weekCells: [MonthCell] {
+            weekDates.map { date in
+                MonthCell(date: date, dayNumber: calendar.component(.day, from: date), isToday: calendar.isDateInToday(date))
+            }
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Week preview")
+                            .font(.headline)
+                        Text(weekRangeTitle)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+                }
+
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(calendar.shortWeekdaySymbols, id: \.self) { symbol in
+                        Text(symbol.uppercased())
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity)
+                    }
+
+                    ForEach(weekCells) { cell in
+                        MonthCellView(cell: cell, isSelected: false, onTap: {})
+                    }
+                }
+                .padding(14)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+            }
+        }
+    }
+
+    struct MonthCell: Identifiable {
+        let id = UUID()
+        let date: Date?
+        let dayNumber: Int?
+        let isToday: Bool
+
+        static let empty = MonthCell(date: nil, dayNumber: nil, isToday: false)
+    }
+
+    struct MonthCellView: View {
+        let cell: MonthCell
+        let isSelected: Bool
+        let onTap: () -> Void
+
+        var body: some View {
+            Group {
+                if let dayNumber = cell.dayNumber {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("\(dayNumber)")
+                            .font(.subheadline.weight(cell.isToday ? .semibold : .regular))
+                            .foregroundStyle(cell.isToday ? .primary : .secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Spacer()
+
+                        RoundedRectangle(cornerRadius: 999, style: .continuous)
+                            .fill(cell.isToday ? Color.accentColor.opacity(0.95) : Color.accentColor.opacity(0.12))
+                            .frame(width: cell.isToday ? 22 : 14, height: cell.isToday ? 22 : 14)
+                            .overlay(
+                                Text(cell.isToday ? "•" : "")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white)
+                            )
+                    }
+                    .padding(10)
+                    .frame(height: 86, alignment: .topLeading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(cell.isToday ? Color.accentColor.opacity(0.14) : Color(nsColor: .windowBackgroundColor))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(
+                                isSelected ? Color.accentColor.opacity(0.7) : (cell.isToday ? Color.accentColor.opacity(0.3) : Color(nsColor: .separatorColor).opacity(0.5)),
+                                lineWidth: isSelected ? 2 : 1
+                            )
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .onTapGesture(perform: onTap)
+                } else {
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.clear)
+                        .frame(height: 86)
+                }
+            }
+        }
+    }
+
+    struct PlaceholderFeatureCard: View {
+        let destination: AppDestination
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Planned next")
+                    .font(.headline)
+                Text("\(destination.title) is part of the native architecture, but this first slice only builds the shell and the two core pages. We can add this view once the navigation structure feels right.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+    }
+
+    struct SectionHeader: View {
+        let title: String
+        let eyebrow: String
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(eyebrow.uppercased())
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .tracking(1.1)
+                Text(title)
+                    .font(.title.weight(.semibold))
+            }
+        }
+    }
+
+    struct MetricCard: View {
+        let title: String
+        let value: String
+        let detail: String
+        let tint: Color
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                Text(detail)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(tint.opacity(0.10))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(tint.opacity(0.16), lineWidth: 1)
+            )
+        }
+    }
+
+    struct FeatureListCard: View {
+        let title: String
+        let items: [String]
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(title)
+                    .font(.headline)
+
+                ForEach(items, id: \.self) { item in
+                    HStack(alignment: .top, spacing: 10) {
+                        Circle()
+                            .fill(Color.accentColor.opacity(0.18))
+                            .frame(width: 8, height: 8)
+                            .padding(.top, 6)
+                        Text(item)
+                            .foregroundStyle(.secondary)
+                        Spacer(minLength: 0)
+                    }
+                }
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        }
+    }
+
+    struct CalendarSummaryCard: View {
+        private struct MonthMenuItem: Identifiable {
+            let id: Int
+            let monthNumber: Int
+            let title: String
+        }
+
+        let visibleMonth: Date?
+        let monthTitle: String?
+        let onPreviousMonth: (() -> Void)?
+        let onNextMonth: (() -> Void)?
+        let onJumpToMonth: ((Int, Int) -> Void)?
+
+        private var monthSymbols: [String] {
+            Calendar.current.monthSymbols
+        }
+
+        private var selectableYears: [Int] {
+            let currentYear = Calendar.current.component(.year, from: Date())
+            return Array(Array((currentYear - 10)...(currentYear + 10)).reversed())
+        }
+
+        private var selectedYear: Int? {
+            guard let visibleMonth else { return nil }
+            return Calendar.current.component(.year, from: visibleMonth)
+        }
+
+        private var selectedMonth: Int? {
+            guard let visibleMonth else { return nil }
+            return Calendar.current.component(.month, from: visibleMonth)
+        }
+
+        private var monthMenuItems: [MonthMenuItem] {
+            monthSymbols.enumerated().map { index, symbol in
+                MonthMenuItem(id: index, monthNumber: index + 1, title: symbol)
+            }
+        }
+
+        init(
+            visibleMonth: Date? = nil,
+            monthTitle: String? = nil,
+            onPreviousMonth: (() -> Void)? = nil,
+            onNextMonth: (() -> Void)? = nil,
+            onJumpToMonth: ((Int, Int) -> Void)? = nil
+        ) {
+            self.visibleMonth = visibleMonth
+            self.monthTitle = monthTitle
+            self.onPreviousMonth = onPreviousMonth
+            self.onNextMonth = onNextMonth
+            self.onJumpToMonth = onJumpToMonth
+        }
+
+        var body: some View {
+            HStack(spacing: 18) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Month view")
+                        .font(.headline)
+
+                    if let monthTitle,
+                       let onJumpToMonth {
+                        Menu {
+                            ForEach(selectableYears, id: \.self) { year in
+                                Menu("\(year)") {
+                                    monthMenuContent(year: year, onJumpToMonth: onJumpToMonth)
+                                }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(monthTitle)
+                                Image(systemName: "chevron.down")
+                                    .font(.caption.weight(.semibold))
+                            }
+                        }
+                        .menuStyle(.borderlessButton)
+
+                        Text("Month grid")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("This is the native surface where the month grid, day detail, and drag-aware scheduling will live.")
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Spacer()
+
+                if let onPreviousMonth,
+                   let onNextMonth,
+                   visibleMonth != nil {
+                    HStack(spacing: 10) {
+                        Button("Previous") {
+                            onPreviousMonth()
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button("Next") {
+                            onNextMonth()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                } else {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        Text("Native shell")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Text("Ready for month/day expansion")
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 180)
+                    }
+                }
+            }
+            .padding(20)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        }
+
+        @ViewBuilder
+        private func monthMenuContent(year: Int, onJumpToMonth: @escaping (Int, Int) -> Void) -> some View {
+            ForEach(monthMenuItems) { item in
+                Button {
+                    onJumpToMonth(item.monthNumber, year)
+                } label: {
+                    HStack {
+                        Text(item.title)
+                        Spacer()
+                        if isCurrentSelection(year: year, month: item.monthNumber) {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(Color.accentColor)
+                        }
+                    }
+                }
+            }
+        }
+
+        private func isCurrentSelection(year: Int, month: Int) -> Bool {
+            selectedYear == year && selectedMonth == month
+        }
+    }
+
+    enum MicroFeedback {
+        static func tap() {
+            NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        }
+    }
+
+    private extension Color {
+        init(hex: String) {
+            let raw = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+            var int: UInt64 = 0
+            Scanner(string: raw).scanHexInt64(&int)
+
+            let r: UInt64
+            let g: UInt64
+            let b: UInt64
+
+            switch raw.count {
+            case 3:
+                (r, g, b) = ((int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+            case 6:
+                (r, g, b) = (int >> 16, int >> 8 & 0xFF, int & 0xFF)
+            default:
+                (r, g, b) = (59, 130, 246)
+            }
+
+            self.init(
+                .sRGB,
+                red: Double(r) / 255,
+                green: Double(g) / 255,
+                blue: Double(b) / 255,
+                opacity: 1
+            )
+        }
+    }
+

@@ -1,0 +1,256 @@
+{
+  "source": "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/CalendarViews.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "This week",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 226
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 611
+        }
+      },
+      {
+        "comment": "",
+        "key": "Right-click for quick actions",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 760
+        }
+      },
+      {
+        "comment": "",
+        "key": "Drag to resize start (%lld-minute snap)",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 697
+        }
+      },
+      {
+        "comment": "",
+        "key": "Drag to resize end (%lld-minute snap)",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 713
+        }
+      },
+      {
+        "comment": "",
+        "key": "Duplicate",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 727
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Incomplete",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 735
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Complete",
+        "location": {
+          "startingColumn": 68,
+          "startingLine": 735
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Unread",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 746
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Read",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 746
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 757
+        }
+      },
+      {
+        "comment": "",
+        "key": "No items scheduled for this day.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 907
+        }
+      },
+      {
+        "comment": "",
+        "key": "+%lld more",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 937
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 927
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Item",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 950
+        }
+      },
+      {
+        "comment": "",
+        "key": "Week preview",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1031
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1077
+        }
+      },
+      {
+        "comment": "",
+        "key": "•",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 1088
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 61,
+          "startingLine": 1088
+        }
+      },
+      {
+        "comment": "",
+        "key": "Month view",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1172
+        }
+      },
+      {
+        "comment": "",
+        "key": "Month grid",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1193
+        }
+      },
+      {
+        "comment": "",
+        "key": "This is the native surface where the month grid, day detail, and drag-aware scheduling will live.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1196
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 1179
+        }
+      },
+      {
+        "comment": "",
+        "key": "Previous",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 1208
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 1213
+        }
+      },
+      {
+        "comment": "",
+        "key": "Native shell",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1220
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ready for month/day expansion",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1223
+        }
+      },
+      {
+        "comment": "",
+        "key": "Week schedule",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1264
+        }
+      },
+      {
+        "comment": "",
+        "key": "Schedule grid",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1270
+        }
+      },
+      {
+        "comment": "",
+        "key": "Previous",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1277
+        }
+      },
+      {
+        "comment": "",
+        "key": "Next",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1282
+        }
+      }
+    ]
+  },
+  "version": 1
+}
