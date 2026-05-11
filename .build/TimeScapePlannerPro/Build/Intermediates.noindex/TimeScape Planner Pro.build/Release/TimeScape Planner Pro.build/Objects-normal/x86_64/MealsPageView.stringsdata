@@ -1,0 +1,568 @@
+{
+  "source": "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/MealsPageView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Grocery List",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 33
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tasks",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nutrition",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 49
+        }
+      },
+      {
+        "comment": "",
+        "key": "Week of %@",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 105
+        }
+      },
+      {
+        "comment": "",
+        "key": "Meal",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 132
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 160
+        }
+      },
+      {
+        "comment": "",
+        "key": "+ Add",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 213
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld cal",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 207
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 311
+        }
+      },
+      {
+        "comment": "",
+        "key": "Meal Details",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 256
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ingredients",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 261
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nutrition (Total)",
+        "location": {
+          "startingColumn": 29,
+          "startingLine": 285
+        }
+      },
+      {
+        "comment": "",
+        "key": "Meal name",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 257
+        }
+      },
+      {
+        "comment": "",
+        "key": "Description",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 258
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld cal",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 272
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lf %@",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 267
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Ingredient",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 280
+        }
+      },
+      {
+        "comment": "",
+        "key": "Calories",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 289
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 290
+        }
+      },
+      {
+        "comment": "",
+        "key": "Protein",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 294
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.1fg",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 295
+        }
+      },
+      {
+        "comment": "",
+        "key": "Carbs",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 299
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.1fg",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 300
+        }
+      },
+      {
+        "comment": "",
+        "key": "Fat",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 304
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.1fg",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 305
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 314
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 319
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Ingredient",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 425
+        }
+      },
+      {
+        "comment": "",
+        "key": "Ingredient",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 372
+        }
+      },
+      {
+        "comment": "",
+        "key": "Quantity",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 386
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nutrition (per 100g)",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 398
+        }
+      },
+      {
+        "comment": "",
+        "key": "Name",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 373
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 388
+        }
+      },
+      {
+        "comment": "",
+        "key": "Unit",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 389
+        }
+      },
+      {
+        "comment": "",
+        "key": "Calories",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 400
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 402
+        }
+      },
+      {
+        "comment": "",
+        "key": "Protein (g)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 406
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 408
+        }
+      },
+      {
+        "comment": "",
+        "key": "Carbs (g)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 412
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 414
+        }
+      },
+      {
+        "comment": "",
+        "key": "Fat (g)",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 418
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 420
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 428
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 433
+        }
+      },
+      {
+        "comment": "",
+        "key": "Grocery List",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 534
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.1f g",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 482
+        }
+      },
+      {
+        "comment": "",
+        "key": "No meals planned for this week",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 501
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add %lld to Task",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 516
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear",
+        "location": {
+          "startingColumn": 39,
+          "startingLine": 523
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 537
+        }
+      },
+      {
+        "comment": "",
+        "key": "Nutrition Report",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 688
+        }
+      },
+      {
+        "comment": "",
+        "key": "No meals planned for this week",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 684
+        }
+      },
+      {
+        "comment": "",
+        "key": "Daily Breakdown",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 655
+        }
+      },
+      {
+        "comment": "",
+        "key": "Weekly Total",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 628
+        }
+      },
+      {
+        "comment": "",
+        "key": "Calories",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 633
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 634
+        }
+      },
+      {
+        "comment": "",
+        "key": "Protein",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 637
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.0fg",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 638
+        }
+      },
+      {
+        "comment": "",
+        "key": "Carbs",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 641
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.0fg",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 642
+        }
+      },
+      {
+        "comment": "",
+        "key": "Fat",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 645
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.0fg",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 646
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld cal",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 670
+        }
+      },
+      {
+        "comment": "",
+        "key": "%.0fg protein",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 671
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 691
+        }
+      },
+      {
+        "comment": "",
+        "key": "Grocery Tasks",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 801
+        }
+      },
+      {
+        "comment": "",
+        "key": "No grocery tasks yet",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 717
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create one from the grocery list",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 719
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld/%lld items",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 735
+        }
+      },
+      {
+        "comment": "",
+        "key": "Done",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 804
+        }
+      }
+    ]
+  },
+  "version": 1
+}

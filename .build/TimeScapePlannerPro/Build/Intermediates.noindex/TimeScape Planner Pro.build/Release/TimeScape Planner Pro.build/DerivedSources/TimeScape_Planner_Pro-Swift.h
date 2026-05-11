@@ -381,6 +381,11 @@ SWIFT_CLASS("_TtC21TimeScape_Planner_Pro25LocationAutocompleteModel")
 - (void)completer:(MKLocalSearchCompleter * _Nonnull)completer didFailWithError:(NSError * _Nonnull)error;
 @end
 
+SWIFT_CLASS("_TtC21TimeScape_Planner_Pro19MealsStorageManager")
+@interface MealsStorageManager : NSObject
+- (nonnull instancetype)init OBJC_DESIGNATED_INITIALIZER;
+@end
+
 #endif // defined(__OBJC__)
 #if __has_attribute(external_source_symbol)
 # pragma clang attribute pop

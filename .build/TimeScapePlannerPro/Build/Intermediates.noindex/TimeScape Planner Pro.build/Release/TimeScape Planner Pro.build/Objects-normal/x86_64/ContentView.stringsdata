@@ -7,7 +7,7 @@
         "key": "TimeScape",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1716
+          "startingLine": 1723
         }
       },
       {
@@ -15,7 +15,7 @@
         "key": "Overview",
         "location": {
           "startingColumn": 25,
-          "startingLine": 1682
+          "startingLine": 1689
         }
       },
       {
@@ -23,7 +23,7 @@
         "key": "Planning",
         "location": {
           "startingColumn": 25,
-          "startingLine": 1690
+          "startingLine": 1697
         }
       },
       {
@@ -31,7 +31,7 @@
         "key": "Domains",
         "location": {
           "startingColumn": 25,
-          "startingLine": 1698
+          "startingLine": 1705
         }
       },
       {
@@ -39,7 +39,7 @@
         "key": "System",
         "location": {
           "startingColumn": 25,
-          "startingLine": 1706
+          "startingLine": 1713
         }
       },
       {
@@ -47,7 +47,7 @@
         "key": "Planner Pro",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1720
+          "startingLine": 1727
         }
       },
       {
@@ -55,7 +55,7 @@
         "key": "View options",
         "location": {
           "startingColumn": 45,
-          "startingLine": 1814
+          "startingLine": 1821
         }
       },
       {
@@ -63,7 +63,7 @@
         "key": "Filter options",
         "location": {
           "startingColumn": 45,
-          "startingLine": 1856
+          "startingLine": 1863
         }
       },
       {
@@ -71,7 +71,7 @@
         "key": "Page options",
         "location": {
           "startingColumn": 45,
-          "startingLine": 1882
+          "startingLine": 1889
         }
       },
       {
@@ -79,7 +79,7 @@
         "key": "New Item",
         "location": {
           "startingColumn": 31,
-          "startingLine": 1784
+          "startingLine": 1791
         }
       },
       {
@@ -87,7 +87,7 @@
         "key": "Show Next Up",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1792
+          "startingLine": 1799
         }
       },
       {
@@ -95,7 +95,7 @@
         "key": "Show Quick Actions",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1793
+          "startingLine": 1800
         }
       },
       {
@@ -103,7 +103,7 @@
         "key": "Compact Row Height",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1796
+          "startingLine": 1803
         }
       },
       {
@@ -111,7 +111,7 @@
         "key": "Show Summary Card",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1797
+          "startingLine": 1804
         }
       },
       {
@@ -119,7 +119,7 @@
         "key": "Work Week (Mon-Fri)",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1798
+          "startingLine": 1805
         }
       },
       {
@@ -127,7 +127,7 @@
         "key": "Show Summary Card",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1801
+          "startingLine": 1808
         }
       },
       {
@@ -135,7 +135,7 @@
         "key": "Show Week Preview",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1802
+          "startingLine": 1809
         }
       },
       {
@@ -143,7 +143,7 @@
         "key": "Date",
         "location": {
           "startingColumn": 37,
-          "startingLine": 1819
+          "startingLine": 1826
         }
       },
       {
@@ -151,7 +151,7 @@
         "key": "Domain",
         "location": {
           "startingColumn": 37,
-          "startingLine": 1827
+          "startingLine": 1834
         }
       },
       {
@@ -159,7 +159,7 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 37,
-          "startingLine": 1838
+          "startingLine": 1845
         }
       },
       {
@@ -167,7 +167,7 @@
         "key": "Date",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1820
+          "startingLine": 1827
         }
       },
       {
@@ -175,7 +175,7 @@
         "key": "Domain",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1828
+          "startingLine": 1835
         }
       },
       {
@@ -183,7 +183,7 @@
         "key": "All domains",
         "location": {
           "startingColumn": 42,
-          "startingLine": 1829
+          "startingLine": 1836
         }
       },
       {
@@ -191,7 +191,7 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1839
+          "startingLine": 1846
         }
       },
       {
@@ -199,7 +199,7 @@
         "key": "All buckets",
         "location": {
           "startingColumn": 42,
-          "startingLine": 1840
+          "startingLine": 1847
         }
       },
       {
@@ -207,7 +207,7 @@
         "key": "%@: %@",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1844
+          "startingLine": 1851
         }
       },
       {
@@ -215,7 +215,7 @@
         "key": "Create Bucket",
         "location": {
           "startingColumn": 39,
-          "startingLine": 1864
+          "startingLine": 1871
         }
       },
       {
@@ -223,7 +223,7 @@
         "key": "View Active",
         "location": {
           "startingColumn": 64,
-          "startingLine": 1871
+          "startingLine": 1878
         }
       },
       {
@@ -231,7 +231,7 @@
         "key": "View Archived",
         "location": {
           "startingColumn": 80,
-          "startingLine": 1871
+          "startingLine": 1878
         }
       },
       {
@@ -239,7 +239,7 @@
         "key": "Launch companion apps",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2080
+          "startingLine": 2089
         }
       },
       {
@@ -247,7 +247,7 @@
         "key": "Profile",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2111
+          "startingLine": 2120
         }
       },
       {
@@ -255,7 +255,7 @@
         "key": "Header preview: %@",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2124
+          "startingLine": 2133
         }
       },
       {
@@ -263,7 +263,7 @@
         "key": "Display name",
         "location": {
           "startingColumn": 31,
-          "startingLine": 2114
+          "startingLine": 2123
         }
       },
       {
@@ -271,7 +271,7 @@
         "key": "Show archived buckets by default",
         "location": {
           "startingColumn": 25,
-          "startingLine": 2117
+          "startingLine": 2126
         }
       },
       {
@@ -279,7 +279,7 @@
         "key": "Save Name",
         "location": {
           "startingColumn": 32,
-          "startingLine": 2129
+          "startingLine": 2138
         }
       },
       {
@@ -287,7 +287,7 @@
         "key": "Reset Sample Items",
         "location": {
           "startingColumn": 32,
-          "startingLine": 2134
+          "startingLine": 2143
         }
       }
     ]
