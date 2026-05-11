@@ -1,0 +1,1 @@
+scripts/deploy_mac_app.sh                    # Standard deploy
