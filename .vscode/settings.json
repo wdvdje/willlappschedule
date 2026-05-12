@@ -1,4 +1,11 @@
 {
     "CodeGPT.apiKey": "Github",
-    "claudeCodeChat.permissions.yoloMode": false
+    "claudeCodeChat.permissions.yoloMode": false,
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /Users/williamjoyce/Documents/GitHub/willlappschedule && bash scripts/deploy_mac_app\\.sh$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "xcodebuild": true
+    }
 }
