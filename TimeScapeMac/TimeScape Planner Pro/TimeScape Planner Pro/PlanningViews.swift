@@ -411,7 +411,8 @@ import AppKit
                     .tag(panel)
             }
             .listStyle(.sidebar)
-            .frame(width: 320, maxHeight: .infinity, alignment: .topLeading)
+            .frame(width: 320)
+            .frame(maxHeight: .infinity, alignment: .topLeading)
             .navigationSplitViewColumnWidth(min: 300, ideal: 320, max: 340)
             .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
@@ -859,7 +860,7 @@ import AppKit
 
             do {
                 let response = try await MKLocalSearch(request: request).start()
-                return response.mapItems.first?.location.coordinate
+                return response.mapItems.first?.placemark.coordinate
             } catch {
                 return nil
             }
@@ -1373,8 +1374,11 @@ import AppKit
                         .appCaption()
                 }
 
-                Map(coordinateRegion: $region, annotationItems: resolvedPins) { pin in
-                    MapMarker(coordinate: pin.coordinate, tint: pin.source.tint)
+                Map(position: .constant(.region(region))) {
+                    ForEach(resolvedPins) { pin in
+                        Marker(pin.source.title, coordinate: pin.coordinate)
+                            .tint(pin.source.tint)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -1788,7 +1792,7 @@ import AppKit
                 return
             }
 
-            await MKMapItem.openMaps(
+            MKMapItem.openMaps(
                 with: [originMapItem, destinationMapItem],
                 launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving]
             )

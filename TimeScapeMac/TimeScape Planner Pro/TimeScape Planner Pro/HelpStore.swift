@@ -16,25 +16,18 @@ final class HelpStore: ObservableObject {
     // MARK: - Content Loading
 
     private func loadContent() {
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self else { return }
-            do {
-                let sections = try self.loadFromJSON()
-                DispatchQueue.main.async {
-                    self.sections = sections
-                    self.allTopics = sections.flatMap { $0.topics }
-                    self.isLoading = false
-                }
-            } catch {
-                DispatchQueue.main.async {
-                    self.error = "Failed to load help content: \(error.localizedDescription)"
-                    self.isLoading = false
-                }
-            }
+        do {
+            let sections = try loadFromJSON()
+            self.sections = sections
+            self.allTopics = sections.flatMap { $0.topics }
+            self.isLoading = false
+        } catch {
+            self.error = "Failed to load help content: \(error.localizedDescription)"
+            self.isLoading = false
         }
     }
 
-    nonisolated private func loadFromJSON() throws -> [HelpSection] {
+    private func loadFromJSON() throws -> [HelpSection] {
         // Try to load from bundle first
         if let bundleURL = Bundle.main.url(forResource: "help-content", withExtension: "json") {
             let data = try Data(contentsOf: bundleURL)
