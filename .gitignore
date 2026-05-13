@@ -1,1 +1,15 @@
 node_modules/
+
+# Keep this repository focused on web app source files.
+# Ignore native macOS/Xcode project workspace and build artifacts.
+TimeScapeMac/
+.build/
+
+# macOS/Xcode generated artifacts
+.DS_Store
+DerivedData/
+*.dSYM/
+*.xcuserstate
+*.xcuserdatad/
+*.xcworkspace/
+*.xcodeproj/xcuserdata/

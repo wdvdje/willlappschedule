@@ -1646,9 +1646,9 @@
 
     evts.forEach(function (e) {
       var s = toMin(e.time);
+      if (s === null) return; /* keep all-day/untimed events out of timeline; shown in untimed section */
       var en = toMin(e.endTime);
       var hasTimes = s !== null;
-      if (s === null) s = 9 * 60;
       if (en === null) en = s + 60;
       if (en <= s) en = s + 60;
       items.push({ kind: 'event', title: e.title || 'Event', emoji: e.emoji || '📌', startMin: s, endMin: en, hasTimes: hasTimes, color: dcs[e.domain || 'personal'] || '#4a90e2', eventId: e.id, repeat: e.repeat || 'none', occurrenceDate: e.occurrenceDate || '' });
