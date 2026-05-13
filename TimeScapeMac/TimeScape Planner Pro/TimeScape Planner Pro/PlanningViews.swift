@@ -1476,7 +1476,10 @@ import AppKit
                     .appTitle()
 
                 TextField("Title (for example: Home)", text: $newFavoriteTitle)
-                TextField("Location", text: $newFavoriteLocation)
+                LocationAutocompleteField(
+                    text: $newFavoriteLocation,
+                    placeholder: "Location"
+                )
 
                 HStack {
                     Spacer()
