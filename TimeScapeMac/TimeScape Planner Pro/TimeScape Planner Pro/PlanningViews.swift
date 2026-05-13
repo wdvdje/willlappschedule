@@ -169,7 +169,58 @@ import AppKit
     struct BudgetingAppView: View {
         @EnvironmentObject private var store: PlannerStore
 
+        private enum BudgetingPanel: String, CaseIterable, Identifiable {
+            case overview
+            case logExpense
+            case recurringBills
+            case payrollCadence
+            case targetsAndTax
+            case reporting
+            case included
+
+            var id: String { rawValue }
+
+            var title: String {
+                switch self {
+                case .overview:
+                    return "Overview"
+                case .logExpense:
+                    return "Log Expense"
+                case .recurringBills:
+                    return "Recurring Bills"
+                case .payrollCadence:
+                    return "Payroll Cadence"
+                case .targetsAndTax:
+                    return "Targets and Tax"
+                case .reporting:
+                    return "Reporting"
+                case .included:
+                    return "Included"
+                }
+            }
+
+            var symbolName: String {
+                switch self {
+                case .overview:
+                    return "square.grid.2x2"
+                case .logExpense:
+                    return "plus.circle"
+                case .recurringBills:
+                    return "arrow.triangle.2.circlepath"
+                case .payrollCadence:
+                    return "calendar.badge.clock"
+                case .targetsAndTax:
+                    return "target"
+                case .reporting:
+                    return "chart.line.uptrend.xyaxis"
+                case .included:
+                    return "checkmark.seal"
+                }
+            }
+        }
+
         @State private var selectedCategoryID: UUID?
+        @State private var selectedPanel: BudgetingPanel = .overview
         @State private var expenseTitle = ""
         @State private var expenseAmount = ""
         @State private var expenseDate = Date()
@@ -287,171 +338,93 @@ import AppKit
         }
 
         var body: some View {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    SectionHeader(title: "Budgeting", eyebrow: "Income and cash flow")
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: "Budgeting", eyebrow: "Income and cash flow")
 
-                    Grid(horizontalSpacing: 12, verticalSpacing: 12) {
-                        GridRow {
-                            MetricCard(
-                                title: "Projected This Week",
-                                value: currency(weeklyIncome.grossIncome),
-                                detail: "\(weeklyIncome.occurrenceCount) job occurrences",
-                                tint: .green
-                            )
-                            MetricCard(
-                                title: "Projected This Month",
-                                value: currency(monthlyIncome.grossIncome),
-                                detail: "Net est. \(currency(monthlyIncome.grossIncome * (1 - store.budgetTaxRate)))",
-                                tint: .blue
-                            )
-                        }
-
-                        GridRow {
-                            MetricCard(
-                                title: "Planned Spend",
-                                value: currency(monthlySpend),
-                                detail: "Bills + logged expenses",
-                                tint: .orange
-                            )
-                            MetricCard(
-                                title: "Projected Net",
-                                value: currency(monthlyNet),
-                                detail: monthlyNet >= 0 ? "Above target" : "Needs adjustment",
-                                tint: monthlyNet >= 0 ? .mint : .red
-                            )
-                        }
+                Grid(horizontalSpacing: 12, verticalSpacing: 12) {
+                    GridRow {
+                        MetricCard(
+                            title: "Projected This Week",
+                            value: currency(weeklyIncome.grossIncome),
+                            detail: "\(weeklyIncome.occurrenceCount) job occurrences",
+                            tint: .green
+                        )
+                        MetricCard(
+                            title: "Projected This Month",
+                            value: currency(monthlyIncome.grossIncome),
+                            detail: "Net est. \(currency(monthlyIncome.grossIncome * (1 - store.budgetTaxRate)))",
+                            tint: .blue
+                        )
                     }
 
-                    HStack(alignment: .top, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Log expense")
-                                .font(.headline)
-
-                            TextField("Title", text: $expenseTitle)
-                            TextField("Amount", text: $expenseAmount)
-                            DatePicker("Date", selection: $expenseDate, displayedComponents: .date)
-
-                            Picker("Category", selection: $selectedCategoryID) {
-                                Text("Select").tag(Optional<UUID>.none)
-                                ForEach(activeCategories) { category in
-                                    Text(category.title).tag(Optional(category.id))
-                                }
-                            }
-
-                            Button("Add Expense") {
-                                createExpense()
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Add recurring bill")
-                                .font(.headline)
-
-                            TextField("Title", text: $billTitle)
-                            TextField("Amount", text: $billAmount)
-
-                            HStack {
-                                Picker("Cadence", selection: $billCadence) {
-                                    ForEach(BudgetBillCadence.allCases) { cadence in
-                                        Text(cadence.label).tag(cadence)
-                                    }
-                                }
-                                Stepper("Due day: \(billDay)", value: $billDay, in: 1...31)
-                            }
-
-                            Picker("Category", selection: $billCategoryID) {
-                                Text("Select").tag(Optional<UUID>.none)
-                                ForEach(activeCategories) { category in
-                                    Text(category.title).tag(Optional(category.id))
-                                }
-                            }
-
-                            Button("Add Bill") {
-                                createBill()
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    GridRow {
+                        MetricCard(
+                            title: "Planned Spend",
+                            value: currency(monthlySpend),
+                            detail: "Bills + logged expenses",
+                            tint: .orange
+                        )
+                        MetricCard(
+                            title: "Projected Net",
+                            value: currency(monthlyNet),
+                            detail: monthlyNet >= 0 ? "Above target" : "Needs adjustment",
+                            tint: monthlyNet >= 0 ? .mint : .red
+                        )
                     }
+                }
+
+                HStack(alignment: .top, spacing: 12) {
+                    budgetSidebar
+
+                    budgetPanelContent
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                }
+            }
+            .padding(14)
+            .frame(minWidth: 980, minHeight: 620)
+            .background(
+                LinearGradient(
+                    colors: [
+                        Color(nsColor: .windowBackgroundColor),
+                        Color.white.opacity(0.92),
+                        Color.green.opacity(0.02)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .onAppear {
+                if selectedCategoryID == nil {
+                    selectedCategoryID = activeCategories.first?.id
+                }
+                if billCategoryID == nil {
+                    billCategoryID = activeCategories.first?.id
+                }
+                monthlyGoalInput = String(format: "%.0f", store.budgetMonthlySavingsTarget)
+                taxRateInput = String(format: "%.2f", store.budgetTaxRate)
+            }
+        }
+
+        private var budgetSidebar: some View {
+            List(BudgetingPanel.allCases, selection: $selectedPanel) { panel in
+                Label(panel.title, systemImage: panel.symbolName)
+                    .tag(panel)
+            }
+            .listStyle(.sidebar)
+            .frame(width: 320, maxHeight: .infinity, alignment: .topLeading)
+            .navigationSplitViewColumnWidth(min: 300, ideal: 320, max: 340)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+
+        @ViewBuilder
+        private var budgetPanelContent: some View {
+            switch selectedPanel {
+            case .overview:
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Overview")
+                        .font(.title3.weight(.semibold))
 
                     HStack(alignment: .top, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Payroll cadence by job")
-                                .font(.headline)
-
-                            if professionalJobBuckets.isEmpty {
-                                Text("Create at least one professional bucket marked as a job with a pay rate to configure cadence.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                ForEach(professionalJobBuckets) { bucket in
-                                    let schedule = store.budgetPayrollSchedule(for: bucket.id)
-
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text(bucket.name)
-                                            .font(.subheadline.weight(.semibold))
-
-                                        Picker("Cadence", selection: cadenceBinding(for: bucket.id)) {
-                                            ForEach(BudgetPayrollCadence.allCases) { cadence in
-                                                Text(cadence.label).tag(cadence)
-                                            }
-                                        }
-
-                                        if schedule.cadence == .weekly || schedule.cadence == .biweekly {
-                                            Picker("Pay weekday", selection: payWeekdayBinding(for: bucket.id)) {
-                                                ForEach(payrollWeekdays, id: \.value) { weekday in
-                                                    Text(weekday.label).tag(weekday.value)
-                                                }
-                                            }
-                                        }
-
-                                        if schedule.cadence == .biweekly {
-                                            DatePicker(
-                                                "Anchor pay date",
-                                                selection: biweeklyAnchorDateBinding(for: bucket.id),
-                                                displayedComponents: .date
-                                            )
-                                        }
-
-                                        if schedule.cadence == .monthly || schedule.cadence == .customDayOfMonth {
-                                            Stepper(
-                                                "Pay day: \(schedule.dayOfMonth)",
-                                                value: dayOfMonthBinding(for: bucket.id),
-                                                in: 1...31
-                                            )
-                                        }
-
-                                        if schedule.cadence == .semimonthly {
-                                            Stepper(
-                                                "First pay day: \(min(schedule.dayOfMonth, schedule.secondDayOfMonth ?? schedule.dayOfMonth))",
-                                                value: dayOfMonthBinding(for: bucket.id),
-                                                in: 1...31
-                                            )
-                                            Stepper(
-                                                "Second pay day: \(max(schedule.dayOfMonth, schedule.secondDayOfMonth ?? schedule.dayOfMonth))",
-                                                value: secondDayOfMonthBinding(for: bucket.id),
-                                                in: 1...31
-                                            )
-                                        }
-                                    }
-
-                                    if bucket.id != professionalJobBuckets.last?.id {
-                                        Divider()
-                                    }
-                                }
-                            }
-                        }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Paycheck projection")
                                 .font(.headline)
@@ -473,7 +446,7 @@ import AppKit
                                             .foregroundStyle(.secondary)
                                     }
                                 }
-                                .padding(.vertical, 4)
+                                .padding(.vertical, 2)
                             }
                         }
                         .padding(16)
@@ -481,80 +454,220 @@ import AppKit
                         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Reporting")
+                            Text("Category budget envelopes")
                                 .font(.headline)
-                            Text("30-day cash flow: \(currency(cash30.net))")
-                                .font(.subheadline.weight(.semibold))
-                            Text("90-day cash flow: \(currency(cash90.net))")
-                                .font(.subheadline.weight(.semibold))
-                            Text("Income variance (actual vs projected): \(currency(variance.actualIncomeToDate - variance.projectedIncome))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("Spend variance (actual vs projected): \(currency(variance.actualSpendToDate - variance.projectedSpend))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text("Overtime impact this week: \(currency(overtime.overtimeIncome))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-
-                            Divider()
-
-                            Text("Savings goal + tax")
-                                .font(.subheadline.weight(.semibold))
-                            HStack {
-                                TextField("Monthly goal", text: $monthlyGoalInput)
-                                TextField("Tax rate (0.22)", text: $taxRateInput)
-                                Button("Save") {
-                                    saveTargets()
+                            ForEach(categorySpendThisMonth.prefix(8), id: \.category.id) { entry in
+                                HStack {
+                                    Text(entry.category.title)
+                                    Spacer()
+                                    Text("\(currency(entry.spent)) / \(currency(entry.category.monthlyLimit))")
+                                        .foregroundStyle(entry.spent > entry.category.monthlyLimit ? .red : .secondary)
                                 }
+                                ProgressView(value: envelopeProgress(for: entry.spent, limit: entry.category.monthlyLimit))
                             }
-                            Text("Current target: \(currency(store.budgetMonthlySavingsTarget))")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
                         }
                         .padding(16)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                     }
+                }
 
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Category budget envelopes")
-                            .font(.headline)
-                        ForEach(categorySpendThisMonth, id: \.category.id) { entry in
-                            HStack {
-                                Text(entry.category.title)
-                                Spacer()
-                                Text("\(currency(entry.spent)) / \(currency(entry.category.monthlyLimit))")
-                                    .foregroundStyle(entry.spent > entry.category.monthlyLimit ? .red : .secondary)
-                            }
-                            ProgressView(value: envelopeProgress(for: entry.spent, limit: entry.category.monthlyLimit))
+            case .logExpense:
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Log expense")
+                        .font(.title3.weight(.semibold))
+
+                    TextField("Title", text: $expenseTitle)
+                    TextField("Amount", text: $expenseAmount)
+                    DatePicker("Date", selection: $expenseDate, displayedComponents: .date)
+
+                    Picker("Category", selection: $selectedCategoryID) {
+                        Text("Select").tag(Optional<UUID>.none)
+                        ForEach(activeCategories) { category in
+                            Text(category.title).tag(Optional(category.id))
                         }
                     }
-                    .padding(16)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-                    FeatureListCard(
-                        title: "Included in v1",
-                        items: [
-                            "Occurrence-based job income forecasting",
-                            "Recurring bills and one-time expenses",
-                            "Paycheck projections and net estimates",
-                            "Cash-flow and variance reporting",
-                            "Overtime impact and savings target tracking"
-                        ]
-                    )
+                    Button("Add Expense") {
+                        createExpense()
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Spacer(minLength: 0)
                 }
-                .padding(24)
-            }
-            .onAppear {
-                if selectedCategoryID == nil {
-                    selectedCategoryID = activeCategories.first?.id
+                .padding(16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            case .recurringBills:
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Add recurring bill")
+                        .font(.title3.weight(.semibold))
+
+                    TextField("Title", text: $billTitle)
+                    TextField("Amount", text: $billAmount)
+
+                    HStack {
+                        Picker("Cadence", selection: $billCadence) {
+                            ForEach(BudgetBillCadence.allCases) { cadence in
+                                Text(cadence.label).tag(cadence)
+                            }
+                        }
+                        Stepper("Due day: \(billDay)", value: $billDay, in: 1...31)
+                    }
+
+                    Picker("Category", selection: $billCategoryID) {
+                        Text("Select").tag(Optional<UUID>.none)
+                        ForEach(activeCategories) { category in
+                            Text(category.title).tag(Optional(category.id))
+                        }
+                    }
+
+                    Button("Add Bill") {
+                        createBill()
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Spacer(minLength: 0)
                 }
-                if billCategoryID == nil {
-                    billCategoryID = activeCategories.first?.id
+                .padding(16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            case .payrollCadence:
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Payroll cadence by job")
+                        .font(.title3.weight(.semibold))
+
+                    if professionalJobBuckets.isEmpty {
+                        Text("Create at least one professional bucket marked as a job with a pay rate to configure cadence.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(professionalJobBuckets.prefix(6)) { bucket in
+                            let schedule = store.budgetPayrollSchedule(for: bucket.id)
+
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(bucket.name)
+                                    .font(.subheadline.weight(.semibold))
+
+                                Picker("Cadence", selection: cadenceBinding(for: bucket.id)) {
+                                    ForEach(BudgetPayrollCadence.allCases) { cadence in
+                                        Text(cadence.label).tag(cadence)
+                                    }
+                                }
+
+                                if schedule.cadence == .weekly || schedule.cadence == .biweekly {
+                                    Picker("Pay weekday", selection: payWeekdayBinding(for: bucket.id)) {
+                                        ForEach(payrollWeekdays, id: \.value) { weekday in
+                                            Text(weekday.label).tag(weekday.value)
+                                        }
+                                    }
+                                }
+
+                                if schedule.cadence == .biweekly {
+                                    DatePicker(
+                                        "Anchor pay date",
+                                        selection: biweeklyAnchorDateBinding(for: bucket.id),
+                                        displayedComponents: .date
+                                    )
+                                }
+
+                                if schedule.cadence == .monthly || schedule.cadence == .customDayOfMonth {
+                                    Stepper(
+                                        "Pay day: \(schedule.dayOfMonth)",
+                                        value: dayOfMonthBinding(for: bucket.id),
+                                        in: 1...31
+                                    )
+                                }
+
+                                if schedule.cadence == .semimonthly {
+                                    Stepper(
+                                        "First pay day: \(min(schedule.dayOfMonth, schedule.secondDayOfMonth ?? schedule.dayOfMonth))",
+                                        value: dayOfMonthBinding(for: bucket.id),
+                                        in: 1...31
+                                    )
+                                    Stepper(
+                                        "Second pay day: \(max(schedule.dayOfMonth, schedule.secondDayOfMonth ?? schedule.dayOfMonth))",
+                                        value: secondDayOfMonthBinding(for: bucket.id),
+                                        in: 1...31
+                                    )
+                                }
+                            }
+
+                            if bucket.id != professionalJobBuckets.prefix(6).last?.id {
+                                Divider()
+                            }
+                        }
+                    }
+
+                    Spacer(minLength: 0)
                 }
-                monthlyGoalInput = String(format: "%.0f", store.budgetMonthlySavingsTarget)
-                taxRateInput = String(format: "%.2f", store.budgetTaxRate)
+                .padding(16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            case .targetsAndTax:
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Savings goal + tax")
+                        .font(.title3.weight(.semibold))
+
+                    HStack {
+                        TextField("Monthly goal", text: $monthlyGoalInput)
+                        TextField("Tax rate (0.22)", text: $taxRateInput)
+                        Button("Save") {
+                            saveTargets()
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+
+                    Text("Current target: \(currency(store.budgetMonthlySavingsTarget))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Spacer(minLength: 0)
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            case .reporting:
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Reporting")
+                        .font(.title3.weight(.semibold))
+
+                    Text("30-day cash flow: \(currency(cash30.net))")
+                        .font(.subheadline.weight(.semibold))
+                    Text("90-day cash flow: \(currency(cash90.net))")
+                        .font(.subheadline.weight(.semibold))
+                    Text("Income variance (actual vs projected): \(currency(variance.actualIncomeToDate - variance.projectedIncome))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Spend variance (actual vs projected): \(currency(variance.actualSpendToDate - variance.projectedSpend))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text("Overtime impact this week: \(currency(overtime.overtimeIncome))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Spacer(minLength: 0)
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+            case .included:
+                FeatureListCard(
+                    title: "Included in v1",
+                    items: [
+                        "Occurrence-based job income forecasting",
+                        "Recurring bills and one-time expenses",
+                        "Paycheck projections and net estimates",
+                        "Cash-flow and variance reporting",
+                        "Overtime impact and savings target tracking"
+                    ]
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
         }
 
