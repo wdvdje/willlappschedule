@@ -132,6 +132,8 @@ import UniformTypeIdentifiers
         @State private var selectedJournalEntryID: UUID?
         @State private var selectedMapFavoriteID: UUID?
         @State private var selectedMapSavedRouteID: UUID?
+        @State private var isShowingAddSubItemPopover = false
+        @State private var subItemPopoverTitle: String = ""
         @State private var priority: PriorityLevel
         @State private var repeatRule: RepeatRule
         @State private var alternateStartingPattern: ABPattern = .a
@@ -396,95 +398,31 @@ import UniformTypeIdentifiers
                                     .pickerStyle(.menu)
 
                                     Button("Add") {
-                                        addSelectedSubItem()
+                                        subItemPopoverTitle = ""
+                                        isShowingAddSubItemPopover = true
                                     }
-                                    .disabled(!canAddSelectedSubItem)
-                                }
-
-                                if selectedSubItemKind == .url {
-                                    HStack(spacing: 8) {
-                                        TextField("https://example.com", text: $subItemURLInput)
-                                            .textFieldStyle(.roundedBorder)
-                                    }
-                                }
-
-                                if selectedSubItemKind == .journalEntry {
-                                    if attachableJournalEntries.isEmpty {
-                                        Text("Create a journal entry in the Journal app to attach it here.")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Picker("Journal entry", selection: $selectedJournalEntryID) {
-                                            Text("Select entry")
-                                                .tag(Optional<UUID>.none)
-
-                                            ForEach(attachableJournalEntries) { entry in
-                                                let entryTitle = entry.trimmedTitle.isEmpty ? "Untitled Entry" : entry.trimmedTitle
-                                                Text("\(entryTitle) - \(entry.mood.label)")
-                                                    .tag(Optional(entry.id))
+                                    .popover(isPresented: $isShowingAddSubItemPopover, arrowEdge: .bottom) {
+                                        AddSubItemPopover(
+                                            kind: selectedSubItemKind,
+                                            title: $subItemPopoverTitle,
+                                            urlInput: $subItemURLInput,
+                                            selectedPDFFileURL: $selectedPDFFileURL,
+                                            selectedPDFBookmarkData: $selectedPDFBookmarkData,
+                                            selectedJournalEntryID: $selectedJournalEntryID,
+                                            selectedMapFavoriteID: $selectedMapFavoriteID,
+                                            selectedMapSavedRouteID: $selectedMapSavedRouteID,
+                                            attachableJournalEntries: attachableJournalEntries,
+                                            attachableMapFavorites: attachableMapFavorites,
+                                            attachableSavedRoutes: attachableSavedRoutes,
+                                            onSelectPDF: { selectPDFFile() },
+                                            onConfirm: {
+                                                addSelectedSubItem()
+                                                isShowingAddSubItemPopover = false
+                                            },
+                                            onCancel: {
+                                                isShowingAddSubItemPopover = false
                                             }
-                                        }
-                                        .pickerStyle(.menu)
-                                    }
-                                }
-
-                                if selectedSubItemKind == .favoriteLocation {
-                                    if attachableMapFavorites.isEmpty {
-                                        Text("Create a favorite location in Dynamic Map to attach it here.")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Picker("Favorite location", selection: $selectedMapFavoriteID) {
-                                            Text("Select favorite")
-                                                .tag(Optional<UUID>.none)
-
-                                            ForEach(attachableMapFavorites) { favorite in
-                                                Text(favorite.title)
-                                                    .tag(Optional(favorite.id))
-                                            }
-                                        }
-                                        .pickerStyle(.menu)
-                                    }
-                                }
-
-                                if selectedSubItemKind == .savedRoute {
-                                    if attachableSavedRoutes.isEmpty {
-                                        Text("Save a route in Dynamic Map to attach it here.")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Picker("Saved route", selection: $selectedMapSavedRouteID) {
-                                            Text("Select route")
-                                                .tag(Optional<UUID>.none)
-
-                                            ForEach(attachableSavedRoutes) { route in
-                                                Text(route.title)
-                                                    .tag(Optional(route.id))
-                                            }
-                                        }
-                                        .pickerStyle(.menu)
-                                    }
-                                }
-
-                                if selectedSubItemKind == .pdfFile {
-                                    HStack(spacing: 8) {
-                                        if let url = selectedPDFFileURL {
-                                            Text(url.lastPathComponent)
-                                                .font(.caption)
-                                                .lineLimit(1)
-                                                .truncationMode(.middle)
-                                        } else {
-                                            Text("No file selected")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        Button("Browse") {
-                                            selectPDFFile()
-                                        }
-                                        .buttonStyle(.bordered)
+                                        )
                                     }
                                 }
 
@@ -825,31 +763,23 @@ import UniformTypeIdentifiers
             }
         }
 
-        private var canAddSelectedSubItem: Bool {
-            switch selectedSubItemKind {
-            case .journalEntry:
-                return selectedJournalEntryID != nil
-            case .url:
-                return !subItemURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            case .favoriteLocation:
-                return selectedMapFavoriteID != nil
-            case .savedRoute:
-                return selectedMapSavedRouteID != nil
-            case .pdfFile:
-                return selectedPDFFileURL != nil
-            default:
-                return true
-            }
-        }
-
         private func addSelectedSubItem() {
             switch selectedSubItemKind {
             case .task:
-                subItems.append(PlanningSubItem(id: UUID(), kind: .task, title: "Task sub-item", isCompleted: false))
+                let t = subItemPopoverTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !t.isEmpty else { return }
+                subItems.append(PlanningSubItem(id: UUID(), kind: .task, title: t, isCompleted: false))
+                subItemPopoverTitle = ""
             case .reminder:
-                subItems.append(PlanningSubItem(id: UUID(), kind: .reminder, title: "Reminder sub-item", isCompleted: false))
+                let t = subItemPopoverTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !t.isEmpty else { return }
+                subItems.append(PlanningSubItem(id: UUID(), kind: .reminder, title: t, isCompleted: false))
+                subItemPopoverTitle = ""
             case .event:
-                subItems.append(PlanningSubItem(id: UUID(), kind: .event, title: "Event sub-item", isCompleted: false))
+                let t = subItemPopoverTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !t.isEmpty else { return }
+                subItems.append(PlanningSubItem(id: UUID(), kind: .event, title: t, isCompleted: false))
+                subItemPopoverTitle = ""
             case .journalEntry:
                 attachSelectedJournalEntry()
             case .url:
@@ -1055,6 +985,8 @@ import UniformTypeIdentifiers
         @State private var selectedJournalEntryID: UUID?
         @State private var selectedMapFavoriteID: UUID?
         @State private var selectedMapSavedRouteID: UUID?
+        @State private var isShowingAddSubItemPopover = false
+        @State private var subItemPopoverTitle: String = ""
         @State private var priority: PriorityLevel = .medium
         @State private var repeatRule: RepeatRule = .none
         @State private var alternateStartingPattern: ABPattern = .a
@@ -1308,95 +1240,31 @@ import UniformTypeIdentifiers
                                     .pickerStyle(.menu)
 
                                     Button("Add") {
-                                        addSelectedSubItem()
+                                        subItemPopoverTitle = ""
+                                        isShowingAddSubItemPopover = true
                                     }
-                                    .disabled(!canAddSelectedSubItem)
-                                }
-
-                                if selectedSubItemKind == .url {
-                                    HStack(spacing: 8) {
-                                        TextField("https://example.com", text: $subItemURLInput)
-                                            .textFieldStyle(.roundedBorder)
-                                    }
-                                }
-
-                                if selectedSubItemKind == .journalEntry {
-                                    if attachableJournalEntries.isEmpty {
-                                        Text("Create a journal entry in the Journal app to attach it here.")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Picker("Journal entry", selection: $selectedJournalEntryID) {
-                                            Text("Select entry")
-                                                .tag(Optional<UUID>.none)
-
-                                            ForEach(attachableJournalEntries) { entry in
-                                                let entryTitle = entry.trimmedTitle.isEmpty ? "Untitled Entry" : entry.trimmedTitle
-                                                Text("\(entryTitle) - \(entry.mood.label)")
-                                                    .tag(Optional(entry.id))
+                                    .popover(isPresented: $isShowingAddSubItemPopover, arrowEdge: .bottom) {
+                                        AddSubItemPopover(
+                                            kind: selectedSubItemKind,
+                                            title: $subItemPopoverTitle,
+                                            urlInput: $subItemURLInput,
+                                            selectedPDFFileURL: $selectedPDFFileURL,
+                                            selectedPDFBookmarkData: $selectedPDFBookmarkData,
+                                            selectedJournalEntryID: $selectedJournalEntryID,
+                                            selectedMapFavoriteID: $selectedMapFavoriteID,
+                                            selectedMapSavedRouteID: $selectedMapSavedRouteID,
+                                            attachableJournalEntries: attachableJournalEntries,
+                                            attachableMapFavorites: attachableMapFavorites,
+                                            attachableSavedRoutes: attachableSavedRoutes,
+                                            onSelectPDF: { selectPDFFile() },
+                                            onConfirm: {
+                                                addSelectedSubItem()
+                                                isShowingAddSubItemPopover = false
+                                            },
+                                            onCancel: {
+                                                isShowingAddSubItemPopover = false
                                             }
-                                        }
-                                        .pickerStyle(.menu)
-                                    }
-                                }
-
-                                if selectedSubItemKind == .favoriteLocation {
-                                    if attachableMapFavorites.isEmpty {
-                                        Text("Create a favorite location in Dynamic Map to attach it here.")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Picker("Favorite location", selection: $selectedMapFavoriteID) {
-                                            Text("Select favorite")
-                                                .tag(Optional<UUID>.none)
-
-                                            ForEach(attachableMapFavorites) { favorite in
-                                                Text(favorite.title)
-                                                    .tag(Optional(favorite.id))
-                                            }
-                                        }
-                                        .pickerStyle(.menu)
-                                    }
-                                }
-
-                                if selectedSubItemKind == .savedRoute {
-                                    if attachableSavedRoutes.isEmpty {
-                                        Text("Save a route in Dynamic Map to attach it here.")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Picker("Saved route", selection: $selectedMapSavedRouteID) {
-                                            Text("Select route")
-                                                .tag(Optional<UUID>.none)
-
-                                            ForEach(attachableSavedRoutes) { route in
-                                                Text(route.title)
-                                                    .tag(Optional(route.id))
-                                            }
-                                        }
-                                        .pickerStyle(.menu)
-                                    }
-                                }
-
-                                if selectedSubItemKind == .pdfFile {
-                                    HStack(spacing: 8) {
-                                        if let url = selectedPDFFileURL {
-                                            Text(url.lastPathComponent)
-                                                .font(.caption)
-                                                .lineLimit(1)
-                                                .truncationMode(.middle)
-                                        } else {
-                                            Text("No file selected")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        Button("Browse") {
-                                            selectPDFFile()
-                                        }
-                                        .buttonStyle(.bordered)
+                                        )
                                     }
                                 }
 
@@ -1743,31 +1611,23 @@ import UniformTypeIdentifiers
             }
         }
 
-        private var canAddSelectedSubItem: Bool {
-            switch selectedSubItemKind {
-            case .journalEntry:
-                return selectedJournalEntryID != nil
-            case .url:
-                return !subItemURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            case .favoriteLocation:
-                return selectedMapFavoriteID != nil
-            case .savedRoute:
-                return selectedMapSavedRouteID != nil
-            case .pdfFile:
-                return selectedPDFFileURL != nil
-            default:
-                return true
-            }
-        }
-
         private func addSelectedSubItem() {
             switch selectedSubItemKind {
             case .task:
-                subItems.append(PlanningSubItem(id: UUID(), kind: .task, title: "Task sub-item", isCompleted: false))
+                let t = subItemPopoverTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !t.isEmpty else { return }
+                subItems.append(PlanningSubItem(id: UUID(), kind: .task, title: t, isCompleted: false))
+                subItemPopoverTitle = ""
             case .reminder:
-                subItems.append(PlanningSubItem(id: UUID(), kind: .reminder, title: "Reminder sub-item", isCompleted: false))
+                let t = subItemPopoverTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !t.isEmpty else { return }
+                subItems.append(PlanningSubItem(id: UUID(), kind: .reminder, title: t, isCompleted: false))
+                subItemPopoverTitle = ""
             case .event:
-                subItems.append(PlanningSubItem(id: UUID(), kind: .event, title: "Event sub-item", isCompleted: false))
+                let t = subItemPopoverTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !t.isEmpty else { return }
+                subItems.append(PlanningSubItem(id: UUID(), kind: .event, title: t, isCompleted: false))
+                subItemPopoverTitle = ""
             case .journalEntry:
                 attachSelectedJournalEntry()
             case .url:
@@ -1911,4 +1771,144 @@ import UniformTypeIdentifiers
             }
         }
     }
+
+private struct AddSubItemPopover: View {
+    let kind: PlanningSubItemKind
+    @Binding var title: String
+    @Binding var urlInput: String
+    @Binding var selectedPDFFileURL: URL?
+    @Binding var selectedPDFBookmarkData: Data?
+    @Binding var selectedJournalEntryID: UUID?
+    @Binding var selectedMapFavoriteID: UUID?
+    @Binding var selectedMapSavedRouteID: UUID?
+    let attachableJournalEntries: [JournalEntry]
+    let attachableMapFavorites: [DynamicMapFavoriteLocation]
+    let attachableSavedRoutes: [DynamicMapSavedRoute]
+    let onSelectPDF: () -> Void
+    let onConfirm: () -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Add \(kind.label)")
+                .font(.headline)
+
+            switch kind {
+            case .task, .reminder, .event:
+                TextField("Title", text: $title)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(minWidth: 260)
+                    .onSubmit { if canConfirm { onConfirm() } }
+
+            case .url:
+                TextField("https://example.com", text: $urlInput)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(minWidth: 260)
+                    .onSubmit { if canConfirm { onConfirm() } }
+
+            case .pdfFile:
+                HStack {
+                    if let url = selectedPDFFileURL {
+                        Text(url.lastPathComponent)
+                            .font(.caption)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    } else {
+                        Text("No file selected")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Browse") { onSelectPDF() }
+                        .buttonStyle(.bordered)
+                }
+                .frame(minWidth: 260)
+
+            case .journalEntry:
+                if attachableJournalEntries.isEmpty {
+                    Text("Create a journal entry in the Journal app to attach it here.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 260)
+                } else {
+                    Picker("Journal entry", selection: $selectedJournalEntryID) {
+                        Text("Select entry").tag(Optional<UUID>.none)
+                        ForEach(attachableJournalEntries) { entry in
+                            let entryTitle = entry.trimmedTitle.isEmpty ? "Untitled Entry" : entry.trimmedTitle
+                            Text("\(entryTitle) - \(entry.mood.label)").tag(Optional(entry.id))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(minWidth: 260)
+                }
+
+            case .favoriteLocation:
+                if attachableMapFavorites.isEmpty {
+                    Text("Create a favorite location in Dynamic Map to attach it here.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 260)
+                } else {
+                    Picker("Favorite location", selection: $selectedMapFavoriteID) {
+                        Text("Select favorite").tag(Optional<UUID>.none)
+                        ForEach(attachableMapFavorites) { favorite in
+                            Text(favorite.title).tag(Optional(favorite.id))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(minWidth: 260)
+                }
+
+            case .savedRoute:
+                if attachableSavedRoutes.isEmpty {
+                    Text("Save a route in Dynamic Map to attach it here.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(minWidth: 260)
+                } else {
+                    Picker("Saved route", selection: $selectedMapSavedRouteID) {
+                        Text("Select route").tag(Optional<UUID>.none)
+                        ForEach(attachableSavedRoutes) { route in
+                            Text(route.title).tag(Optional(route.id))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .frame(minWidth: 260)
+                }
+
+            default:
+                EmptyView()
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel", action: onCancel)
+                Button("Add", action: onConfirm)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!canConfirm)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(16)
+    }
+
+    private var canConfirm: Bool {
+        switch kind {
+        case .task, .reminder, .event:
+            return !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .url:
+            return !urlInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        case .pdfFile:
+            return selectedPDFFileURL != nil
+        case .journalEntry:
+            return selectedJournalEntryID != nil
+        case .favoriteLocation:
+            return selectedMapFavoriteID != nil
+        case .savedRoute:
+            return selectedMapSavedRouteID != nil
+        default:
+            return false
+        }
+    }
+}
 
