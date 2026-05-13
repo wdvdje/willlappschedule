@@ -2562,9 +2562,13 @@ import AppKit
                         } else {
                             ForEach(item.subItems) { subItem in
                                 HStack(spacing: AppSpacing.xCompact.rawValue) {
-                                    Image(systemName: subItemIcon(for: subItem))
-                                        .font(.body)
-                                        .foregroundStyle(Color.accentColor)
+                                    if subItem.kind.companionAppID != nil {
+                                        CompanionSubItemBadge(kind: subItem.kind)
+                                    } else {
+                                        Image(systemName: subItemIcon(for: subItem))
+                                            .font(.body)
+                                            .foregroundStyle(Color.accentColor)
+                                    }
                                     Text(subItem.title)
                                         .font(.body)
                                         .foregroundStyle(subItem.isCompleted ? .secondary : .primary)

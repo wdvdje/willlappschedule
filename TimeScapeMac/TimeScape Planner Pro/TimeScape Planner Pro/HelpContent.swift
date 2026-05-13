@@ -3,7 +3,7 @@ import SwiftUI
 
 // MARK: - Data Models
 
-struct HelpSection: Identifiable, Codable {
+struct HelpSection: Identifiable, Codable, Sendable {
     let id: String
     let title: String
     let description: String
@@ -14,7 +14,7 @@ struct HelpSection: Identifiable, Codable {
     }
 }
 
-struct HelpTopic: Identifiable, Codable {
+struct HelpTopic: Identifiable, Codable, Sendable {
     let id: String
     let title: String
     let body: String
@@ -27,7 +27,7 @@ struct HelpTopic: Identifiable, Codable {
 // MARK: - Formatted Text Support
 
 /// Represents a formatted text segment (for rendering bold keywords, etc.)
-struct FormattedTextSegment: Identifiable {
+struct FormattedTextSegment: Identifiable, Sendable {
     let id = UUID()
     let text: String
     let isBold: Bool
@@ -79,6 +79,6 @@ func formatTextAsAttributed(_ segments: [FormattedTextSegment]) -> AttributedStr
 
 // MARK: - Root Container
 
-struct HelpContentRoot: Codable {
+struct HelpContentRoot: Codable, Sendable {
     let sections: [HelpSection]
 }
