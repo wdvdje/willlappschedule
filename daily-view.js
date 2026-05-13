@@ -215,9 +215,9 @@
     var evs = expandEvents(dateStr, dateStr) ?? loadEvents().filter(function(e) { return e && e.date === dateStr; });
     evs.forEach(function(e) {
       var s = toMinutes(e.startTime, null);
+      if (s === null) return; // Untimed/all-day events belong in all-day lanes, not the hourly grid.
       var eMin = toMinutes(e.endTime, null);
       var hasTimes = s !== null;
-      if (s === null) s = 9 * 60; // default 9am if no time
       if (eMin === null) eMin = s + 60;
       if (eMin <= s) eMin += 1440;
       var domain = getDomainLocal(e);
