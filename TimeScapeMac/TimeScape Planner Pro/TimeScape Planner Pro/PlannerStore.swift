@@ -318,6 +318,10 @@ final class PlannerStore: ObservableObject {
         dynamicMapSavedRoutes.removeAll { $0.id == routeID }
     }
 
+    func deleteDynamicMapFavorite(favoriteID: UUID) {
+        dynamicMapFavorites.removeAll { $0.id == favoriteID }
+    }
+
     func addFavoriteLocationSubItem(to itemID: UUID, favoriteID: UUID, title: String) {
         guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
         guard items[idx].subItems.contains(where: { $0.kind == .favoriteLocation && $0.sourceEntryID == favoriteID }) == false else { return }
