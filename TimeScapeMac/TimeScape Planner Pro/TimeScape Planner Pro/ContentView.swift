@@ -4150,11 +4150,7 @@ struct ContentView: View {
                 Spacer()
             }
             .padding(20)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(destination.accent.opacity(0.18), lineWidth: 1)
-            )
+            .cardStyle(cornerRadius: 24, tint: destination.accent, hasBorder: true)
         }
     }
 
@@ -4239,7 +4235,7 @@ struct ContentView: View {
                         }
                     }
                     .padding(16)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .cardStyle(cornerRadius: 18, hasBorder: false)
                 }
             }
         }
@@ -4291,7 +4287,7 @@ struct ContentView: View {
                     }
                 }
                 .padding(18)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .cardStyle(cornerRadius: 20, hasBorder: false)
             }
             .onAppear {
                 displayName = store.settings.displayName
