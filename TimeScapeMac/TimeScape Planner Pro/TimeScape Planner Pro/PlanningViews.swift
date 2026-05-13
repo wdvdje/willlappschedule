@@ -803,6 +803,7 @@ import AppKit
         @State private var selectedStopIDs: [String] = []
         @State private var directionsOriginID: String?
         @State private var directionsDestinationID: String?
+        @State private var waypointIDs: [String] = []
         @State private var selectedSavedRouteID: UUID?
         @State private var routeSummary = "Select two or more stops to estimate a route."
         @State private var routeAlternatives: [String] = []
@@ -826,7 +827,7 @@ import AppKit
 
         private var currentRouteSourceIDs: [String] {
             if hasDirectionsPair, let originID = directionsOriginID, let destinationID = directionsDestinationID {
-                return [originID, destinationID]
+                return [originID] + waypointIDs + [destinationID]
             }
             return selectedStopIDs
         }
@@ -1174,6 +1175,15 @@ import AppKit
                                         Label("Directions to here", systemImage: "arrow.turn.down.left")
                                     }
 
+                                    Button {
+                                        let favID = "favorite-\(favorite.id.uuidString)"
+                                        if !waypointIDs.contains(favID) {
+                                            waypointIDs.append(favID)
+                                        }
+                                    } label: {
+                                        Label("Add to Route", systemImage: "arrow.triangle.turn.up.right.circle")
+                                    }
+
                                     Divider()
 
                                     Button(role: .destructive) {
@@ -1284,6 +1294,16 @@ import AppKit
                         placeholder: "Choose origin",
                         onSelect: setDirectionsOrigin
                     )
+
+                    if directionsOriginID != nil && directionsDestinationID != nil && !waypointIDs.isEmpty {
+                        ForEach(waypointIDs, id: \.self) { waypointID in
+                            HStack(spacing: AppSpacing.xCompact.rawValue) {
+                                Image(systemName: "arrow.right")
+                                    .foregroundStyle(.secondary)
+                                routeWaypointChip(sourceID: waypointID)
+                            }
+                        }
+                    }
 
                     Image(systemName: "arrow.right")
                         .foregroundStyle(.secondary)
@@ -1423,6 +1443,33 @@ import AppKit
             .menuIndicator(.hidden)
         }
 
+        @ViewBuilder
+        private func routeWaypointChip(sourceID: String) -> some View {
+            HStack(spacing: AppSpacing.xCompact.rawValue) {
+                Image(systemName: "mappin.circle")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.blue)
+                Text(selectableSource(for: sourceID)?.title ?? "Waypoint")
+                    .appCaption()
+                    .lineLimit(1)
+                Button {
+                    waypointIDs.removeAll { $0 == sourceID }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption2.weight(.bold))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, AppSpacing.compact.rawValue)
+            .padding(.vertical, AppSpacing.xCompact.rawValue)
+            .frame(minHeight: 34)
+            .background(
+                RoundedRectangle(cornerRadius: 999, style: .continuous)
+                    .fill(Color.blue.opacity(0.12))
+            )
+        }
+
         private var addFavoriteSheet: some View {
             VStack(alignment: .leading, spacing: AppSpacing.standard.rawValue) {
                 Text("Add Favorite Location")
@@ -1488,6 +1535,7 @@ import AppKit
         private func clearDirectionsPair() {
             directionsOriginID = nil
             directionsDestinationID = nil
+            waypointIDs = []
             selectedSavedRouteID = nil
             routeSummary = "Choose an origin and destination from the saved locations list."
             routeAlternatives = []
@@ -1678,34 +1726,90 @@ import AppKit
                     return
                 }
 
-                let request = MKDirections.Request()
-                request.transportType = .automobile
-                request.source = MKMapItem(placemark: MKPlacemark(coordinate: origin))
-                request.destination = MKMapItem(placemark: MKPlacemark(coordinate: destination))
-                request.requestsAlternateRoutes = true
+                // Build full coordinate list: origin → waypoints → destination
+                var allCoordinates: [CLLocationCoordinate2D] = [origin]
+                for waypointID in waypointIDs {
+                    if let waypointSource = selectableSource(for: waypointID),
+                       let waypointCoord = await coordinate(for: waypointSource) {
+                        allCoordinates.append(waypointCoord)
+                    }
+                }
+                allCoordinates.append(destination)
 
-                do {
-                    let etaResponse = try await MKDirections(request: request).calculateETA()
-                    let minutes = Int(etaResponse.expectedTravelTime / 60)
-                    let miles = etaResponse.distance / 1609.34
+                if allCoordinates.count == 2 {
+                    // Simple A→B with no waypoints
+                    let request = MKDirections.Request()
+                    request.transportType = .automobile
+                    request.source = MKMapItem(placemark: MKPlacemark(coordinate: origin))
+                    request.destination = MKMapItem(placemark: MKPlacemark(coordinate: destination))
+                    request.requestsAlternateRoutes = true
 
-                    var alternatives: [String] = []
                     do {
-                        let response = try await MKDirections(request: request).calculate()
-                        alternatives = response.routes.prefix(3).enumerated().map { idx, route in
-                            let optionMinutes = Int(route.expectedTravelTime / 60)
-                            let optionMiles = route.distance / 1609.34
-                            return "Option \(idx + 1): \(optionMinutes)m • \(String(format: "%.1f", optionMiles)) mi"
+                        let etaResponse = try await MKDirections(request: request).calculateETA()
+                        let minutes = Int(etaResponse.expectedTravelTime / 60)
+                        let miles = etaResponse.distance / 1609.34
+
+                        var alternatives: [String] = []
+                        do {
+                            let response = try await MKDirections(request: request).calculate()
+                            alternatives = response.routes.prefix(3).enumerated().map { idx, route in
+                                let optionMinutes = Int(route.expectedTravelTime / 60)
+                                let optionMiles = route.distance / 1609.34
+                                return "Option \(idx + 1): \(optionMinutes)m • \(String(format: "%.1f", optionMiles)) mi"
+                            }
+                        } catch {
+                            alternatives = []
                         }
+
+                        routeSummary = "From \(originSource.title) to \(destinationSource.title): Estimated drive \(minutes) min across \(String(format: "%.1f", miles)) miles."
+                        routeAlternatives = alternatives
                     } catch {
-                        alternatives = []
+                        routeSummary = "Route estimate failed for the selected directions pair."
+                        routeAlternatives = []
+                    }
+                } else {
+                    // Multi-stop: chain legs through waypoints
+                    var totalDistanceMeters: CLLocationDistance = 0
+                    var totalTravelSeconds: TimeInterval = 0
+                    var alternatives: [String] = []
+
+                    for i in 0..<(allCoordinates.count - 1) {
+                        let legFrom = allCoordinates[i]
+                        let legTo = allCoordinates[i + 1]
+                        let request = MKDirections.Request()
+                        request.transportType = .automobile
+                        request.source = MKMapItem(placemark: MKPlacemark(coordinate: legFrom))
+                        request.destination = MKMapItem(placemark: MKPlacemark(coordinate: legTo))
+                        request.requestsAlternateRoutes = true
+
+                        do {
+                            let etaResponse = try await MKDirections(request: request).calculateETA()
+                            totalTravelSeconds += etaResponse.expectedTravelTime
+                            totalDistanceMeters += etaResponse.distance
+                        } catch {
+                            routeSummary = "Route estimate failed for one of the legs."
+                            routeAlternatives = []
+                            return
+                        }
+
+                        if alternatives.isEmpty {
+                            do {
+                                let response = try await MKDirections(request: request).calculate()
+                                alternatives = response.routes.prefix(3).enumerated().map { idx, route in
+                                    let minutes = Int(route.expectedTravelTime / 60)
+                                    let miles = route.distance / 1609.34
+                                    return "Option \(idx + 1): \(minutes)m • \(String(format: "%.1f", miles)) mi"
+                                }
+                            } catch {
+                                alternatives = []
+                            }
+                        }
                     }
 
-                    routeSummary = "From \(originSource.title) to \(destinationSource.title): Estimated drive \(minutes) min across \(String(format: "%.1f", miles)) miles."
+                    let totalMinutes = Int(totalTravelSeconds / 60)
+                    let totalMiles = totalDistanceMeters / 1609.34
+                    routeSummary = "From \(originSource.title) to \(destinationSource.title) via \(waypointIDs.count) waypoint(s): Estimated drive \(totalMinutes) min across \(String(format: "%.1f", totalMiles)) miles."
                     routeAlternatives = alternatives
-                } catch {
-                    routeSummary = "Route estimate failed for the selected directions pair."
-                    routeAlternatives = []
                 }
 
                 return
