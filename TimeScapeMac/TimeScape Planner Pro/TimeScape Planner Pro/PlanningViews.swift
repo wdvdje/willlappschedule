@@ -1048,7 +1048,7 @@ import AppKit
                     newFavoriteLocation = ""
                     isPresentingAddFavorite = true
                 } label: {
-                    Label("Add Favorite", systemImage: "star.badge.plus")
+                    Label("Add Favorite", systemImage: "mappin.and.ellipse")
                 }
                 .appButton(.bordered)
             }
@@ -1172,6 +1172,14 @@ import AppKit
                                         setDirectionsDestination("favorite-\(favorite.id.uuidString)")
                                     } label: {
                                         Label("Directions to here", systemImage: "arrow.turn.down.left")
+                                    }
+
+                                    Divider()
+
+                                    Button(role: .destructive) {
+                                        store.deleteDynamicMapFavorite(favoriteID: favorite.id)
+                                    } label: {
+                                        Label("Remove Favorite", systemImage: "trash")
                                     }
                                 } label: {
                                     Image(systemName: "ellipsis.circle")
@@ -1412,6 +1420,7 @@ import AppKit
                         .fill(source.map { $0.tint.opacity(0.12) } ?? Color.secondary.opacity(0.10))
                 )
             }
+            .menuIndicator(.hidden)
         }
 
         private var addFavoriteSheet: some View {
