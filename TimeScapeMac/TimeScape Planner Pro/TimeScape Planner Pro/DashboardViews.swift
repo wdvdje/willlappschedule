@@ -88,7 +88,7 @@ import AppKit
                         }
                     }
                     .padding(16)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .cardStyle(cornerRadius: 18, hasBorder: false)
                 }
             }
         }
@@ -140,7 +140,7 @@ import AppKit
                     }
                 }
                 .padding(18)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .cardStyle(cornerRadius: 20, hasBorder: false)
             }
             .onAppear {
                 displayName = store.settings.displayName
