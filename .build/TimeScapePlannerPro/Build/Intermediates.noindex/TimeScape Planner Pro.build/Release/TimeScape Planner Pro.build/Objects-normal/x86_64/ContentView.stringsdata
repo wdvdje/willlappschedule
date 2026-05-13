@@ -4,10 +4,26 @@
     "Localizable": [
       {
         "comment": "",
+        "key": "Unable to Save Changes",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 39
+        }
+      },
+      {
+        "comment": "",
+        "key": "OK",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 40
+        }
+      },
+      {
+        "comment": "",
         "key": "TimeScape",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1723
+          "startingLine": 3830
         }
       },
       {
@@ -15,7 +31,7 @@
         "key": "Overview",
         "location": {
           "startingColumn": 25,
-          "startingLine": 1689
+          "startingLine": 3796
         }
       },
       {
@@ -23,7 +39,7 @@
         "key": "Planning",
         "location": {
           "startingColumn": 25,
-          "startingLine": 1697
+          "startingLine": 3804
         }
       },
       {
@@ -31,7 +47,7 @@
         "key": "Domains",
         "location": {
           "startingColumn": 25,
-          "startingLine": 1705
+          "startingLine": 3812
         }
       },
       {
@@ -39,7 +55,7 @@
         "key": "System",
         "location": {
           "startingColumn": 25,
-          "startingLine": 1713
+          "startingLine": 3820
         }
       },
       {
@@ -47,7 +63,7 @@
         "key": "Planner Pro",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1727
+          "startingLine": 3834
         }
       },
       {
@@ -55,7 +71,7 @@
         "key": "View options",
         "location": {
           "startingColumn": 45,
-          "startingLine": 1821
+          "startingLine": 3929
         }
       },
       {
@@ -63,7 +79,7 @@
         "key": "Filter options",
         "location": {
           "startingColumn": 45,
-          "startingLine": 1863
+          "startingLine": 3971
         }
       },
       {
@@ -71,7 +87,7 @@
         "key": "Page options",
         "location": {
           "startingColumn": 45,
-          "startingLine": 1889
+          "startingLine": 3997
         }
       },
       {
@@ -79,7 +95,7 @@
         "key": "New Item",
         "location": {
           "startingColumn": 31,
-          "startingLine": 1791
+          "startingLine": 3899
         }
       },
       {
@@ -87,7 +103,7 @@
         "key": "Show Next Up",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1799
+          "startingLine": 3907
         }
       },
       {
@@ -95,7 +111,7 @@
         "key": "Show Quick Actions",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1800
+          "startingLine": 3908
         }
       },
       {
@@ -103,7 +119,7 @@
         "key": "Compact Row Height",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1803
+          "startingLine": 3911
         }
       },
       {
@@ -111,7 +127,7 @@
         "key": "Show Summary Card",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1804
+          "startingLine": 3912
         }
       },
       {
@@ -119,7 +135,7 @@
         "key": "Work Week (Mon-Fri)",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1805
+          "startingLine": 3913
         }
       },
       {
@@ -127,7 +143,7 @@
         "key": "Show Summary Card",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1808
+          "startingLine": 3916
         }
       },
       {
@@ -135,7 +151,7 @@
         "key": "Show Week Preview",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1809
+          "startingLine": 3917
         }
       },
       {
@@ -143,7 +159,7 @@
         "key": "Date",
         "location": {
           "startingColumn": 37,
-          "startingLine": 1826
+          "startingLine": 3934
         }
       },
       {
@@ -151,7 +167,7 @@
         "key": "Domain",
         "location": {
           "startingColumn": 37,
-          "startingLine": 1834
+          "startingLine": 3942
         }
       },
       {
@@ -159,7 +175,7 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 37,
-          "startingLine": 1845
+          "startingLine": 3953
         }
       },
       {
@@ -167,7 +183,7 @@
         "key": "Date",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1827
+          "startingLine": 3935
         }
       },
       {
@@ -175,7 +191,7 @@
         "key": "Domain",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1835
+          "startingLine": 3943
         }
       },
       {
@@ -183,7 +199,7 @@
         "key": "All domains",
         "location": {
           "startingColumn": 42,
-          "startingLine": 1836
+          "startingLine": 3944
         }
       },
       {
@@ -191,7 +207,7 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1846
+          "startingLine": 3954
         }
       },
       {
@@ -199,7 +215,7 @@
         "key": "All buckets",
         "location": {
           "startingColumn": 42,
-          "startingLine": 1847
+          "startingLine": 3955
         }
       },
       {
@@ -207,7 +223,7 @@
         "key": "%@: %@",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1851
+          "startingLine": 3959
         }
       },
       {
@@ -215,7 +231,7 @@
         "key": "Create Bucket",
         "location": {
           "startingColumn": 39,
-          "startingLine": 1871
+          "startingLine": 3979
         }
       },
       {
@@ -223,7 +239,7 @@
         "key": "View Active",
         "location": {
           "startingColumn": 64,
-          "startingLine": 1878
+          "startingLine": 3986
         }
       },
       {
@@ -231,7 +247,7 @@
         "key": "View Archived",
         "location": {
           "startingColumn": 80,
-          "startingLine": 1878
+          "startingLine": 3986
         }
       },
       {
@@ -239,7 +255,7 @@
         "key": "Launch companion apps",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2089
+          "startingLine": 4197
         }
       },
       {
@@ -247,7 +263,7 @@
         "key": "Profile",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2120
+          "startingLine": 4229
         }
       },
       {
@@ -255,7 +271,7 @@
         "key": "Header preview: %@",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2133
+          "startingLine": 4242
         }
       },
       {
@@ -263,7 +279,7 @@
         "key": "Display name",
         "location": {
           "startingColumn": 31,
-          "startingLine": 2123
+          "startingLine": 4232
         }
       },
       {
@@ -271,7 +287,7 @@
         "key": "Show archived buckets by default",
         "location": {
           "startingColumn": 25,
-          "startingLine": 2126
+          "startingLine": 4235
         }
       },
       {
@@ -279,7 +295,15 @@
         "key": "Save Name",
         "location": {
           "startingColumn": 32,
-          "startingLine": 2138
+          "startingLine": 4247
+        }
+      },
+      {
+        "comment": "",
+        "key": "Run Setup Again",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 4252
         }
       },
       {
@@ -287,7 +311,95 @@
         "key": "Reset Sample Items",
         "location": {
           "startingColumn": 32,
-          "startingLine": 2143
+          "startingLine": 4258
+        }
+      },
+      {
+        "comment": "",
+        "key": "You can change these later in Settings and the domain pages.",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 4307
+        }
+      },
+      {
+        "comment": "",
+        "key": "Your name",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 4295
+        }
+      },
+      {
+        "comment": "",
+        "key": "Default buckets",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 4299
+        }
+      },
+      {
+        "comment": "",
+        "key": "Welcome to TimeScape",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 4288
+        }
+      },
+      {
+        "comment": "",
+        "key": "Set your name and tune the default buckets for the way you plan.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 4290
+        }
+      },
+      {
+        "comment": "",
+        "key": "Display name",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 4296
+        }
+      },
+      {
+        "comment": "",
+        "key": "Personal bucket",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 4301
+        }
+      },
+      {
+        "comment": "",
+        "key": "Household bucket",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 4302
+        }
+      },
+      {
+        "comment": "",
+        "key": "Jobs bucket",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 4303
+        }
+      },
+      {
+        "comment": "",
+        "key": "Skip for now",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 4312
+        }
+      },
+      {
+        "comment": "",
+        "key": "Finish Setup",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 4320
         }
       }
     ]

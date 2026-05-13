@@ -1,2 +1,0 @@
-Target dependency graph (1 target)
-Target 'TimeScape Planner Pro' in project 'TimeScape Planner Pro' (no dependencies)

@@ -23,7 +23,7 @@
         "key": "Notes",
         "location": {
           "startingColumn": 30,
-          "startingLine": 266
+          "startingLine": 272
         }
       },
       {
@@ -31,7 +31,7 @@
         "key": "Sub-Items",
         "location": {
           "startingColumn": 30,
-          "startingLine": 278
+          "startingLine": 284
         }
       },
       {
@@ -39,7 +39,7 @@
         "key": "+%lld more",
         "location": {
           "startingColumn": 34,
-          "startingLine": 295
+          "startingLine": 301
         }
       },
       {
@@ -47,7 +47,7 @@
         "key": "Edit Item",
         "location": {
           "startingColumn": 30,
-          "startingLine": 307
+          "startingLine": 313
         }
       },
       {
@@ -55,7 +55,7 @@
         "key": "General",
         "location": {
           "startingColumn": 42,
-          "startingLine": 341
+          "startingLine": 347
         }
       },
       {
@@ -63,7 +63,7 @@
         "key": "$%@%@",
         "location": {
           "startingColumn": 46,
-          "startingLine": 359
+          "startingLine": 365
         }
       },
       {
@@ -71,7 +71,7 @@
         "key": "Job",
         "location": {
           "startingColumn": 43,
-          "startingLine": 354
+          "startingLine": 360
         }
       },
       {
@@ -79,7 +79,7 @@
         "key": "Add item",
         "location": {
           "startingColumn": 36,
-          "startingLine": 379
+          "startingLine": 385
         }
       },
       {
@@ -87,7 +87,7 @@
         "key": "Edit bucket",
         "location": {
           "startingColumn": 32,
-          "startingLine": 383
+          "startingLine": 389
         }
       },
       {
@@ -95,7 +95,7 @@
         "key": "Unarchive",
         "location": {
           "startingColumn": 56,
-          "startingLine": 388
+          "startingLine": 394
         }
       },
       {
@@ -103,7 +103,7 @@
         "key": "Archive",
         "location": {
           "startingColumn": 70,
-          "startingLine": 388
+          "startingLine": 394
         }
       },
       {
@@ -111,7 +111,7 @@
         "key": "Delete",
         "location": {
           "startingColumn": 36,
-          "startingLine": 390
+          "startingLine": 396
         }
       },
       {
@@ -119,7 +119,7 @@
         "key": "%lld",
         "location": {
           "startingColumn": 30,
-          "startingLine": 406
+          "startingLine": 412
         }
       },
       {
@@ -127,7 +127,7 @@
         "key": "Items",
         "location": {
           "startingColumn": 26,
-          "startingLine": 414
+          "startingLine": 420
         }
       },
       {
@@ -135,7 +135,7 @@
         "key": "No items yet",
         "location": {
           "startingColumn": 30,
-          "startingLine": 419
+          "startingLine": 425
         }
       },
       {
@@ -143,7 +143,7 @@
         "key": "Edit bucket",
         "location": {
           "startingColumn": 23,
-          "startingLine": 548
+          "startingLine": 554
         }
       },
       {
@@ -151,7 +151,7 @@
         "key": "General",
         "location": {
           "startingColumn": 34,
-          "startingLine": 507
+          "startingLine": 513
         }
       },
       {
@@ -159,7 +159,7 @@
         "key": "$%@%@",
         "location": {
           "startingColumn": 38,
-          "startingLine": 525
+          "startingLine": 531
         }
       },
       {
@@ -167,7 +167,7 @@
         "key": "Job",
         "location": {
           "startingColumn": 35,
-          "startingLine": 520
+          "startingLine": 526
         }
       },
       {
@@ -175,7 +175,7 @@
         "key": "Unarchive",
         "location": {
           "startingColumn": 52,
-          "startingLine": 552
+          "startingLine": 558
         }
       },
       {
@@ -183,7 +183,7 @@
         "key": "Archive",
         "location": {
           "startingColumn": 66,
-          "startingLine": 552
+          "startingLine": 558
         }
       },
       {
@@ -191,7 +191,7 @@
         "key": "Delete",
         "location": {
           "startingColumn": 32,
-          "startingLine": 554
+          "startingLine": 560
         }
       },
       {
@@ -199,7 +199,7 @@
         "key": "Domain: %@",
         "location": {
           "startingColumn": 22,
-          "startingLine": 749
+          "startingLine": 763
         }
       },
       {
@@ -207,7 +207,7 @@
         "key": "New Bucket",
         "location": {
           "startingColumn": 46,
-          "startingLine": 746
+          "startingLine": 760
         }
       },
       {
@@ -215,7 +215,7 @@
         "key": "Edit Bucket",
         "location": {
           "startingColumn": 61,
-          "startingLine": 746
+          "startingLine": 760
         }
       },
       {
@@ -223,7 +223,7 @@
         "key": "Job?",
         "location": {
           "startingColumn": 28,
-          "startingLine": 787
+          "startingLine": 801
         }
       },
       {
@@ -231,7 +231,7 @@
         "key": "Routine?",
         "location": {
           "startingColumn": 28,
-          "startingLine": 814
+          "startingLine": 833
         }
       },
       {
@@ -239,7 +239,7 @@
         "key": "Frequency",
         "location": {
           "startingColumn": 32,
-          "startingLine": 817
+          "startingLine": 836
         }
       },
       {
@@ -247,7 +247,7 @@
         "key": "Bucket name",
         "location": {
           "startingColumn": 31,
-          "startingLine": 753
+          "startingLine": 767
         }
       },
       {
@@ -255,7 +255,7 @@
         "key": "Icon",
         "location": {
           "startingColumn": 28,
-          "startingLine": 756
+          "startingLine": 770
         }
       },
       {
@@ -263,7 +263,7 @@
         "key": "Color",
         "location": {
           "startingColumn": 28,
-          "startingLine": 772
+          "startingLine": 786
         }
       },
       {
@@ -271,15 +271,7 @@
         "key": "Description",
         "location": {
           "startingColumn": 31,
-          "startingLine": 781
-        }
-      },
-      {
-        "comment": "",
-        "key": "Job site",
-        "location": {
-          "startingColumn": 39,
-          "startingLine": 791
+          "startingLine": 795
         }
       },
       {
@@ -287,7 +279,7 @@
         "key": "Pay rate",
         "location": {
           "startingColumn": 39,
-          "startingLine": 793
+          "startingLine": 810
         }
       },
       {
@@ -295,7 +287,7 @@
         "key": "Pay period",
         "location": {
           "startingColumn": 36,
-          "startingLine": 798
+          "startingLine": 815
         }
       },
       {
@@ -303,7 +295,7 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
-          "startingLine": 830
+          "startingLine": 849
         }
       },
       {
@@ -311,7 +303,71 @@
         "key": "Save",
         "location": {
           "startingColumn": 28,
-          "startingLine": 831
+          "startingLine": 850
+        }
+      },
+      {
+        "comment": "",
+        "key": "Job days off",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 864
+        }
+      },
+      {
+        "comment": "",
+        "key": "No default days off configured.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 915
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 869
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add date",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 871
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 883
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add recurring MM/DD",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 885
+        }
+      },
+      {
+        "comment": "",
+        "key": "US Holiday",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 899
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add holiday",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 906
         }
       }
     ]

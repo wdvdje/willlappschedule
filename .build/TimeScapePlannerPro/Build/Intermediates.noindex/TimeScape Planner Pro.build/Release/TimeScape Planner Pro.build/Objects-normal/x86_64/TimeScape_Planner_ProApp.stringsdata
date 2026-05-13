@@ -4,10 +4,18 @@
     "Localizable": [
       {
         "comment": "",
+        "key": "TimeScape Planner Pro Help",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 15
+        }
+      },
+      {
+        "comment": "",
         "key": "Journal",
         "location": {
           "startingColumn": 16,
-          "startingLine": 20
+          "startingLine": 38
         }
       },
       {
@@ -15,7 +23,7 @@
         "key": "Dynamic Weather",
         "location": {
           "startingColumn": 16,
-          "startingLine": 25
+          "startingLine": 43
         }
       },
       {
@@ -23,7 +31,15 @@
         "key": "Meals",
         "location": {
           "startingColumn": 16,
-          "startingLine": 30
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dynamic Map",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 53
         }
       },
       {
@@ -31,7 +47,15 @@
         "key": "Budgeting",
         "location": {
           "startingColumn": 16,
-          "startingLine": 35
+          "startingLine": 59
+        }
+      },
+      {
+        "comment": "",
+        "key": "Help",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 64
         }
       }
     ]

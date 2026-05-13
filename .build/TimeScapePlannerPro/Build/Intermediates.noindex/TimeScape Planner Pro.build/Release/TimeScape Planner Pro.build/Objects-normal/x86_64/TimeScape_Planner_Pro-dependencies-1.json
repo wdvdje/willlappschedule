@@ -2,659 +2,659 @@
   {
     "isFramework" : true,
     "moduleName" : "Accessibility",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Accessibility.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Accessibility.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "AppKit",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/AppKit.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/AppKit.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "Combine",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Combine.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Combine.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "CoreData",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/CoreData.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/CoreData.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "CoreFoundation",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/CoreFoundation.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/CoreFoundation.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "CoreGraphics",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/CoreGraphics.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/CoreGraphics.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "CoreImage",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/CoreImage.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/CoreImage.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "CoreLocation",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/CoreLocation.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/CoreLocation.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "CoreText",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/CoreText.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/CoreText.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "CoreTransferable",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/CoreTransferable.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/CoreTransferable.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "CoreVideo",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/CoreVideo.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/CoreVideo.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "Darwin",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Darwin.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Darwin.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "DataDetection",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/DataDetection.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/DataDetection.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "DeveloperToolsSupport",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/DeveloperToolsSupport.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/DeveloperToolsSupport.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "Dispatch",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Dispatch.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Dispatch.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "Foundation",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Foundation.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Foundation.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "GeoToolbox",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/GeoToolbox.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/GeoToolbox.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "IOKit",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/IOKit.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/IOKit.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "MapKit",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/MapKit.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/MapKit.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "Metal",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Metal.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Metal.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "OSLog",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/OSLog.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/OSLog.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "ObjectiveC",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/ObjectiveC.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/ObjectiveC.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "Observation",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Observation.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Observation.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "QuartzCore",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/QuartzCore.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/QuartzCore.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "Spatial",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Spatial.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Spatial.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "Swift",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Swift.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Swift.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "SwiftUI",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/SwiftUI.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/SwiftUI.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "SwiftUICore",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/SwiftUICore.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/SwiftUICore.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "Symbols",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/Symbols.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/Symbols.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "System",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/System.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/System.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "UniformTypeIdentifiers",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/UniformTypeIdentifiers.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/UniformTypeIdentifiers.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "XPC",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/XPC.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/XPC.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "_Builtin_float",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/_Builtin_float.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/_Builtin_float.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "_Concurrency",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/_Concurrency.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/_Concurrency.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "_DarwinFoundation1",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/_DarwinFoundation1.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/_DarwinFoundation1.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "_DarwinFoundation2",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/_DarwinFoundation2.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/_DarwinFoundation2.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "_DarwinFoundation3",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/_DarwinFoundation3.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/_DarwinFoundation3.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : true,
     "moduleName" : "_MapKit_SwiftUI",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/_MapKit_SwiftUI.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/_MapKit_SwiftUI.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "_StringProcessing",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/_StringProcessing.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/_StringProcessing.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "os",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/os.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/os.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "isFramework" : false,
     "moduleName" : "simd",
-    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.4\/simd.swiftmodule\/x86_64-apple-macos.swiftmodule"
+    "modulePath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/swift\/macosx\/prebuilt-modules\/26.5\/simd.swiftmodule\/x86_64-apple-macos.swiftmodule"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/Accessibility.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Accessibility-3HAD5KAAB3Y7DHERCPOO48C8N.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Accessibility-412W0G200V4HA6X538IUSE3IU.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "Accessibility"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/AppKit.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/AppKit-9Y869W67PVZLO4GVCG6PRAQ48.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/AppKit-98VMYAO9GE6T2LPD9OZL6H0DX.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "AppKit"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/ApplicationServices.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ApplicationServices-138U070DBVAB0MLMTGLY9UY41.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ApplicationServices-EPGWPANM58XETWAO7EEU4ELPH.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "ApplicationServices"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CFNetwork.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CFNetwork-7MYLHO0S0EAYOOVPWPIM7VPRM.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CFNetwork-EYPG7VV3HBR1UPNGL1ZEDNRBX.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CFNetwork"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/cups.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CUPS-38EVGD0YG6LNQ09VRXDE9I50Q.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CUPS-5RYU1BMTFHM9ZPE75D7UZC2YK.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CUPS"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/ColorSync.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ColorSync-3ZL3ZAMG1LIKKS29G3ZGKU5OY.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ColorSync-DH3EHHDGMQ0GAW8MGJR2DTUPF.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "ColorSync"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreData.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreData-2OEJWIV30RMN42KBKJ5TPQB5K.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreData-5KZWZC57T8MRIDMSF28CD6ID.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CoreData"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreFoundation.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreFoundation-53J1ELGLZZ2M6GOO4O49Z7NIX.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreFoundation-713H41GLQHZL7K9Z72DUYCEK0.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CoreFoundation"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreGraphics.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreGraphics-CXV5CRXGCV51BMLYOMKKA0U1Z.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreGraphics-2XRTGOJR0CRVHESFUKN1X80XR.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CoreGraphics"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreImage.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreImage-9EPYBSR4Z1OTS0EDC5EP8CAUZ.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreImage-DC5G71H1V5TXDLKFR3XO4WF0E.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CoreImage"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreLocation.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreLocation-B6H3V0F8GEKS9U9RSWQ1YI8HQ.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreLocation-D4L3MSJZ3PZ4WEIIEL4A1795Y.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CoreLocation"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreServices.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreServices-BCUZ6JM2NOZITELYWSQR4GRVG.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreServices-CMJIFCLQCFCCCWR75S1AZAY8I.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CoreServices"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreText.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreText-75CAFKH2JCF1F2FV0FLRX2TMF.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreText-AZIDDTT3RF2O07IA4T1I3VCVH.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CoreText"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreTransferable.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreTransferable-BYUAT1LGI3GCKZB9S1MJMNE0G.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreTransferable-8EQKX8LU4NWSUUCMPUHM4BMA1.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CoreTransferable"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/CoreVideo.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreVideo-2U1JX0FIRTE5RL7M7P7SLWK07.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/CoreVideo-BZO9EZPGHPROTFEPC77D96H1V.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "CoreVideo"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/Darwin.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Darwin-87KAWSDD0FUV9JVUXJ83CLFWV.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Darwin-9GU6M1M2863FEJ4S26ZQWUMXH.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "Darwin"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/DataDetection.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/DataDetection-CP2KMGUSB9JZK1LAZ27WTB3ZO.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/DataDetection-DR0MTC0V1H730SJ7E0UID9270.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "DataDetection"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/DeveloperToolsSupport.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/DeveloperToolsSupport-7IEVOL710GKFYNLRLAAQJW8PB.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/DeveloperToolsSupport-EEHS55URG3SF7LKMA6N9M74SF.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "DeveloperToolsSupport"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/DiskArbitration.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/DiskArbitration-9E8CLAS58DOFLNTHC9F33BOPK.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/DiskArbitration-85SF91KEXNJJ7USP5C7E4ECSS.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "DiskArbitration"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/dispatch.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Dispatch-63ZINT07WIDQEZA9T5K9Y7AEF.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Dispatch-47BUCNJUII9A6F22O5FAGUNQR.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "Dispatch"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/Foundation.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Foundation-3IW3WXFRK2ZY49O4RM310K9OG.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Foundation-AW1EOKA9SS0OMGVEYPE0OP7IC.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "Foundation"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/IOKit.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/IOKit-CSBQA7PZE38I45GSZYU8XC6M6.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/IOKit-7HQ50EOLR9L2HONXZIF4F6JZE.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "IOKit"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/IOSurface.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/IOSurface-8I2V6HERUUSPPW1VBHGBSU2ZK.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/IOSurface-37SZ5V7GUB75A1ZF53P3K58QK.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "IOSurface"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/ImageIO.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ImageIO-70TLO1V6NQX1S7OXA4GYH1ZY6.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ImageIO-542LLZPWDVQ7CJV84X28L09KV.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "ImageIO"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinBasic.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/MachO-6UEZEBIB6GMUPZK9DRDLDHBD3.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/MachO-2A4PEDFZHZMQ11RAIRPYW1OQU.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "MachO"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/MapKit.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/MapKit-6MTQKULKVD18PA0QO7G9WWOG5.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/MapKit-3E8OU9QBXGPNYPVTLWGBKOA6W.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "MapKit"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/Metal.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Metal-5V1TO9DI60B64NYICG4TSMZLA.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Metal-8RN2YFGSB10DMU4BV2JS8JJR7.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "Metal"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/OSLog.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/OSLog-461DRXSLQQVUBRS8L7GBO6X10.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/OSLog-A73PEXX0WGVLE58IQREVIAGXD.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "OSLog"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/ObjectiveC.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ObjectiveC-8SF7ADXK7IFL0900I9PIEW1OD.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ObjectiveC-EE95PO7D959XI94Q8MIB71FUS.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "ObjectiveC"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/OpenGL.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/OpenGL-3QC0SLP4MS35UE5MAN7SMYRS1.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/OpenGL-8CJBYG4IK4LS13PAJYKCSTFHQ.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "OpenGL"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/QuartzCore.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/QuartzCore-AWBV7Q1VAM7RAPZCAGPY2ZY5M.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/QuartzCore-JFU4BQFKMXG24NI1MKG1NZR4.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "QuartzCore"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/Security.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Security-41NLERC1R4DBSEEKMQCOK73KD.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Security-ENTF9MXB0M5XT8IQXMMR30GBN.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "Security"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/Spatial\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Spatial-7ORK2OL2C7UGMR05WWTFHXDKQ.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Spatial-AGNEQA6GQIFUZ9JLBZNYLU2P2.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "Spatial"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/lib\/swift\/shims\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/SwiftShims-95113JAC73WBT8V7IF0RKU0Z1.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/SwiftShims-FCDOHBFQ9693O8E83MFAI22W.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "SwiftShims"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/SwiftUI.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/SwiftUI-MC0Y54ZNB225NZFQ53BLUA9E.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/SwiftUI-1N4NR7EI9HIL6FKOT0K0XSIY3.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "SwiftUI"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/SwiftUICore.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/SwiftUICore-59SHWZE30HYUGO87DHMJC626E.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/SwiftUICore-5N18VFJS3PXHPJ0W1WA1WB29D.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "SwiftUICore"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/Symbols.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Symbols-8YMYDCV1NPQVFD0OYR3AD4E2H.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/Symbols-CZLZJWYNS2A638GXYG8UBIDD0.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "Symbols"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/UniformTypeIdentifiers.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/UniformTypeIdentifiers-TUBPAWMKRYUWWYLDHH1M2ZIE.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/UniformTypeIdentifiers-827BVMOSR2XBBLO7JQ6I9HLTO.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "UniformTypeIdentifiers"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/xpc.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/XPC-EC9WLX2TZZ45PWBS3G17G82KY.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/XPC-6BT5WBO7QZSIHK7RDX4FQ1DHX.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "XPC"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation1.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_AvailabilityInternal-22T5SV9ILK93SMDOORBZ1HLWP.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_AvailabilityInternal-9LTTP21R835SMJFGFRLR6J8IL.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_AvailabilityInternal"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_float-9DL44280KRLLTJFO19FWC11GA.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_float-81OXF8GOJY0NGOPJRPTB7O1OT.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_float"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_intrinsics-A2LX0LEJDC51MBSC7BVCU7129.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_intrinsics-41KM3FDTRRLGH8G16VTXR31VF.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_intrinsics"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_inttypes-C1LIZZYEFH3VZTT3N9SN9O18X.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_inttypes-7X3I1NDU1FYP2UA4ERXZ3SX8U.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_inttypes"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_limits-69SP9WQTDLUPYXIH6CT1SDMRD.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_limits-B3QX062QEH1YY8ONF21LKFOBT.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_limits"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stdarg-ADXG72OBS6XZPNIWZFRJNSJQ2.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stdarg-E7JSPI1Y3IN4AWTSNP4AX5TF2.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_stdarg"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stdatomic-CHVR3284D3J54DVXMBBQKQMF3.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stdatomic-BEPQ7RAV4XX4BNWUV5Q8JWHST.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_stdatomic"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stdbool-3OT3QHK0HIX5HJUYFGOG6M38Q.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stdbool-2VGCVUCOVDBIILRE0NIKS6O1E.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_stdbool"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stddef-49KRR901RDTDW4IHT8E4PN0IC.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stddef-3U1WRY6ME12I1SK8AEUG0EJ52.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_stddef"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stdint-F52BS13N5EZ97UJ485J13O0MZ.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_stdint-5956QZPLQUXTJRQC9URS08B9B.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_stdint"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_tgmath-85QIT7901PHATLGLZ3LA32CWJ.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_Builtin_tgmath-75IWIC9Z45FAZSR20EME72CA6.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_Builtin_tgmath"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation1.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_DarwinFoundation1-BCHT3ISY4WDAZJ0Q6E08QIS4F.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_DarwinFoundation1-3IFFDOCXPZ4Y2EN2MWKPVDYZZ.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_DarwinFoundation1"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation2.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_DarwinFoundation2-C05S8D32Z6P1MZLRD96WA4IE6.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_DarwinFoundation2-BFTTN6SJNW9FG0KJ4OE8I7293.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_DarwinFoundation2"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation3.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_DarwinFoundation3-7SL5CHSVABRG36TSUMCDNG6IF.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_DarwinFoundation3-9QPTOEXMDDPRO6S69MJM8CAHQ.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_DarwinFoundation3"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/System\/Library\/Frameworks\/_LocationEssentials.framework\/Modules\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_LocationEssentials-99GQJJ17ZMPRZLNND5OBJPK19.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_LocationEssentials-DPIRH4QJIMA04FRVK81G8S2G2.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_LocationEssentials"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/lib\/swift\/shims\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_SwiftConcurrencyShims-3ZZEDD0N97M1QZS2TDJMN6MBG.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/_SwiftConcurrencyShims-A28MCNOAEV7L95WVOA8SB726.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "_SwiftConcurrencyShims"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/launch.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/launch-A9G3O32PXIBCKPTZ6IQLURO1U.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/launch-1JCXJ9L6HIZ4UAK3V1Y3K55UW.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "launch"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/libDER\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/libDER-76G453HBXT2R3QHU51RJ9LJ16.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/libDER-C6GQFEWJAXHCXPSBCURIQG0F2.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "libDER"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/libkern.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/libkern-2NHN4OTOLXPP37D4132382FZX.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/libkern-2N71OC7U44M65OEPGKHWASPU.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "libkern"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/os.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/os-C8F2ZF3AFJJ9164HL8B9HYP15.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/os-BBZZ7XKDOK4WUMLEZI12BOP2C.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "os"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/os.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/os_object-CR61Y7LRR29JM00HLQ988LOSN.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/os_object-1VKVNH7PSN3VV0ZX6XR5A4446.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "os_object"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/os.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/os_workgroup-7J36E777LXVBI9QABJIH8DXEE.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/os_workgroup-DVEP5WLJ8E2G65E3O4IYE3O3Q.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "os_workgroup"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ptrauth-3BOG50I79W770IADDGI0UBK29.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ptrauth-65C3NS844OKI8R9NSJST0WTXV.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "ptrauth"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Toolchains\/XcodeDefault.xctoolchain\/usr\/lib\/clang\/21\/include\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ptrcheck-EM3ONTJ12HA0HNU7M8LSBROQQ.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/ptrcheck-9RMCX721D81QRFLWA7VARVAWW.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "ptrcheck"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/simd\/module.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/simd-8QJ3OSM8BZ9U0NBBJNDMGZE2G.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/simd-7WQCA5P9F6HBX2AWVDEAG05ZZ.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "simd"
   },
   {
     "clangModuleMapPath" : "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX.sdk\/usr\/include\/DarwinFoundation2.modulemap",
-    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/sys_types-4X9OHW2CWLH1O81IR37R6051O.pcm",
+    "clangModulePath" : "\/Users\/williamjoyce\/Documents\/GitHub\/willlappschedule\/.build\/TimeScapePlannerPro\/ModuleCache.noindex\/sys_types-EY65350F26NU235TMJ77SIE64.pcm",
     "isBridgingHeaderDependency" : false,
     "isFramework" : false,
     "moduleName" : "sys_types"
