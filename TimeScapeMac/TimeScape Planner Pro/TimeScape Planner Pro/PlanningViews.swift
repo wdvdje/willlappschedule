@@ -1415,16 +1415,18 @@ import AppKit
                 }
             } label: {
                 HStack(spacing: AppSpacing.xCompact.rawValue) {
-                    Text(prefix)
-                        .appCaptionBold()
                     if let source {
                         Image(systemName: source.symbolName)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(source.tint)
-                        Text(source.title)
+                        let preferredLabel = source.locationText.trimmingCharacters(in: .whitespacesAndNewlines)
+                        Text(preferredLabel.isEmpty ? source.title : preferredLabel)
                             .appCaption()
                             .lineLimit(1)
+                            .layoutPriority(1)
                     } else {
+                        Text(prefix)
+                            .appCaptionBold()
                         Text(placeholder)
                             .appCaption()
                     }
@@ -3439,8 +3441,26 @@ import AppKit
             }
         }
 
+        private func displayPrimaryDate(for item: PlanningItem) -> Date? {
+            guard item.repeatRule != .none else {
+                return currentPrimaryDate(for: item)
+            }
+
+            let calendar = Calendar.current
+            let today = calendar.startOfDay(for: Date())
+            guard let upperBound = calendar.date(byAdding: .day, value: 366, to: today) else {
+                return currentPrimaryDate(for: item)
+            }
+
+            if let nextOccurrence = store.occurrenceDates(for: item, from: today, to: upperBound).first {
+                return nextOccurrence
+            }
+
+            return currentPrimaryDate(for: item)
+        }
+
         private func primaryDateLabel(for item: PlanningItem) -> String {
-            guard let date = currentPrimaryDate(for: item) else { return "Select date" }
+            guard let date = displayPrimaryDate(for: item) else { return "Select date" }
             let formatter = DateFormatter()
             formatter.dateStyle = .medium
             formatter.timeStyle = .none
