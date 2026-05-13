@@ -2,6 +2,59 @@ import SwiftUI
 import MapKit
 import Combine
 
+// MARK: - Reusable Card Components
+
+struct CardStyle: ViewModifier {
+    var cornerRadius: CGFloat = 20
+    var tint: Color = .clear
+    var hasBorder: Bool = true
+
+    func body(content: Content) -> some View {
+        content
+            .background(
+                tint == .clear
+                    ? AnyShapeStyle(.thinMaterial)
+                    : AnyShapeStyle(tint.opacity(0.10)),
+                in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            )
+            .overlay(
+                Group {
+                    if hasBorder {
+                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                            .stroke(
+                                tint == .clear
+                                    ? Color.primary.opacity(0.08)
+                                    : tint.opacity(0.16),
+                                lineWidth: 1
+                            )
+                    }
+                }
+            )
+    }
+}
+
+extension View {
+    func cardStyle(cornerRadius: CGFloat = 20, tint: Color = .clear, hasBorder: Bool = true) -> some View {
+        modifier(CardStyle(cornerRadius: cornerRadius, tint: tint, hasBorder: hasBorder))
+    }
+}
+
+struct CardView<Content: View>: View {
+    var cornerRadius: CGFloat = 20
+    var tint: Color = .clear
+    var hasBorder: Bool = true
+    var padding: CGFloat = 18
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        content()
+            .padding(padding)
+            .cardStyle(cornerRadius: cornerRadius, tint: tint, hasBorder: hasBorder)
+    }
+}
+
+// MARK: - Feature Cards
+
     struct PlaceholderFeatureCard: View {
         let destination: AppDestination
 
@@ -15,7 +68,7 @@ import Combine
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .cardStyle(cornerRadius: 20, hasBorder: false)
         }
     }
 
@@ -54,14 +107,7 @@ import Combine
             }
             .padding(18)
             .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(tint.opacity(0.10))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(tint.opacity(0.16), lineWidth: 1)
-            )
+            .cardStyle(cornerRadius: 20, tint: tint, hasBorder: true)
         }
     }
 
@@ -88,7 +134,7 @@ import Combine
             }
             .padding(18)
             .frame(maxWidth: .infinity, minHeight: 144, alignment: .leading)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .cardStyle(cornerRadius: 20, hasBorder: false)
         }
     }
 
@@ -392,14 +438,7 @@ import Combine
                             }
                         }
                     }
-                    .background(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(.thinMaterial)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
+                    .cardStyle(cornerRadius: 10, hasBorder: true)
                 }
             }
             .onChange(of: isFocused) { _, focused in

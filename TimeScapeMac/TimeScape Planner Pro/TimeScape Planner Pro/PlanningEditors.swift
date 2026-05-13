@@ -899,7 +899,7 @@ import UniformTypeIdentifiers
                     .foregroundStyle(.secondary)
             }
             .padding(10)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .cardStyle(cornerRadius: 10, tint: .secondary, hasBorder: false)
         }
 
         private func selectPDFFile() {
@@ -1743,7 +1743,7 @@ import UniformTypeIdentifiers
                     .foregroundStyle(.secondary)
             }
             .padding(10)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .cardStyle(cornerRadius: 10, tint: .secondary, hasBorder: false)
         }
 
         private func isoDateString(_ date: Date) -> String {
