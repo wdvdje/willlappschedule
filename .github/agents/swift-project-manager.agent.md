@@ -15,6 +15,7 @@ hooks:
         if tool in ('edit', 'create', 'write', 'str_replace_editor', 'str_replace_based_edit_tool'):
             print(json.dumps({'hookSpecificOutput': {'hookEventName': 'PreToolUse', 'permissionDecision': 'ask', 'permissionDecisionReason': 'Swift PM wants to edit a file — approve?'}}))
         "
+model: claude-opus-4.7
 ---
 
 ## File Scope
