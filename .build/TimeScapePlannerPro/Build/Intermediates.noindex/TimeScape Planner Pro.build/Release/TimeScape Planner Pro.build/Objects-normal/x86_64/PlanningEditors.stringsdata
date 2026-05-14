@@ -788,7 +788,7 @@
       },
       {
         "comment": "",
-        "key": "Weather report",
+        "key": "Weather snapshot",
         "location": {
           "startingColumn": 28,
           "startingLine": 2053
@@ -860,7 +860,7 @@
       },
       {
         "comment": "",
-        "key": "Select report",
+        "key": "Select snapshot",
         "location": {
           "startingColumn": 30,
           "startingLine": 2054
