@@ -117,5 +117,10 @@
     "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/TimeScape_Planner_ProApp.o",
     "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/TimeScape_Planner_ProApp.bc",
     "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/TimeScape_Planner_ProApp.o"
+  },
+  "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/WeatherAppView.swift" : {
+    "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/WeatherAppView.o",
+    "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/WeatherAppView.bc",
+    "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/WeatherAppView.o"
   }
 }

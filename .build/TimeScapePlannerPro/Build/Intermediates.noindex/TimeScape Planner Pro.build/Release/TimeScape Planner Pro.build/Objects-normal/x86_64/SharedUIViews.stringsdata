@@ -7,7 +7,7 @@
         "key": "Coming soon",
         "location": {
           "startingColumn": 22,
-          "startingLine": 10
+          "startingLine": 64
         }
       },
       {
@@ -15,7 +15,7 @@
         "key": "%@ is part of the app plan, but it is not ready in this release yet. The current build focuses on the core planning experience, and this section will open once its workflow is ready.",
         "location": {
           "startingColumn": 22,
-          "startingLine": 12
+          "startingLine": 66
         }
       },
       {
@@ -23,7 +23,7 @@
         "key": "Searching places...",
         "location": {
           "startingColumn": 26,
-          "startingLine": 318
+          "startingLine": 446
         }
       }
     ]

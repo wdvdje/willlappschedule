@@ -4,34 +4,10 @@
     "Localizable": [
       {
         "comment": "",
-        "key": "Meals",
-        "location": {
-          "startingColumn": 22,
-          "startingLine": 217
-        }
-      },
-      {
-        "comment": "",
-        "key": "Plan your week, track macros, and manage grocery tasks",
-        "location": {
-          "startingColumn": 22,
-          "startingLine": 219
-        }
-      },
-      {
-        "comment": "",
-        "key": "Quick Add",
-        "location": {
-          "startingColumn": 23,
-          "startingLine": 232
-        }
-      },
-      {
-        "comment": "",
         "key": "Planned This Week",
         "location": {
           "startingColumn": 26,
-          "startingLine": 315
+          "startingLine": 270
         }
       },
       {
@@ -39,7 +15,7 @@
         "key": "Templates",
         "location": {
           "startingColumn": 26,
-          "startingLine": 335
+          "startingLine": 290
         }
       },
       {
@@ -47,7 +23,7 @@
         "key": "Recent Meals",
         "location": {
           "startingColumn": 26,
-          "startingLine": 353
+          "startingLine": 308
         }
       },
       {
@@ -55,7 +31,7 @@
         "key": "Search planned meals",
         "location": {
           "startingColumn": 35,
-          "startingLine": 258
+          "startingLine": 213
         }
       },
       {
@@ -63,7 +39,7 @@
         "key": "Group by",
         "location": {
           "startingColumn": 32,
-          "startingLine": 261
+          "startingLine": 216
         }
       },
       {
@@ -71,7 +47,7 @@
         "key": "Filter",
         "location": {
           "startingColumn": 32,
-          "startingLine": 268
+          "startingLine": 223
         }
       },
       {
@@ -79,7 +55,7 @@
         "key": "Default day",
         "location": {
           "startingColumn": 32,
-          "startingLine": 275
+          "startingLine": 230
         }
       },
       {
@@ -87,7 +63,7 @@
         "key": "Grocery",
         "location": {
           "startingColumn": 35,
-          "startingLine": 295
+          "startingLine": 250
         }
       },
       {
@@ -95,7 +71,7 @@
         "key": "Nutrition",
         "location": {
           "startingColumn": 35,
-          "startingLine": 302
+          "startingLine": 257
         }
       },
       {
@@ -103,7 +79,7 @@
         "key": "Tasks",
         "location": {
           "startingColumn": 35,
-          "startingLine": 309
+          "startingLine": 264
         }
       },
       {
@@ -111,7 +87,7 @@
         "key": "No meals planned yet",
         "location": {
           "startingColumn": 34,
-          "startingLine": 318
+          "startingLine": 273
         }
       },
       {
@@ -119,7 +95,7 @@
         "key": "• %@",
         "location": {
           "startingColumn": 42,
-          "startingLine": 326
+          "startingLine": 281
         }
       },
       {
@@ -127,7 +103,7 @@
         "key": "No templates yet",
         "location": {
           "startingColumn": 34,
-          "startingLine": 338
+          "startingLine": 293
         }
       },
       {
@@ -135,7 +111,7 @@
         "key": "No recent meals yet",
         "location": {
           "startingColumn": 34,
-          "startingLine": 356
+          "startingLine": 311
         }
       },
       {
@@ -143,7 +119,7 @@
         "key": "Week of %@",
         "location": {
           "startingColumn": 22,
-          "startingLine": 429
+          "startingLine": 384
         }
       },
       {
@@ -151,7 +127,7 @@
         "key": "Meal",
         "location": {
           "startingColumn": 22,
-          "startingLine": 470
+          "startingLine": 425
         }
       },
       {
@@ -159,7 +135,7 @@
         "key": "%lld",
         "location": {
           "startingColumn": 18,
-          "startingLine": 503
+          "startingLine": 458
         }
       },
       {
@@ -167,7 +143,7 @@
         "key": "+ Add",
         "location": {
           "startingColumn": 26,
-          "startingLine": 574
+          "startingLine": 529
         }
       },
       {
@@ -175,7 +151,7 @@
         "key": "%lld cal",
         "location": {
           "startingColumn": 34,
-          "startingLine": 568
+          "startingLine": 523
         }
       },
       {
@@ -183,7 +159,7 @@
         "key": "%@ %@",
         "location": {
           "startingColumn": 30,
-          "startingLine": 886
+          "startingLine": 862
         }
       },
       {
@@ -191,7 +167,7 @@
         "key": "Meal Details",
         "location": {
           "startingColumn": 30,
-          "startingLine": 770
+          "startingLine": 732
         }
       },
       {
@@ -199,7 +175,7 @@
         "key": "Ingredients",
         "location": {
           "startingColumn": 30,
-          "startingLine": 794
+          "startingLine": 756
         }
       },
       {
@@ -207,7 +183,7 @@
         "key": "Nutrition",
         "location": {
           "startingColumn": 34,
-          "startingLine": 855
+          "startingLine": 817
         }
       },
       {
@@ -215,7 +191,7 @@
         "key": "Save as template",
         "location": {
           "startingColumn": 36,
-          "startingLine": 788
+          "startingLine": 750
         }
       },
       {
@@ -223,7 +199,7 @@
         "key": "Meal name",
         "location": {
           "startingColumn": 38,
-          "startingLine": 773
+          "startingLine": 735
         }
       },
       {
@@ -231,7 +207,7 @@
         "key": "Enter a meal name",
         "location": {
           "startingColumn": 43,
-          "startingLine": 776
+          "startingLine": 738
         }
       },
       {
@@ -239,7 +215,7 @@
         "key": "Description",
         "location": {
           "startingColumn": 38,
-          "startingLine": 781
+          "startingLine": 743
         }
       },
       {
@@ -247,7 +223,7 @@
         "key": "Optional notes",
         "location": {
           "startingColumn": 43,
-          "startingLine": 784
+          "startingLine": 746
         }
       },
       {
@@ -255,7 +231,7 @@
         "key": "No ingredients yet",
         "location": {
           "startingColumn": 38,
-          "startingLine": 797
+          "startingLine": 759
         }
       },
       {
@@ -263,7 +239,7 @@
         "key": "%lld cal",
         "location": {
           "startingColumn": 54,
-          "startingLine": 816
+          "startingLine": 778
         }
       },
       {
@@ -271,7 +247,7 @@
         "key": "%lf %@",
         "location": {
           "startingColumn": 58,
-          "startingLine": 809
+          "startingLine": 771
         }
       },
       {
@@ -279,7 +255,7 @@
         "key": "Add Ingredient",
         "location": {
           "startingColumn": 39,
-          "startingLine": 846
+          "startingLine": 808
         }
       },
       {
@@ -287,7 +263,23 @@
         "key": "Start Fresh",
         "location": {
           "startingColumn": 32,
-          "startingLine": 872
+          "startingLine": 834
+        }
+      },
+      {
+        "comment": "",
+        "key": "Remove",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 841
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Meal",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 848
         }
       },
       {
@@ -295,23 +287,7 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
-          "startingLine": 889
-        }
-      },
-      {
-        "comment": "",
-        "key": "Remove",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 895
-        }
-      },
-      {
-        "comment": "",
-        "key": "Save Meal",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 901
+          "startingLine": 865
         }
       },
       {
@@ -319,7 +295,7 @@
         "key": "Add Ingredient",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1028
+          "startingLine": 990
         }
       },
       {
@@ -327,7 +303,7 @@
         "key": "Ingredient",
         "location": {
           "startingColumn": 30,
-          "startingLine": 964
+          "startingLine": 926
         }
       },
       {
@@ -335,7 +311,7 @@
         "key": "Quantity",
         "location": {
           "startingColumn": 30,
-          "startingLine": 986
+          "startingLine": 948
         }
       },
       {
@@ -343,7 +319,7 @@
         "key": "Nutrition (per 100g)",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1012
+          "startingLine": 974
         }
       },
       {
@@ -351,7 +327,7 @@
         "key": "Name",
         "location": {
           "startingColumn": 34,
-          "startingLine": 966
+          "startingLine": 928
         }
       },
       {
@@ -359,7 +335,7 @@
         "key": "Enter ingredient name",
         "location": {
           "startingColumn": 39,
-          "startingLine": 970
+          "startingLine": 932
         }
       },
       {
@@ -367,7 +343,7 @@
         "key": "Amount",
         "location": {
           "startingColumn": 38,
-          "startingLine": 989
+          "startingLine": 951
         }
       },
       {
@@ -375,7 +351,7 @@
         "key": "Amount",
         "location": {
           "startingColumn": 43,
-          "startingLine": 992
+          "startingLine": 954
         }
       },
       {
@@ -383,7 +359,7 @@
         "key": "Unit",
         "location": {
           "startingColumn": 38,
-          "startingLine": 997
+          "startingLine": 959
         }
       },
       {
@@ -391,7 +367,7 @@
         "key": "Unit",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1000
+          "startingLine": 962
         }
       },
       {
@@ -399,7 +375,7 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1031
+          "startingLine": 993
         }
       },
       {
@@ -407,7 +383,7 @@
         "key": "Add",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1036
+          "startingLine": 998
         }
       },
       {
@@ -415,7 +391,7 @@
         "key": "",
         "location": {
           "startingColumn": 23,
-          "startingLine": 1062
+          "startingLine": 1024
         }
       },
       {
@@ -423,7 +399,7 @@
         "key": "Grocery List",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1151
+          "startingLine": 1113
         }
       },
       {
@@ -431,7 +407,7 @@
         "key": "%.1f g",
         "location": {
           "startingColumn": 42,
-          "startingLine": 1099
+          "startingLine": 1061
         }
       },
       {
@@ -439,7 +415,7 @@
         "key": "No meals planned for this week",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1118
+          "startingLine": 1080
         }
       },
       {
@@ -447,7 +423,7 @@
         "key": "Add %lld to Task",
         "location": {
           "startingColumn": 39,
-          "startingLine": 1133
+          "startingLine": 1095
         }
       },
       {
@@ -455,7 +431,7 @@
         "key": "Clear",
         "location": {
           "startingColumn": 39,
-          "startingLine": 1140
+          "startingLine": 1102
         }
       },
       {
@@ -463,7 +439,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1154
+          "startingLine": 1116
         }
       },
       {
@@ -471,7 +447,7 @@
         "key": "Nutrition Report",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1305
+          "startingLine": 1267
         }
       },
       {
@@ -479,7 +455,7 @@
         "key": "No meals planned for this week",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1301
+          "startingLine": 1263
         }
       },
       {
@@ -487,7 +463,7 @@
         "key": "Daily Breakdown",
         "location": {
           "startingColumn": 34,
-          "startingLine": 1272
+          "startingLine": 1234
         }
       },
       {
@@ -495,7 +471,7 @@
         "key": "Weekly Total",
         "location": {
           "startingColumn": 38,
-          "startingLine": 1245
+          "startingLine": 1207
         }
       },
       {
@@ -503,7 +479,7 @@
         "key": "Calories",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1250
+          "startingLine": 1212
         }
       },
       {
@@ -511,7 +487,7 @@
         "key": "%lld",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1251
+          "startingLine": 1213
         }
       },
       {
@@ -519,7 +495,7 @@
         "key": "Protein",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1254
+          "startingLine": 1216
         }
       },
       {
@@ -527,7 +503,7 @@
         "key": "%.0fg",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1255
+          "startingLine": 1217
         }
       },
       {
@@ -535,7 +511,7 @@
         "key": "Carbs",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1258
+          "startingLine": 1220
         }
       },
       {
@@ -543,7 +519,7 @@
         "key": "%.0fg",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1259
+          "startingLine": 1221
         }
       },
       {
@@ -551,7 +527,7 @@
         "key": "Fat",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1262
+          "startingLine": 1224
         }
       },
       {
@@ -559,7 +535,7 @@
         "key": "%.0fg",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1263
+          "startingLine": 1225
         }
       },
       {
@@ -567,7 +543,7 @@
         "key": "%lld cal",
         "location": {
           "startingColumn": 47,
-          "startingLine": 1287
+          "startingLine": 1249
         }
       },
       {
@@ -575,7 +551,7 @@
         "key": "%.0fg protein",
         "location": {
           "startingColumn": 47,
-          "startingLine": 1288
+          "startingLine": 1250
         }
       },
       {
@@ -583,7 +559,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1308
+          "startingLine": 1270
         }
       },
       {
@@ -591,7 +567,7 @@
         "key": "Grocery Tasks",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1418
+          "startingLine": 1380
         }
       },
       {
@@ -599,7 +575,7 @@
         "key": "No grocery tasks yet",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1334
+          "startingLine": 1296
         }
       },
       {
@@ -607,7 +583,7 @@
         "key": "Create one from the grocery list",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1336
+          "startingLine": 1298
         }
       },
       {
@@ -615,7 +591,7 @@
         "key": "%lld/%lld items",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1352
+          "startingLine": 1314
         }
       },
       {
@@ -623,7 +599,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1421
+          "startingLine": 1383
         }
       }
     ]
