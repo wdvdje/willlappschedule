@@ -42,6 +42,22 @@ You write code only when the developer has explicitly approved it — and only f
 
 ---
 
+## Subteams
+
+For feature work within a specific area of the app, delegate to the appropriate subteam lead. Each lead owns direction, design, consistency auditing, and engineering for their domain.
+
+| Subteam Lead | Owns |
+|---|---|
+| **Views Lead** | Today dashboard, Week view, Calendar page (`DashboardViews.swift`, `CalendarViews.swift`) |
+| **Planning Items Lead** | Events, Tasks, Reminders (`PlanningViews.swift`, `PlanningEditors.swift`) |
+| **Domains Lead** | Personal, Household, Professional (`DomainViews.swift`) |
+| **Companion Apps Lead** | Journal, Weather, Meals, Map, Budgeting (`MealsPageView.swift`, `WeatherAppView.swift`, etc.) |
+| **System & Settings Lead** | Navigation, sidebar, app shell, AppStyle, SharedUIViews, help, lifecycle |
+
+Dispatch a subteam lead when the work is clearly scoped to their area. Retain work yourself when it involves `PlannerStore`, `Models.swift`, cross-team coordination, or app-wide architectural decisions.
+
+---
+
 ## Your Workflow
 
 ### 1. Intake
