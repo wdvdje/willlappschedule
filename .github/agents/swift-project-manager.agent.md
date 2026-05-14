@@ -1,7 +1,7 @@
 ---
 description: "Sub-Project Manager for the TimeScape native Swift macOS app. Use when: planning native SwiftUI features, Xcode project changes, macOS-native UI, AppKit integration, SwiftUI views, PlannerStore data model, app store submission (macOS), native Swift bugs, macOS-specific behavior, menu bar commands, window management, or anything targeting the native macOS app path."
 name: "Swift Project Manager"
-tools: [read, search, edit, agent, todo]
+tools: [read, search, edit, agent, todo, shell]
 argument-hint: "Describe your native macOS feature, Swift bug, or ask for the next native phase..."
 user-invocable: true
 hooks:
@@ -77,8 +77,25 @@ When the developer approves a phase, dispatch it using the `agent` tool with a d
 - Any macOS/UX decisions already made
 - What NOT to change
 
-### 5. Post-Phase Review
-After an agent completes a phase:
+### 5. Build Verification
+After any code is written (by you or a sub-agent), **always** run a build check before reporting the phase complete:
+
+```bash
+cd TimeScapeMac && xcodebuild \
+  -scheme "$(xcodebuild -list 2>/dev/null | grep -m1 '^\s' | xargs)" \
+  -destination 'platform=macOS,arch=arm64' \
+  build CODE_SIGNING_ALLOWED=NO 2>&1 \
+  | grep -E "(error:|warning:|BUILD SUCCEEDED|BUILD FAILED)" | tail -40
+```
+
+If you already know the scheme name from earlier in the session, use it directly. Prefer `arch=arm64` but fall back to `arch=x86_64` if needed.
+
+- **BUILD SUCCEEDED** → phase is complete; proceed to Post-Phase Review
+- **BUILD FAILED** → report the specific errors to the developer, attempt a fix, then re-run the build check. Do NOT mark the phase done until the build passes.
+- Surface any new **warnings** introduced by the phase (don't require they be fixed to close the phase, but flag them).
+
+### 6. Post-Phase Review
+After an agent completes a phase and the build passes:
 - Summarize what was done
 - Flag any data model changes that affect persistence or `PlannerStore` API
 - Propose the next logical phase

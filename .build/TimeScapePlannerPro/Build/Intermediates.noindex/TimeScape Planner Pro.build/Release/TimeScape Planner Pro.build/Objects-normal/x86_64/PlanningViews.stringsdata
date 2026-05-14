@@ -7,7 +7,7 @@
         "key": "Open companion tools in dedicated windows and connect their output back to your buckets and planning items.",
         "location": {
           "startingColumn": 22,
-          "startingLine": 20
+          "startingLine": 21
         }
       },
       {
@@ -15,7 +15,7 @@
         "key": "Singleton window mode",
         "location": {
           "startingColumn": 42,
-          "startingLine": 71
+          "startingLine": 72
         }
       },
       {
@@ -23,695 +23,31 @@
         "key": "Open %@",
         "location": {
           "startingColumn": 47,
-          "startingLine": 67
+          "startingLine": 68
         }
       },
       {
         "comment": "",
-        "key": "Log expense",
+        "key": "Quick Add",
         "location": {
-          "startingColumn": 34,
-          "startingLine": 328
+          "startingColumn": 35,
+          "startingLine": 98
         }
       },
       {
         "comment": "",
-        "key": "Title",
-        "location": {
-          "startingColumn": 39,
-          "startingLine": 331
-        }
-      },
-      {
-        "comment": "",
-        "key": "Amount",
-        "location": {
-          "startingColumn": 39,
-          "startingLine": 332
-        }
-      },
-      {
-        "comment": "",
-        "key": "Date",
-        "location": {
-          "startingColumn": 40,
-          "startingLine": 333
-        }
-      },
-      {
-        "comment": "",
-        "key": "Category",
-        "location": {
-          "startingColumn": 36,
-          "startingLine": 335
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add Expense",
-        "location": {
-          "startingColumn": 36,
-          "startingLine": 342
-        }
-      },
-      {
-        "comment": "",
-        "key": "Select",
-        "location": {
-          "startingColumn": 38,
-          "startingLine": 336
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add recurring bill",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 352
-        }
-      },
-      {
-        "comment": "",
-        "key": "Title",
-        "location": {
-          "startingColumn": 39,
-          "startingLine": 355
-        }
-      },
-      {
-        "comment": "",
-        "key": "Amount",
-        "location": {
-          "startingColumn": 39,
-          "startingLine": 356
-        }
-      },
-      {
-        "comment": "",
-        "key": "Category",
-        "location": {
-          "startingColumn": 36,
-          "startingLine": 367
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add Bill",
-        "location": {
-          "startingColumn": 36,
-          "startingLine": 374
-        }
-      },
-      {
-        "comment": "",
-        "key": "Cadence",
-        "location": {
-          "startingColumn": 40,
-          "startingLine": 359
-        }
-      },
-      {
-        "comment": "",
-        "key": "Due day: %lld",
-        "location": {
-          "startingColumn": 41,
-          "startingLine": 364
-        }
-      },
-      {
-        "comment": "",
-        "key": "Select",
-        "location": {
-          "startingColumn": 38,
-          "startingLine": 368
-        }
-      },
-      {
-        "comment": "",
-        "key": "Payroll cadence by job",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 386
-        }
-      },
-      {
-        "comment": "",
-        "key": "Create at least one professional bucket marked as a job with a pay rate to configure cadence.",
-        "location": {
-          "startingColumn": 38,
-          "startingLine": 390
-        }
-      },
-      {
-        "comment": "",
-        "key": "Cadence",
-        "location": {
-          "startingColumn": 48,
-          "startingLine": 401
-        }
-      },
-      {
-        "comment": "",
-        "key": "Pay weekday",
-        "location": {
-          "startingColumn": 52,
-          "startingLine": 408
-        }
-      },
-      {
-        "comment": "",
-        "key": "Anchor pay date",
-        "location": {
-          "startingColumn": 49,
-          "startingLine": 417
-        }
-      },
-      {
-        "comment": "",
-        "key": "Pay day: %lld",
-        "location": {
-          "startingColumn": 49,
-          "startingLine": 425
-        }
-      },
-      {
-        "comment": "",
-        "key": "First pay day: %lld",
-        "location": {
-          "startingColumn": 49,
-          "startingLine": 433
-        }
-      },
-      {
-        "comment": "",
-        "key": "Second pay day: %lld",
-        "location": {
-          "startingColumn": 49,
-          "startingLine": 438
-        }
-      },
-      {
-        "comment": "",
-        "key": "Paycheck projection",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 456
-        }
-      },
-      {
-        "comment": "",
-        "key": "Pay date: %@",
-        "location": {
-          "startingColumn": 46,
-          "startingLine": 463
-        }
-      },
-      {
-        "comment": "",
-        "key": "Net: %@",
-        "location": {
-          "startingColumn": 46,
-          "startingLine": 471
-        }
-      },
-      {
-        "comment": "",
-        "key": "Reporting",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 484
-        }
-      },
-      {
-        "comment": "",
-        "key": "30-day cash flow: %@",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 486
-        }
-      },
-      {
-        "comment": "",
-        "key": "90-day cash flow: %@",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 488
-        }
-      },
-      {
-        "comment": "",
-        "key": "Income variance (actual vs projected): %@",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 490
-        }
-      },
-      {
-        "comment": "",
-        "key": "Spend variance (actual vs projected): %@",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 493
-        }
-      },
-      {
-        "comment": "",
-        "key": "Overtime impact this week: %@",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 496
-        }
-      },
-      {
-        "comment": "",
-        "key": "Savings goal + tax",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 502
-        }
-      },
-      {
-        "comment": "",
-        "key": "Current target: %@",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 511
-        }
-      },
-      {
-        "comment": "",
-        "key": "Monthly goal",
-        "location": {
-          "startingColumn": 43,
-          "startingLine": 505
-        }
-      },
-      {
-        "comment": "",
-        "key": "Tax rate (0.22)",
-        "location": {
-          "startingColumn": 43,
-          "startingLine": 506
-        }
-      },
-      {
-        "comment": "",
-        "key": "Save",
-        "location": {
-          "startingColumn": 40,
-          "startingLine": 507
-        }
-      },
-      {
-        "comment": "",
-        "key": "Category budget envelopes",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 521
-        }
-      },
-      {
-        "comment": "",
-        "key": "%@ / %@",
-        "location": {
-          "startingColumn": 38,
-          "startingLine": 527
-        }
-      },
-      {
-        "comment": "",
-        "key": "Sync locations from items and buckets, then estimate traffic-aware routes.",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 1008
-        }
-      },
-      {
-        "comment": "",
-        "key": "Planning items",
-        "location": {
-          "startingColumn": 21,
-          "startingLine": 1021
-        }
-      },
-      {
-        "comment": "",
-        "key": "Bucket job sites",
-        "location": {
-          "startingColumn": 21,
-          "startingLine": 1027
-        }
-      },
-      {
-        "comment": "",
-        "key": "Resolving locations",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 1035
-        }
-      },
-      {
-        "comment": "",
-        "key": "Center Map",
-        "location": {
-          "startingColumn": 27,
-          "startingLine": 1042
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add Favorite",
-        "location": {
-          "startingColumn": 27,
-          "startingLine": 1051
-        }
-      },
-      {
-        "comment": "",
-        "key": "Saved locations",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 1062
-        }
-      },
-      {
-        "comment": "",
-        "key": "No saved locations yet",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1066
-        }
-      },
-      {
-        "comment": "",
-        "key": "Stops in route: %lld",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 1132
-        }
-      },
-      {
-        "comment": "",
-        "key": "Favorite locations",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 1136
-        }
-      },
-      {
-        "comment": "",
-        "key": "No favorites yet",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1140
-        }
-      },
-      {
-        "comment": "",
-        "key": "Saved routes",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 1185
-        }
-      },
-      {
-        "comment": "",
-        "key": "No saved routes yet",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1189
-        }
-      },
-      {
-        "comment": "",
-        "key": "Directions from here",
-        "location": {
-          "startingColumn": 47,
-          "startingLine": 1092
-        }
-      },
-      {
-        "comment": "",
-        "key": "Directions to here",
-        "location": {
-          "startingColumn": 47,
-          "startingLine": 1098
-        }
-      },
-      {
-        "comment": "",
-        "key": "Remove stop from route",
-        "location": {
-          "startingColumn": 83,
-          "startingLine": 1107
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add stop to route",
-        "location": {
-          "startingColumn": 110,
-          "startingLine": 1107
-        }
-      },
-      {
-        "comment": "",
-        "key": "Save Favorite",
-        "location": {
-          "startingColumn": 47,
-          "startingLine": 1117
-        }
-      },
-      {
-        "comment": "",
-        "key": "Directions from here",
-        "location": {
-          "startingColumn": 47,
-          "startingLine": 1168
-        }
-      },
-      {
-        "comment": "",
-        "key": "Directions to here",
-        "location": {
-          "startingColumn": 47,
-          "startingLine": 1174
-        }
-      },
-      {
-        "comment": "",
-        "key": "%lld stops",
-        "location": {
-          "startingColumn": 46,
-          "startingLine": 1206
-        }
-      },
-      {
-        "comment": "",
-        "key": "Location access is off. Enable it to use your current position as route origin.",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 1241
-        }
-      },
-      {
-        "comment": "",
-        "key": "Selected:",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1257
-        }
-      },
-      {
-        "comment": "",
-        "key": "Swap",
-        "location": {
-          "startingColumn": 31,
-          "startingLine": 1296
-        }
-      },
-      {
-        "comment": "",
-        "key": "Clear",
-        "location": {
-          "startingColumn": 31,
-          "startingLine": 1304
-        }
-      },
-      {
-        "comment": "",
-        "key": "Ordered directions use the explicit From/To pair.",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1319
-        }
-      },
-      {
-        "comment": "",
-        "key": "Get Directions",
-        "location": {
-          "startingColumn": 51,
-          "startingLine": 1313
-        }
-      },
-      {
-        "comment": "",
-        "key": "Estimate Route",
-        "location": {
-          "startingColumn": 70,
-          "startingLine": 1313
-        }
-      },
-      {
-        "comment": "",
-        "key": "Save Route",
-        "location": {
-          "startingColumn": 31,
-          "startingLine": 1326
-        }
-      },
-      {
-        "comment": "",
-        "key": "Saved locations",
-        "location": {
-          "startingColumn": 25,
-          "startingLine": 1361
-        }
-      },
-      {
-        "comment": "",
-        "key": "Favorite locations",
-        "location": {
-          "startingColumn": 25,
-          "startingLine": 1375
-        }
-      },
-      {
-        "comment": "",
-        "key": "No saved locations",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1363
-        }
-      },
-      {
-        "comment": "",
-        "key": "No favorites",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1377
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add Favorite Location",
+        "key": "Panels",
         "location": {
           "startingColumn": 22,
-          "startingLine": 1419
+          "startingLine": 428
         }
       },
       {
         "comment": "",
-        "key": "Title (for example: Home)",
+        "key": "Overview",
         "location": {
-          "startingColumn": 27,
-          "startingLine": 1422
-        }
-      },
-      {
-        "comment": "",
-        "key": "Location",
-        "location": {
-          "startingColumn": 27,
-          "startingLine": 1423
-        }
-      },
-      {
-        "comment": "",
-        "key": "Cancel",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 1427
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add Favorite",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 1432
-        }
-      },
-      {
-        "comment": "",
-        "key": "Journal",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1954
-        }
-      },
-      {
-        "comment": "",
-        "key": "Capture entries and attach snapshots to item sub-items",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1956
-        }
-      },
-      {
-        "comment": "",
-        "key": "New Entry",
-        "location": {
-          "startingColumn": 31,
-          "startingLine": 1965
-        }
-      },
-      {
-        "comment": "",
-        "key": "Search entries",
-        "location": {
-          "startingColumn": 31,
-          "startingLine": 1971
-        }
-      },
-      {
-        "comment": "",
-        "key": "Group",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 1974
-        }
-      },
-      {
-        "comment": "",
-        "key": "No journal entries yet",
-        "location": {
-          "startingColumn": 34,
-          "startingLine": 1986
-        }
-      },
-      {
-        "comment": "",
-        "key": "Snapshot for item sub-item attachments: first 120 characters",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 2036
-        }
-      },
-      {
-        "comment": "",
-        "key": "New Entry",
-        "location": {
-          "startingColumn": 53,
-          "startingLine": 2004
-        }
-      },
-      {
-        "comment": "",
-        "key": "Edit Entry",
-        "location": {
-          "startingColumn": 67,
-          "startingLine": 2004
+          "startingColumn": 26,
+          "startingLine": 517
         }
       },
       {
@@ -719,7 +55,719 @@
         "key": "Title",
         "location": {
           "startingColumn": 35,
-          "startingLine": 2007
+          "startingLine": 528
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 530
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 532
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 535
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 536
+        }
+      },
+      {
+        "comment": "",
+        "key": "Title",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 554
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 556
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 572
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cadence",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 560
+        }
+      },
+      {
+        "comment": "",
+        "key": "Due day: %lld",
+        "location": {
+          "startingColumn": 37,
+          "startingLine": 567
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 573
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create at least one professional bucket marked as a job with a pay rate to configure cadence.",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 591
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cadence",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 603
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pay weekday",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 611
+        }
+      },
+      {
+        "comment": "",
+        "key": "Anchor pay date",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 621
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pay day: %lld",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 630
+        }
+      },
+      {
+        "comment": "",
+        "key": "First pay day: %lld",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 639
+        }
+      },
+      {
+        "comment": "",
+        "key": "Second pay day: %lld",
+        "location": {
+          "startingColumn": 45,
+          "startingLine": 645
+        }
+      },
+      {
+        "comment": "",
+        "key": "Current target: %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 676
+        }
+      },
+      {
+        "comment": "",
+        "key": "Monthly goal",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 666
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tax rate (0.22)",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 668
+        }
+      },
+      {
+        "comment": "",
+        "key": "30-day cash flow: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 686
+        }
+      },
+      {
+        "comment": "",
+        "key": "90-day cash flow: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 688
+        }
+      },
+      {
+        "comment": "",
+        "key": "Income variance (actual vs projected): %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 693
+        }
+      },
+      {
+        "comment": "",
+        "key": "Spend variance (actual vs projected): %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 696
+        }
+      },
+      {
+        "comment": "",
+        "key": "Overtime impact this week: %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 699
+        }
+      },
+      {
+        "comment": "",
+        "key": "Title",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 710
+        }
+      },
+      {
+        "comment": "",
+        "key": "Amount",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 712
+        }
+      },
+      {
+        "comment": "",
+        "key": "Date",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 714
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 717
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 718
+        }
+      },
+      {
+        "comment": "",
+        "key": "Recent source records",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 737
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create a record to make it available in the item editor.",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 741
+        }
+      },
+      {
+        "comment": "",
+        "key": "Paycheck projection",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 910
+        }
+      },
+      {
+        "comment": "",
+        "key": "Pay date: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 917
+        }
+      },
+      {
+        "comment": "",
+        "key": "Net: %@",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 925
+        }
+      },
+      {
+        "comment": "",
+        "key": "Category budget envelopes",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 940
+        }
+      },
+      {
+        "comment": "",
+        "key": "%@ / %@",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 946
+        }
+      },
+      {
+        "comment": "",
+        "key": "Planning items",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 1428
+        }
+      },
+      {
+        "comment": "",
+        "key": "Bucket job sites",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 1434
+        }
+      },
+      {
+        "comment": "",
+        "key": "Resolving locations",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1442
+        }
+      },
+      {
+        "comment": "",
+        "key": "Center Map",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1449
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Favorite",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1458
+        }
+      },
+      {
+        "comment": "",
+        "key": "Saved locations",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1471
+        }
+      },
+      {
+        "comment": "",
+        "key": "No saved locations yet",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1475
+        }
+      },
+      {
+        "comment": "",
+        "key": "Stops in route: %lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1483
+        }
+      },
+      {
+        "comment": "",
+        "key": "Favorite locations",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1491
+        }
+      },
+      {
+        "comment": "",
+        "key": "No favorites yet",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1495
+        }
+      },
+      {
+        "comment": "",
+        "key": "Directions from here",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 1523
+        }
+      },
+      {
+        "comment": "",
+        "key": "Directions to here",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 1529
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add to Route",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 1538
+        }
+      },
+      {
+        "comment": "",
+        "key": "Remove Favorite",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 1548
+        }
+      },
+      {
+        "comment": "",
+        "key": "Current route",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1563
+        }
+      },
+      {
+        "comment": "",
+        "key": "No route started",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 1567
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 46,
+          "startingLine": 1574
+        }
+      },
+      {
+        "comment": "",
+        "key": "Remove from route",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 1597
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear Route",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 1608
+        }
+      },
+      {
+        "comment": "",
+        "key": "Remove from route",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1658
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add to route",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1666
+        }
+      },
+      {
+        "comment": "",
+        "key": "Directions from here",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1674
+        }
+      },
+      {
+        "comment": "",
+        "key": "Directions to here",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1680
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Favorite",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1688
+        }
+      },
+      {
+        "comment": "",
+        "key": "Location access is off. Enable it to use your current position as route origin.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 1746
+        }
+      },
+      {
+        "comment": "",
+        "key": "Selected:",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1770
+        }
+      },
+      {
+        "comment": "",
+        "key": "Auto-estimate",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1785
+        }
+      },
+      {
+        "comment": "",
+        "key": "Automatically recalculate ETA/distance when route changes",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1787
+        }
+      },
+      {
+        "comment": "",
+        "key": "Swap",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1794
+        }
+      },
+      {
+        "comment": "",
+        "key": "Clear",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1802
+        }
+      },
+      {
+        "comment": "",
+        "key": "Get Directions",
+        "location": {
+          "startingColumn": 51,
+          "startingLine": 1824
+        }
+      },
+      {
+        "comment": "",
+        "key": "Estimate Route",
+        "location": {
+          "startingColumn": 70,
+          "startingLine": 1824
+        }
+      },
+      {
+        "comment": "",
+        "key": "Save Route",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1832
+        }
+      },
+      {
+        "comment": "",
+        "key": "Saved locations",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1889
+        }
+      },
+      {
+        "comment": "",
+        "key": "Favorite locations",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 1903
+        }
+      },
+      {
+        "comment": "",
+        "key": "No saved locations",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1891
+        }
+      },
+      {
+        "comment": "",
+        "key": "No favorites",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1905
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Favorite Location",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 1977
+        }
+      },
+      {
+        "comment": "",
+        "key": "Title (for example: Home)",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1980
+        }
+      },
+      {
+        "comment": "",
+        "key": "Cancel",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1988
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dismiss without saving (Esc)",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1992
+        }
+      },
+      {
+        "comment": "",
+        "key": "Add Favorite",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1994
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2504
+        }
+      },
+      {
+        "comment": "",
+        "key": "Remove from route",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 2529
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Entry",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 2676
+        }
+      },
+      {
+        "comment": "",
+        "key": "Search entries",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 2683
+        }
+      },
+      {
+        "comment": "",
+        "key": "Group",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2686
+        }
+      },
+      {
+        "comment": "",
+        "key": "No journal entries yet",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 2698
+        }
+      },
+      {
+        "comment": "",
+        "key": "Snapshot for item sub-item attachments: first 120 characters",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2748
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Entry",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 2716
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit Entry",
+        "location": {
+          "startingColumn": 67,
+          "startingLine": 2716
+        }
+      },
+      {
+        "comment": "",
+        "key": "Title",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 2719
         }
       },
       {
@@ -727,7 +775,7 @@
         "key": "Mood",
         "location": {
           "startingColumn": 36,
-          "startingLine": 2011
+          "startingLine": 2723
         }
       },
       {
@@ -735,7 +783,7 @@
         "key": "Date",
         "location": {
           "startingColumn": 33,
-          "startingLine": 2021
+          "startingLine": 2733
         }
       },
       {
@@ -743,7 +791,7 @@
         "key": "Save Entry",
         "location": {
           "startingColumn": 36,
-          "startingLine": 2040
+          "startingLine": 2752
         }
       },
       {
@@ -751,7 +799,7 @@
         "key": "Delete",
         "location": {
           "startingColumn": 36,
-          "startingLine": 2046
+          "startingLine": 2758
         }
       },
       {
@@ -759,7 +807,7 @@
         "key": "No items match the current filters.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2264
+          "startingLine": 2976
         }
       },
       {
@@ -767,7 +815,7 @@
         "key": "Edit",
         "location": {
           "startingColumn": 39,
-          "startingLine": 2381
+          "startingLine": 3095
         }
       },
       {
@@ -775,7 +823,7 @@
         "key": "Duplicate",
         "location": {
           "startingColumn": 39,
-          "startingLine": 2387
+          "startingLine": 3101
         }
       },
       {
@@ -783,7 +831,7 @@
         "key": "Delete",
         "location": {
           "startingColumn": 39,
-          "startingLine": 2395
+          "startingLine": 3109
         }
       },
       {
@@ -791,7 +839,7 @@
         "key": "Domain",
         "location": {
           "startingColumn": 32,
-          "startingLine": 2423
+          "startingLine": 3137
         }
       },
       {
@@ -799,7 +847,7 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 32,
-          "startingLine": 2431
+          "startingLine": 3145
         }
       },
       {
@@ -807,7 +855,7 @@
         "key": "No sub-items",
         "location": {
           "startingColumn": 34,
-          "startingLine": 2446
+          "startingLine": 3160
         }
       },
       {
@@ -815,7 +863,7 @@
         "key": "+%lld more details",
         "location": {
           "startingColumn": 22,
-          "startingLine": 2767
+          "startingLine": 3500
         }
       },
       {
@@ -823,7 +871,7 @@
         "key": "at",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2888
+          "startingLine": 3621
         }
       },
       {
@@ -831,7 +879,7 @@
         "key": "Select date",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2801
+          "startingLine": 3534
         }
       },
       {
@@ -839,7 +887,7 @@
         "key": "",
         "location": {
           "startingColumn": 29,
-          "startingLine": 2805
+          "startingLine": 3538
         }
       },
       {
@@ -847,7 +895,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 36,
-          "startingLine": 2814
+          "startingLine": 3547
         }
       },
       {
@@ -855,7 +903,7 @@
         "key": "all day",
         "location": {
           "startingColumn": 26,
-          "startingLine": 3364
+          "startingLine": 4115
         }
       },
       {
@@ -863,7 +911,7 @@
         "key": "Event timing",
         "location": {
           "startingColumn": 34,
-          "startingLine": 2839
+          "startingLine": 3572
         }
       },
       {
@@ -871,7 +919,7 @@
         "key": "All Day",
         "location": {
           "startingColumn": 33,
-          "startingLine": 2843
+          "startingLine": 3576
         }
       },
       {
@@ -879,7 +927,7 @@
         "key": "Start",
         "location": {
           "startingColumn": 46,
-          "startingLine": 2850
+          "startingLine": 3583
         }
       },
       {
@@ -887,7 +935,7 @@
         "key": "",
         "location": {
           "startingColumn": 45,
-          "startingLine": 2854
+          "startingLine": 3587
         }
       },
       {
@@ -895,7 +943,7 @@
         "key": "End",
         "location": {
           "startingColumn": 46,
-          "startingLine": 2862
+          "startingLine": 3595
         }
       },
       {
@@ -903,7 +951,7 @@
         "key": "",
         "location": {
           "startingColumn": 45,
-          "startingLine": 2866
+          "startingLine": 3599
         }
       },
       {
@@ -911,7 +959,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 40,
-          "startingLine": 2877
+          "startingLine": 3610
         }
       },
       {
@@ -919,7 +967,7 @@
         "key": "Repeating",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2920
+          "startingLine": 3653
         }
       },
       {
@@ -927,7 +975,7 @@
         "key": "Repeating every",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2942
+          "startingLine": 3675
         }
       },
       {
@@ -935,7 +983,7 @@
         "key": "never",
         "location": {
           "startingColumn": 34,
-          "startingLine": 2929
+          "startingLine": 3662
         }
       },
       {
@@ -943,7 +991,7 @@
         "key": "other workday",
         "location": {
           "startingColumn": 38,
-          "startingLine": 2954
+          "startingLine": 3687
         }
       },
       {
@@ -951,7 +999,7 @@
         "key": "until",
         "location": {
           "startingColumn": 38,
-          "startingLine": 2957
+          "startingLine": 3690
         }
       },
       {
@@ -959,7 +1007,7 @@
         "key": "Priority: ",
         "location": {
           "startingColumn": 22,
-          "startingLine": 2986
+          "startingLine": 3719
         }
       },
       {
@@ -967,7 +1015,7 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 22,
-          "startingLine": 3057
+          "startingLine": 3790
         }
       },
       {
@@ -975,7 +1023,7 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 24,
-          "startingLine": 3060
+          "startingLine": 3793
         }
       },
       {
@@ -983,7 +1031,7 @@
         "key": "End repeat date",
         "location": {
           "startingColumn": 28,
-          "startingLine": 3075
+          "startingLine": 3808
         }
       },
       {
@@ -991,7 +1039,7 @@
         "key": "Ends on",
         "location": {
           "startingColumn": 29,
-          "startingLine": 3086
+          "startingLine": 3819
         }
       },
       {
@@ -999,7 +1047,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
-          "startingLine": 3102
+          "startingLine": 3835
         }
       },
       {
@@ -1007,7 +1055,7 @@
         "key": "Priority",
         "location": {
           "startingColumn": 22,
-          "startingLine": 3114
+          "startingLine": 3847
         }
       },
       {
@@ -1015,7 +1063,7 @@
         "key": "Priority",
         "location": {
           "startingColumn": 24,
-          "startingLine": 3117
+          "startingLine": 3850
         }
       },
       {
@@ -1023,7 +1071,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
-          "startingLine": 3126
+          "startingLine": 3859
         }
       },
       {
@@ -1031,7 +1079,7 @@
         "key": "Location",
         "location": {
           "startingColumn": 22,
-          "startingLine": 3138
+          "startingLine": 3871
         }
       },
       {
@@ -1039,7 +1087,7 @@
         "key": "Address, area, or URL",
         "location": {
           "startingColumn": 27,
-          "startingLine": 3141
+          "startingLine": 3874
         }
       },
       {
@@ -1047,7 +1095,7 @@
         "key": "Clear",
         "location": {
           "startingColumn": 28,
-          "startingLine": 3145
+          "startingLine": 3878
         }
       },
       {
@@ -1055,7 +1103,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
-          "startingLine": 3153
+          "startingLine": 3886
         }
       },
       {
@@ -1063,7 +1111,7 @@
         "key": "",
         "location": {
           "startingColumn": 39,
-          "startingLine": 3165
+          "startingLine": 3898
         }
       },
       {
@@ -1071,7 +1119,7 @@
         "key": "from ",
         "location": {
           "startingColumn": 26,
-          "startingLine": 3380
+          "startingLine": 4131
         }
       },
       {
@@ -1079,7 +1127,7 @@
         "key": " to ",
         "location": {
           "startingColumn": 26,
-          "startingLine": 3384
+          "startingLine": 4135
         }
       },
       {
@@ -1087,7 +1135,7 @@
         "key": "All day",
         "location": {
           "startingColumn": 30,
-          "startingLine": 3468
+          "startingLine": 4219
         }
       },
       {
@@ -1095,7 +1143,7 @@
         "key": "Task time",
         "location": {
           "startingColumn": 43,
-          "startingLine": 3457
+          "startingLine": 4208
         }
       },
       {
@@ -1103,7 +1151,7 @@
         "key": "Reminder time",
         "location": {
           "startingColumn": 57,
-          "startingLine": 3457
+          "startingLine": 4208
         }
       },
       {
@@ -1111,7 +1159,7 @@
         "key": "",
         "location": {
           "startingColumn": 29,
-          "startingLine": 3462
+          "startingLine": 4213
         }
       },
       {
@@ -1119,7 +1167,7 @@
         "key": "Add time",
         "location": {
           "startingColumn": 32,
-          "startingLine": 3471
+          "startingLine": 4222
         }
       },
       {
@@ -1127,7 +1175,7 @@
         "key": "Set all day",
         "location": {
           "startingColumn": 50,
-          "startingLine": 3486
+          "startingLine": 4237
         }
       },
       {
@@ -1135,7 +1183,7 @@
         "key": "Keep all day",
         "location": {
           "startingColumn": 66,
-          "startingLine": 3486
+          "startingLine": 4237
         }
       },
       {
@@ -1143,7 +1191,7 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
-          "startingLine": 3501
+          "startingLine": 4252
         }
       }
     ]
