@@ -23,6 +23,16 @@
     "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/AppStyle.bc",
     "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/AppStyle.o"
   },
+  "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/BookCoverService.swift" : {
+    "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/BookCoverService.o",
+    "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/BookCoverService.bc",
+    "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/BookCoverService.o"
+  },
+  "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/BudgetingAppView.swift" : {
+    "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/BudgetingAppView.o",
+    "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/BudgetingAppView.bc",
+    "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/BudgetingAppView.o"
+  },
   "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/CalendarViews.swift" : {
     "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/CalendarViews.o",
     "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/CalendarViews.bc",
@@ -43,6 +53,21 @@
     "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/DomainViews.bc",
     "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/DomainViews.o"
   },
+  "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/DynamicMapAppView.swift" : {
+    "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/DynamicMapAppView.o",
+    "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/DynamicMapAppView.bc",
+    "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/DynamicMapAppView.o"
+  },
+  "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/FitnessAppView.swift" : {
+    "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/FitnessAppView.o",
+    "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/FitnessAppView.bc",
+    "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/FitnessAppView.o"
+  },
+  "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/FocusAppView.swift" : {
+    "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/FocusAppView.o",
+    "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/FocusAppView.bc",
+    "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/FocusAppView.o"
+  },
   "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/GroceryTaskBridge.swift" : {
     "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/GroceryTaskBridge.o",
     "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/GroceryTaskBridge.bc",
@@ -62,6 +87,11 @@
     "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/HelpWindowView.o",
     "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/HelpWindowView.bc",
     "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/HelpWindowView.o"
+  },
+  "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/JournalAppView.swift" : {
+    "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/JournalAppView.o",
+    "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/JournalAppView.bc",
+    "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/JournalAppView.o"
   },
   "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/MealNutritionCalculator.swift" : {
     "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/MealNutritionCalculator.o",
@@ -88,6 +118,11 @@
     "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/NavigationViews.bc",
     "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/NavigationViews.o"
   },
+  "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/OutfitsAppView.swift" : {
+    "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/OutfitsAppView.o",
+    "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/OutfitsAppView.bc",
+    "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/OutfitsAppView.o"
+  },
   "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/PlannerStore.swift" : {
     "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/PlannerStore.o",
     "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/PlannerStore.bc",
@@ -102,6 +137,11 @@
     "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/PlanningViews.o",
     "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/PlanningViews.bc",
     "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/PlanningViews.o"
+  },
+  "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/ReadingListAppView.swift" : {
+    "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/ReadingListAppView.o",
+    "llvm-bc" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/ReadingListAppView.bc",
+    "object" : "/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/ReadingListAppView.o"
   },
   "/Users/williamjoyce/Documents/GitHub/willlappschedule/TimeScapeMac/TimeScape Planner Pro/TimeScape Planner Pro/SharedUIViews.swift" : {
     "index-unit-output-path" : "/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/SharedUIViews.o",
