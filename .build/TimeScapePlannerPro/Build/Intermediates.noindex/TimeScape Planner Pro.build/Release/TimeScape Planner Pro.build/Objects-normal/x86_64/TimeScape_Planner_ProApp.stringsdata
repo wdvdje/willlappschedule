@@ -52,10 +52,18 @@
       },
       {
         "comment": "",
-        "key": "Help",
+        "key": "Outfits",
         "location": {
           "startingColumn": 16,
           "startingLine": 64
+        }
+      },
+      {
+        "comment": "",
+        "key": "Help",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 69
         }
       }
     ]
