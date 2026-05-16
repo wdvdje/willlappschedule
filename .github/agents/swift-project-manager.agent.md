@@ -1,5 +1,5 @@
 ---
-description: "Sub-Project Manager for the TimeScape native Swift macOS app. Use when: planning native SwiftUI features, Xcode project changes, macOS-native UI, AppKit integration, SwiftUI views, PlannerStore data model, app store submission (macOS), native Swift bugs, macOS-specific behavior, menu bar commands, window management, or anything targeting the native macOS app path. Also use when: requesting a Status and Directions Report, app status summary, team report, directions update, or long-term feature planning for the native app."
+description: "Sub-Project Manager for the TimeScape native Swift macOS app. Use when: planning native SwiftUI features, Xcode project changes, macOS-native UI, AppKit integration, SwiftUI views, PlannerStore data model, app store submission (macOS), native Swift bugs, macOS-specific behavior, menu bar commands, window management, or anything targeting the native macOS app path. Also use when: requesting a Status and Directions Report, app status summary, team report, directions update, or long-term feature planning for the native app. Also use when: requesting a Bugs and Experience Report, bug audit, code quality check, dead code scan, test run, app health check, find bugs, or checking that all user features are working as intended."
 name: "Swift Project Manager"
 tools: [read, search, edit, agent, todo, shell, ask-user]
 argument-hint: "Describe your native macOS feature, Swift bug, or ask for the next native phase..."
@@ -205,6 +205,77 @@ Compile all 5 domain reports into a single master report using this structure:
 ---
 
 After delivering the report, ask the developer which items to prioritize. Then plan phases for approved items using your standard workflow. No code is written during report generation — this is analysis only.
+
+---
+
+## Bugs and Experience Report
+
+When the developer requests a Bugs and Experience Report (or similar: "bug audit", "code quality check", "dead code scan", "test the app", "app health check", "find bugs", "are features working"), run this workflow. **No code is written during this report — this is analysis and triage only.**
+
+### Step 1 — Baseline Build + Test Run
+
+Before dispatching subteams, run the Xcode build and any existing test targets to capture the baseline:
+
+```bash
+cd TimeScapeMac && xcodebuild \
+  -scheme "$(xcodebuild -list 2>/dev/null | grep -m1 '^\s' | xargs)" \
+  -destination 'platform=macOS,arch=arm64' \
+  test CODE_SIGNING_ALLOWED=NO 2>&1 \
+  | grep -E "(error:|warning:|FAILED|PASSED|TEST SUITE|BUILD SUCCEEDED|BUILD FAILED)" | tail -60
+```
+
+If no test targets exist, run a plain build instead. Record:
+- Build pass/fail status
+- Any compiler errors or warnings
+- Test pass/fail counts (if tests exist)
+
+### Step 2 — Dispatch All 5 Subteam Leads for Domain Bug Audits
+
+Dispatch each Lead with a request for a **Domain Bugs & Experience Audit**. Each Lead should direct their Consistency Auditor and Engineer to analyze their domain and compile findings. Include the baseline build output in each prompt so subteams have context.
+
+Each Lead should report:
+1. **Obvious code bugs** — logic errors, force-unwraps, race conditions, incorrect state handling
+2. **Dead / obsolete code** — unused views, unreachable branches, leftover `TODO`/`FIXME`, stale feature flags, `.bak_split` files
+3. **Code quality issues** — missing error handling, overly complex views, hardcoded values that should use `AppStyle`, API misuse
+4. **User-facing experience gaps** — broken flows, missing loading/error states, unresponsive interactions, features that don't work as described in the UI
+
+| Lead | Domain Files |
+|------|-------------|
+| Views Lead | `DashboardViews.swift`, `CalendarViews.swift` |
+| Planning Items Lead | `PlanningViews.swift`, `PlanningEditors.swift` |
+| Domains Lead | `DomainViews.swift` |
+| Companion Apps Lead | `MealsPageView.swift`, `WeatherAppView.swift`, companion views |
+| System & Settings Lead | `ContentView.swift`, `AppStyle.swift`, navigation, lifecycle, `PlannerStore` |
+
+### Step 3 — Compile the Master Report
+
+Compile all 5 domain reports plus the baseline build results into a single report:
+
+---
+
+**# TimeScape Native App — Bugs & Experience Report**
+
+**## Build & Test Baseline**
+[Build status, compiler warnings count, test results summary]
+
+**## Domain Findings**
+
+[One section per domain — include each Lead's compiled findings under these sub-headers:]
+- **Bugs** (severity: 🔴 critical / 🟡 moderate / 🟢 minor)
+- **Dead / Obsolete Code**
+- **Code Quality**
+- **User Experience Gaps**
+
+**## Cross-Cutting Issues**
+[Bugs or patterns that span multiple domains — flag for coordinated fixes]
+
+**## Prioritized Fix Plan**
+[Top issues ranked: 🔴 critical bugs first → broken user flows → dead code cleanup → code quality → polish]
+[Each item should include: file, line or function name, description of the problem, and suggested fix approach]
+
+---
+
+After delivering the report, ask the developer which items to address. Then plan fix phases using your standard workflow. Fixes are implemented only after explicit approval — same gate as all other phases.
 
 ---
 

@@ -4,10 +4,18 @@
     "Localizable": [
       {
         "comment": "",
+        "key": "%lld of %lld complete",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
         "key": "Add Companion Sub-Item",
         "location": {
           "startingColumn": 26,
-          "startingLine": 72
+          "startingLine": 151
         }
       },
       {
@@ -15,7 +23,7 @@
         "key": "Type",
         "location": {
           "startingColumn": 28,
-          "startingLine": 74
+          "startingLine": 153
         }
       },
       {
@@ -23,7 +31,7 @@
         "key": "Title",
         "location": {
           "startingColumn": 31,
-          "startingLine": 80
+          "startingLine": 159
         }
       },
       {
@@ -31,7 +39,7 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 32,
-          "startingLine": 84
+          "startingLine": 163
         }
       },
       {
@@ -39,7 +47,7 @@
         "key": "Add",
         "location": {
           "startingColumn": 32,
-          "startingLine": 85
+          "startingLine": 164
         }
       },
       {
@@ -47,7 +55,7 @@
         "key": "No archived buckets.",
         "location": {
           "startingColumn": 53,
-          "startingLine": 150
+          "startingLine": 226
         }
       },
       {
@@ -55,7 +63,7 @@
         "key": "No active buckets yet.",
         "location": {
           "startingColumn": 78,
-          "startingLine": 150
+          "startingLine": 226
         }
       },
       {
@@ -63,7 +71,7 @@
         "key": "Notes",
         "location": {
           "startingColumn": 30,
-          "startingLine": 342
+          "startingLine": 413
         }
       },
       {
@@ -71,7 +79,7 @@
         "key": "Sub-Items",
         "location": {
           "startingColumn": 30,
-          "startingLine": 354
+          "startingLine": 425
         }
       },
       {
@@ -79,7 +87,7 @@
         "key": "+%lld more",
         "location": {
           "startingColumn": 34,
-          "startingLine": 371
+          "startingLine": 442
         }
       },
       {
@@ -87,7 +95,23 @@
         "key": "Edit Item",
         "location": {
           "startingColumn": 30,
-          "startingLine": 383
+          "startingLine": 454
+        }
+      },
+      {
+        "comment": "",
+        "key": "Collapse sub-items",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 609
+        }
+      },
+      {
+        "comment": "",
+        "key": "Expand sub-items",
+        "location": {
+          "startingColumn": 67,
+          "startingLine": 609
         }
       },
       {
@@ -95,7 +119,7 @@
         "key": "General",
         "location": {
           "startingColumn": 42,
-          "startingLine": 419
+          "startingLine": 552
         }
       },
       {
@@ -103,7 +127,7 @@
         "key": "$%@%@",
         "location": {
           "startingColumn": 46,
-          "startingLine": 441
+          "startingLine": 574
         }
       },
       {
@@ -111,7 +135,7 @@
         "key": "Job",
         "location": {
           "startingColumn": 43,
-          "startingLine": 436
+          "startingLine": 569
         }
       },
       {
@@ -119,7 +143,7 @@
         "key": "Add item",
         "location": {
           "startingColumn": 36,
-          "startingLine": 461
+          "startingLine": 614
         }
       },
       {
@@ -127,7 +151,7 @@
         "key": "Add Sub-Item",
         "location": {
           "startingColumn": 36,
-          "startingLine": 466
+          "startingLine": 619
         }
       },
       {
@@ -135,7 +159,7 @@
         "key": "Open %@ View",
         "location": {
           "startingColumn": 36,
-          "startingLine": 471
+          "startingLine": 624
         }
       },
       {
@@ -143,7 +167,7 @@
         "key": "Edit bucket",
         "location": {
           "startingColumn": 32,
-          "startingLine": 475
+          "startingLine": 628
         }
       },
       {
@@ -151,7 +175,7 @@
         "key": "Unarchive",
         "location": {
           "startingColumn": 56,
-          "startingLine": 480
+          "startingLine": 633
         }
       },
       {
@@ -159,7 +183,7 @@
         "key": "Archive",
         "location": {
           "startingColumn": 70,
-          "startingLine": 480
+          "startingLine": 633
         }
       },
       {
@@ -167,7 +191,7 @@
         "key": "Delete",
         "location": {
           "startingColumn": 36,
-          "startingLine": 482
+          "startingLine": 635
         }
       },
       {
@@ -175,15 +199,55 @@
         "key": "%lld",
         "location": {
           "startingColumn": 30,
-          "startingLine": 498
+          "startingLine": 651
+        }
+      },
+      {
+        "comment": "",
+        "key": "Sub-Items",
+        "location": {
+          "startingColumn": 60,
+          "startingLine": 659
         }
       },
       {
         "comment": "",
         "key": "Items",
         "location": {
-          "startingColumn": 26,
-          "startingLine": 506
+          "startingColumn": 74,
+          "startingLine": 659
+        }
+      },
+      {
+        "comment": "",
+        "key": "All clear",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 789
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark incomplete",
+        "location": {
+          "startingColumn": 53,
+          "startingLine": 835
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark complete",
+        "location": {
+          "startingColumn": 73,
+          "startingLine": 835
+        }
+      },
+      {
+        "comment": "",
+        "key": "See all (%lld)",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 842
         }
       },
       {
@@ -191,7 +255,7 @@
         "key": "No items yet",
         "location": {
           "startingColumn": 34,
-          "startingLine": 610
+          "startingLine": 934
         }
       },
       {
@@ -199,183 +263,7 @@
         "key": "Add first item",
         "location": {
           "startingColumn": 36,
-          "startingLine": 613
-        }
-      },
-      {
-        "comment": "",
-        "key": "No specialized summary for normal buckets.",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 759
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add item",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 761
-        }
-      },
-      {
-        "comment": "",
-        "key": "No routine items yet.",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 795
-        }
-      },
-      {
-        "comment": "",
-        "key": "Routine View",
-        "location": {
-          "startingColumn": 27,
-          "startingLine": 782
-        }
-      },
-      {
-        "comment": "",
-        "key": "Reset Auto Order",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 785
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add item",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 790
-        }
-      },
-      {
-        "comment": "",
-        "key": "No project items yet.",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 1020
-        }
-      },
-      {
-        "comment": "",
-        "key": "Project View",
-        "location": {
-          "startingColumn": 27,
-          "startingLine": 936
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add Sub-Item",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 939
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add item",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 941
-        }
-      },
-      {
-        "comment": "",
-        "key": "Bucket Sub-Items",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 947
-        }
-      },
-      {
-        "comment": "",
-        "key": "Edit",
-        "location": {
-          "startingColumn": 44,
-          "startingLine": 980
-        }
-      },
-      {
-        "comment": "",
-        "key": "Delete",
-        "location": {
-          "startingColumn": 44,
-          "startingLine": 983
-        }
-      },
-      {
-        "comment": "",
-        "key": "Backlog",
-        "location": {
-          "startingColumn": 38,
-          "startingLine": 1050
-        }
-      },
-      {
-        "comment": "",
-        "key": "Edit Companion Sub-Item",
-        "location": {
-          "startingColumn": 22,
-          "startingLine": 1151
-        }
-      },
-      {
-        "comment": "",
-        "key": "Type",
-        "location": {
-          "startingColumn": 24,
-          "startingLine": 1154
-        }
-      },
-      {
-        "comment": "",
-        "key": "Title",
-        "location": {
-          "startingColumn": 27,
-          "startingLine": 1161
-        }
-      },
-      {
-        "comment": "",
-        "key": "Cancel",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 1166
-        }
-      },
-      {
-        "comment": "",
-        "key": "Save",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 1167
-        }
-      },
-      {
-        "comment": "",
-        "key": "No job items yet.",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 1214
-        }
-      },
-      {
-        "comment": "",
-        "key": "Job View",
-        "location": {
-          "startingColumn": 27,
-          "startingLine": 1198
-        }
-      },
-      {
-        "comment": "",
-        "key": "Add item",
-        "location": {
-          "startingColumn": 28,
-          "startingLine": 1201
+          "startingLine": 937
         }
       },
       {
@@ -383,7 +271,7 @@
         "key": "Edit bucket",
         "location": {
           "startingColumn": 23,
-          "startingLine": 1416
+          "startingLine": 1173
         }
       },
       {
@@ -391,7 +279,7 @@
         "key": "General",
         "location": {
           "startingColumn": 34,
-          "startingLine": 1371
+          "startingLine": 1128
         }
       },
       {
@@ -399,7 +287,7 @@
         "key": "$%@%@",
         "location": {
           "startingColumn": 38,
-          "startingLine": 1393
+          "startingLine": 1150
         }
       },
       {
@@ -407,7 +295,7 @@
         "key": "Job",
         "location": {
           "startingColumn": 35,
-          "startingLine": 1388
+          "startingLine": 1145
         }
       },
       {
@@ -415,7 +303,7 @@
         "key": "Unarchive",
         "location": {
           "startingColumn": 52,
-          "startingLine": 1420
+          "startingLine": 1177
         }
       },
       {
@@ -423,7 +311,7 @@
         "key": "Archive",
         "location": {
           "startingColumn": 66,
-          "startingLine": 1420
+          "startingLine": 1177
         }
       },
       {
@@ -431,7 +319,7 @@
         "key": "Delete",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1422
+          "startingLine": 1179
         }
       },
       {
@@ -439,7 +327,7 @@
         "key": "Domain: %@",
         "location": {
           "startingColumn": 22,
-          "startingLine": 1698
+          "startingLine": 1455
         }
       },
       {
@@ -447,7 +335,7 @@
         "key": "New Bucket",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1695
+          "startingLine": 1452
         }
       },
       {
@@ -455,7 +343,7 @@
         "key": "Edit Bucket",
         "location": {
           "startingColumn": 61,
-          "startingLine": 1695
+          "startingLine": 1452
         }
       },
       {
@@ -463,7 +351,7 @@
         "key": "Type",
         "location": {
           "startingColumn": 24,
-          "startingLine": 1735
+          "startingLine": 1492
         }
       },
       {
@@ -471,7 +359,7 @@
         "key": "Frequency",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1774
+          "startingLine": 1531
         }
       },
       {
@@ -479,7 +367,7 @@
         "key": "Bucket name",
         "location": {
           "startingColumn": 31,
-          "startingLine": 1702
+          "startingLine": 1459
         }
       },
       {
@@ -487,7 +375,7 @@
         "key": "Icon",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1705
+          "startingLine": 1462
         }
       },
       {
@@ -495,7 +383,7 @@
         "key": "Color",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1721
+          "startingLine": 1478
         }
       },
       {
@@ -503,7 +391,7 @@
         "key": "Description",
         "location": {
           "startingColumn": 31,
-          "startingLine": 1730
+          "startingLine": 1487
         }
       },
       {
@@ -511,7 +399,7 @@
         "key": "Pay rate",
         "location": {
           "startingColumn": 35,
-          "startingLine": 1752
+          "startingLine": 1509
         }
       },
       {
@@ -519,7 +407,7 @@
         "key": "Pay period",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1757
+          "startingLine": 1514
         }
       },
       {
@@ -527,7 +415,7 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1786
+          "startingLine": 1543
         }
       },
       {
@@ -535,7 +423,7 @@
         "key": "Save",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1787
+          "startingLine": 1544
         }
       },
       {
@@ -543,7 +431,7 @@
         "key": "Job days off",
         "location": {
           "startingColumn": 22,
-          "startingLine": 1815
+          "startingLine": 1572
         }
       },
       {
@@ -551,7 +439,7 @@
         "key": "No default days off configured.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1866
+          "startingLine": 1623
         }
       },
       {
@@ -559,7 +447,7 @@
         "key": "",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1820
+          "startingLine": 1577
         }
       },
       {
@@ -567,7 +455,7 @@
         "key": "Add date",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1822
+          "startingLine": 1579
         }
       },
       {
@@ -575,7 +463,7 @@
         "key": "",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1834
+          "startingLine": 1591
         }
       },
       {
@@ -583,7 +471,7 @@
         "key": "Add recurring MM/DD",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1836
+          "startingLine": 1593
         }
       },
       {
@@ -591,7 +479,7 @@
         "key": "US Holiday",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1850
+          "startingLine": 1607
         }
       },
       {
@@ -599,7 +487,7 @@
         "key": "Add holiday",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1857
+          "startingLine": 1614
         }
       }
     ]

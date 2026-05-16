@@ -7,7 +7,7 @@
         "key": "This week",
         "location": {
           "startingColumn": 30,
-          "startingLine": 374
+          "startingLine": 378
         }
       },
       {
@@ -15,7 +15,7 @@
         "key": "All day",
         "location": {
           "startingColumn": 38,
-          "startingLine": 405
+          "startingLine": 409
         }
       },
       {
@@ -23,39 +23,7 @@
         "key": "+%lld more all-day items",
         "location": {
           "startingColumn": 46,
-          "startingLine": 440
-        }
-      },
-      {
-        "comment": "",
-        "key": "%lld",
-        "location": {
-          "startingColumn": 22,
-          "startingLine": 884
-        }
-      },
-      {
-        "comment": "",
-        "key": "Right-click for quick actions",
-        "location": {
-          "startingColumn": 19,
-          "startingLine": 1064
-        }
-      },
-      {
-        "comment": "",
-        "key": "Drag to resize start (%lld-minute snap)",
-        "location": {
-          "startingColumn": 31,
-          "startingLine": 995
-        }
-      },
-      {
-        "comment": "",
-        "key": "Drag to resize end (%lld-minute snap)",
-        "location": {
-          "startingColumn": 31,
-          "startingLine": 1011
+          "startingLine": 445
         }
       },
       {
@@ -63,7 +31,7 @@
         "key": "Edit",
         "location": {
           "startingColumn": 27,
-          "startingLine": 1025
+          "startingLine": 906
         }
       },
       {
@@ -71,7 +39,7 @@
         "key": "Duplicate",
         "location": {
           "startingColumn": 27,
-          "startingLine": 1031
+          "startingLine": 912
         }
       },
       {
@@ -79,7 +47,7 @@
         "key": "Mark Incomplete",
         "location": {
           "startingColumn": 48,
-          "startingLine": 1039
+          "startingLine": 920
         }
       },
       {
@@ -87,7 +55,7 @@
         "key": "Mark Complete",
         "location": {
           "startingColumn": 68,
-          "startingLine": 1039
+          "startingLine": 920
         }
       },
       {
@@ -95,7 +63,7 @@
         "key": "Mark Unread",
         "location": {
           "startingColumn": 43,
-          "startingLine": 1050
+          "startingLine": 931
         }
       },
       {
@@ -103,7 +71,7 @@
         "key": "Mark Read",
         "location": {
           "startingColumn": 59,
-          "startingLine": 1050
+          "startingLine": 931
         }
       },
       {
@@ -111,7 +79,95 @@
         "key": "Delete",
         "location": {
           "startingColumn": 27,
-          "startingLine": 1061
+          "startingLine": 942
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 959
+        }
+      },
+      {
+        "comment": "",
+        "key": "Right-click for quick actions",
+        "location": {
+          "startingColumn": 19,
+          "startingLine": 1139
+        }
+      },
+      {
+        "comment": "",
+        "key": "Drag to resize start (%lld-minute snap)",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1070
+        }
+      },
+      {
+        "comment": "",
+        "key": "Drag to resize end (%lld-minute snap)",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1086
+        }
+      },
+      {
+        "comment": "",
+        "key": "Edit",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1100
+        }
+      },
+      {
+        "comment": "",
+        "key": "Duplicate",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1106
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Incomplete",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 1114
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Complete",
+        "location": {
+          "startingColumn": 68,
+          "startingLine": 1114
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Unread",
+        "location": {
+          "startingColumn": 43,
+          "startingLine": 1125
+        }
+      },
+      {
+        "comment": "",
+        "key": "Mark Read",
+        "location": {
+          "startingColumn": 59,
+          "startingLine": 1125
+        }
+      },
+      {
+        "comment": "",
+        "key": "Delete",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 1136
         }
       },
       {
@@ -119,7 +175,7 @@
         "key": "No items scheduled for this day.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1215
+          "startingLine": 1290
         }
       },
       {
@@ -127,7 +183,7 @@
         "key": "Skip",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1236
+          "startingLine": 1311
         }
       },
       {
@@ -135,7 +191,7 @@
         "key": "Edit",
         "location": {
           "startingColumn": 36,
-          "startingLine": 1243
+          "startingLine": 1318
         }
       },
       {
@@ -143,7 +199,7 @@
         "key": "New Item",
         "location": {
           "startingColumn": 27,
-          "startingLine": 1260
+          "startingLine": 1335
         }
       },
       {
@@ -151,7 +207,7 @@
         "key": "Week preview",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1330
+          "startingLine": 1406
         }
       },
       {
@@ -159,7 +215,7 @@
         "key": "%lld",
         "location": {
           "startingColumn": 34,
-          "startingLine": 1394
+          "startingLine": 1474
         }
       },
       {
@@ -167,7 +223,7 @@
         "key": "•",
         "location": {
           "startingColumn": 57,
-          "startingLine": 1404
+          "startingLine": 1484
         }
       },
       {
@@ -175,7 +231,7 @@
         "key": "",
         "location": {
           "startingColumn": 65,
-          "startingLine": 1404
+          "startingLine": 1484
         }
       },
       {
@@ -183,7 +239,7 @@
         "key": "+%lld more",
         "location": {
           "startingColumn": 38,
-          "startingLine": 1437
+          "startingLine": 1517
         }
       },
       {
@@ -191,7 +247,7 @@
         "key": "Month view",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1524
+          "startingLine": 1604
         }
       },
       {
@@ -199,15 +255,7 @@
         "key": "Browse your month",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1545
-        }
-      },
-      {
-        "comment": "",
-        "key": "This view will hold the month grid, day detail, and drag-friendly scheduling tools.",
-        "location": {
-          "startingColumn": 30,
-          "startingLine": 1548
+          "startingLine": 1625
         }
       },
       {
@@ -215,7 +263,7 @@
         "key": "%lld",
         "location": {
           "startingColumn": 38,
-          "startingLine": 1531
+          "startingLine": 1611
         }
       },
       {
@@ -223,7 +271,7 @@
         "key": "Previous",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1560
+          "startingLine": 1636
         }
       },
       {
@@ -231,7 +279,7 @@
         "key": "Next",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1565
+          "startingLine": 1641
         }
       },
       {
@@ -239,7 +287,7 @@
         "key": "Calendar workspace",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1572
+          "startingLine": 1648
         }
       },
       {
@@ -247,7 +295,7 @@
         "key": "Ready for month/day expansion",
         "location": {
           "startingColumn": 30,
-          "startingLine": 1575
+          "startingLine": 1651
         }
       },
       {
@@ -255,15 +303,7 @@
         "key": "Week schedule",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1616
-        }
-      },
-      {
-        "comment": "",
-        "key": "Schedule grid",
-        "location": {
-          "startingColumn": 26,
-          "startingLine": 1622
+          "startingLine": 1692
         }
       },
       {
@@ -271,7 +311,7 @@
         "key": "Previous",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1629
+          "startingLine": 1702
         }
       },
       {
@@ -279,7 +319,7 @@
         "key": "Next",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1634
+          "startingLine": 1707
         }
       }
     ]

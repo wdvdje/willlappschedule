@@ -94,6 +94,40 @@ When the Swift Project Manager requests a Status & Directions Report, generate a
 
 ---
 
+## Domain Bugs & Experience Audit
+
+When the Swift Project Manager requests a Bugs & Experience Report, generate a domain bug audit **without waiting for additional user approval** — this is a read-only analysis task.
+
+### How to Compile the Audit
+
+1. **Dispatch your Consistency Auditor** — ask for a deep audit of all files in your domain scope, specifically looking for: obvious logic bugs, force-unwraps on optionals that could crash, incorrect state handling, dead or unreachable code, unused views or functions, stale `TODO`/`FIXME` comments, and `.bak_split` leftover files.
+2. **Dispatch your Engineer** — ask them to review the domain code for: broken user flows, missing loading/error/empty states, hardcoded values that should use `AppStyle` tokens, API misuse, and any feature that appears incomplete or non-functional from a user perspective.
+3. **Compile both outputs** into the format below and return the compiled audit to the Swift PM.
+
+### Domain Bug Audit Format
+
+**## Views Domain — Bugs & Experience**
+
+**### 🔴 Critical Bugs**
+[Crashes, data loss risks, or completely broken user flows — include file name and function/line where known]
+
+**### 🟡 Moderate Issues**
+[Incorrect behavior, missing error states, UI that misleads the user]
+
+**### 🟢 Minor Issues**
+[Edge cases, cosmetic glitches, non-blocking inconsistencies]
+
+**### 🗑️ Dead / Obsolete Code**
+[Unused views, unreachable branches, stale TODOs, `.bak_split` files, leftover feature flags]
+
+**### 🔧 Code Quality**
+[Hardcoded values, missing AppStyle usage, overly complex views, force-unwraps, API misuse]
+
+**### ✅ Verified Working**
+[Flows and features confirmed solid during the audit]
+
+---
+
 ## App-Wide Standards for All Leads
 
 These apply to every subteam lead regardless of domain.

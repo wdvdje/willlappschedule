@@ -1,6 +1,7 @@
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/AppDestination.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/AppStyle.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/BookCoverService.o
+/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/BucketIntegrationShell.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/BudgetingAppView.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/CalendarViews.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/ContentView.o
@@ -13,6 +14,7 @@
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/HelpContent.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/HelpStore.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/HelpWindowView.o
+/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/JobIntegrationView.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/JournalAppView.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/MealNutritionCalculator.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/MealsPageView.o
@@ -23,7 +25,10 @@
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/PlannerStore.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/PlanningEditors.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/PlanningViews.o
+/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/ProjectIntegrationView.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/ReadingListAppView.o
+/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/RestoredViews.o
+/Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/RoutineIntegrationView.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/SharedUIViews.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/SidebarView.o
 /Users/williamjoyce/Documents/GitHub/willlappschedule/.build/TimeScapePlannerPro/Build/Intermediates.noindex/TimeScape Planner Pro.build/Release/TimeScape Planner Pro.build/Objects-normal/x86_64/TimeScape_Planner_ProApp.o
