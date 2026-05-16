@@ -7,7 +7,11 @@
         "key": "Edit Item",
         "location": {
           "startingColumn": 22,
+<<<<<<< Updated upstream
           "startingLine": 351
+=======
+          "startingLine": 361
+>>>>>>> Stashed changes
         }
       },
       {
@@ -15,7 +19,11 @@
         "key": "Type",
         "location": {
           "startingColumn": 24,
+<<<<<<< Updated upstream
           "startingLine": 354
+=======
+          "startingLine": 364
+>>>>>>> Stashed changes
         }
       },
       {
@@ -23,7 +31,11 @@
         "key": "Core",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 363
+=======
+          "startingLine": 373
+>>>>>>> Stashed changes
         }
       },
       {
@@ -31,7 +43,11 @@
         "key": "Sub-Items",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 412
+=======
+          "startingLine": 422
+>>>>>>> Stashed changes
         }
       },
       {
@@ -39,7 +55,11 @@
         "key": "Title",
         "location": {
           "startingColumn": 43,
+<<<<<<< Updated upstream
           "startingLine": 365
+=======
+          "startingLine": 375
+>>>>>>> Stashed changes
         }
       },
       {
@@ -47,7 +67,11 @@
         "key": "Icon",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 369
+=======
+          "startingLine": 379
+>>>>>>> Stashed changes
         }
       },
       {
@@ -55,7 +79,11 @@
         "key": "Domain",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 383
+=======
+          "startingLine": 393
+>>>>>>> Stashed changes
         }
       },
       {
@@ -63,7 +91,11 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 393
+=======
+          "startingLine": 403
+>>>>>>> Stashed changes
         }
       },
       {
@@ -71,7 +103,11 @@
         "key": "General",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 394
+=======
+          "startingLine": 404
+>>>>>>> Stashed changes
         }
       },
       {
@@ -79,7 +115,11 @@
         "key": "Event Details",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 585
+=======
+          "startingLine": 595
+>>>>>>> Stashed changes
         }
       },
       {
@@ -87,7 +127,11 @@
         "key": "Task Details",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 631
+=======
+          "startingLine": 641
+>>>>>>> Stashed changes
         }
       },
       {
@@ -95,7 +139,11 @@
         "key": "Reminder Details",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 678
+=======
+          "startingLine": 688
+>>>>>>> Stashed changes
         }
       },
       {
@@ -103,7 +151,11 @@
         "key": "Future item types",
         "location": {
           "startingColumn": 38,
+<<<<<<< Updated upstream
           "startingLine": 469
+=======
+          "startingLine": 479
+>>>>>>> Stashed changes
         }
       },
       {
@@ -111,7 +163,11 @@
         "key": "No sub-items yet.",
         "location": {
           "startingColumn": 42,
+<<<<<<< Updated upstream
           "startingLine": 487
+=======
+          "startingLine": 497
+>>>>>>> Stashed changes
         }
       },
       {
@@ -119,7 +175,11 @@
         "key": "Sub-item type",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 420
+=======
+          "startingLine": 430
+>>>>>>> Stashed changes
         }
       },
       {
@@ -127,7 +187,11 @@
         "key": "Add",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 428
+=======
+          "startingLine": 438
+>>>>>>> Stashed changes
         }
       },
       {
@@ -135,7 +199,11 @@
         "key": "Sub-item",
         "location": {
           "startingColumn": 55,
+<<<<<<< Updated upstream
           "startingLine": 512
+=======
+          "startingLine": 522
+>>>>>>> Stashed changes
         }
       },
       {
@@ -143,7 +211,11 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 534
+=======
+          "startingLine": 544
+>>>>>>> Stashed changes
         }
       },
       {
@@ -151,7 +223,11 @@
         "key": "Save",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 535
+=======
+          "startingLine": 545
+>>>>>>> Stashed changes
         }
       },
       {
@@ -159,7 +235,11 @@
         "key": "All day",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 595
+=======
+          "startingLine": 605
+>>>>>>> Stashed changes
         }
       },
       {
@@ -167,7 +247,35 @@
         "key": "",
         "location": {
           "startingColumn": 40,
+<<<<<<< Updated upstream
           "startingLine": 588
+=======
+          "startingLine": 598
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 40,
+          "startingLine": 601
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 609
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 44,
+          "startingLine": 613
+>>>>>>> Stashed changes
         }
       },
       {
@@ -199,7 +307,11 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 610
+=======
+          "startingLine": 620
+>>>>>>> Stashed changes
         }
       },
       {
@@ -207,7 +319,11 @@
         "key": "Add due time",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 644
+=======
+          "startingLine": 654
+>>>>>>> Stashed changes
         }
       },
       {
@@ -215,7 +331,11 @@
         "key": "Estimated duration: %lld min",
         "location": {
           "startingColumn": 33,
+<<<<<<< Updated upstream
           "startingLine": 667
+=======
+          "startingLine": 677
+>>>>>>> Stashed changes
         }
       },
       {
@@ -223,7 +343,11 @@
         "key": "",
         "location": {
           "startingColumn": 40,
+<<<<<<< Updated upstream
           "startingLine": 634
+=======
+          "startingLine": 644
+>>>>>>> Stashed changes
         }
       },
       {
@@ -231,7 +355,11 @@
         "key": "",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 638
+=======
+          "startingLine": 648
+>>>>>>> Stashed changes
         }
       },
       {
@@ -239,7 +367,11 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 648
+=======
+          "startingLine": 658
+>>>>>>> Stashed changes
         }
       },
       {
@@ -247,7 +379,11 @@
         "key": "Priority",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 657
+=======
+          "startingLine": 667
+>>>>>>> Stashed changes
         }
       },
       {
@@ -255,7 +391,11 @@
         "key": "Enable reminder time to choose an alert offset.",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 715
+=======
+          "startingLine": 725
+>>>>>>> Stashed changes
         }
       },
       {
@@ -263,7 +403,11 @@
         "key": "Set reminder time",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 680
+=======
+          "startingLine": 690
+>>>>>>> Stashed changes
         }
       },
       {
@@ -271,7 +415,11 @@
         "key": "",
         "location": {
           "startingColumn": 40,
+<<<<<<< Updated upstream
           "startingLine": 683
+=======
+          "startingLine": 693
+>>>>>>> Stashed changes
         }
       },
       {
@@ -279,7 +427,11 @@
         "key": "",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 687
+=======
+          "startingLine": 697
+>>>>>>> Stashed changes
         }
       },
       {
@@ -287,7 +439,11 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 694
+=======
+          "startingLine": 704
+>>>>>>> Stashed changes
         }
       },
       {
@@ -295,7 +451,11 @@
         "key": "Alert",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 703
+=======
+          "startingLine": 713
+>>>>>>> Stashed changes
         }
       },
       {
@@ -303,7 +463,11 @@
         "key": "Alternate workday settings",
         "location": {
           "startingColumn": 22,
+<<<<<<< Updated upstream
           "startingLine": 1036
+=======
+          "startingLine": 1046
+>>>>>>> Stashed changes
         }
       },
       {
@@ -311,7 +475,11 @@
         "key": "Starting pattern is only shown while editing.",
         "location": {
           "startingColumn": 22,
+<<<<<<< Updated upstream
           "startingLine": 1057
+=======
+          "startingLine": 1067
+>>>>>>> Stashed changes
         }
       },
       {
@@ -319,7 +487,11 @@
         "key": "Starting Pattern",
         "location": {
           "startingColumn": 24,
+<<<<<<< Updated upstream
           "startingLine": 1040
+=======
+          "startingLine": 1050
+>>>>>>> Stashed changes
         }
       },
       {
@@ -327,7 +499,11 @@
         "key": "Respect job days off",
         "location": {
           "startingColumn": 24,
+<<<<<<< Updated upstream
           "startingLine": 1047
+=======
+          "startingLine": 1057
+>>>>>>> Stashed changes
         }
       },
       {
@@ -335,7 +511,11 @@
         "key": "Repeat until",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 1050
+=======
+          "startingLine": 1060
+>>>>>>> Stashed changes
         }
       },
       {
@@ -343,7 +523,11 @@
         "key": "Include first occurrence even though start date is a day off",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 1053
+=======
+          "startingLine": 1063
+>>>>>>> Stashed changes
         }
       },
       {
@@ -351,7 +535,11 @@
         "key": "New Item",
         "location": {
           "startingColumn": 22,
+<<<<<<< Updated upstream
           "startingLine": 1361
+=======
+          "startingLine": 1371
+>>>>>>> Stashed changes
         }
       },
       {
@@ -359,7 +547,11 @@
         "key": "Type",
         "location": {
           "startingColumn": 24,
+<<<<<<< Updated upstream
           "startingLine": 1364
+=======
+          "startingLine": 1374
+>>>>>>> Stashed changes
         }
       },
       {
@@ -367,7 +559,11 @@
         "key": "Core",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 1373
+=======
+          "startingLine": 1383
+>>>>>>> Stashed changes
         }
       },
       {
@@ -375,7 +571,11 @@
         "key": "Sub-Items",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 1422
+=======
+          "startingLine": 1432
+>>>>>>> Stashed changes
         }
       },
       {
@@ -383,7 +583,11 @@
         "key": "Title",
         "location": {
           "startingColumn": 43,
+<<<<<<< Updated upstream
           "startingLine": 1375
+=======
+          "startingLine": 1385
+>>>>>>> Stashed changes
         }
       },
       {
@@ -391,7 +595,11 @@
         "key": "Icon",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 1379
+=======
+          "startingLine": 1389
+>>>>>>> Stashed changes
         }
       },
       {
@@ -399,7 +607,11 @@
         "key": "Domain",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 1393
+=======
+          "startingLine": 1403
+>>>>>>> Stashed changes
         }
       },
       {
@@ -407,7 +619,11 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 1403
+=======
+          "startingLine": 1413
+>>>>>>> Stashed changes
         }
       },
       {
@@ -415,7 +631,11 @@
         "key": "General",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1404
+=======
+          "startingLine": 1414
+>>>>>>> Stashed changes
         }
       },
       {
@@ -423,7 +643,11 @@
         "key": "Event Details",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 1601
+=======
+          "startingLine": 1615
+>>>>>>> Stashed changes
         }
       },
       {
@@ -431,7 +655,11 @@
         "key": "Task Details",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 1647
+=======
+          "startingLine": 1661
+>>>>>>> Stashed changes
         }
       },
       {
@@ -439,7 +667,11 @@
         "key": "Reminder Details",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 1694
+=======
+          "startingLine": 1708
+>>>>>>> Stashed changes
         }
       },
       {
@@ -447,7 +679,11 @@
         "key": "Future shells",
         "location": {
           "startingColumn": 38,
+<<<<<<< Updated upstream
           "startingLine": 1479
+=======
+          "startingLine": 1489
+>>>>>>> Stashed changes
         }
       },
       {
@@ -455,7 +691,11 @@
         "key": "No sub-items yet.",
         "location": {
           "startingColumn": 42,
+<<<<<<< Updated upstream
           "startingLine": 1497
+=======
+          "startingLine": 1507
+>>>>>>> Stashed changes
         }
       },
       {
@@ -463,7 +703,11 @@
         "key": "Sub-item type",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 1430
+=======
+          "startingLine": 1440
+>>>>>>> Stashed changes
         }
       },
       {
@@ -471,7 +715,11 @@
         "key": "Add",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 1438
+=======
+          "startingLine": 1448
+>>>>>>> Stashed changes
         }
       },
       {
@@ -479,7 +727,11 @@
         "key": "Sub-item",
         "location": {
           "startingColumn": 55,
+<<<<<<< Updated upstream
           "startingLine": 1518
+=======
+          "startingLine": 1532
+>>>>>>> Stashed changes
         }
       },
       {
@@ -487,7 +739,11 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 1540
+=======
+          "startingLine": 1554
+>>>>>>> Stashed changes
         }
       },
       {
@@ -495,7 +751,11 @@
         "key": "Create",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 1541
+=======
+          "startingLine": 1555
+>>>>>>> Stashed changes
         }
       },
       {
@@ -503,7 +763,11 @@
         "key": "All day",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 1611
+=======
+          "startingLine": 1625
+>>>>>>> Stashed changes
         }
       },
       {
@@ -511,7 +775,11 @@
         "key": "",
         "location": {
           "startingColumn": 40,
+<<<<<<< Updated upstream
           "startingLine": 1604
+=======
+          "startingLine": 1618
+>>>>>>> Stashed changes
         }
       },
       {
@@ -519,7 +787,11 @@
         "key": "",
         "location": {
           "startingColumn": 40,
+<<<<<<< Updated upstream
           "startingLine": 1607
+=======
+          "startingLine": 1621
+>>>>>>> Stashed changes
         }
       },
       {
@@ -527,7 +799,11 @@
         "key": "",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 1615
+=======
+          "startingLine": 1629
+>>>>>>> Stashed changes
         }
       },
       {
@@ -535,7 +811,11 @@
         "key": "",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 1619
+=======
+          "startingLine": 1633
+>>>>>>> Stashed changes
         }
       },
       {
@@ -543,7 +823,11 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 1626
+=======
+          "startingLine": 1640
+>>>>>>> Stashed changes
         }
       },
       {
@@ -551,7 +835,11 @@
         "key": "Add due time",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 1660
+=======
+          "startingLine": 1674
+>>>>>>> Stashed changes
         }
       },
       {
@@ -559,7 +847,11 @@
         "key": "Estimated duration: %lld min",
         "location": {
           "startingColumn": 33,
+<<<<<<< Updated upstream
           "startingLine": 1683
+=======
+          "startingLine": 1697
+>>>>>>> Stashed changes
         }
       },
       {
@@ -567,7 +859,11 @@
         "key": "",
         "location": {
           "startingColumn": 40,
+<<<<<<< Updated upstream
           "startingLine": 1650
+=======
+          "startingLine": 1664
+>>>>>>> Stashed changes
         }
       },
       {
@@ -575,7 +871,11 @@
         "key": "",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 1654
+=======
+          "startingLine": 1668
+>>>>>>> Stashed changes
         }
       },
       {
@@ -583,7 +883,11 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 1664
+=======
+          "startingLine": 1678
+>>>>>>> Stashed changes
         }
       },
       {
@@ -591,7 +895,11 @@
         "key": "Priority",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 1673
+=======
+          "startingLine": 1687
+>>>>>>> Stashed changes
         }
       },
       {
@@ -599,7 +907,11 @@
         "key": "Enable reminder time to choose an alert offset.",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 1731
+=======
+          "startingLine": 1745
+>>>>>>> Stashed changes
         }
       },
       {
@@ -607,7 +919,11 @@
         "key": "Set reminder time",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 1696
+=======
+          "startingLine": 1710
+>>>>>>> Stashed changes
         }
       },
       {
@@ -615,7 +931,11 @@
         "key": "",
         "location": {
           "startingColumn": 40,
+<<<<<<< Updated upstream
           "startingLine": 1699
+=======
+          "startingLine": 1713
+>>>>>>> Stashed changes
         }
       },
       {
@@ -623,7 +943,11 @@
         "key": "",
         "location": {
           "startingColumn": 44,
+<<<<<<< Updated upstream
           "startingLine": 1703
+=======
+          "startingLine": 1717
+>>>>>>> Stashed changes
         }
       },
       {
@@ -631,7 +955,11 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 1710
+=======
+          "startingLine": 1724
+>>>>>>> Stashed changes
         }
       },
       {
@@ -639,7 +967,11 @@
         "key": "Alert",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 1719
+=======
+          "startingLine": 1733
+>>>>>>> Stashed changes
         }
       },
       {
@@ -647,7 +979,11 @@
         "key": "Alternate workday settings",
         "location": {
           "startingColumn": 22,
+<<<<<<< Updated upstream
           "startingLine": 2048
+=======
+          "startingLine": 2062
+>>>>>>> Stashed changes
         }
       },
       {
@@ -655,7 +991,11 @@
         "key": "Starting pattern is only shown while editing.",
         "location": {
           "startingColumn": 22,
+<<<<<<< Updated upstream
           "startingLine": 2070
+=======
+          "startingLine": 2084
+>>>>>>> Stashed changes
         }
       },
       {
@@ -663,7 +1003,11 @@
         "key": "Starting Pattern",
         "location": {
           "startingColumn": 24,
+<<<<<<< Updated upstream
           "startingLine": 2052
+=======
+          "startingLine": 2066
+>>>>>>> Stashed changes
         }
       },
       {
@@ -671,7 +1015,11 @@
         "key": "Respect job days off",
         "location": {
           "startingColumn": 24,
+<<<<<<< Updated upstream
           "startingLine": 2060
+=======
+          "startingLine": 2074
+>>>>>>> Stashed changes
         }
       },
       {
@@ -679,7 +1027,11 @@
         "key": "Repeat until",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2063
+=======
+          "startingLine": 2077
+>>>>>>> Stashed changes
         }
       },
       {
@@ -687,7 +1039,11 @@
         "key": "Include first occurrence even though start date is a day off",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2066
+=======
+          "startingLine": 2080
+>>>>>>> Stashed changes
         }
       },
       {
@@ -695,7 +1051,11 @@
         "key": "Add %@",
         "location": {
           "startingColumn": 18,
+<<<<<<< Updated upstream
           "startingLine": 2134
+=======
+          "startingLine": 2148
+>>>>>>> Stashed changes
         }
       },
       {
@@ -703,7 +1063,11 @@
         "key": "Create a journal entry in the Journal app to attach it here.",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 2170
+=======
+          "startingLine": 2184
+>>>>>>> Stashed changes
         }
       },
       {
@@ -711,7 +1075,11 @@
         "key": "Create a budget planning entry in Budgeting to attach it here.",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 2188
+=======
+          "startingLine": 2202
+>>>>>>> Stashed changes
         }
       },
       {
@@ -719,7 +1087,11 @@
         "key": "Create a favorite location in Dynamic Map to attach it here.",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 2206
+=======
+          "startingLine": 2220
+>>>>>>> Stashed changes
         }
       },
       {
@@ -727,7 +1099,11 @@
         "key": "Save a route in Dynamic Map to attach it here.",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 2223
+=======
+          "startingLine": 2237
+>>>>>>> Stashed changes
         }
       },
       {
@@ -735,7 +1111,11 @@
         "key": "Create a daily weather summary in Dynamic Weather to attach it here.",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 2240
+=======
+          "startingLine": 2254
+>>>>>>> Stashed changes
         }
       },
       {
@@ -743,7 +1123,11 @@
         "key": "Create an outfit in the Outfits app to attach it here.",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 2257
+=======
+          "startingLine": 2271
+>>>>>>> Stashed changes
         }
       },
       {
@@ -751,7 +1135,11 @@
         "key": "Create a focus timer in the Focus app to attach it here.",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 2274
+=======
+          "startingLine": 2288
+>>>>>>> Stashed changes
         }
       },
       {
@@ -759,7 +1147,11 @@
         "key": "Log a workout in the Fitness app to attach it here.",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 2292
+=======
+          "startingLine": 2306
+>>>>>>> Stashed changes
         }
       },
       {
@@ -767,7 +1159,11 @@
         "key": "Create a reading goal in the Reading List app to attach it here.",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 2310
+=======
+          "startingLine": 2324
+>>>>>>> Stashed changes
         }
       },
       {
@@ -775,7 +1171,11 @@
         "key": "Title",
         "location": {
           "startingColumn": 27,
+<<<<<<< Updated upstream
           "startingLine": 2139
+=======
+          "startingLine": 2153
+>>>>>>> Stashed changes
         }
       },
       {
@@ -783,7 +1183,11 @@
         "key": "https://example.com",
         "location": {
           "startingColumn": 27,
+<<<<<<< Updated upstream
           "startingLine": 2145
+=======
+          "startingLine": 2159
+>>>>>>> Stashed changes
         }
       },
       {
@@ -791,7 +1195,11 @@
         "key": "Journal entry",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2175
+=======
+          "startingLine": 2189
+>>>>>>> Stashed changes
         }
       },
       {
@@ -799,7 +1207,11 @@
         "key": "Budget entry",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2193
+=======
+          "startingLine": 2207
+>>>>>>> Stashed changes
         }
       },
       {
@@ -807,7 +1219,11 @@
         "key": "Favorite location",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2211
+=======
+          "startingLine": 2225
+>>>>>>> Stashed changes
         }
       },
       {
@@ -815,7 +1231,11 @@
         "key": "Saved route",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2228
+=======
+          "startingLine": 2242
+>>>>>>> Stashed changes
         }
       },
       {
@@ -823,7 +1243,11 @@
         "key": "Weather snapshot",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2245
+=======
+          "startingLine": 2259
+>>>>>>> Stashed changes
         }
       },
       {
@@ -831,7 +1255,11 @@
         "key": "Outfit",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2262
+=======
+          "startingLine": 2276
+>>>>>>> Stashed changes
         }
       },
       {
@@ -839,7 +1267,11 @@
         "key": "Focus timer",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2279
+=======
+          "startingLine": 2293
+>>>>>>> Stashed changes
         }
       },
       {
@@ -847,7 +1279,11 @@
         "key": "Workout",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2297
+=======
+          "startingLine": 2311
+>>>>>>> Stashed changes
         }
       },
       {
@@ -855,7 +1291,11 @@
         "key": "Reading Goal",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2315
+=======
+          "startingLine": 2329
+>>>>>>> Stashed changes
         }
       },
       {
@@ -863,7 +1303,11 @@
         "key": "No file selected",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2158
+=======
+          "startingLine": 2172
+>>>>>>> Stashed changes
         }
       },
       {
@@ -871,7 +1315,11 @@
         "key": "Browse",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 2163
+=======
+          "startingLine": 2177
+>>>>>>> Stashed changes
         }
       },
       {
@@ -879,7 +1327,11 @@
         "key": "Select entry",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2176
+=======
+          "startingLine": 2190
+>>>>>>> Stashed changes
         }
       },
       {
@@ -887,7 +1339,11 @@
         "key": "%@ - %@",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 2179
+=======
+          "startingLine": 2193
+>>>>>>> Stashed changes
         }
       },
       {
@@ -895,7 +1351,11 @@
         "key": "Select budget entry",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2194
+=======
+          "startingLine": 2208
+>>>>>>> Stashed changes
         }
       },
       {
@@ -903,7 +1363,11 @@
         "key": "%@ - %@",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 2197
+=======
+          "startingLine": 2211
+>>>>>>> Stashed changes
         }
       },
       {
@@ -911,7 +1375,11 @@
         "key": "Select favorite",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2212
+=======
+          "startingLine": 2226
+>>>>>>> Stashed changes
         }
       },
       {
@@ -919,7 +1387,11 @@
         "key": "Select route",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2229
+=======
+          "startingLine": 2243
+>>>>>>> Stashed changes
         }
       },
       {
@@ -927,7 +1399,11 @@
         "key": "Select snapshot",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2246
+=======
+          "startingLine": 2260
+>>>>>>> Stashed changes
         }
       },
       {
@@ -935,7 +1411,11 @@
         "key": "%@ - %@",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 2248
+=======
+          "startingLine": 2262
+>>>>>>> Stashed changes
         }
       },
       {
@@ -943,7 +1423,11 @@
         "key": "Select outfit",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2263
+=======
+          "startingLine": 2277
+>>>>>>> Stashed changes
         }
       },
       {
@@ -951,7 +1435,11 @@
         "key": "Select timer",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2280
+=======
+          "startingLine": 2294
+>>>>>>> Stashed changes
         }
       },
       {
@@ -959,7 +1447,11 @@
         "key": "%@ (%lldm / %lldm break)",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 2282
+=======
+          "startingLine": 2296
+>>>>>>> Stashed changes
         }
       },
       {
@@ -967,7 +1459,11 @@
         "key": "Select workout",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2298
+=======
+          "startingLine": 2312
+>>>>>>> Stashed changes
         }
       },
       {
@@ -975,7 +1471,11 @@
         "key": "%@ — %@",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 2300
+=======
+          "startingLine": 2314
+>>>>>>> Stashed changes
         }
       },
       {
@@ -983,7 +1483,11 @@
         "key": "Select goal",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 2316
+=======
+          "startingLine": 2330
+>>>>>>> Stashed changes
         }
       },
       {
@@ -991,7 +1495,11 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 24,
+<<<<<<< Updated upstream
           "startingLine": 2331
+=======
+          "startingLine": 2345
+>>>>>>> Stashed changes
         }
       },
       {
@@ -999,7 +1507,11 @@
         "key": "Add",
         "location": {
           "startingColumn": 24,
+<<<<<<< Updated upstream
           "startingLine": 2332
+=======
+          "startingLine": 2346
+>>>>>>> Stashed changes
         }
       }
     ]
