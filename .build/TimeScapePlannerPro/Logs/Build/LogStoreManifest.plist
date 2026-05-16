@@ -6,7 +6,7 @@
 	<integer>12</integer>
 	<key>logs</key>
 	<dict>
-		<key>4589EB82-3742-4BE4-A3E7-DF7D99A156B8</key>
+		<key>5809FA50-1863-4286-848B-874248A581DA</key>
 		<dict>
 			<key>className</key>
 			<string>IDECommandLineBuildLog</string>
@@ -15,21 +15,21 @@
 			<key>domainType</key>
 			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
 			<key>fileName</key>
-			<string>4589EB82-3742-4BE4-A3E7-DF7D99A156B8.xcactivitylog</string>
+			<string>5809FA50-1863-4286-848B-874248A581DA.xcactivitylog</string>
 			<key>hasPrimaryLog</key>
 			<true/>
 			<key>primaryObservable</key>
 			<dict>
 				<key>highLevelStatus</key>
-				<string>E</string>
+				<string>W</string>
 				<key>totalNumberOfAnalyzerIssues</key>
 				<integer>0</integer>
 				<key>totalNumberOfErrors</key>
-				<integer>14</integer>
+				<integer>0</integer>
 				<key>totalNumberOfTestFailures</key>
 				<integer>0</integer>
 				<key>totalNumberOfWarnings</key>
-				<integer>2</integer>
+				<integer>4</integer>
 			</dict>
 			<key>schemeIdentifier-containerName</key>
 			<string>TimeScape Planner Pro project</string>
@@ -40,13 +40,55 @@
 			<key>signature</key>
 			<string>Building project TimeScape Planner Pro with scheme TimeScape Planner Pro and configuration Release</string>
 			<key>timeStartedRecording</key>
-			<real>800636172.39990604</real>
+			<real>800663029.11200595</real>
 			<key>timeStoppedRecording</key>
-			<real>800636238.55089498</real>
+			<real>800663198.69273901</real>
 			<key>title</key>
 			<string>Building project TimeScape Planner Pro with scheme TimeScape Planner Pro and configuration Release</string>
 			<key>uniqueIdentifier</key>
-			<string>4589EB82-3742-4BE4-A3E7-DF7D99A156B8</string>
+			<string>5809FA50-1863-4286-848B-874248A581DA</string>
+		</dict>
+		<key>99EDF2EB-D30F-45B4-9C95-2E1F73613B86</key>
+		<dict>
+			<key>className</key>
+			<string>IDECommandLineBuildLog</string>
+			<key>documentTypeString</key>
+			<string>&lt;nil&gt;</string>
+			<key>domainType</key>
+			<string>Xcode.IDEActivityLogDomainType.BuildLog</string>
+			<key>fileName</key>
+			<string>99EDF2EB-D30F-45B4-9C95-2E1F73613B86.xcactivitylog</string>
+			<key>hasPrimaryLog</key>
+			<true/>
+			<key>primaryObservable</key>
+			<dict>
+				<key>highLevelStatus</key>
+				<string>W</string>
+				<key>totalNumberOfAnalyzerIssues</key>
+				<integer>0</integer>
+				<key>totalNumberOfErrors</key>
+				<integer>0</integer>
+				<key>totalNumberOfTestFailures</key>
+				<integer>0</integer>
+				<key>totalNumberOfWarnings</key>
+				<integer>4</integer>
+			</dict>
+			<key>schemeIdentifier-containerName</key>
+			<string>TimeScape Planner Pro project</string>
+			<key>schemeIdentifier-schemeName</key>
+			<string>TimeScape Planner Pro</string>
+			<key>schemeIdentifier-sharedScheme</key>
+			<integer>1</integer>
+			<key>signature</key>
+			<string>Building project TimeScape Planner Pro with scheme TimeScape Planner Pro and configuration Release</string>
+			<key>timeStartedRecording</key>
+			<real>800662018.90004098</real>
+			<key>timeStoppedRecording</key>
+			<real>800662336.84912598</real>
+			<key>title</key>
+			<string>Building project TimeScape Planner Pro with scheme TimeScape Planner Pro and configuration Release</string>
+			<key>uniqueIdentifier</key>
+			<string>99EDF2EB-D30F-45B4-9C95-2E1F73613B86</string>
 		</dict>
 	</dict>
 </dict>
