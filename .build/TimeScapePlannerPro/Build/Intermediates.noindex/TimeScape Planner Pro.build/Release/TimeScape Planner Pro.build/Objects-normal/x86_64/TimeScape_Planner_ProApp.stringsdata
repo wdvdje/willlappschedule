@@ -4,10 +4,178 @@
     "Localizable": [
       {
         "comment": "",
+        "key": "Navigate",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 23
+        }
+      },
+      {
+        "comment": "",
+        "key": "Companion Apps",
+        "location": {
+          "startingColumn": 21,
+          "startingLine": 83
+        }
+      },
+      {
+        "comment": "",
         "key": "TimeScape Planner Pro Help",
         "location": {
           "startingColumn": 20,
-          "startingLine": 15
+          "startingLine": 16
+        }
+      },
+      {
+        "comment": "",
+        "key": "Today",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 24
+        }
+      },
+      {
+        "comment": "",
+        "key": "Week",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 29
+        }
+      },
+      {
+        "comment": "",
+        "key": "Calendar",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "Events",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 41
+        }
+      },
+      {
+        "comment": "",
+        "key": "Tasks",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 46
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reminders",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 51
+        }
+      },
+      {
+        "comment": "",
+        "key": "Personal",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 58
+        }
+      },
+      {
+        "comment": "",
+        "key": "Household",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 63
+        }
+      },
+      {
+        "comment": "",
+        "key": "Professional",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 68
+        }
+      },
+      {
+        "comment": "",
+        "key": "New Planning Item",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "Journal",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 84
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dynamic Weather",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 89
+        }
+      },
+      {
+        "comment": "",
+        "key": "Meals",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 94
+        }
+      },
+      {
+        "comment": "",
+        "key": "Dynamic Map",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 99
+        }
+      },
+      {
+        "comment": "",
+        "key": "Budgeting",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 104
+        }
+      },
+      {
+        "comment": "",
+        "key": "Outfits",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 109
+        }
+      },
+      {
+        "comment": "",
+        "key": "Focus",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 114
+        }
+      },
+      {
+        "comment": "",
+        "key": "Fitness",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 119
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reading List",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 124
         }
       },
       {
@@ -15,7 +183,7 @@
         "key": "Journal",
         "location": {
           "startingColumn": 16,
-          "startingLine": 38
+          "startingLine": 147
         }
       },
       {
@@ -23,7 +191,7 @@
         "key": "Dynamic Weather",
         "location": {
           "startingColumn": 16,
-          "startingLine": 43
+          "startingLine": 153
         }
       },
       {
@@ -31,7 +199,7 @@
         "key": "Meals",
         "location": {
           "startingColumn": 16,
-          "startingLine": 48
+          "startingLine": 159
         }
       },
       {
@@ -39,7 +207,7 @@
         "key": "Dynamic Map",
         "location": {
           "startingColumn": 16,
-          "startingLine": 53
+          "startingLine": 165
         }
       },
       {
@@ -47,7 +215,7 @@
         "key": "Budgeting",
         "location": {
           "startingColumn": 16,
-          "startingLine": 59
+          "startingLine": 171
         }
       },
       {
@@ -55,7 +223,39 @@
         "key": "Outfits",
         "location": {
           "startingColumn": 16,
-          "startingLine": 64
+          "startingLine": 177
+        }
+      },
+      {
+        "comment": "",
+        "key": "Focus",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 183
+        }
+      },
+      {
+        "comment": "",
+        "key": "Fitness",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 189
+        }
+      },
+      {
+        "comment": "",
+        "key": "Reading List",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 195
+        }
+      },
+      {
+        "comment": "",
+        "key": "Outfits",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 201
         }
       },
       {

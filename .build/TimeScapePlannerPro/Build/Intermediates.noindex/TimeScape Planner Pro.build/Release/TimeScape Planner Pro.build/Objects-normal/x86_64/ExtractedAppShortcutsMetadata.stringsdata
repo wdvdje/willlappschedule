@@ -1,7 +1,15 @@
 {
+<<<<<<< Updated upstream
   "version" : 2,
   "source" : "ExtractedAppShortcutsMetadata",
   "tables" : {
 
   }
+=======
+  "source" : "ExtractedAppShortcutsMetadata",
+  "tables" : {
+
+  },
+  "version" : 2
+>>>>>>> Stashed changes
 }

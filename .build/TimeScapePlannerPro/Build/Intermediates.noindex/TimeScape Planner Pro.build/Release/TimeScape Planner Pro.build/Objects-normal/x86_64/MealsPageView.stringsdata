@@ -7,7 +7,11 @@
         "key": "Planned This Week",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 257
+=======
+          "startingLine": 259
+>>>>>>> Stashed changes
         }
       },
       {
@@ -15,7 +19,11 @@
         "key": "Templates",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 277
+=======
+          "startingLine": 279
+>>>>>>> Stashed changes
         }
       },
       {
@@ -23,7 +31,11 @@
         "key": "Recent Meals",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 295
+=======
+          "startingLine": 297
+>>>>>>> Stashed changes
         }
       },
       {
@@ -31,7 +43,11 @@
         "key": "Search planned meals",
         "location": {
           "startingColumn": 35,
+<<<<<<< Updated upstream
           "startingLine": 200
+=======
+          "startingLine": 202
+>>>>>>> Stashed changes
         }
       },
       {
@@ -39,7 +55,11 @@
         "key": "Group by",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 203
+=======
+          "startingLine": 205
+>>>>>>> Stashed changes
         }
       },
       {
@@ -47,7 +67,11 @@
         "key": "Filter",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 210
+=======
+          "startingLine": 212
+>>>>>>> Stashed changes
         }
       },
       {
@@ -55,7 +79,11 @@
         "key": "Default day",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 217
+=======
+          "startingLine": 219
+>>>>>>> Stashed changes
         }
       },
       {
@@ -63,7 +91,11 @@
         "key": "Grocery",
         "location": {
           "startingColumn": 35,
+<<<<<<< Updated upstream
           "startingLine": 237
+=======
+          "startingLine": 239
+>>>>>>> Stashed changes
         }
       },
       {
@@ -71,7 +103,11 @@
         "key": "Nutrition",
         "location": {
           "startingColumn": 35,
+<<<<<<< Updated upstream
           "startingLine": 244
+=======
+          "startingLine": 246
+>>>>>>> Stashed changes
         }
       },
       {
@@ -79,7 +115,11 @@
         "key": "Tasks",
         "location": {
           "startingColumn": 35,
+<<<<<<< Updated upstream
           "startingLine": 251
+=======
+          "startingLine": 253
+>>>>>>> Stashed changes
         }
       },
       {
@@ -87,7 +127,11 @@
         "key": "No meals planned yet",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 260
+=======
+          "startingLine": 262
+>>>>>>> Stashed changes
         }
       },
       {
@@ -95,7 +139,11 @@
         "key": "• %@",
         "location": {
           "startingColumn": 42,
+<<<<<<< Updated upstream
           "startingLine": 268
+=======
+          "startingLine": 270
+>>>>>>> Stashed changes
         }
       },
       {
@@ -103,7 +151,11 @@
         "key": "No templates yet",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 280
+=======
+          "startingLine": 282
+>>>>>>> Stashed changes
         }
       },
       {
@@ -111,7 +163,11 @@
         "key": "No recent meals yet",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 298
+=======
+          "startingLine": 300
+>>>>>>> Stashed changes
         }
       },
       {
@@ -119,7 +175,11 @@
         "key": "Week of %@",
         "location": {
           "startingColumn": 22,
+<<<<<<< Updated upstream
           "startingLine": 371
+=======
+          "startingLine": 373
+>>>>>>> Stashed changes
         }
       },
       {
@@ -127,7 +187,11 @@
         "key": "Meal",
         "location": {
           "startingColumn": 22,
+<<<<<<< Updated upstream
           "startingLine": 412
+=======
+          "startingLine": 414
+>>>>>>> Stashed changes
         }
       },
       {
@@ -135,7 +199,11 @@
         "key": "%lld",
         "location": {
           "startingColumn": 18,
+<<<<<<< Updated upstream
           "startingLine": 445
+=======
+          "startingLine": 447
+>>>>>>> Stashed changes
         }
       },
       {
@@ -143,7 +211,11 @@
         "key": "+ Add",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 516
+=======
+          "startingLine": 518
+>>>>>>> Stashed changes
         }
       },
       {
@@ -151,7 +223,11 @@
         "key": "%lld cal",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 510
+=======
+          "startingLine": 512
+>>>>>>> Stashed changes
         }
       },
       {
@@ -159,7 +235,11 @@
         "key": "%@ %@",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 849
+=======
+          "startingLine": 851
+>>>>>>> Stashed changes
         }
       },
       {
@@ -167,7 +247,11 @@
         "key": "Meal Details",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 719
+=======
+          "startingLine": 721
+>>>>>>> Stashed changes
         }
       },
       {
@@ -175,7 +259,11 @@
         "key": "Ingredients",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 743
+=======
+          "startingLine": 745
+>>>>>>> Stashed changes
         }
       },
       {
@@ -183,7 +271,11 @@
         "key": "Nutrition",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 804
+=======
+          "startingLine": 806
+>>>>>>> Stashed changes
         }
       },
       {
@@ -191,7 +283,11 @@
         "key": "Save as template",
         "location": {
           "startingColumn": 36,
+<<<<<<< Updated upstream
           "startingLine": 737
+=======
+          "startingLine": 739
+>>>>>>> Stashed changes
         }
       },
       {
@@ -199,7 +295,11 @@
         "key": "Meal name",
         "location": {
           "startingColumn": 38,
+<<<<<<< Updated upstream
           "startingLine": 722
+=======
+          "startingLine": 724
+>>>>>>> Stashed changes
         }
       },
       {
@@ -207,7 +307,11 @@
         "key": "Enter a meal name",
         "location": {
           "startingColumn": 43,
+<<<<<<< Updated upstream
           "startingLine": 725
+=======
+          "startingLine": 727
+>>>>>>> Stashed changes
         }
       },
       {
@@ -215,7 +319,11 @@
         "key": "Description",
         "location": {
           "startingColumn": 38,
+<<<<<<< Updated upstream
           "startingLine": 730
+=======
+          "startingLine": 732
+>>>>>>> Stashed changes
         }
       },
       {
@@ -223,7 +331,11 @@
         "key": "Optional notes",
         "location": {
           "startingColumn": 43,
+<<<<<<< Updated upstream
           "startingLine": 733
+=======
+          "startingLine": 735
+>>>>>>> Stashed changes
         }
       },
       {
@@ -231,7 +343,11 @@
         "key": "No ingredients yet",
         "location": {
           "startingColumn": 38,
+<<<<<<< Updated upstream
           "startingLine": 746
+=======
+          "startingLine": 748
+>>>>>>> Stashed changes
         }
       },
       {
@@ -239,7 +355,11 @@
         "key": "%lld cal",
         "location": {
           "startingColumn": 54,
+<<<<<<< Updated upstream
           "startingLine": 765
+=======
+          "startingLine": 767
+>>>>>>> Stashed changes
         }
       },
       {
@@ -247,7 +367,11 @@
         "key": "%lf %@",
         "location": {
           "startingColumn": 58,
+<<<<<<< Updated upstream
           "startingLine": 758
+=======
+          "startingLine": 760
+>>>>>>> Stashed changes
         }
       },
       {
@@ -255,7 +379,11 @@
         "key": "Add Ingredient",
         "location": {
           "startingColumn": 39,
+<<<<<<< Updated upstream
           "startingLine": 795
+=======
+          "startingLine": 797
+>>>>>>> Stashed changes
         }
       },
       {
@@ -263,7 +391,11 @@
         "key": "Start Fresh",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 821
+=======
+          "startingLine": 823
+>>>>>>> Stashed changes
         }
       },
       {
@@ -271,7 +403,11 @@
         "key": "Remove",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 828
+=======
+          "startingLine": 830
+>>>>>>> Stashed changes
         }
       },
       {
@@ -279,7 +415,11 @@
         "key": "Save Meal",
         "location": {
           "startingColumn": 32,
+<<<<<<< Updated upstream
           "startingLine": 835
+=======
+          "startingLine": 837
+>>>>>>> Stashed changes
         }
       },
       {
@@ -287,7 +427,11 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 852
+=======
+          "startingLine": 854
+>>>>>>> Stashed changes
         }
       },
       {
@@ -295,7 +439,11 @@
         "key": "Add Ingredient",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 977
+=======
+          "startingLine": 979
+>>>>>>> Stashed changes
         }
       },
       {
@@ -303,7 +451,11 @@
         "key": "Ingredient",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 913
+=======
+          "startingLine": 915
+>>>>>>> Stashed changes
         }
       },
       {
@@ -311,7 +463,11 @@
         "key": "Quantity",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 935
+=======
+          "startingLine": 937
+>>>>>>> Stashed changes
         }
       },
       {
@@ -319,7 +475,11 @@
         "key": "Nutrition (per 100g)",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 961
+=======
+          "startingLine": 963
+>>>>>>> Stashed changes
         }
       },
       {
@@ -327,7 +487,11 @@
         "key": "Name",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 915
+=======
+          "startingLine": 917
+>>>>>>> Stashed changes
         }
       },
       {
@@ -335,7 +499,11 @@
         "key": "Enter ingredient name",
         "location": {
           "startingColumn": 39,
+<<<<<<< Updated upstream
           "startingLine": 919
+=======
+          "startingLine": 921
+>>>>>>> Stashed changes
         }
       },
       {
@@ -343,7 +511,11 @@
         "key": "Amount",
         "location": {
           "startingColumn": 38,
+<<<<<<< Updated upstream
           "startingLine": 938
+=======
+          "startingLine": 940
+>>>>>>> Stashed changes
         }
       },
       {
@@ -351,7 +523,11 @@
         "key": "Amount",
         "location": {
           "startingColumn": 43,
+<<<<<<< Updated upstream
           "startingLine": 941
+=======
+          "startingLine": 943
+>>>>>>> Stashed changes
         }
       },
       {
@@ -359,7 +535,11 @@
         "key": "Unit",
         "location": {
           "startingColumn": 38,
+<<<<<<< Updated upstream
           "startingLine": 946
+=======
+          "startingLine": 948
+>>>>>>> Stashed changes
         }
       },
       {
@@ -367,7 +547,11 @@
         "key": "Unit",
         "location": {
           "startingColumn": 40,
+<<<<<<< Updated upstream
           "startingLine": 949
+=======
+          "startingLine": 951
+>>>>>>> Stashed changes
         }
       },
       {
@@ -375,7 +559,11 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 980
+=======
+          "startingLine": 982
+>>>>>>> Stashed changes
         }
       },
       {
@@ -383,7 +571,11 @@
         "key": "Add",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 985
+=======
+          "startingLine": 987
+>>>>>>> Stashed changes
         }
       },
       {
@@ -391,7 +583,11 @@
         "key": "",
         "location": {
           "startingColumn": 23,
+<<<<<<< Updated upstream
           "startingLine": 1011
+=======
+          "startingLine": 1013
+>>>>>>> Stashed changes
         }
       },
       {
@@ -399,7 +595,11 @@
         "key": "Grocery List",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 1100
+=======
+          "startingLine": 1102
+>>>>>>> Stashed changes
         }
       },
       {
@@ -407,7 +607,11 @@
         "key": "%.1f g",
         "location": {
           "startingColumn": 42,
+<<<<<<< Updated upstream
           "startingLine": 1048
+=======
+          "startingLine": 1050
+>>>>>>> Stashed changes
         }
       },
       {
@@ -415,7 +619,11 @@
         "key": "No meals planned for this week",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 1067
+=======
+          "startingLine": 1069
+>>>>>>> Stashed changes
         }
       },
       {
@@ -423,7 +631,11 @@
         "key": "Add %lld to Task",
         "location": {
           "startingColumn": 39,
+<<<<<<< Updated upstream
           "startingLine": 1082
+=======
+          "startingLine": 1084
+>>>>>>> Stashed changes
         }
       },
       {
@@ -431,7 +643,11 @@
         "key": "Clear",
         "location": {
           "startingColumn": 39,
+<<<<<<< Updated upstream
           "startingLine": 1089
+=======
+          "startingLine": 1091
+>>>>>>> Stashed changes
         }
       },
       {
@@ -439,7 +655,11 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 1103
+=======
+          "startingLine": 1105
+>>>>>>> Stashed changes
         }
       },
       {
@@ -447,7 +667,11 @@
         "key": "Nutrition Report",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 1254
+=======
+          "startingLine": 1256
+>>>>>>> Stashed changes
         }
       },
       {
@@ -455,7 +679,11 @@
         "key": "No meals planned for this week",
         "location": {
           "startingColumn": 26,
+<<<<<<< Updated upstream
           "startingLine": 1250
+=======
+          "startingLine": 1252
+>>>>>>> Stashed changes
         }
       },
       {
@@ -463,7 +691,11 @@
         "key": "Daily Breakdown",
         "location": {
           "startingColumn": 34,
+<<<<<<< Updated upstream
           "startingLine": 1221
+=======
+          "startingLine": 1223
+>>>>>>> Stashed changes
         }
       },
       {
@@ -471,7 +703,11 @@
         "key": "Weekly Total",
         "location": {
           "startingColumn": 38,
+<<<<<<< Updated upstream
           "startingLine": 1194
+=======
+          "startingLine": 1196
+>>>>>>> Stashed changes
         }
       },
       {
@@ -479,7 +715,11 @@
         "key": "Calories",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1199
+=======
+          "startingLine": 1201
+>>>>>>> Stashed changes
         }
       },
       {
@@ -487,7 +727,11 @@
         "key": "%lld",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1200
+=======
+          "startingLine": 1202
+>>>>>>> Stashed changes
         }
       },
       {
@@ -495,7 +739,11 @@
         "key": "Protein",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1203
+=======
+          "startingLine": 1205
+>>>>>>> Stashed changes
         }
       },
       {
@@ -503,7 +751,11 @@
         "key": "%.0fg",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1204
+=======
+          "startingLine": 1206
+>>>>>>> Stashed changes
         }
       },
       {
@@ -511,7 +763,11 @@
         "key": "Carbs",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1207
+=======
+          "startingLine": 1209
+>>>>>>> Stashed changes
         }
       },
       {
@@ -519,7 +775,11 @@
         "key": "%.0fg",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1208
+=======
+          "startingLine": 1210
+>>>>>>> Stashed changes
         }
       },
       {
@@ -527,7 +787,11 @@
         "key": "Fat",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1211
+=======
+          "startingLine": 1213
+>>>>>>> Stashed changes
         }
       },
       {
@@ -535,7 +799,11 @@
         "key": "%.0fg",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1212
+=======
+          "startingLine": 1214
+>>>>>>> Stashed changes
         }
       },
       {
@@ -543,7 +811,11 @@
         "key": "%lld cal",
         "location": {
           "startingColumn": 47,
+<<<<<<< Updated upstream
           "startingLine": 1236
+=======
+          "startingLine": 1238
+>>>>>>> Stashed changes
         }
       },
       {
@@ -551,7 +823,11 @@
         "key": "%.0fg protein",
         "location": {
           "startingColumn": 47,
+<<<<<<< Updated upstream
           "startingLine": 1237
+=======
+          "startingLine": 1239
+>>>>>>> Stashed changes
         }
       },
       {
@@ -559,7 +835,11 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 1257
+=======
+          "startingLine": 1259
+>>>>>>> Stashed changes
         }
       },
       {
@@ -567,7 +847,11 @@
         "key": "Grocery Tasks",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 1367
+=======
+          "startingLine": 1369
+>>>>>>> Stashed changes
         }
       },
       {
@@ -575,7 +859,11 @@
         "key": "No grocery tasks yet",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 1283
+=======
+          "startingLine": 1285
+>>>>>>> Stashed changes
         }
       },
       {
@@ -583,7 +871,11 @@
         "key": "Create one from the grocery list",
         "location": {
           "startingColumn": 30,
+<<<<<<< Updated upstream
           "startingLine": 1285
+=======
+          "startingLine": 1287
+>>>>>>> Stashed changes
         }
       },
       {
@@ -591,7 +883,11 @@
         "key": "%lld/%lld items",
         "location": {
           "startingColumn": 46,
+<<<<<<< Updated upstream
           "startingLine": 1301
+=======
+          "startingLine": 1303
+>>>>>>> Stashed changes
         }
       },
       {
@@ -599,7 +895,11 @@
         "key": "Done",
         "location": {
           "startingColumn": 28,
+<<<<<<< Updated upstream
           "startingLine": 1370
+=======
+          "startingLine": 1372
+>>>>>>> Stashed changes
         }
       }
     ]
