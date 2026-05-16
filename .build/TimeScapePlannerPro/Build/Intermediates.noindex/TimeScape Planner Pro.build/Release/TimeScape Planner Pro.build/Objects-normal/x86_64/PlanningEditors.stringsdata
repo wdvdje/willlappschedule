@@ -7,7 +7,7 @@
         "key": "Edit Item",
         "location": {
           "startingColumn": 22,
-          "startingLine": 361
+          "startingLine": 380
         }
       },
       {
@@ -15,7 +15,7 @@
         "key": "Type",
         "location": {
           "startingColumn": 24,
-          "startingLine": 364
+          "startingLine": 383
         }
       },
       {
@@ -23,7 +23,7 @@
         "key": "Core",
         "location": {
           "startingColumn": 34,
-          "startingLine": 373
+          "startingLine": 392
         }
       },
       {
@@ -31,7 +31,7 @@
         "key": "Sub-Items",
         "location": {
           "startingColumn": 34,
-          "startingLine": 422
+          "startingLine": 434
         }
       },
       {
@@ -39,7 +39,7 @@
         "key": "Title",
         "location": {
           "startingColumn": 43,
-          "startingLine": 375
+          "startingLine": 394
         }
       },
       {
@@ -47,7 +47,7 @@
         "key": "Icon",
         "location": {
           "startingColumn": 44,
-          "startingLine": 379
+          "startingLine": 398
         }
       },
       {
@@ -55,7 +55,7 @@
         "key": "Domain",
         "location": {
           "startingColumn": 44,
-          "startingLine": 393
+          "startingLine": 405
         }
       },
       {
@@ -63,7 +63,7 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 44,
-          "startingLine": 403
+          "startingLine": 415
         }
       },
       {
@@ -71,7 +71,7 @@
         "key": "General",
         "location": {
           "startingColumn": 46,
-          "startingLine": 404
+          "startingLine": 416
         }
       },
       {
@@ -79,7 +79,7 @@
         "key": "Event Details",
         "location": {
           "startingColumn": 26,
-          "startingLine": 595
+          "startingLine": 609
         }
       },
       {
@@ -87,7 +87,7 @@
         "key": "Task Details",
         "location": {
           "startingColumn": 26,
-          "startingLine": 641
+          "startingLine": 655
         }
       },
       {
@@ -95,7 +95,7 @@
         "key": "Reminder Details",
         "location": {
           "startingColumn": 26,
-          "startingLine": 688
+          "startingLine": 702
         }
       },
       {
@@ -103,7 +103,7 @@
         "key": "Future item types",
         "location": {
           "startingColumn": 38,
-          "startingLine": 479
+          "startingLine": 493
         }
       },
       {
@@ -111,7 +111,7 @@
         "key": "No sub-items yet.",
         "location": {
           "startingColumn": 42,
-          "startingLine": 497
+          "startingLine": 511
         }
       },
       {
@@ -119,7 +119,7 @@
         "key": "Sub-item type",
         "location": {
           "startingColumn": 44,
-          "startingLine": 430
+          "startingLine": 442
         }
       },
       {
@@ -127,7 +127,7 @@
         "key": "Add",
         "location": {
           "startingColumn": 44,
-          "startingLine": 438
+          "startingLine": 450
         }
       },
       {
@@ -135,7 +135,7 @@
         "key": "Sub-item",
         "location": {
           "startingColumn": 55,
-          "startingLine": 522
+          "startingLine": 536
         }
       },
       {
@@ -143,7 +143,7 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
-          "startingLine": 544
+          "startingLine": 558
         }
       },
       {
@@ -151,7 +151,7 @@
         "key": "Save",
         "location": {
           "startingColumn": 28,
-          "startingLine": 545
+          "startingLine": 559
         }
       },
       {
@@ -159,7 +159,7 @@
         "key": "All day",
         "location": {
           "startingColumn": 32,
-          "startingLine": 605
+          "startingLine": 619
         }
       },
       {
@@ -167,7 +167,7 @@
         "key": "",
         "location": {
           "startingColumn": 40,
-          "startingLine": 598
+          "startingLine": 612
         }
       },
       {
@@ -175,7 +175,7 @@
         "key": "",
         "location": {
           "startingColumn": 40,
-          "startingLine": 601
+          "startingLine": 615
         }
       },
       {
@@ -183,7 +183,7 @@
         "key": "",
         "location": {
           "startingColumn": 44,
-          "startingLine": 609
+          "startingLine": 623
         }
       },
       {
@@ -191,7 +191,7 @@
         "key": "",
         "location": {
           "startingColumn": 44,
-          "startingLine": 613
+          "startingLine": 627
         }
       },
       {
@@ -199,7 +199,7 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
-          "startingLine": 620
+          "startingLine": 634
         }
       },
       {
@@ -207,7 +207,7 @@
         "key": "Add due time",
         "location": {
           "startingColumn": 32,
-          "startingLine": 654
+          "startingLine": 668
         }
       },
       {
@@ -215,7 +215,7 @@
         "key": "Estimated duration: %lld min",
         "location": {
           "startingColumn": 33,
-          "startingLine": 677
+          "startingLine": 691
         }
       },
       {
@@ -223,7 +223,7 @@
         "key": "",
         "location": {
           "startingColumn": 40,
-          "startingLine": 644
+          "startingLine": 658
         }
       },
       {
@@ -231,7 +231,7 @@
         "key": "",
         "location": {
           "startingColumn": 44,
-          "startingLine": 648
+          "startingLine": 662
         }
       },
       {
@@ -239,7 +239,7 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
-          "startingLine": 658
+          "startingLine": 672
         }
       },
       {
@@ -247,7 +247,7 @@
         "key": "Priority",
         "location": {
           "startingColumn": 36,
-          "startingLine": 667
+          "startingLine": 681
         }
       },
       {
@@ -255,7 +255,7 @@
         "key": "Enable reminder time to choose an alert offset.",
         "location": {
           "startingColumn": 34,
-          "startingLine": 725
+          "startingLine": 739
         }
       },
       {
@@ -263,7 +263,7 @@
         "key": "Set reminder time",
         "location": {
           "startingColumn": 32,
-          "startingLine": 690
+          "startingLine": 704
         }
       },
       {
@@ -271,7 +271,7 @@
         "key": "",
         "location": {
           "startingColumn": 40,
-          "startingLine": 693
+          "startingLine": 707
         }
       },
       {
@@ -279,7 +279,7 @@
         "key": "",
         "location": {
           "startingColumn": 44,
-          "startingLine": 697
+          "startingLine": 711
         }
       },
       {
@@ -287,7 +287,7 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
-          "startingLine": 704
+          "startingLine": 718
         }
       },
       {
@@ -295,7 +295,7 @@
         "key": "Alert",
         "location": {
           "startingColumn": 36,
-          "startingLine": 713
+          "startingLine": 727
         }
       },
       {
@@ -303,7 +303,7 @@
         "key": "Alternate workday settings",
         "location": {
           "startingColumn": 22,
-          "startingLine": 1046
+          "startingLine": 1079
         }
       },
       {
@@ -311,7 +311,7 @@
         "key": "Starting pattern is only shown while editing.",
         "location": {
           "startingColumn": 22,
-          "startingLine": 1067
+          "startingLine": 1100
         }
       },
       {
@@ -319,7 +319,7 @@
         "key": "Starting Pattern",
         "location": {
           "startingColumn": 24,
-          "startingLine": 1050
+          "startingLine": 1083
         }
       },
       {
@@ -327,7 +327,7 @@
         "key": "Respect job days off",
         "location": {
           "startingColumn": 24,
-          "startingLine": 1057
+          "startingLine": 1090
         }
       },
       {
@@ -335,7 +335,7 @@
         "key": "Repeat until",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1060
+          "startingLine": 1093
         }
       },
       {
@@ -343,7 +343,7 @@
         "key": "Include first occurrence even though start date is a day off",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1063
+          "startingLine": 1096
         }
       },
       {
@@ -351,7 +351,7 @@
         "key": "New Item",
         "location": {
           "startingColumn": 22,
-          "startingLine": 1379
+          "startingLine": 1430
         }
       },
       {
@@ -359,7 +359,7 @@
         "key": "Type",
         "location": {
           "startingColumn": 24,
-          "startingLine": 1382
+          "startingLine": 1433
         }
       },
       {
@@ -367,7 +367,7 @@
         "key": "Core",
         "location": {
           "startingColumn": 34,
-          "startingLine": 1391
+          "startingLine": 1442
         }
       },
       {
@@ -375,7 +375,7 @@
         "key": "Sub-Items",
         "location": {
           "startingColumn": 34,
-          "startingLine": 1440
+          "startingLine": 1484
         }
       },
       {
@@ -383,7 +383,7 @@
         "key": "Title",
         "location": {
           "startingColumn": 43,
-          "startingLine": 1393
+          "startingLine": 1444
         }
       },
       {
@@ -391,7 +391,7 @@
         "key": "Icon",
         "location": {
           "startingColumn": 44,
-          "startingLine": 1397
+          "startingLine": 1448
         }
       },
       {
@@ -399,7 +399,7 @@
         "key": "Domain",
         "location": {
           "startingColumn": 44,
-          "startingLine": 1411
+          "startingLine": 1455
         }
       },
       {
@@ -407,7 +407,7 @@
         "key": "Bucket",
         "location": {
           "startingColumn": 44,
-          "startingLine": 1421
+          "startingLine": 1465
         }
       },
       {
@@ -415,7 +415,7 @@
         "key": "General",
         "location": {
           "startingColumn": 46,
-          "startingLine": 1422
+          "startingLine": 1466
         }
       },
       {
@@ -423,7 +423,7 @@
         "key": "Event Details",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1640
+          "startingLine": 1717
         }
       },
       {
@@ -431,7 +431,7 @@
         "key": "Task Details",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1686
+          "startingLine": 1763
         }
       },
       {
@@ -439,7 +439,7 @@
         "key": "Reminder Details",
         "location": {
           "startingColumn": 26,
-          "startingLine": 1733
+          "startingLine": 1810
         }
       },
       {
@@ -447,7 +447,7 @@
         "key": "Future shells",
         "location": {
           "startingColumn": 38,
-          "startingLine": 1497
+          "startingLine": 1543
         }
       },
       {
@@ -455,7 +455,7 @@
         "key": "No sub-items yet.",
         "location": {
           "startingColumn": 42,
-          "startingLine": 1515
+          "startingLine": 1561
         }
       },
       {
@@ -463,7 +463,7 @@
         "key": "Sub-item type",
         "location": {
           "startingColumn": 44,
-          "startingLine": 1448
+          "startingLine": 1492
         }
       },
       {
@@ -471,7 +471,7 @@
         "key": "Add",
         "location": {
           "startingColumn": 44,
-          "startingLine": 1456
+          "startingLine": 1500
         }
       },
       {
@@ -479,7 +479,7 @@
         "key": "Sub-item",
         "location": {
           "startingColumn": 55,
-          "startingLine": 1540
+          "startingLine": 1586
         }
       },
       {
@@ -487,7 +487,7 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1562
+          "startingLine": 1608
         }
       },
       {
@@ -495,7 +495,7 @@
         "key": "Create",
         "location": {
           "startingColumn": 28,
-          "startingLine": 1563
+          "startingLine": 1609
         }
       },
       {
@@ -503,7 +503,7 @@
         "key": "All day",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1650
+          "startingLine": 1727
         }
       },
       {
@@ -511,7 +511,7 @@
         "key": "",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1643
+          "startingLine": 1720
         }
       },
       {
@@ -519,7 +519,7 @@
         "key": "",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1646
+          "startingLine": 1723
         }
       },
       {
@@ -527,7 +527,7 @@
         "key": "",
         "location": {
           "startingColumn": 44,
-          "startingLine": 1654
+          "startingLine": 1731
         }
       },
       {
@@ -535,7 +535,7 @@
         "key": "",
         "location": {
           "startingColumn": 44,
-          "startingLine": 1658
+          "startingLine": 1735
         }
       },
       {
@@ -543,7 +543,7 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
-          "startingLine": 1665
+          "startingLine": 1742
         }
       },
       {
@@ -551,7 +551,7 @@
         "key": "Add due time",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1699
+          "startingLine": 1776
         }
       },
       {
@@ -559,7 +559,7 @@
         "key": "Estimated duration: %lld min",
         "location": {
           "startingColumn": 33,
-          "startingLine": 1722
+          "startingLine": 1799
         }
       },
       {
@@ -567,7 +567,7 @@
         "key": "",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1689
+          "startingLine": 1766
         }
       },
       {
@@ -575,7 +575,7 @@
         "key": "",
         "location": {
           "startingColumn": 44,
-          "startingLine": 1693
+          "startingLine": 1770
         }
       },
       {
@@ -583,7 +583,7 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
-          "startingLine": 1703
+          "startingLine": 1780
         }
       },
       {
@@ -591,7 +591,7 @@
         "key": "Priority",
         "location": {
           "startingColumn": 36,
-          "startingLine": 1712
+          "startingLine": 1789
         }
       },
       {
@@ -599,7 +599,7 @@
         "key": "Enable reminder time to choose an alert offset.",
         "location": {
           "startingColumn": 34,
-          "startingLine": 1770
+          "startingLine": 1847
         }
       },
       {
@@ -607,7 +607,7 @@
         "key": "Set reminder time",
         "location": {
           "startingColumn": 32,
-          "startingLine": 1735
+          "startingLine": 1812
         }
       },
       {
@@ -615,7 +615,7 @@
         "key": "",
         "location": {
           "startingColumn": 40,
-          "startingLine": 1738
+          "startingLine": 1815
         }
       },
       {
@@ -623,7 +623,7 @@
         "key": "",
         "location": {
           "startingColumn": 44,
-          "startingLine": 1742
+          "startingLine": 1819
         }
       },
       {
@@ -631,7 +631,7 @@
         "key": "Repeat",
         "location": {
           "startingColumn": 36,
-          "startingLine": 1749
+          "startingLine": 1826
         }
       },
       {
@@ -639,7 +639,7 @@
         "key": "Alert",
         "location": {
           "startingColumn": 36,
-          "startingLine": 1758
+          "startingLine": 1835
         }
       },
       {
@@ -647,7 +647,7 @@
         "key": "Alternate workday settings",
         "location": {
           "startingColumn": 22,
-          "startingLine": 2087
+          "startingLine": 2166
         }
       },
       {
@@ -655,7 +655,7 @@
         "key": "Starting pattern is only shown while editing.",
         "location": {
           "startingColumn": 22,
-          "startingLine": 2109
+          "startingLine": 2188
         }
       },
       {
@@ -663,7 +663,7 @@
         "key": "Starting Pattern",
         "location": {
           "startingColumn": 24,
-          "startingLine": 2091
+          "startingLine": 2170
         }
       },
       {
@@ -671,7 +671,7 @@
         "key": "Respect job days off",
         "location": {
           "startingColumn": 24,
-          "startingLine": 2099
+          "startingLine": 2178
         }
       },
       {
@@ -679,7 +679,7 @@
         "key": "Repeat until",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2102
+          "startingLine": 2181
         }
       },
       {
@@ -687,7 +687,7 @@
         "key": "Include first occurrence even though start date is a day off",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2105
+          "startingLine": 2184
         }
       },
       {
@@ -695,7 +695,7 @@
         "key": "Add %@",
         "location": {
           "startingColumn": 18,
-          "startingLine": 2179
+          "startingLine": 2260
         }
       },
       {
@@ -703,7 +703,7 @@
         "key": "Create a journal entry in the Journal app to attach it here.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2215
+          "startingLine": 2296
         }
       },
       {
@@ -711,7 +711,7 @@
         "key": "Create a budget planning entry in Budgeting to attach it here.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2233
+          "startingLine": 2314
         }
       },
       {
@@ -719,7 +719,7 @@
         "key": "Create a favorite location in Dynamic Map to attach it here.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2251
+          "startingLine": 2332
         }
       },
       {
@@ -727,7 +727,7 @@
         "key": "Save a route in Dynamic Map to attach it here.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2268
+          "startingLine": 2349
         }
       },
       {
@@ -735,7 +735,7 @@
         "key": "Create a daily weather summary in Dynamic Weather to attach it here.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2285
+          "startingLine": 2366
         }
       },
       {
@@ -743,7 +743,7 @@
         "key": "Create an outfit in the Outfits app to attach it here.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2302
+          "startingLine": 2383
         }
       },
       {
@@ -751,7 +751,7 @@
         "key": "Create a focus timer in the Focus app to attach it here.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2319
+          "startingLine": 2400
         }
       },
       {
@@ -759,7 +759,7 @@
         "key": "Log a workout in the Fitness app to attach it here.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2337
+          "startingLine": 2418
         }
       },
       {
@@ -767,7 +767,15 @@
         "key": "Create a reading goal in the Reading List app to attach it here.",
         "location": {
           "startingColumn": 26,
-          "startingLine": 2355
+          "startingLine": 2436
+        }
+      },
+      {
+        "comment": "",
+        "key": "Create a meal in the Meals app to attach it here.",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2453
         }
       },
       {
@@ -775,7 +783,7 @@
         "key": "Title",
         "location": {
           "startingColumn": 27,
-          "startingLine": 2184
+          "startingLine": 2265
         }
       },
       {
@@ -783,7 +791,7 @@
         "key": "https://example.com",
         "location": {
           "startingColumn": 27,
-          "startingLine": 2190
+          "startingLine": 2271
         }
       },
       {
@@ -791,7 +799,7 @@
         "key": "Journal entry",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2220
+          "startingLine": 2301
         }
       },
       {
@@ -799,7 +807,7 @@
         "key": "Budget entry",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2238
+          "startingLine": 2319
         }
       },
       {
@@ -807,7 +815,7 @@
         "key": "Favorite location",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2256
+          "startingLine": 2337
         }
       },
       {
@@ -815,7 +823,7 @@
         "key": "Saved route",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2273
+          "startingLine": 2354
         }
       },
       {
@@ -823,7 +831,7 @@
         "key": "Weather snapshot",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2290
+          "startingLine": 2371
         }
       },
       {
@@ -831,7 +839,7 @@
         "key": "Outfit",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2307
+          "startingLine": 2388
         }
       },
       {
@@ -839,7 +847,7 @@
         "key": "Focus timer",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2324
+          "startingLine": 2405
         }
       },
       {
@@ -847,7 +855,7 @@
         "key": "Workout",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2342
+          "startingLine": 2423
         }
       },
       {
@@ -855,7 +863,15 @@
         "key": "Reading Goal",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2360
+          "startingLine": 2441
+        }
+      },
+      {
+        "comment": "",
+        "key": "Meal",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 2458
         }
       },
       {
@@ -863,7 +879,7 @@
         "key": "No file selected",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2203
+          "startingLine": 2284
         }
       },
       {
@@ -871,7 +887,7 @@
         "key": "Browse",
         "location": {
           "startingColumn": 28,
-          "startingLine": 2208
+          "startingLine": 2289
         }
       },
       {
@@ -879,7 +895,7 @@
         "key": "Select entry",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2221
+          "startingLine": 2302
         }
       },
       {
@@ -887,7 +903,7 @@
         "key": "%@ - %@",
         "location": {
           "startingColumn": 34,
-          "startingLine": 2224
+          "startingLine": 2305
         }
       },
       {
@@ -895,7 +911,7 @@
         "key": "Select budget entry",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2239
+          "startingLine": 2320
         }
       },
       {
@@ -903,7 +919,7 @@
         "key": "%@ - %@",
         "location": {
           "startingColumn": 34,
-          "startingLine": 2242
+          "startingLine": 2323
         }
       },
       {
@@ -911,7 +927,7 @@
         "key": "Select favorite",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2257
+          "startingLine": 2338
         }
       },
       {
@@ -919,7 +935,7 @@
         "key": "Select route",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2274
+          "startingLine": 2355
         }
       },
       {
@@ -927,7 +943,7 @@
         "key": "Select snapshot",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2291
+          "startingLine": 2372
         }
       },
       {
@@ -935,7 +951,7 @@
         "key": "%@ - %@",
         "location": {
           "startingColumn": 34,
-          "startingLine": 2293
+          "startingLine": 2374
         }
       },
       {
@@ -943,7 +959,7 @@
         "key": "Select outfit",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2308
+          "startingLine": 2389
         }
       },
       {
@@ -951,7 +967,7 @@
         "key": "Select timer",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2325
+          "startingLine": 2406
         }
       },
       {
@@ -959,7 +975,7 @@
         "key": "%@ (%lldm / %lldm break)",
         "location": {
           "startingColumn": 34,
-          "startingLine": 2327
+          "startingLine": 2408
         }
       },
       {
@@ -967,7 +983,7 @@
         "key": "Select workout",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2343
+          "startingLine": 2424
         }
       },
       {
@@ -975,7 +991,7 @@
         "key": "%@ — %@",
         "location": {
           "startingColumn": 34,
-          "startingLine": 2345
+          "startingLine": 2426
         }
       },
       {
@@ -983,7 +999,15 @@
         "key": "Select goal",
         "location": {
           "startingColumn": 30,
-          "startingLine": 2361
+          "startingLine": 2442
+        }
+      },
+      {
+        "comment": "",
+        "key": "Select meal",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2459
         }
       },
       {
@@ -991,7 +1015,7 @@
         "key": "Cancel",
         "location": {
           "startingColumn": 24,
-          "startingLine": 2376
+          "startingLine": 2474
         }
       },
       {
@@ -999,7 +1023,7 @@
         "key": "Add",
         "location": {
           "startingColumn": 24,
-          "startingLine": 2377
+          "startingLine": 2475
         }
       }
     ]
